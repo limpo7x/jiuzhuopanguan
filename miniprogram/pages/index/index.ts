@@ -97,7 +97,11 @@ Page<HomePageState, HomePageMethods>({
   },
 
   handleToolTap(event) {
-    const { id, name } = event.currentTarget.dataset as { id: string; name: string }
+    const { id, name, route } = event.currentTarget.dataset as { id: string; name: string; route?: string }
+    if (route) {
+      this.openPage(route)
+      return
+    }
     this.openPage(`/pages/tool-detail/index?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`)
   },
 

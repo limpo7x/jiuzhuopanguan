@@ -28,11 +28,11 @@
     </view>
 
     <view class="tools-hero">
-      <image class="tools-hero-image" src="https://api.pomer.cn/static/toolbox-hero.png" mode="aspectFill"></image>
+      <image class="tools-hero-image" src="{{heroImageUrl}}" mode="aspectFill"></image>
       <view class="tools-hero-mask"></view>
       <view class="tools-hero-content">
-        <text class="tools-hero-title">工具在手 生活不愁</text>
-        <text class="tools-hero-subtitle">高效 · 实用 · 有趣</text>
+        <text class="tools-hero-title">{{heroTitle}}</text>
+        <text class="tools-hero-subtitle">{{heroSubtitle}}</text>
       </view>
     </view>
 
@@ -76,7 +76,7 @@
 
     <view class="tools-list">
       <view
-        wx:for="{{toolCategories}}"
+        wx:for="{{categoryCards}}"
         wx:key="id"
         class="tools-list-item"
         data-id="{{item.id}}"

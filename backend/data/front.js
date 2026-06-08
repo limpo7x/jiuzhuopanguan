@@ -201,6 +201,21 @@ const parsePercent = (value) => {
   return matched ? Number(matched[1]) : 0
 }
 
+const isEnabledTool = (item) => !String(item?.status || '').includes('停用')
+const isHotTool = (item) => String(item?.isHot || '').includes('是')
+const supportsPlacement = (item, placement) => {
+  const normalized = String(item?.placement || 'tools').trim().toLowerCase()
+  return normalized === 'both' || normalized === placement
+}
+const sortTools = (items = []) =>
+  [...items].sort((left, right) => {
+    const orderDiff = (Number(left.sortOrder) || 0) - (Number(right.sortOrder) || 0)
+    if (orderDiff !== 0) {
+      return orderDiff
+    }
+    return (Number(right.usageCount) || 0) - (Number(left.usageCount) || 0)
+  })
+
 const getLiveSessionConfig = () => {
   const store = getAdminStore()
   const session = pickLiveSession(store.liveSessions)
@@ -272,8 +287,8 @@ const getFeaturedReport = () => {
 
 const listFrontendTools = () => {
   const store = getAdminStore()
-  const enabledTools = store.toolsCatalog.filter((item) => !String(item.status || '').includes('停用'))
-  const tools = enabledTools.map((item) => {
+  const enabledTools = sortTools(store.toolsCatalog.filter(isEnabledTool))
+  const tools = enabledTools.filter((item) => supportsPlacement(item, 'tools')).map((item) => {
     const toolId = normalizeToolId(item)
     const categoryId = normalizeToolCategoryId(item.category)
     const visual = getToolVisual(toolId, item.imageUrl)
@@ -287,6 +302,9 @@ const listFrontendTools = () => {
       usageCount: Number(item.usageCount) || 0,
       favoriteRate: item.favoriteRate || '0%',
       status: item.status || '启用',
+      sortOrder: Number(item.sortOrder) || 0,
+      isHot: isHotTool(item) ? '是' : '否',
+      placement: item.placement || 'tools',
       iconClass: visual.iconClass,
       toneClass: visual.toneClass,
       imageUrl: visual.imageUrl,
@@ -302,6 +320,7 @@ const listFrontendTools = () => {
       name: TOOL_CATEGORY_LABEL_MAP[categoryId] || categoryId,
     })),
   ]
+  const popularTools = sortTools(tools.filter((item) => String(item.isHot).includes('是')))
 
   return {
     hero: {
@@ -310,6 +329,7 @@ const listFrontendTools = () => {
       title: '后台工具直连前台目录',
     },
     categories,
+    popularTools,
     tools,
   }
 }

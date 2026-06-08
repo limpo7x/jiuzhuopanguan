@@ -6,6 +6,39 @@ const storePath = path.join(__dirname, 'content-store.json')
 
 const asset = (name) => `/static/${name}`
 
+const TOOL_HISTORY_ID_BY_NAME = {
+  二维码生成: 'qr-code',
+  二维码: 'qr-code',
+  九宫格切图: 'nine-grid',
+  单位换算: 'unit',
+  图片去水印: 'watermark',
+  图片压缩: 'image-compress',
+  房贷计算: 'loan-calc',
+  'JSON 格式化': 'json',
+  JSON格式化: 'json',
+  汇率换算: 'currency',
+  文字计数: 'text-count',
+}
+
+const normalizeToolHistoryId = (item = {}, fallback = {}, index = 0) => {
+  const directId = String(item.id || '').trim()
+  if (directId && !/^tool-\d+$/i.test(directId)) {
+    return directId
+  }
+
+  const byName = TOOL_HISTORY_ID_BY_NAME[String(item.name || fallback.name || '').trim()]
+  if (byName) {
+    return byName
+  }
+
+  const fallbackId = String(fallback.id || '').trim()
+  if (fallbackId && !/^tool-\d+$/i.test(fallbackId)) {
+    return fallbackId
+  }
+
+  return `tool-${index + 1}`
+}
+
 const createDefaultCommerce = () => ({
   claimedTaskIds: [],
   membership: {
@@ -34,9 +67,9 @@ const createDefaultStore = () => ({
     copy: '理性饮酒，适量饮酒，未成年人禁止饮酒。',
   },
   toolHistory: [
-    { id: 'tool-1', name: '图片去水印', category: '图片工具', usedAt: '今天 18:30' },
-    { id: 'tool-2', name: 'JSON 格式化', category: '开发工具', usedAt: '今天 15:08' },
-    { id: 'tool-3', name: '汇率换算', category: '计算工具', usedAt: '昨天 22:10' },
+    { id: 'watermark', name: '图片去水印', category: '图片工具', usedAt: '今天 18:30' },
+    { id: 'json', name: 'JSON 格式化', category: '开发工具', usedAt: '今天 15:08' },
+    { id: 'currency', name: '汇率换算', category: '计算工具', usedAt: '昨天 22:10' },
   ],
   homeConfig: {
     hero: {
@@ -213,7 +246,7 @@ const normalizeStore = (store = {}) => {
     },
     toolHistory: Array.isArray(store?.toolHistory) && store.toolHistory.length
       ? store.toolHistory.map((item, index) => ({
-          id: String(item?.id || defaults.toolHistory[index]?.id || `tool-${index + 1}`),
+          id: normalizeToolHistoryId(item, defaults.toolHistory[index] || {}, index),
           name: isBrokenSample(item?.name) ? defaults.toolHistory[index]?.name || `工具 ${index + 1}` : String(item?.name || defaults.toolHistory[index]?.name || `工具 ${index + 1}`),
           category: isBrokenSample(item?.category) ? defaults.toolHistory[index]?.category || '工具' : String(item?.category || defaults.toolHistory[index]?.category || '工具'),
           usedAt: isBrokenSample(item?.usedAt) ? defaults.toolHistory[index]?.usedAt || '今天' : String(item?.usedAt || defaults.toolHistory[index]?.usedAt || '今天'),

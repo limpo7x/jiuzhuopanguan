@@ -23,6 +23,7 @@ export interface RecentTool {
   imageUrl: string
   badgeText: string
   badgeClass: string
+  route?: string
 }
 
 export interface HomePageData {
@@ -73,7 +74,7 @@ export const homePageMock: HomePageData = {
   ],
   recentTools: [
     {
-      id: 'tool-9-grid',
+      id: 'nine-grid',
       name: '九宫格切图',
       usedAt: '刚刚使用',
       imageUrl: asset('home/image-process-hero.png'),
@@ -81,7 +82,7 @@ export const homePageMock: HomePageData = {
       badgeClass: 'green',
     },
     {
-      id: 'tool-json',
+      id: 'json',
       name: 'JSON格式化',
       usedAt: '1小时前',
       imageUrl: asset('home/toolbox-hero.png'),
@@ -89,7 +90,7 @@ export const homePageMock: HomePageData = {
       badgeClass: '',
     },
     {
-      id: 'tool-watermark',
+      id: 'watermark',
       name: '图片去水印',
       usedAt: '2小时前',
       imageUrl: asset('home/party-hero.png'),

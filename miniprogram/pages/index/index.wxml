@@ -80,6 +80,7 @@
         class="recent-list-item"
         data-id="{{item.id}}"
         data-name="{{item.name}}"
+        data-route="{{item.route}}"
         bindtap="handleToolTap"
       >
         <view class="recent-thumb">

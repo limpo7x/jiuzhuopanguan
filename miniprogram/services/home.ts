@@ -1,6 +1,7 @@
 import { homePageMock, type HomePageData } from '../mock/home'
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath, staticAsset } from '../config/assets'
+import { resolveToolId } from '../utils/toolkit'
 
 interface ApiResponse<T> {
   code: number
@@ -35,6 +36,7 @@ interface ToolHistoryResponseItem {
   category?: string
   id?: string
   name?: string
+  route?: string
   usedAt?: string
 }
 
@@ -54,6 +56,34 @@ const RECENT_TOOL_ASSET_BY_CATEGORY: Record<string, { badgeClass: string; badgeT
   图片处理: { badgeClass: 'green', badgeText: '图片', imageUrl: staticAsset('image-process-hero.png') },
   开发工具: { badgeClass: '', badgeText: '工具', imageUrl: staticAsset('toolbox-hero.png') },
   计算工具: { badgeClass: '', badgeText: '计算', imageUrl: staticAsset('report-poster.png') },
+}
+
+const RECENT_TOOL_ID_BY_NAME: Record<string, string> = {
+  二维码生成: 'qr-code',
+  二维码: 'qr-code',
+  九宫格切图: 'nine-grid',
+  单位换算: 'unit',
+  图片去水印: 'watermark',
+  图片压缩: 'image-compress',
+  房贷计算: 'loan-calc',
+  JSON格式化: 'json',
+  'JSON 格式化': 'json',
+  汇率换算: 'currency',
+  文字计数: 'text-count',
+}
+
+const normalizeRecentToolId = (item?: ToolHistoryResponseItem, fallbackId?: string) => {
+  const directId = resolveToolId(item?.id || '')
+  if (directId) {
+    return directId
+  }
+
+  const mappedId = RECENT_TOOL_ID_BY_NAME[String(item?.name || '').trim()]
+  if (mappedId) {
+    return mappedId
+  }
+
+  return resolveToolId(fallbackId || '') || fallbackId || 'image-compress'
 }
 
 const mergeQuickTools = (quickTools?: HomeConfigResponse['quickTools']) => {
@@ -95,12 +125,13 @@ const mapRecentTools = (items?: ToolHistoryResponseItem[]) => {
     }
 
     return {
-      id: item.id || fallback.id || `tool-${index + 1}`,
+      id: normalizeRecentToolId(item, fallback.id),
       name: item.name || fallback.name || '工具',
       usedAt: item.usedAt || fallback.usedAt || '刚刚使用',
       imageUrl: visual.imageUrl,
       badgeText: visual.badgeText,
       badgeClass: visual.badgeClass,
+      route: item.route || fallback.route || '',
     }
   })
 }

@@ -15,6 +15,7 @@ interface CategoryViewItem {
 interface ToolsPageState {
   activeCategory: string
   allCategoryCards: ToolCategoryCard[]
+  allPopularTools: ToolDescriptor[]
   allTools: ToolDescriptor[]
   categories: CategoryViewItem[]
   categoryCards: ToolCategoryCard[]
@@ -49,6 +50,7 @@ Page<ToolsPageState, ToolsPageMethods>({
   data: {
     activeCategory: 'all',
     allCategoryCards: [],
+    allPopularTools: [],
     allTools: [],
     categories: [],
     categoryCards: [],
@@ -68,6 +70,7 @@ Page<ToolsPageState, ToolsPageMethods>({
     this.setData(
       {
         allCategoryCards: catalog.categoryCards,
+        allPopularTools: catalog.popularTools,
         allTools: catalog.tools,
         categories: catalog.categories.map((item) => ({
           id: item.id,
@@ -78,7 +81,7 @@ Page<ToolsPageState, ToolsPageMethods>({
         heroImageUrl: catalog.hero.imageUrl,
         heroSubtitle: catalog.hero.subtitle,
         heroTitle: catalog.hero.title,
-        popularTools: catalog.tools,
+        popularTools: catalog.popularTools,
       },
       () => {
         this.applyFilters()
@@ -87,24 +90,12 @@ Page<ToolsPageState, ToolsPageMethods>({
   },
 
   applyFilters() {
-    const { activeCategory, allCategoryCards, allTools, categories, searchKeyword } = this.data
+    const { activeCategory, allCategoryCards, allPopularTools, allTools, categories, searchKeyword } = this.data
     const keyword = normalizeKeyword(searchKeyword)
     const sourceTools = allTools.length ? allTools : this.data.popularTools
+    const sourcePopularTools = allPopularTools.length ? allPopularTools : sourceTools
     const sourceCards = allCategoryCards.length ? allCategoryCards : this.data.categoryCards
     const sourceCategories = categories.length ? categories : [{ id: 'all', name: '全部', active: true }]
-
-    const visibleTools = sourceTools.filter((tool) => {
-      const matchCategory = activeCategory === 'all' || tool.categoryId === activeCategory
-      if (!matchCategory) {
-        return false
-      }
-
-      if (!keyword) {
-        return true
-      }
-
-      return `${tool.name} ${tool.meta}`.toLowerCase().includes(keyword)
-    })
 
     const visibleCards = sourceCards.filter((card) => {
       if (activeCategory !== 'all' && card.id !== activeCategory) {
@@ -118,6 +109,19 @@ Page<ToolsPageState, ToolsPageMethods>({
       return `${card.name} ${card.meta}`.toLowerCase().includes(keyword)
     })
 
+    const visiblePopularTools = sourcePopularTools.filter((tool) => {
+      const matchCategory = activeCategory === 'all' || tool.categoryId === activeCategory
+      if (!matchCategory) {
+        return false
+      }
+
+      if (!keyword) {
+        return true
+      }
+
+      return `${tool.name} ${tool.meta}`.toLowerCase().includes(keyword)
+    })
+
     this.setData({
       categories: sourceCategories.map((item) => ({
         id: item.id,
@@ -125,7 +129,7 @@ Page<ToolsPageState, ToolsPageMethods>({
         active: item.id === activeCategory,
       })),
       categoryCards: visibleCards,
-      popularTools: visibleTools,
+      popularTools: visiblePopularTools,
     })
   },
 

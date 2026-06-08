@@ -32,6 +32,44 @@ const createId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(1
 const now = () => Date.now()
 const iso = (value = Date.now()) => new Date(value).toISOString()
 
+const DEFAULT_TOOLS_CATALOG = [
+  { id: 'tool-qr', name: '二维码生成', category: '分享生成', target: '邀局裂变', imageUrl: '/static/report-poster.png', usageCount: 5622, favoriteRate: '16.8%', status: '启用', sortOrder: 10, isHot: '是', placement: 'both' },
+  { id: 'tool-compress', name: '图片压缩', category: '图片处理', target: '工具留存', imageUrl: '/static/image-process-hero.png', usageCount: 3410, favoriteRate: '13.2%', status: '启用', sortOrder: 20, isHot: '是', placement: 'both' },
+  { id: 'tool-json', name: 'JSON 格式化', category: '开发工具', target: '日活补充', imageUrl: '/static/toolbox-hero.png', usageCount: 2184, favoriteRate: '8.7%', status: '启用', sortOrder: 30, isHot: '是', placement: 'tools' },
+  { id: 'tool-loan', name: '房贷计算', category: '计算工具', target: '实用转化', imageUrl: '/static/report-poster.png', usageCount: 1921, favoriteRate: '9.4%', status: '启用', sortOrder: 40, isHot: '是', placement: 'both' },
+  { id: 'tool-currency', name: '汇率换算', category: '计算工具', target: '日常工具', imageUrl: '/static/report-poster.png', usageCount: 1688, favoriteRate: '7.1%', status: '启用', sortOrder: 50, isHot: '否', placement: 'tools' },
+  { id: 'tool-unit', name: '单位换算', category: '计算工具', target: '日常工具', imageUrl: '/static/report-poster.png', usageCount: 1450, favoriteRate: '6.3%', status: '启用', sortOrder: 60, isHot: '否', placement: 'tools' },
+  { id: 'tool-9-grid', name: '九宫格切图', category: '图片处理', target: '分享物料', imageUrl: '/static/image-process-hero.png', usageCount: 1280, favoriteRate: '10.2%', status: '启用', sortOrder: 70, isHot: '否', placement: 'tools' },
+  { id: 'tool-watermark', name: '图片去水印', category: '图片处理', target: '内容编辑', imageUrl: '/static/party-hero.png', usageCount: 1166, favoriteRate: '8.4%', status: '启用', sortOrder: 80, isHot: '否', placement: 'tools' },
+]
+
+const normalizeToolItem = (item = {}, index = 0) => ({
+  id: String(item.id || `tool-${index + 1}`).trim(),
+  name: String(item.name || `工具 ${index + 1}`).trim(),
+  category: String(item.category || '工具').trim(),
+  target: String(item.target || '').trim(),
+  imageUrl: String(item.imageUrl || '/static/toolbox-hero.png').trim(),
+  usageCount: Number(item.usageCount) || 0,
+  favoriteRate: String(item.favoriteRate || '0%').trim(),
+  status: String(item.status || '启用').trim(),
+  sortOrder: Number(item.sortOrder) || (index + 1) * 10,
+  isHot: String(item.isHot || '否').trim(),
+  placement: String(item.placement || 'tools').trim(),
+})
+
+const normalizeToolsCatalog = (tools = []) => {
+  const inputItems = Array.isArray(tools) ? tools : []
+  const existingById = new Map(inputItems.filter((item) => item && item.id).map((item) => [String(item.id), item]))
+  const mergedDefaults = DEFAULT_TOOLS_CATALOG.map((item, index) =>
+    normalizeToolItem({ ...item, ...(existingById.get(item.id) || {}) }, index),
+  )
+  const extras = inputItems
+    .filter((item) => item && item.id && !DEFAULT_TOOLS_CATALOG.some((defaultItem) => defaultItem.id === String(item.id)))
+    .map((item, index) => normalizeToolItem(item, mergedDefaults.length + index))
+
+  return [...mergedDefaults, ...extras].sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
+}
+
 const createDefaultStore = () => ({
   adminUsers: [
     {
@@ -92,11 +130,7 @@ const createDefaultStore = () => ({
     { id: 'share-2', name: '好友邀局卡 B', assetType: '邀局卡', scene: '邀请好友', imageUrl: '/static/party-hero.png', openRate: '36.8%', returnRate: '8.1%', status: '上线中' },
     { id: 'share-3', name: '群分享二维码卡片', assetType: '分享码', scene: '群邀请', imageUrl: '/static/report-poster.png', openRate: '29.4%', returnRate: '14.3%', status: '上线中' },
   ],
-  toolsCatalog: [
-    { id: 'tool-qr', name: '二维码生成', category: '分享生成', target: '邀局裂变', imageUrl: '/static/report-poster.png', usageCount: 5622, favoriteRate: '16.8%', status: '启用' },
-    { id: 'tool-compress', name: '图片压缩', category: '图片处理', target: '工具留存', imageUrl: '/static/image-process-hero.png', usageCount: 3410, favoriteRate: '13.2%', status: '启用' },
-    { id: 'tool-json', name: 'JSON 格式化', category: '开发工具', target: '日活补充', imageUrl: '/static/toolbox-hero.png', usageCount: 2184, favoriteRate: '8.7%', status: '启用' },
-  ],
+  toolsCatalog: normalizeToolsCatalog(DEFAULT_TOOLS_CATALOG),
   liveSessions: [
     { id: 'session-1', name: '周五热场局', players: 6, template: '友情互损', hostName: '阿浩', inviteCode: 'A17K9Q', state: '进行中 26 分钟', source: '群分享', status: '正常' },
     { id: 'session-2', name: '生日专属局', players: 8, template: '生日专属', hostName: 'Mika', inviteCode: 'N27K9Q', state: '已结束', source: '好友邀请', status: '正常' },
@@ -155,6 +189,7 @@ const normalizeStore = (store = {}) => {
     ...store,
     sessions: Array.isArray(store.sessions) ? store.sessions.filter((item) => Number(item.expiresAt) > now()) : [],
   }
+  next.toolsCatalog = normalizeToolsCatalog(store.toolsCatalog || next.toolsCatalog)
   return next
 }
 
@@ -948,12 +983,18 @@ const pageMap = {
           { key: 'imageUrl', label: '工具图片', type: 'image' },
           { key: 'usageCount', label: '使用量', type: 'number' },
           { key: 'favoriteRate', label: '收藏率', type: 'text' },
+          { key: 'sortOrder', label: '排序值', type: 'number' },
+          { key: 'isHot', label: '热门推荐（是/否）', type: 'text' },
+          { key: 'placement', label: '投放位置（home/tools/both）', type: 'text' },
           { key: 'status', label: '状态', type: 'text' },
         ],
         columns: [
           { key: 'id', label: 'ID' },
           { key: 'name', label: '工具名称' },
           { key: 'category', label: '分类' },
+          { key: 'sortOrder', label: '排序' },
+          { key: 'isHot', label: '热门' },
+          { key: 'placement', label: '投放位置' },
           { key: 'target', label: '导流目标' },
           { key: 'usageCount', label: '使用量' },
           { key: 'status', label: '状态' },

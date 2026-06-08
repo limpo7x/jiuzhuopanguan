@@ -31,9 +31,12 @@ interface RemoteToolItem {
   iconClass?: string
   id?: string
   imageUrl?: string
+  isHot?: string
   meta?: string
   name?: string
+  placement?: string
   rawId?: string
+  sortOrder?: number
   status?: string
   target?: string
   toneClass?: string
@@ -43,6 +46,7 @@ interface RemoteToolItem {
 interface RemoteToolsResponse {
   categories?: ToolCategory[]
   hero?: RemoteToolHero
+  popularTools?: RemoteToolItem[]
   tools?: RemoteToolItem[]
 }
 
@@ -73,6 +77,7 @@ export interface ManagedToolCatalog {
   categories: ToolCategory[]
   categoryCards: ToolCategoryCard[]
   hero: Required<RemoteToolHero>
+  popularTools: ToolDescriptor[]
   tools: ToolDescriptor[]
 }
 
@@ -118,6 +123,7 @@ const DEFAULT_TOOLS_CATALOG: ManagedToolCatalog = {
     subtitle: '高效 · 实用 · 有趣',
     title: '工具在手 生活不愁',
   },
+  popularTools: TOOL_LIST.slice(0, 4),
   tools: TOOL_LIST,
 }
 
@@ -222,6 +228,7 @@ export const getManagedToolsCatalog = async (): Promise<ManagedToolCatalog> => {
         subtitle: remote.hero?.subtitle || DEFAULT_TOOLS_CATALOG.hero.subtitle,
         title: remote.hero?.title || DEFAULT_TOOLS_CATALOG.hero.title,
       },
+      popularTools: remote.popularTools?.length ? remote.popularTools.map(mergeToolDescriptor) : tools.slice(0, 4),
       tools,
     }
   } catch {
