@@ -753,6 +753,33 @@ a {
   resize: vertical;
 }
 
+.field-meta {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(104, 71, 46, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 250, 242, 0.72);
+}
+
+.field-meta-row {
+  display: grid;
+  gap: 4px;
+}
+
+.field-meta-label {
+  color: var(--warning);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.field-meta-text {
+  color: var(--text-subtle);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .asset-field {
   display: grid;
   gap: 10px;

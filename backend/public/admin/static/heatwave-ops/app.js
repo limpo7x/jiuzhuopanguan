@@ -74,6 +74,13 @@ const icon = (id, cls = 'ui-icon') => `<svg class="${cls}" aria-hidden="true"><u
 const clone = (value) => JSON.parse(JSON.stringify(value))
 const navStateKey = 'heatwave-ops-nav-open-v2'
 const imageUploadEndpoint = '/api/v1/admin/uploads/image'
+const escapeHtml = (value = '') =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 
 const isAssetField = (field) => field?.type === 'image' || /(?:image|avatar)url$/i.test(field?.key || '')
 
@@ -143,6 +150,132 @@ const request = async (path, options = {}) => {
   }
   return payload.data
 }
+
+const getAssetSizeSuggestion = (field) => {
+  const key = String(field?.key || '').toLowerCase()
+  if (key.includes('avatar')) {
+    return '推荐尺寸 512 x 512'
+  }
+  if (state.slug === 'content-home-ops') {
+    if (key.includes('hero')) {
+      return '推荐尺寸 1125 x 690'
+    }
+    if (key.includes('banner')) {
+      return '推荐尺寸 1125 x 360'
+    }
+    return '推荐尺寸 1125 x 690'
+  }
+  if (state.slug === 'content-templates') {
+    return '推荐尺寸 960 x 540'
+  }
+  if (state.slug === 'content-share-assets') {
+    return '推荐尺寸 1080 x 1920'
+  }
+  if (state.slug === 'content-tools-ops') {
+    return '推荐尺寸 640 x 640'
+  }
+  if (state.slug === 'commerce-points') {
+    return '推荐尺寸 750 x 420'
+  }
+  return '推荐尺寸 960 x 540'
+}
+
+const getFieldCondition = (field) => {
+  if (field?.condition) {
+    return String(field.condition).trim()
+  }
+  const key = String(field?.key || '').toLowerCase()
+  if (isAssetField(field)) {
+    return '仅在对应前台模块引用该素材时生效；建议先上传，再保存页面配置。'
+  }
+  if (key.includes('status')) {
+    return '状态变更保存后即时影响后台展示；前台是否生效取决于页面是否按状态过滤。'
+  }
+  if (key.includes('sort')) {
+    return '仅在同一模块同类数据内比较排序，数值越小越靠前。'
+  }
+  if (key.includes('placement')) {
+    return '仅对已启用内容生效；未命中的投放位不会在前台显示。'
+  }
+  if (key.includes('phone')) {
+    return '手机号作为用户唯一识别信息使用，修改后会影响用户绑定与后台检索。'
+  }
+  if (key.includes('openid') || key.includes('wechat')) {
+    return '仅用于微信用户强绑定和审计追踪，非排障场景不要手动改写。'
+  }
+  if (key.includes('invitecode')) {
+    return '仅对当前酒局生效；重复邀请码可能导致用户入局错误。'
+  }
+  if (key.includes('point') || key.includes('cost') || key.includes('delta')) {
+    return '积分类字段会直接影响用户资产或兑换门槛，保存前需确认数值单位。'
+  }
+  if (key.includes('rate') || key.includes('ctr') || key.includes('share')) {
+    return '比例类字段建议统一使用百分比格式，便于经营页和列表页直接展示。'
+  }
+  if (key.includes('url') || key.includes('link') || key.includes('path')) {
+    return '仅当地址可访问且被前台引用时生效；线上建议使用 HTTPS 或站内相对路径。'
+  }
+  if (field?.type === 'textarea') {
+    return '长文本一般用于前台说明文案或运营备注，保存后请联动检查换行和截断效果。'
+  }
+  return '保存后作用于当前模块；如该字段被前台页面消费，则会在下次取数时生效。'
+}
+
+const getFieldUsageNote = (field) => {
+  if (field?.usageNote) {
+    return String(field.usageNote).trim()
+  }
+  const key = String(field?.key || '').toLowerCase()
+  if (isAssetField(field)) {
+    return `${getAssetSizeSuggestion(field)}；优先上传 JPG、PNG 或 WebP，命名尽量与素材用途一致，便于复用和排查。`
+  }
+  if (key.includes('title') || key.includes('name')) {
+    return '建议控制在 6 到 18 个字内，优先使用可直接面向用户展示的正式名称。'
+  }
+  if (key.includes('subtitle') || key.includes('desc') || key.includes('summary') || key.includes('note')) {
+    return '建议写结果导向文案，避免内部术语；超长内容需要同步检查前台换行表现。'
+  }
+  if (key.includes('status')) {
+    return '推荐统一使用：启用、停用、灰度、待审核、已生效等固定值，避免同义状态并存。'
+  }
+  if (key.includes('sort')) {
+    return '推荐按 10、20、30 递增预留插槽，后续新增项无需整体重排。'
+  }
+  if (key.includes('placement')) {
+    return '推荐使用 both、home、tools 等约定值，不要临时自造投放位字符串。'
+  }
+  if (key.includes('phone')) {
+    return '展示时建议使用脱敏手机号；仅在确需修正绑定关系时修改原始手机号。'
+  }
+  if (key.includes('openid') || key.includes('wechat')) {
+    return '如需排障，优先复制后核对，不建议直接手填，避免破坏用户与微信身份映射。'
+  }
+  if (key.includes('invitecode')) {
+    return '推荐使用 6 位大写字母数字组合，便于口头传播和线下手输。'
+  }
+  if (key.includes('point') || key.includes('cost') || key.includes('delta')) {
+    return '默认单位为积分；涉及人工增减时建议在备注或原因字段同步记录操作背景。'
+  }
+  if (key.includes('url') || key.includes('link') || key.includes('path')) {
+    return '可填写站内相对路径或完整地址；优先保持和当前线上域名、静态资源规则一致。'
+  }
+  if (field?.type === 'textarea') {
+    return '可填写多行内容；若用于分享、弹窗或海报说明，建议先控制在 2 到 4 行视觉长度。'
+  }
+  return '建议保持格式稳定、命名清晰；改动后同步检查该字段在前台或经营页的实际展示。'
+}
+
+const renderFieldMeta = (field) => `
+  <div class="field-meta">
+    <div class="field-meta-row">
+      <span class="field-meta-label">生效条件</span>
+      <span class="field-meta-text">${escapeHtml(getFieldCondition(field))}</span>
+    </div>
+    <div class="field-meta-row">
+      <span class="field-meta-label">使用备注</span>
+      <span class="field-meta-text">${escapeHtml(getFieldUsageNote(field))}</span>
+    </div>
+  </div>`
 
 const setStatus = (text, type = 'normal') => {
   const node = document.querySelector('[data-role="status"]')
@@ -276,6 +409,7 @@ const renderAssetInput = (field, value, collectionKey, itemId) => `
     <div class="asset-preview ${value ? '' : 'asset-preview-empty'}">
       ${value ? `<img src="${value}" alt="${field.label}" data-role="asset-preview" />` : '<span>未上传图片</span>'}
     </div>
+    ${renderFieldMeta(field)}
   </div>`
 
 const renderField = (field, value, collectionKey, itemId) => {
@@ -304,6 +438,7 @@ const renderFormSections = () =>
             <div class="field">
               <label>${field.label}</label>
               ${renderField(field, state.page.data?.[field.key], 'form', 'form')}
+              ${isAssetField(field) ? '' : renderFieldMeta(field)}
             </div>`,
             )
             .join('')}
@@ -375,6 +510,7 @@ const renderCollectionEditor = (collection, options = {}) => {
                 <div class="field">
                   <label>${field.label}</label>
                   ${readOnly ? `<div class="readonly-value">${selected[field.key] ?? ''}</div>` : renderField(field, selected[field.key], collection.key, selected.id)}
+                  ${renderFieldMeta(field)}
                 </div>`,
                 )
                 .join('')}
@@ -403,6 +539,7 @@ const renderMultiCollection = () => {
             <div class="field">
               <label>${field.label}</label>
               ${renderField(field, state.meta[field.key], 'meta', 'meta')}
+              ${isAssetField(field) ? '' : renderFieldMeta(field)}
             </div>`,
             )
             .join('')}
