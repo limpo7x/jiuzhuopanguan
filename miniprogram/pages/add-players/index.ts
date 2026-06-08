@@ -1,3 +1,4 @@
+import { updateManagedSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 import {
   addWineFriend,
@@ -14,6 +15,7 @@ interface PlayerItem {
   id: string
   meta: string
   name: string
+  profileId: string
   selected?: boolean
 }
 
@@ -53,6 +55,7 @@ const toPlayerItem = (item: WineFriend, selected = false): PlayerItem => ({
   name: item.name,
   avatarUrl: item.avatarUrl,
   meta: item.meta,
+  profileId: item.profileId,
   selected,
 })
 
@@ -80,6 +83,13 @@ Page<AddPlayersState, AddPlayersMethods>({
     const runtime = getSessionRuntime()
     const playerLimit = Math.max(2, runtime.playerCount || 6)
     const friendList = await getWineFriends()
+    if (!friendList.length) {
+      this.showToast('暂无常用玩家和最近联系人，先去邀请好友')
+      wx.redirectTo({
+        url: '/pages/invite-group/index',
+      })
+      return
+    }
     const previousSelectedNames = this.data.players.filter((item) => item.selected).map((item) => item.name)
     const runtimeSelectedNames = runtime.selectedPlayers.map((item) => item.name)
     const preferredSelectedNames = previousSelectedNames.length ? previousSelectedNames : runtimeSelectedNames
@@ -167,6 +177,7 @@ Page<AddPlayersState, AddPlayersMethods>({
         name: created.name,
         avatarUrl: created.avatarUrl,
         meta: created.meta,
+        profileId: created.profileId,
         selected: canSelect,
       },
       ...this.data.players.filter((item) => item.name !== created.name),
@@ -204,6 +215,7 @@ Page<AddPlayersState, AddPlayersMethods>({
         name: created.name,
         avatarUrl: created.avatarUrl,
         meta: '最近添加',
+        profileId: created.profileId,
         selected: canSelect,
       },
       ...this.data.players.filter((item) => item.name !== created.name),
@@ -250,9 +262,24 @@ Page<AddPlayersState, AddPlayersMethods>({
       .map((item) => ({
         name: item.name,
         avatarUrl: item.avatarUrl,
+        profileId: item.profileId,
+        status: '待加入',
       }))
 
     await touchWineFriends(selectedPlayers)
+
+    const runtime = getSessionRuntime()
+    if (runtime.sessionId) {
+      await updateManagedSession(runtime.sessionId, {
+        hostAvatarUrl: runtime.currentUser?.avatarUrl,
+        hostName: runtime.currentUser?.name,
+        hostProfileId: runtime.currentUser?.id,
+        playerCount: this.data.playerLimit,
+        selectedPlayers,
+        sessionName: runtime.sessionName,
+        templateName: runtime.templateName,
+      }).catch(() => null)
+    }
 
     setSessionRuntime({
       playerCount: this.data.playerLimit,

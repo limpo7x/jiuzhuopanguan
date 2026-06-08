@@ -48,7 +48,9 @@ const {
   createManagedSession,
   finishManagedSession,
   getPageData,
+  getManagedSessionByInviteCode,
   initAdminStore,
+  joinManagedSession,
   getSession,
   loginAdmin,
   logoutAdmin,
@@ -632,7 +634,7 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/sessions/live') {
-      sendOk(response, getLiveSessionConfig())
+      sendOk(response, getLiveSessionConfig(query.sessionId, query.inviteCode))
       return
     }
 
@@ -642,8 +644,59 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'POST' && pathname === '/api/v1/sessions') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
       const payload = await readJsonBody(request)
-      sendOk(response, createManagedSession(payload), 201)
+      sendOk(
+        response,
+        createManagedSession({
+          ...payload,
+          hostAvatarUrl: userSession.profile.avatarUrl,
+          hostName: userSession.profile.name,
+          hostPhone: userSession.profile.phone || '',
+          hostProfileId: userSession.profile.id,
+        }),
+        201,
+      )
+      return
+    }
+
+    if (request.method === 'POST' && pathname === '/api/v1/sessions/join') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const payload = await readJsonBody(request)
+      try {
+        const inviteCode = String(payload.inviteCode || '').trim()
+        const session = joinManagedSession({
+          inviteCode,
+          profile: userSession.profile,
+        })
+        sendOk(response, getLiveSessionConfig(session.id, inviteCode))
+      } catch (error) {
+        if (error?.code === 'NOT_SESSION_PLAYER') {
+          sendError(response, 403, 'not session player')
+          return
+        }
+        if (error?.code === 'SESSION_NOT_FOUND') {
+          sendError(response, 404, 'session not found')
+          return
+        }
+        throw error
+      }
+      return
+    }
+
+    if (request.method === 'GET' && pathname === '/api/v1/sessions/by-invite') {
+      const session = getManagedSessionByInviteCode(String(query.inviteCode || ''))
+      if (!session) {
+        sendError(response, 404, 'session not found')
+        return
+      }
+      sendOk(response, getLiveSessionConfig(session.id, session.inviteCode))
       return
     }
 

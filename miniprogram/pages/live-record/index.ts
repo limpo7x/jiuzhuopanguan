@@ -4,6 +4,7 @@ import { avatarAsset } from '../../config/assets'
 interface LivePlayer {
   avatarUrl: string
   name: string
+  profileId?: string
 }
 
 interface LiveRecordItem {
@@ -24,6 +25,7 @@ interface LiveRecordState {
   elapsedText: string
   events: LiveEvent[]
   isJudge: boolean
+  playerCount: number
   players: LivePlayer[]
   records: LiveRecordItem[]
   sessionName: string
@@ -31,6 +33,7 @@ interface LiveRecordState {
 
 interface LiveRecordMethods {
   applyWheelResult: () => void
+  handleAddPlayerTap: () => void
   handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => void
   handleNextRoundTap: () => void
   handleTimerTick: () => void
@@ -55,6 +58,7 @@ const DEFAULT_PLAYERS: SessionParticipant[] = [
 Page<LiveRecordState, LiveRecordMethods>({
   data: {
     elapsedText: '00:00:00',
+    playerCount: 6,
     players: [
       { name: '阿浩', avatarUrl: avatarAsset(1) },
       { name: '小熊', avatarUrl: avatarAsset(2) },
@@ -93,6 +97,7 @@ Page<LiveRecordState, LiveRecordMethods>({
 
     this.setData({
       isJudge,
+      playerCount: runtime.playerCount,
       players,
       records,
       sessionName,
@@ -201,6 +206,16 @@ Page<LiveRecordState, LiveRecordMethods>({
     })
 
     this.setData({ records })
+  },
+
+  handleAddPlayerTap() {
+    if (!this.data.isJudge || this.data.players.length >= this.data.playerCount) {
+      return
+    }
+
+    const runtime = getSessionRuntime()
+    const sessionId = runtime.sessionId ? `?sessionId=${encodeURIComponent(runtime.sessionId)}` : ''
+    this.openPage(`/pages/invite-group/index${sessionId}`)
   },
 
   handleSaveTap() {

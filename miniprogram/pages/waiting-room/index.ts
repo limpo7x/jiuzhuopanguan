@@ -1,17 +1,22 @@
+import { getManagedLiveSession, updateManagedSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
-import { avatarAsset } from '../../config/assets'
+import { ensureUserAuthorized } from '../../utils/social'
 
 interface JoinedPlayer {
-  name: string
   avatarUrl: string
+  name: string
+  profileId?: string
 }
 
 interface WaitingRoomState {
   emptySeats: number[]
+  inviteCode: string
   isJudge: boolean
   joinedCount: number
   joinedPlayers: JoinedPlayer[]
+  loading: boolean
   playerCount: number
+  sessionId: string
   sessionName: string
 }
 
@@ -19,59 +24,134 @@ interface WaitingRoomMethods {
   handleCodeTap: () => void
   handleInviteTap: () => void
   handleOverviewTap: () => void
-  handleStartTap: () => void
+  handleRefreshTap: () => Promise<void>
+  handleStartTap: () => Promise<void>
   openPage: (url: string) => void
+  refreshSession: (showToast?: boolean) => Promise<void>
 }
 
 Page<WaitingRoomState, WaitingRoomMethods>({
   data: {
-    joinedCount: 4,
-    isJudge: true,
-    joinedPlayers: [
-      { name: '阿浩', avatarUrl: avatarAsset(1) },
-      { name: '小熊', avatarUrl: avatarAsset(2) },
-      { name: 'Mika', avatarUrl: avatarAsset(3) },
-      { name: '可可', avatarUrl: avatarAsset(4) },
-    ],
     emptySeats: [1, 2],
+    inviteCode: '',
+    isJudge: true,
+    joinedCount: 0,
+    joinedPlayers: [],
+    loading: true,
     playerCount: 6,
+    sessionId: '',
     sessionName: '今晚聚会不醉不归',
   },
 
-  onLoad(query) {
+  async onLoad(query) {
     const runtime = getSessionRuntime()
     const isJudge = query?.role === 'viewer' ? false : runtime.isJudge
-    const playerCount = Math.max(2, runtime.playerCount || 6)
-    const selectedPlayers = runtime.selectedPlayers?.length
-      ? runtime.selectedPlayers
-      : (this.data.joinedPlayers as SessionParticipant[])
-    const joinedCount = Math.min(playerCount, Math.min(selectedPlayers.length, 4))
-    const joinedPlayers = selectedPlayers.slice(0, joinedCount)
-    const emptySeats = Array.from({ length: Math.max(playerCount - joinedCount, 0) }, (_, index) => index + 1)
+    const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
+    const profile = await ensureUserAuthorized(
+      `/pages/waiting-room/index?role=${encodeURIComponent(isJudge ? 'judge' : 'viewer')}${sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : ''}`,
+    )
+    if (!profile) {
+      return
+    }
+
+    this.setData({
+      isJudge,
+      sessionId,
+    })
+    await this.refreshSession()
+  },
+
+  async onShow() {
+    if (!this.data.sessionId && !getSessionRuntime().sessionId) {
+      return
+    }
+    await this.refreshSession()
+  },
+
+  async refreshSession(showToast = false) {
+    const runtime = getSessionRuntime()
+    const sessionId = this.data.sessionId || runtime.sessionId || ''
+    const liveSession = await getManagedLiveSession(sessionId, runtime.inviteCode)
+    const joinedPlayers = liveSession.joinedPlayers.slice(0, liveSession.playerCount)
+    const emptySeats = Array.from({ length: Math.max(liveSession.playerCount - joinedPlayers.length, 0) }, (_, index) => index + 1)
 
     this.setData({
       emptySeats,
-      isJudge,
-      joinedCount,
+      inviteCode: liveSession.inviteCode,
+      joinedCount: liveSession.joinedCount,
       joinedPlayers,
-      playerCount,
-      sessionName: runtime.sessionName,
+      loading: false,
+      playerCount: liveSession.playerCount,
+      sessionId: liveSession.id,
+      sessionName: liveSession.sessionName,
     })
+
+    setSessionRuntime({
+      inviteCode: liveSession.inviteCode,
+      playerCount: liveSession.playerCount,
+      selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
+        avatarUrl: item.avatarUrl,
+        name: item.name,
+        profileId: item.profileId,
+        status: item.status,
+      })),
+      sessionId: liveSession.id,
+      sessionName: liveSession.sessionName,
+      templateName: liveSession.templateName,
+    })
+
+    if (showToast) {
+      wx.showToast({
+        title: '已刷新最新成员',
+        icon: 'success',
+      })
+    }
   },
 
-  handleInviteTap() {
-    this.openPage('/pages/invite-group/index')
+  async handleInviteTap() {
+    if (!this.data.isJudge || this.data.joinedCount >= this.data.playerCount) {
+      return
+    }
+    this.openPage(`/pages/invite-group/index?sessionId=${encodeURIComponent(this.data.sessionId)}`)
   },
 
   handleCodeTap() {
-    this.openPage('/pages/share-preview/index')
+    this.openPage(`/pages/share-preview/index?sessionId=${encodeURIComponent(this.data.sessionId)}`)
   },
 
   handleOverviewTap() {
     this.openPage('/pages/flow-overview/index')
   },
 
-  handleStartTap() {
+  async handleRefreshTap() {
+    await this.refreshSession(true)
+  },
+
+  async handleStartTap() {
+    if (this.data.joinedCount < this.data.playerCount) {
+      const confirmed = await new Promise<boolean>((resolve) => {
+        wx.showModal({
+          title: '人数未满',
+          content: `当前仅 ${this.data.joinedCount}/${this.data.playerCount} 人加入，是否直接进入本局？`,
+          confirmText: '直接进入',
+          cancelText: '继续等待',
+          success: (result) => resolve(Boolean(result.confirm)),
+          fail: () => resolve(false),
+        })
+      })
+
+      if (!confirmed) {
+        return
+      }
+    }
+
+    if (this.data.sessionId) {
+      await updateManagedSession(this.data.sessionId, {
+        state: '进行中',
+        status: '正常',
+      }).catch(() => null)
+    }
+
     const runtime = setSessionRuntime({
       isJudge: this.data.isJudge,
       startedAt: getSessionRuntime().startedAt || Date.now(),

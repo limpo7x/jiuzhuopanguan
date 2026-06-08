@@ -31,10 +31,20 @@
     </view>
 
     <view class="poster-share-grid">
-      <view wx:for="{{shareItems}}" wx:key="id" class="poster-share-item" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="handleShareTap">
+      <button
+        wx:for="{{shareItems}}"
+        wx:key="id"
+        class="poster-share-item"
+        open-type="share"
+      >
         <view class="poster-share-icon {{item.iconClass}}"></view>
         <text class="poster-share-label">{{item.name}}</text>
-      </view>
+      </button>
+    </view>
+
+    <view class="poster-primary" bindtap="handleSaveTap">
+      <text>保存战报海报</text>
+      <view class="poster-primary-icon"></view>
     </view>
 
     <view class="poster-primary" bindtap="handleCreateTap">
@@ -44,7 +54,7 @@
 
     <view class="poster-notice">
       <view class="poster-notice-icon"></view>
-      <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+      <text>理性饮酒，适量玩局，未成年人禁止饮酒。</text>
     </view>
   </scroll-view>
 </view>

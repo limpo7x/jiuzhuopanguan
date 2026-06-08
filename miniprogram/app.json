@@ -31,6 +31,7 @@
     "pages/coupon-center/index",
     "pages/settings/index",
     "pages/invite-friends/index",
+    "pages/friend-hub/index",
     "pages/share-helper/index",
     "pages/question-bank/index",
     "pages/waiting-room/index",

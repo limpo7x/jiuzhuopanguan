@@ -46,70 +46,13 @@
 
     <view class="me-section-head">
       <text class="me-section-title">我的酒局</text>
-      <text class="me-section-link">最近酒友</text>
+      <text class="me-section-link" data-label="我的聚友" bindtap="handleWineStatTap">好友管理</text>
     </view>
 
     <view class="me-stat-row">
-      <view wx:for="{{wineStats}}" wx:key="label" class="me-stat-item">
+      <view wx:for="{{wineStats}}" wx:key="label" class="me-stat-item" data-label="{{item.label}}" bindtap="handleWineStatTap">
         <text class="me-stat-value">{{item.value}}</text>
         <text class="me-stat-label">{{item.label}}</text>
-      </view>
-    </view>
-
-    <view class="me-friend-create">
-      <input
-        class="me-friend-input"
-        value="{{newFriendName}}"
-        placeholder="搜索已注册酒友"
-        placeholder-class="me-friend-placeholder"
-        bindinput="handleNewFriendInput"
-      />
-      <view class="me-friend-add-btn" bindtap="handleAddFriendTap">按昵称新增</view>
-    </view>
-
-    <view wx:if="{{newFriendMatches.length}}" class="me-friend-search-list">
-      <view wx:for="{{newFriendMatches}}" wx:key="id" class="me-friend-search-card">
-        <image class="me-friend-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
-        <view class="me-friend-copy">
-          <text class="me-friend-name">{{item.name}}</text>
-          <text class="me-friend-meta">{{item.city}} · {{item.identityTag}}</text>
-        </view>
-        <view
-          class="me-friend-inline-btn {{item.alreadyFriend ? 'me-friend-inline-btn-disabled' : ''}}"
-          data-profile-id="{{item.id}}"
-          data-name="{{item.name}}"
-          bindtap="handleAddRegisteredFriendTap"
-        >
-          {{item.alreadyFriend ? '已是酒友' : '添加酒友'}}
-        </view>
-      </view>
-    </view>
-
-    <view class="me-friend-list">
-      <view wx:for="{{wineFriends}}" wx:key="id" class="me-friend-card">
-        <image class="me-friend-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
-        <view class="me-friend-copy">
-          <input
-            wx:if="{{item.editing}}"
-            class="me-friend-edit-input"
-            value="{{editingFriendName}}"
-            focus="{{true}}"
-            bindinput="handleEditFriendInput"
-          />
-          <text wx:else class="me-friend-name">{{item.name}}</text>
-          <text class="me-friend-meta">{{item.meta}}</text>
-        </view>
-        <view wx:if="{{item.editing}}" class="me-friend-action-col">
-          <view class="me-friend-mini-btn me-friend-save-btn" data-id="{{item.id}}" bindtap="handleSaveFriendTap">保存</view>
-          <view class="me-friend-mini-btn" bindtap="handleCancelEditTap">取消</view>
-        </view>
-        <view wx:else class="me-friend-action-col">
-          <view class="me-friend-poke-btn" data-id="{{item.id}}" bindtap="handlePokeTap">拍一拍</view>
-          <view class="me-friend-mini-row">
-            <view class="me-friend-mini-btn" data-id="{{item.id}}" bindtap="handleStartEditTap">编辑</view>
-            <view class="me-friend-mini-btn me-friend-delete-btn" data-id="{{item.id}}" bindtap="handleDeleteFriendTap">删除</view>
-          </view>
-        </view>
       </view>
     </view>
 

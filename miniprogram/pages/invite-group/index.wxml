@@ -26,19 +26,19 @@
     <view class="invite-center">
       <view class="invite-goblet-icon invite-icon-goblet"></view>
       <text class="invite-title">邀请好友加入</text>
-      <text class="invite-subtitle">人齐开局，快乐加倍</text>
+      <text class="invite-subtitle">{{sessionName}}</text>
     </view>
 
     <view class="invite-card invite-form-card">
-      <text class="invite-label">分享到微信群</text>
+      <text class="invite-label">预览邀请卡</text>
       <view class="invite-primary" bindtap="handlePreviewTap">
         <view class="invite-primary-icon invite-icon-wechat"></view>
-        <text>分享到微信群</text>
+        <text>先看分享页</text>
       </view>
     </view>
 
     <view class="invite-card invite-form-card invite-copy-card">
-      <text class="invite-label">复制口令邀请</text>
+      <text class="invite-label">复制邀请码</text>
       <view class="invite-row-between">
         <text class="invite-code">{{inviteCode}}</text>
         <view class="invite-tag" bindtap="handleCopyTap">复制</view>
@@ -46,24 +46,20 @@
     </view>
 
     <view class="invite-share-grid">
-      <view
+      <button
         wx:for="{{shareItems}}"
         wx:key="id"
         class="invite-share-item"
-        data-id="{{item.id}}"
-        data-name="{{item.name}}"
-        bindtap="handleShareTap"
+        open-type="share"
       >
         <view class="invite-share-icon {{item.iconClass}}"></view>
         <text class="invite-share-label">{{item.name}}</text>
-      </view>
+      </button>
     </view>
 
     <view class="invite-primary invite-primary-full" bindtap="handleNextTap">
       <text>我已发送，去等大家</text>
       <view class="invite-primary-icon invite-icon-arrow"></view>
     </view>
-
-    <view class="invite-ghost" bindtap="handleJoinTap">查看加入页</view>
   </scroll-view>
 </view>

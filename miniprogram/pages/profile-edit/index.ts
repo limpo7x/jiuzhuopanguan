@@ -15,6 +15,7 @@ interface ProfileEditState {
   loggedIn: boolean
   name: string
   phoneMasked: string
+  redirectUrl: string
   signature: string
   wechatOpenId: string
 }
@@ -52,11 +53,15 @@ Page<ProfileEditState, ProfileEditMethods>({
     loggedIn: false,
     name: '微信用户',
     phoneMasked: '',
+    redirectUrl: '',
     signature: '今晚这局不见不散。',
     wechatOpenId: '',
   },
 
-  async onLoad() {
+  async onLoad(query) {
+    this.setData({
+      redirectUrl: typeof query?.redirect === 'string' ? decodeURIComponent(query.redirect) : '',
+    })
     await this.syncProfile()
   },
 
@@ -113,6 +118,16 @@ Page<ProfileEditState, ProfileEditMethods>({
         title: '已获取微信资料',
         icon: 'success',
       })
+      if (this.data.redirectUrl) {
+        setTimeout(() => {
+          wx.redirectTo({
+            url: this.data.redirectUrl,
+            fail: () => {
+              wx.reLaunch({ url: this.data.redirectUrl })
+            },
+          })
+        }, 300)
+      }
     } catch {
       wx.showToast({
         title: '未授权微信资料',

@@ -1,4 +1,4 @@
-const { getAdminStore } = require('./admin')
+const { getAdminStore, getManagedSessionById, getManagedSessionByInviteCode } = require('./admin')
 const { getCompliance, getToolHistory } = require('./content')
 
 const asset = (name) => `/static/${name}`
@@ -147,6 +147,23 @@ const buildSessionPlayers = (playerCount = 6) =>
     name: SESSION_PLAYER_NAMES[index % SESSION_PLAYER_NAMES.length],
   }))
 
+const buildMembersFromSession = (session, playerCount) => {
+  const members = Array.isArray(session?.members) ? session.members : []
+  if (!members.length) {
+    return buildSessionPlayers(playerCount).map((item, index) => ({
+      ...item,
+      profileId: '',
+      status: index < getJoinedCount(session, playerCount) ? '已加入' : '待加入',
+    }))
+  }
+  return members.map((item, index) => ({
+    avatarUrl: item.avatarUrl || SESSION_AVATARS[index % SESSION_AVATARS.length],
+    name: item.name || SESSION_PLAYER_NAMES[index % SESSION_PLAYER_NAMES.length],
+    profileId: item.profileId || '',
+    status: item.status || (item.isHost ? '已加入' : '待加入'),
+  }))
+}
+
 const getJoinedCount = (session, playerCount) => {
   const state = String(session?.state || '')
   if (state.includes('已结束') || state.includes('进行中')) {
@@ -216,7 +233,7 @@ const sortTools = (items = []) =>
     return (Number(right.usageCount) || 0) - (Number(left.usageCount) || 0)
   })
 
-const getLiveSessionConfig = () => {
+const getLegacyLiveSessionConfig = () => {
   const store = getAdminStore()
   const session = pickLiveSession(store.liveSessions)
   if (!session) {
@@ -263,6 +280,40 @@ const getLiveSessionConfig = () => {
     templateName: session.template || '经典欠酒版',
     title: String(session.state || '').includes('进行中') ? '本局进行中' : '组局中，等人齐',
   }
+}
+
+const formatLiveSession = (session) => {
+  const playerCount = Math.max(2, Number(session?.players) || 6)
+  const memberPlayers = buildMembersFromSession(session, playerCount)
+  const joinedPlayers = memberPlayers.filter((item) => item.status === '已加入')
+  const joinedCount = Math.min(playerCount, joinedPlayers.length || getJoinedCount(session, playerCount))
+  return {
+    hostAvatarUrl: session?.hostAvatarUrl || memberPlayers[0]?.avatarUrl || '/static/avatar-1.png',
+    hostName: session?.hostName || '小太阳组会玩',
+    id: session?.id,
+    inviteCode: session?.inviteCode || 'AB7K9Q',
+    joinedCount,
+    joinedPlayers: joinedPlayers.slice(0, playerCount),
+    joinStatusPlayers: memberPlayers.slice(0, playerCount),
+    playerCount,
+    sessionName: session?.name || '今晚聚会不醉不归',
+    source: session?.source || '好友邀请',
+    stateText: session?.state || '等待开局',
+    status: session?.status || '正常',
+    subtitle: String(session?.state || '').includes('进行中') ? '房间仍可继续查看当前加入状态' : '人齐自动开局，无需群主操作',
+    templateName: session?.template || '经典欠酒版',
+    title: String(session?.state || '').includes('进行中') ? '本局进行中' : '组局中，等人齐',
+  }
+}
+
+const getLiveSessionConfig = (sessionId, inviteCode) => {
+  const store = getAdminStore()
+  const session = sessionId
+    ? getManagedSessionById(String(sessionId))
+    : inviteCode
+      ? getManagedSessionByInviteCode(String(inviteCode))
+      : pickLiveSession(store.liveSessions)
+  return session ? formatLiveSession(session) : getLegacyLiveSessionConfig()
 }
 
 const getFeaturedReport = () => {

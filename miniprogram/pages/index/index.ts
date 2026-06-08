@@ -1,5 +1,6 @@
 import { homePageMock, type HomePageData } from '../../mock/home'
 import { getHomePageData } from '../../services/home'
+import { ensureUserAuthorized } from '../../utils/social'
 
 interface HomePageState {
   checkedIn: boolean
@@ -73,7 +74,11 @@ Page<HomePageState, HomePageMethods>({
     })
   },
 
-  handlePrimaryTap() {
+  async handlePrimaryTap() {
+    const profile = await ensureUserAuthorized('/pages/create-session/index')
+    if (!profile) {
+      return
+    }
     wx.navigateTo({
       url: '/pages/create-session/index',
     })
@@ -105,12 +110,19 @@ Page<HomePageState, HomePageMethods>({
     this.openPage(`/pages/tool-detail/index?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`)
   },
 
-  handleTabTap(event) {
+  async handleTabTap(event) {
     const { tab } = event.currentTarget.dataset as { tab: string }
     const target = TAB_ROUTES[tab]
 
     if (!target || tab === 'home') {
       return
+    }
+
+    if (tab === 'judge') {
+      const profile = await ensureUserAuthorized(target)
+      if (!profile) {
+        return
+      }
     }
 
     wx.redirectTo({ url: target })

@@ -18,7 +18,7 @@
         <image class="live-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
         <text class="live-avatar-name">{{item.name}}</text>
       </view>
-      <view class="live-avatar-card">
+      <view wx:if="{{isJudge && players.length < playerCount}}" class="live-avatar-card" bindtap="handleAddPlayerTap">
         <view class="live-avatar live-avatar-add">+</view>
         <text class="live-avatar-name">添加</text>
       </view>

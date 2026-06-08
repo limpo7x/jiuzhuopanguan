@@ -1,6 +1,7 @@
 import { createManagedSession } from '../../services/operations'
 import { staticAsset } from '../../config/assets'
 import { setSessionRuntime } from '../../utils/session'
+import { ensureUserAuthorized } from '../../utils/social'
 
 interface NamePreset {
   name: string
@@ -46,7 +47,11 @@ Page<CreateSessionState, CreateSessionMethods>({
     ],
   },
 
-  onLoad(query) {
+  async onLoad(query) {
+    const profile = await ensureUserAuthorized('/pages/create-session/index')
+    if (!profile) {
+      return
+    }
     const templateName = query?.template
 
     if (!templateName) {
@@ -99,26 +104,42 @@ Page<CreateSessionState, CreateSessionMethods>({
   },
 
   async handleNextTap() {
+    const profile = await ensureUserAuthorized('/pages/create-session/index')
+    if (!profile) {
+      return
+    }
     const activeTemplate = this.data.templates.find((item) => item.active) || this.data.templates[0]
+    let sessionId = ''
+    let inviteCode = ''
     try {
-      await createManagedSession({
-        hostName: '当前发起人',
+      const created = await createManagedSession({
+        hostName: profile.name,
         playerCount: this.data.playerCount,
         sessionName: this.data.sessionName,
         source: '直接创建',
         state: '等待开局',
         templateName: activeTemplate?.name || '经典喝酒版',
       })
+      sessionId = created.id
+      inviteCode = created.inviteCode
     } catch {
       // Fall back to local runtime creation when backend is unavailable.
     }
 
     setSessionRuntime({
+      currentUser: {
+        id: profile.id,
+        name: profile.name,
+        avatarUrl: profile.avatarUrl,
+      },
+      inviteCode,
       isJudge: true,
       playerCount: this.data.playerCount,
       selectedPlayers: [],
+      sessionId,
       sessionName: this.data.sessionName,
       startedAt: 0,
+      templateName: activeTemplate?.name || '',
     })
 
     wx.navigateTo({

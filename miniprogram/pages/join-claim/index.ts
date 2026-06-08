@@ -1,69 +1,105 @@
-import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
-import { avatarAsset } from '../../config/assets'
-
-interface JoinAvatar {
-  active?: boolean
-  id: string
-  url: string
-}
+import { getManagedLiveSession, joinManagedSession } from '../../services/operations'
+import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
+import { ensureUserAuthorized, getCurrentProfile } from '../../utils/social'
 
 interface JoinClaimState {
-  avatars: JoinAvatar[]
+  inviteCode: string
+  joinedCount: number
+  loading: boolean
+  playerCount: number
+  sessionId: string
+  sessionName: string
 }
 
 interface JoinClaimMethods {
-  handleAvatarTap: (event: WechatMiniprogram.BaseEvent) => void
-  handleJoinTap: () => void
+  handleJoinTap: () => Promise<void>
+  loadSession: () => Promise<void>
 }
 
 Page<JoinClaimState, JoinClaimMethods>({
   data: {
-    avatars: [
-      { id: '1', url: avatarAsset(1) },
-      { id: '2', url: avatarAsset(2) },
-      { id: '3', url: avatarAsset(3), active: true },
-      { id: '4', url: avatarAsset(4) },
-      { id: '5', url: avatarAsset(1) },
-      { id: '6', url: avatarAsset(2) },
-      { id: '7', url: avatarAsset(3) },
-      { id: '8', url: avatarAsset(4) },
-      { id: '9', url: avatarAsset(1) },
-      { id: '10', url: avatarAsset(2) },
-    ],
+    inviteCode: '',
+    joinedCount: 0,
+    loading: true,
+    playerCount: 6,
+    sessionId: '',
+    sessionName: '今晚聚会不醉不归',
   },
 
-  handleAvatarTap(event) {
-    const { id } = event.currentTarget.dataset as { id: string }
-    const avatars = this.data.avatars.map((item) => ({
-      ...item,
-      active: item.id === id,
-    }))
-
-    this.setData({ avatars })
-  },
-
-  handleJoinTap() {
-    const activeAvatar = this.data.avatars.find((item) => item.active) || this.data.avatars[0]
+  async onLoad(query) {
     const runtime = getSessionRuntime()
-    const matchedPlayer =
-      runtime.selectedPlayers.find((item) => item.avatarUrl === activeAvatar.url) ||
-      runtime.selectedPlayers[0] || {
-        name: `酒友${activeAvatar.id}`,
-        avatarUrl: activeAvatar.url,
-      }
-
-    setSessionRuntime({
-      currentUser: {
-        id: `viewer-${activeAvatar.id}`,
-        name: matchedPlayer.name,
-        avatarUrl: matchedPlayer.avatarUrl,
-      },
-      isJudge: false,
+    const inviteCode = typeof query?.inviteCode === 'string' ? decodeURIComponent(query.inviteCode) : runtime.inviteCode || ''
+    const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
+    const redirect = `/pages/join-claim/index?inviteCode=${encodeURIComponent(inviteCode)}${sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : ''}`
+    const profile = await ensureUserAuthorized(redirect)
+    if (!profile) {
+      return
+    }
+    this.setData({
+      inviteCode,
+      sessionId,
     })
+    await this.loadSession()
+  },
 
-    wx.navigateTo({
-      url: '/pages/waiting-room/index?role=viewer',
+  async loadSession() {
+    const liveSession = await getManagedLiveSession(this.data.sessionId, this.data.inviteCode)
+    this.setData({
+      joinedCount: liveSession.joinedCount,
+      loading: false,
+      playerCount: liveSession.playerCount,
+      sessionId: liveSession.id,
+      sessionName: liveSession.sessionName,
     })
+  },
+
+  async handleJoinTap() {
+    try {
+      const [profile, liveSession] = await Promise.all([
+        getCurrentProfile(),
+        joinManagedSession(this.data.inviteCode),
+      ])
+
+      setSessionRuntime({
+        currentUser: {
+          id: profile.id,
+          name: profile.name,
+          avatarUrl: profile.avatarUrl,
+        },
+        inviteCode: liveSession.inviteCode,
+        isJudge: false,
+        playerCount: liveSession.playerCount,
+        selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
+          avatarUrl: item.avatarUrl,
+          name: item.name,
+          profileId: item.profileId,
+          status: item.status,
+        })),
+        sessionId: liveSession.id,
+        sessionName: liveSession.sessionName,
+        startedAt: 0,
+        templateName: liveSession.templateName,
+      })
+
+      wx.redirectTo({
+        url: `/pages/waiting-room/index?role=viewer&sessionId=${encodeURIComponent(liveSession.id)}`,
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'join failed'
+      const notPlayer = message.includes('not session player')
+      await new Promise<void>((resolve) => {
+        wx.showModal({
+          title: notPlayer ? '您非本局玩家' : '加入失败',
+          content: notPlayer ? '当前邀请链接不属于你的本局玩家名单，即将返回首页。' : '当前无法加入本局，即将返回首页。',
+          showCancel: false,
+          success: () => resolve(),
+          fail: () => resolve(),
+        })
+      })
+      wx.reLaunch({
+        url: '/pages/index/index',
+      })
+    }
   },
 })
 

@@ -1,5 +1,4 @@
 import { getSessionReport, getSessionRuntime } from '../../utils/session'
-import { avatarAsset } from '../../config/assets'
 
 interface PosterRank {
   avatarUrl: string
@@ -15,7 +14,9 @@ interface PosterShareItem {
 }
 
 interface SharePosterState {
+  inviteCode: string
   ranks: PosterRank[]
+  sessionId: string
   sessionName: string
   shareItems: PosterShareItem[]
 }
@@ -23,20 +24,40 @@ interface SharePosterState {
 interface SharePosterMethods {
   handleBackTap: () => void
   handleCreateTap: () => void
-  openPage: (url: string) => void
-  handleShareTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleSaveTap: () => Promise<void>
   showPreviewToast: (message: string) => void
 }
 
+const downloadFile = (url: string) =>
+  new Promise<string>((resolve, reject) => {
+    wx.downloadFile({
+      url,
+      success: (result) => {
+        if (result.statusCode >= 200 && result.statusCode < 300 && result.tempFilePath) {
+          resolve(result.tempFilePath)
+          return
+        }
+        reject(new Error('download failed'))
+      },
+      fail: reject,
+    })
+  })
+
+const saveImage = (filePath: string) =>
+  new Promise<void>((resolve, reject) => {
+    wx.saveImageToPhotosAlbum({
+      filePath,
+      success: () => resolve(),
+      fail: reject,
+    })
+  })
+
 Page<SharePosterState, SharePosterMethods>({
   data: {
-    ranks: [
-      { title: '欠酒王', avatarUrl: avatarAsset(1), name: '阿浩', value: '欠了6杯' },
-      { title: '背锅侠', avatarUrl: avatarAsset(2), name: '小熊', value: '点名3次' },
-      { title: '整活王', avatarUrl: avatarAsset(3), name: 'Mika', value: '3个题' },
-    ],
+    inviteCode: '',
+    ranks: [],
+    sessionId: '',
     shareItems: [
-      { id: 'save', name: '保存图片', iconClass: 'poster-icon-download' },
       { id: 'friend', name: '分享给好友', iconClass: 'poster-icon-wechat' },
       { id: 'group', name: '分享到群', iconClass: 'poster-icon-group' },
       { id: 'more', name: '更多', iconClass: 'poster-icon-more' },
@@ -48,22 +69,30 @@ Page<SharePosterState, SharePosterMethods>({
     const report = getSessionReport()
     const runtime = getSessionRuntime()
 
-    if (!report) {
-      this.setData({
-        sessionName: runtime.sessionName,
-      })
-      return
-    }
-
     this.setData({
-      ranks: report.ranks,
-      sessionName: report.sessionName,
+      inviteCode: runtime.inviteCode || '',
+      sessionId: runtime.sessionId || '',
+      sessionName: report?.sessionName || runtime.sessionName,
+      ranks: report?.ranks || [],
     })
   },
 
-  handleShareTap(event) {
-    const { id, name } = event.currentTarget.dataset as { id: string; name: string }
-    this.openPage(`/pages/share-helper/index?scene=report&channel=${encodeURIComponent(id)}&label=${encodeURIComponent(name)}`)
+  onShareAppMessage() {
+    return {
+      title: `${this.data.sessionName} 战报出炉了`,
+      path: `/pages/join-claim/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,
+      imageUrl: 'https://api.pomer.cn/static/report-poster.png',
+    }
+  },
+
+  async handleSaveTap() {
+    try {
+      const tempFilePath = await downloadFile('https://api.pomer.cn/static/report-poster.png')
+      await saveImage(tempFilePath)
+      this.showPreviewToast('战报海报已保存')
+    } catch {
+      this.showPreviewToast('保存失败，请检查相册权限')
+    }
   },
 
   handleBackTap() {
@@ -73,15 +102,11 @@ Page<SharePosterState, SharePosterMethods>({
   },
 
   handleCreateTap() {
-    this.openPage('/pages/create-session/index')
-  },
-
-  openPage(url) {
     wx.navigateTo({
-      url,
+      url: '/pages/create-session/index',
       fail: () => {
         wx.redirectTo({
-          url,
+          url: '/pages/create-session/index',
         })
       },
     })

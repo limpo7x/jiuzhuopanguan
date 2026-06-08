@@ -1,5 +1,6 @@
 import { getSessionRuntime } from '../../utils/session'
 import {
+  ensureUserAuthorized,
   getCurrentProfile,
   getVisiblePokeThreads,
   ignorePokeThread,
@@ -74,10 +75,18 @@ Page<JudgePageState, JudgePageMethods>({
   },
 
   async onLoad() {
+    const profile = await ensureUserAuthorized('/pages/judge/index')
+    if (!profile) {
+      return
+    }
     await this.loadJudgeData()
   },
 
   async onShow() {
+    const profile = await ensureUserAuthorized('/pages/judge/index')
+    if (!profile) {
+      return
+    }
     await this.loadJudgeData()
   },
 
@@ -131,7 +140,11 @@ Page<JudgePageState, JudgePageMethods>({
     })
   },
 
-  handleCreateTap() {
+  async handleCreateTap() {
+    const profile = await ensureUserAuthorized('/pages/create-session/index')
+    if (!profile) {
+      return
+    }
     wx.navigateTo({
       url: '/pages/create-session/index',
     })

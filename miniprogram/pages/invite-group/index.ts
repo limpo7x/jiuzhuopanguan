@@ -1,3 +1,6 @@
+import { getSessionRuntime } from '../../utils/session'
+import { ensureUserAuthorized } from '../../utils/social'
+
 interface ShareItem {
   iconClass: string
   id: string
@@ -6,28 +9,50 @@ interface ShareItem {
 
 interface InviteGroupState {
   inviteCode: string
+  sessionId: string
+  sessionName: string
   shareItems: ShareItem[]
 }
 
 interface InviteGroupMethods {
   handleCopyTap: () => void
-  handleJoinTap: () => void
   handleNextTap: () => void
-  openPage: (url: string) => void
   handlePreviewTap: () => void
-  handleShareTap: (event: WechatMiniprogram.BaseEvent) => void
-  showPreviewToast: (message: string) => void
+  openPage: (url: string) => void
 }
 
 Page<InviteGroupState, InviteGroupMethods>({
   data: {
     inviteCode: 'AB7K9Q',
+    sessionId: '',
+    sessionName: '今晚聚会不醉不归',
     shareItems: [
-      { id: 'save', name: '保存图片', iconClass: 'invite-icon-download' },
       { id: 'friend', name: '分享给好友', iconClass: 'invite-icon-wechat' },
       { id: 'group', name: '分享到群', iconClass: 'invite-icon-group' },
-      { id: 'more', name: '更多', iconClass: 'invite-icon-more' },
+      { id: 'timeline', name: '更多分享', iconClass: 'invite-icon-more' },
     ],
+  },
+
+  async onLoad(query) {
+    const runtime = getSessionRuntime()
+    const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
+    const profile = await ensureUserAuthorized(`/pages/invite-group/index${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ''}`)
+    if (!profile) {
+      return
+    }
+    this.setData({
+      inviteCode: runtime.inviteCode || 'AB7K9Q',
+      sessionId,
+      sessionName: runtime.sessionName || '今晚聚会不醉不归',
+    })
+  },
+
+  onShareAppMessage() {
+    return {
+      title: `${this.data.sessionName} 邀你入局`,
+      path: `/pages/join-claim/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,
+      imageUrl: 'https://api.pomer.cn/static/party-hero.png',
+    }
   },
 
   handleCopyTap() {
@@ -37,27 +62,11 @@ Page<InviteGroupState, InviteGroupMethods>({
   },
 
   handlePreviewTap() {
-    this.openPage('/pages/share-preview/index')
-  },
-
-  handleShareTap(event) {
-    const { id, name } = event.currentTarget.dataset as { id: string; name: string }
-    this.openPage(`/pages/share-helper/index?scene=invite&channel=${encodeURIComponent(id)}&label=${encodeURIComponent(name)}`)
-  },
-
-  handleJoinTap() {
-    this.openPage('/pages/join-claim/index')
+    this.openPage(`/pages/share-preview/index?sessionId=${encodeURIComponent(this.data.sessionId)}`)
   },
 
   handleNextTap() {
-    this.openPage('/pages/waiting-room/index')
-  },
-
-  showPreviewToast(message) {
-    wx.showToast({
-      title: message,
-      icon: 'none',
-    })
+    this.openPage(`/pages/waiting-room/index?sessionId=${encodeURIComponent(this.data.sessionId)}`)
   },
 
   openPage(url) {

@@ -192,6 +192,9 @@ const normalizeStore = (store = {}) => {
     ...store,
     sessions: Array.isArray(store.sessions) ? store.sessions.filter((item) => Number(item.expiresAt) > now()) : [],
   }
+  next.liveSessions = Array.isArray(store.liveSessions)
+    ? store.liveSessions.map((item, index) => normalizeLiveSession(item, index))
+    : createDefaultStore().liveSessions.map((item, index) => normalizeLiveSession(item, index))
   next.toolsCatalog = normalizeToolsCatalog(store.toolsCatalog || next.toolsCatalog)
   return next
 }
@@ -821,6 +824,136 @@ const makeInviteCode = (seed = '') => {
   return `${normalized.slice(-2).padStart(2, 'A')}7K9Q`
 }
 
+const normalizeSessionMember = (member = {}, index = 0) => ({
+  avatarUrl: String(member.avatarUrl || `/static/avatar-${(index % 4) + 1}.png`).trim(),
+  isHost: Boolean(member.isHost),
+  name: String(member.name || `玩家${index + 1}`).trim(),
+  phone: String(member.phone || '').trim(),
+  profileId: String(member.profileId || '').trim(),
+  status: String(member.status || (member.isHost ? '已加入' : '待加入')).trim(),
+})
+
+const buildSessionMembers = (payload = {}, existingMembers = []) => {
+  const hostProfileId = String(payload.hostProfileId || '').trim()
+  const hostName = String(payload.hostName || '当前发起人').trim() || '当前发起人'
+  const hostAvatarUrl = String(payload.hostAvatarUrl || existingMembers.find((item) => item.isHost)?.avatarUrl || '/static/avatar-1.png').trim()
+  const hostPhone = String(payload.hostPhone || '').trim()
+  const selectedPlayers = Array.isArray(payload.selectedPlayers) ? payload.selectedPlayers : []
+  const existingByProfileId = new Map(
+    existingMembers
+      .filter((item) => item?.profileId)
+      .map((item, index) => [String(item.profileId), normalizeSessionMember(item, index)]),
+  )
+  const members = [
+    normalizeSessionMember(
+      {
+        ...existingMembers.find((item) => item.isHost),
+        avatarUrl: hostAvatarUrl,
+        isHost: true,
+        name: hostName,
+        phone: hostPhone,
+        profileId: hostProfileId,
+        status: '已加入',
+      },
+      0,
+    ),
+  ]
+
+  selectedPlayers.forEach((item, index) => {
+    const profileId = String(item.profileId || '').trim()
+    const existed = profileId ? existingByProfileId.get(profileId) : null
+    members.push(
+      normalizeSessionMember(
+        {
+          ...existed,
+          avatarUrl: item.avatarUrl || existed?.avatarUrl,
+          isHost: false,
+          name: item.name || existed?.name,
+          phone: item.phone || existed?.phone,
+          profileId,
+          status: existed?.status === '已加入' ? '已加入' : '待加入',
+        },
+        index + 1,
+      ),
+    )
+  })
+
+  return members
+}
+
+const normalizeLiveSession = (session = {}, index = 0) => {
+  const members = Array.isArray(session.members) && session.members.length
+    ? session.members.map((item, memberIndex) => normalizeSessionMember(item, memberIndex))
+    : buildSessionMembers(
+        {
+          hostAvatarUrl: session.hostAvatarUrl,
+          hostName: session.hostName,
+          selectedPlayers: [],
+        },
+        [],
+      )
+
+  return {
+    ...session,
+    hostAvatarUrl: String(session.hostAvatarUrl || members[0]?.avatarUrl || `/static/avatar-${(index % 4) + 1}.png`).trim(),
+    id: String(session.id || createId('session')).trim(),
+    inviteCode: String(session.inviteCode || makeInviteCode(session.id || `session-${index + 1}`)).trim() || makeInviteCode(session.id || `session-${index + 1}`),
+    joinedCount: Number(session.joinedCount) || members.filter((item) => item.status === '已加入').length,
+    members,
+  }
+}
+
+const getManagedSessionById = (sessionId) => {
+  const store = readStore()
+  return store.liveSessions.find((item) => item.id === sessionId) || null
+}
+
+const getManagedSessionByInviteCode = (inviteCode) => {
+  const normalizedInviteCode = String(inviteCode || '').trim().toUpperCase()
+  if (!normalizedInviteCode) {
+    return null
+  }
+  const store = readStore()
+  return store.liveSessions.find((item) => String(item.inviteCode || '').trim().toUpperCase() === normalizedInviteCode) || null
+}
+
+const joinManagedSession = ({ inviteCode, profile }) => {
+  const normalizedInviteCode = String(inviteCode || '').trim().toUpperCase()
+  const store = readStore()
+  const target = store.liveSessions.find((item) => String(item.inviteCode || '').trim().toUpperCase() === normalizedInviteCode)
+  if (!target) {
+    const error = new Error('session not found')
+    error.code = 'SESSION_NOT_FOUND'
+    throw error
+  }
+
+  const profileId = String(profile?.id || '').trim()
+  const memberIndex = Array.isArray(target.members) ? target.members.findIndex((item) => item.profileId && item.profileId === profileId) : -1
+  if (memberIndex === -1) {
+    const error = new Error('not session player')
+    error.code = 'NOT_SESSION_PLAYER'
+    throw error
+  }
+
+  target.members = target.members.map((item, index) =>
+    index === memberIndex
+      ? normalizeSessionMember(
+          {
+            ...item,
+            avatarUrl: profile.avatarUrl || item.avatarUrl,
+            name: profile.name || item.name,
+            phone: profile.phone || item.phone,
+            status: '已加入',
+          },
+          index,
+        )
+      : item,
+  )
+  target.joinedCount = target.members.filter((item) => item.status === '已加入').length
+  writeStore(store)
+  return target
+}
+
 const createManagedSession = (payload = {}) => {
   const store = readStore()
   const id = createId('session')
@@ -831,9 +964,11 @@ const createManagedSession = (payload = {}) => {
     template: String(payload.templateName || '经典欠酒版').trim() || '经典欠酒版',
     hostName: String(payload.hostName || '当前发起人').trim() || '当前发起人',
     inviteCode: String(payload.inviteCode || makeInviteCode(id)).trim() || makeInviteCode(id),
+    hostAvatarUrl: String(payload.hostAvatarUrl || '/static/avatar-1.png').trim() || '/static/avatar-1.png',
     state: String(payload.state || '等待开局').trim() || '等待开局',
     source: String(payload.source || '直接创建').trim() || '直接创建',
     status: String(payload.status || '正常').trim() || '正常',
+    members: buildSessionMembers(payload, []),
   }
   store.liveSessions = [session, ...store.liveSessions.filter((item) => item.id !== id)].slice(0, 50)
   writeStore(store)
@@ -852,13 +987,32 @@ const updateManagedSession = (sessionId, payload = {}) => {
       players: Number(payload.playerCount) || item.players,
       template: payload.templateName || item.template,
       hostName: payload.hostName || item.hostName,
+      hostAvatarUrl: payload.hostAvatarUrl || item.hostAvatarUrl,
       inviteCode: payload.inviteCode || item.inviteCode,
       state: payload.state || item.state,
       source: payload.source || item.source,
       status: payload.status || item.status,
+      members: Array.isArray(payload.selectedPlayers) || payload.hostProfileId
+        ? buildSessionMembers(
+            {
+              ...payload,
+              hostAvatarUrl: payload.hostAvatarUrl || item.hostAvatarUrl,
+              hostName: payload.hostName || item.hostName,
+            },
+            item.members || [],
+          )
+        : item.members || [],
     }
   })
-  store.liveSessions = nextItems
+  store.liveSessions = nextItems.map((item, index) =>
+    normalizeLiveSession(
+      {
+        ...item,
+        joinedCount: Array.isArray(item.members) ? item.members.filter((member) => member.status === '已加入').length : Number(item.joinedCount) || 0,
+      },
+      index,
+    ),
+  )
   writeStore(store)
   return store.liveSessions.find((item) => item.id === sessionId) || null
 }
@@ -2048,7 +2202,10 @@ module.exports = {
   createManagedSession,
   finishManagedSession,
   getAdminStore: readStore,
+  getManagedSessionById,
+  getManagedSessionByInviteCode,
   initAdminStore: storeAccessor.init,
+  joinManagedSession,
   getPageData,
   getSession,
   loginAdmin,

@@ -10,39 +10,28 @@
   <scroll-view class="join-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="join-center">
       <view class="join-goblet-icon"></view>
-      <text class="join-title">朋友喊你来一局</text>
-      <text class="join-subtitle">今晚聚会不醉不归</text>
+      <text class="join-title">朋友邀请你来一局</text>
+      <text class="join-subtitle">{{sessionName}}</text>
     </view>
 
     <view class="join-field">
-      <text class="join-label">输入你的昵称</text>
-      <view class="join-input">小太阳</view>
+      <text class="join-label">邀请码</text>
+      <view class="join-input">{{inviteCode}}</view>
     </view>
 
-    <view class="join-section-head">
-      <text class="join-section-title">选择头像</text>
-    </view>
-
-    <view class="join-avatar-grid">
-      <view
-        wx:for="{{avatars}}"
-        wx:key="id"
-        class="join-avatar-item {{item.active ? 'join-avatar-item-active' : ''}}"
-        data-id="{{item.id}}"
-        bindtap="handleAvatarTap"
-      >
-        <image class="join-avatar" src="{{item.url}}" mode="aspectFill"></image>
-      </view>
+    <view class="join-field">
+      <text class="join-label">当前进度</text>
+      <view class="join-input">{{joinedCount}} / {{playerCount}} 已加入</view>
     </view>
 
     <view class="join-primary" bindtap="handleJoinTap">
-      <text>确认加入</text>
+      <text>{{loading ? '加载中...' : '确认加入本局'}}</text>
       <view class="join-primary-icon"></view>
     </view>
 
     <view class="join-notice">
       <view class="join-notice-icon"></view>
-      <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+      <text>首次进入会先校验微信授权和手机号，确认你在本局名单内后再放行。</text>
     </view>
   </scroll-view>
 </view>

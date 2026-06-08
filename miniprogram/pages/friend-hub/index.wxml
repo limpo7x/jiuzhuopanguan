@@ -1,0 +1,74 @@
+<navigation-bar
+  title="我的聚友"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+></navigation-bar>
+
+<view class="friend-hub-page">
+  <scroll-view class="friend-hub-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="friend-hub-profile">
+      <image class="friend-hub-avatar" src="{{currentProfile.avatarUrl}}" mode="aspectFill"></image>
+      <view class="friend-hub-copy">
+        <text class="friend-hub-name">{{currentProfile.name}}</text>
+        <text class="friend-hub-meta">搜索好友、添加酒友、拍一拍都在这里。</text>
+      </view>
+    </view>
+
+    <view class="friend-hub-create">
+      <input
+        class="friend-hub-input"
+        value="{{newFriendName}}"
+        placeholder="搜索已注册酒友"
+        bindinput="handleNewFriendInput"
+      />
+      <view class="friend-hub-add-btn" bindtap="handleAddFriendTap">新增</view>
+    </view>
+
+    <view wx:if="{{newFriendMatches.length}}" class="friend-hub-search-list">
+      <view wx:for="{{newFriendMatches}}" wx:key="id" class="friend-hub-search-card">
+        <image class="friend-hub-friend-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view class="friend-hub-friend-copy">
+          <text class="friend-hub-friend-name">{{item.name}}</text>
+          <text class="friend-hub-friend-meta">{{item.city}} · {{item.identityTag}}</text>
+        </view>
+        <view
+          class="friend-hub-inline-btn {{item.alreadyFriend ? 'friend-hub-inline-btn-disabled' : ''}}"
+          data-profile-id="{{item.id}}"
+          data-name="{{item.name}}"
+          bindtap="handleAddRegisteredFriendTap"
+        >
+          {{item.alreadyFriend ? '已是酒友' : '添加酒友'}}
+        </view>
+      </view>
+    </view>
+
+    <view class="friend-hub-list">
+      <view wx:for="{{wineFriends}}" wx:key="id" class="friend-hub-card">
+        <image class="friend-hub-friend-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view class="friend-hub-friend-copy">
+          <input
+            wx:if="{{item.editing}}"
+            class="friend-hub-edit-input"
+            value="{{editingFriendName}}"
+            focus="{{true}}"
+            bindinput="handleEditFriendInput"
+          />
+          <text wx:else class="friend-hub-friend-name">{{item.name}}</text>
+          <text class="friend-hub-friend-meta">{{item.meta}}</text>
+        </view>
+        <view wx:if="{{item.editing}}" class="friend-hub-actions">
+          <view class="friend-hub-mini-btn friend-hub-save-btn" data-id="{{item.id}}" bindtap="handleSaveFriendTap">保存</view>
+          <view class="friend-hub-mini-btn" bindtap="handleCancelEditTap">取消</view>
+        </view>
+        <view wx:else class="friend-hub-actions">
+          <view class="friend-hub-poke-btn" data-id="{{item.id}}" bindtap="handlePokeTap">拍一拍</view>
+          <view class="friend-hub-mini-row">
+            <view class="friend-hub-mini-btn" data-id="{{item.id}}" bindtap="handleStartEditTap">编辑</view>
+            <view class="friend-hub-mini-btn friend-hub-delete-btn" data-id="{{item.id}}" bindtap="handleDeleteFriendTap">删除</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

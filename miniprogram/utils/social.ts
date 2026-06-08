@@ -172,6 +172,30 @@ const cacheUserToken = (token: string) => {
   }
 }
 
+const resolveCurrentPageUrl = () => {
+  const pages = getCurrentPages()
+  const current = pages[pages.length - 1]
+  if (!current?.route) {
+    return '/pages/index/index'
+  }
+  const route = `/${current.route}`
+  const options = current.options || {}
+  const query = Object.keys(options)
+    .map((key) => `${encodeURIComponent(key)}=${encodeURIComponent(String(options[key] || ''))}`)
+    .join('&')
+  return query ? `${route}?${query}` : route
+}
+
+const openLoginPage = (redirectUrl?: string) => {
+  const target = `/pages/profile-edit/index?redirect=${encodeURIComponent(redirectUrl || resolveCurrentPageUrl())}`
+  wx.navigateTo({
+    url: target,
+    fail: () => {
+      wx.redirectTo({ url: target })
+    },
+  })
+}
+
 const hashNameToAvatar = (name: string) => {
   const sum = Array.from(name).reduce((total, char) => total + char.charCodeAt(0), 0)
   return AVATAR_POOL[sum % AVATAR_POOL.length]
@@ -400,6 +424,15 @@ export const getUserAuthSession = async (): Promise<UserAuthSession> => {
   } catch {
     return { loggedIn: false, profile: null }
   }
+}
+
+export const ensureUserAuthorized = async (redirectUrl?: string): Promise<SocialProfile | null> => {
+  const session = await getUserAuthSession()
+  if (session.loggedIn && session.profile?.phone) {
+    return session.profile
+  }
+  openLoginPage(redirectUrl)
+  return null
 }
 
 export const loginWithWechatPhone = async (payload: UserLoginPayload): Promise<SocialProfile> => {

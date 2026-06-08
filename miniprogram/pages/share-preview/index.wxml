@@ -9,8 +9,8 @@
 <view class="share-page">
   <scroll-view class="share-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="share-chip-row">
-      <view class="share-chip {{!showJoinStatus ? 'share-chip-active' : ''}}" data-tab="preview" bindtap="handleTabTap">分享卡片预览</view>
-      <view class="share-chip {{showJoinStatus ? 'share-chip-active' : ''}}" data-tab="status" bindtap="handleTabTap">口令加入状态</view>
+      <view class="share-chip {{!showJoinStatus ? 'share-chip-active' : ''}}" data-tab="preview" bindtap="handleTabTap">邀请卡预览</view>
+      <view class="share-chip {{showJoinStatus ? 'share-chip-active' : ''}}" data-tab="status" bindtap="handleTabTap">加入状态</view>
     </view>
 
     <view wx:if="{{!showJoinStatus}}" class="share-poster-card">
@@ -23,13 +23,13 @@
           </view>
           <text class="share-poster-count">{{joinedCount}}/{{playerCount}} 已加入</text>
         </view>
-        <view class="share-code-box">AB7K9Q</view>
+        <view class="share-code-box">{{inviteCode}}</view>
       </view>
     </view>
     <view wx:else class="share-poster-card">
       <view class="share-poster-copy">
         <text class="share-poster-title">口令加入状态</text>
-        <text class="share-poster-subtitle">邀请码 AB7K9Q · 当前 {{joinedCount}}/{{playerCount}} 已加入</text>
+        <text class="share-poster-subtitle">邀请码 {{inviteCode}} · 当前 {{joinedCount}}/{{playerCount}} 已加入</text>
         <view class="share-status-list">
           <view wx:for="{{joinStatusPlayers}}" wx:key="name" class="share-status-item">
             <view class="share-status-user">
@@ -47,14 +47,19 @@
     </view>
 
     <view class="share-grid">
-      <view wx:for="{{shareItems}}" wx:key="id" class="share-item" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="handleShareTap">
+      <button
+        wx:for="{{shareItems}}"
+        wx:key="id"
+        class="share-item"
+        open-type="share"
+      >
         <view class="share-item-icon {{item.iconClass}}"></view>
         <text class="share-item-label">{{item.name}}</text>
-      </view>
+      </button>
     </view>
 
     <view class="share-primary" bindtap="handleSaveTap">
-      <text>保存海报</text>
+      <text>保存邀请卡</text>
       <view class="share-primary-icon"></view>
     </view>
   </scroll-view>

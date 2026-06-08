@@ -10,10 +10,14 @@
   <scroll-view class="waiting-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="waiting-center">
       <text class="waiting-title">组局中，等人齐</text>
-      <text class="waiting-subtitle">人齐自动开局，无需群主操作</text>
+      <text class="waiting-subtitle">可随时刷新最新加入成员，确认人数后再进场。</text>
       <view class="waiting-counter">
         <text class="waiting-counter-value">{{joinedCount}} / {{playerCount}}</text>
         <text class="waiting-counter-label">已加入人数</text>
+      </view>
+      <view class="waiting-action-row">
+        <view class="waiting-ghost" bindtap="handleRefreshTap">刷新成员</view>
+        <view wx:if="{{isJudge && joinedCount < playerCount}}" class="waiting-ghost" bindtap="handleInviteTap">继续邀请</view>
       </view>
     </view>
 
@@ -34,13 +38,13 @@
         <text class="waiting-card-link" bindtap="handleOverviewTap">更多</text>
       </view>
       <text class="waiting-card-meta">{{sessionName}}</text>
-      <text class="waiting-card-meta">玩法：经典欠酒版 · 人数：{{playerCount}}人</text>
-      <text class="waiting-card-meta">创建：小太阳组会玩</text>
+      <text class="waiting-card-meta">人数：{{playerCount}} 人</text>
+      <text class="waiting-card-meta">邀请码：{{inviteCode}}</text>
     </view>
 
     <view class="waiting-action-row">
-      <view class="waiting-ghost" bindtap="handleInviteTap">提醒好友</view>
-      <view class="waiting-ghost" bindtap="handleCodeTap">查看口令</view>
+      <view wx:if="{{isJudge && joinedCount < playerCount}}" class="waiting-ghost" bindtap="handleInviteTap">提醒好友</view>
+      <view class="waiting-ghost" bindtap="handleCodeTap">查看邀请卡</view>
     </view>
 
     <view class="waiting-primary" bindtap="handleStartTap">进入本局</view>

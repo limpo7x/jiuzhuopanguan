@@ -1,5 +1,5 @@
+import { getManagedLiveSession } from '../../services/operations'
 import { getSessionRuntime } from '../../utils/session'
-import { avatarAsset } from '../../config/assets'
 
 interface SharePreviewItem {
   iconClass: string
@@ -9,43 +9,57 @@ interface SharePreviewItem {
 
 interface SharePreviewState {
   avatars: string[]
+  inviteCode: string
   joinedCount: number
   joinStatusPlayers: Array<{ avatarUrl: string; name: string; status: string }>
   playerCount: number
+  sessionId: string
   sessionName: string
   shareItems: SharePreviewItem[]
   showJoinStatus: boolean
 }
 
 interface SharePreviewMethods {
+  handleSaveTap: () => Promise<void>
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
-  handleSaveTap: () => void
-  handleShareTap: (event: WechatMiniprogram.BaseEvent) => void
-  openPage: (url: string) => void
+  loadSession: () => Promise<void>
   showPreviewToast: (message: string) => void
 }
 
+const downloadFile = (url: string) =>
+  new Promise<string>((resolve, reject) => {
+    wx.downloadFile({
+      url,
+      success: (result) => {
+        if (result.statusCode >= 200 && result.statusCode < 300 && result.tempFilePath) {
+          resolve(result.tempFilePath)
+          return
+        }
+        reject(new Error('download failed'))
+      },
+      fail: reject,
+    })
+  })
+
+const saveImage = (filePath: string) =>
+  new Promise<void>((resolve, reject) => {
+    wx.saveImageToPhotosAlbum({
+      filePath,
+      success: () => resolve(),
+      fail: reject,
+    })
+  })
+
 Page<SharePreviewState, SharePreviewMethods>({
   data: {
-    avatars: [
-      avatarAsset(1),
-      avatarAsset(2),
-      avatarAsset(3),
-      avatarAsset(4),
-    ],
-    joinedCount: 4,
-    joinStatusPlayers: [
-      { name: '阿浩', avatarUrl: avatarAsset(1), status: '已加入' },
-      { name: '小熊', avatarUrl: avatarAsset(2), status: '已加入' },
-      { name: 'Mika', avatarUrl: avatarAsset(3), status: '待确认' },
-      { name: '可可', avatarUrl: avatarAsset(4), status: '已加入' },
-      { name: '阿乐', avatarUrl: avatarAsset(1), status: '待加入' },
-      { name: 'Nina', avatarUrl: avatarAsset(2), status: '待加入' },
-    ],
+    avatars: [],
+    inviteCode: 'AB7K9Q',
+    joinedCount: 0,
+    joinStatusPlayers: [],
     playerCount: 6,
+    sessionId: '',
     sessionName: '今晚聚会不醉不归',
     shareItems: [
-      { id: 'save', name: '保存图片', iconClass: 'share-icon-download' },
       { id: 'friend', name: '分享给好友', iconClass: 'share-icon-wechat' },
       { id: 'group', name: '分享到群', iconClass: 'share-icon-group' },
       { id: 'more', name: '更多', iconClass: 'share-icon-more' },
@@ -53,28 +67,42 @@ Page<SharePreviewState, SharePreviewMethods>({
     showJoinStatus: false,
   },
 
-  onLoad() {
+  async onLoad(query) {
     const runtime = getSessionRuntime()
-    const playerCount = Math.max(2, runtime.playerCount || 6)
-    const selectedPlayers = runtime.selectedPlayers?.length
-      ? runtime.selectedPlayers
-      : this.data.joinStatusPlayers.map((item) => ({
-          name: item.name,
-          avatarUrl: item.avatarUrl,
-        }))
-    const joinedCount = Math.min(playerCount, Math.min(selectedPlayers.length, 4))
-    const avatars = selectedPlayers.slice(0, joinedCount).map((item) => item.avatarUrl)
-    const joinStatusPlayers = selectedPlayers.slice(0, playerCount).map((item, index) => ({
-      ...item,
-      status: index < joinedCount ? '已加入' : '待加入',
-    }))
-
+    const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
     this.setData({
-      avatars,
-      joinedCount,
-      joinStatusPlayers,
-      playerCount,
-      sessionName: runtime.sessionName,
+      inviteCode: runtime.inviteCode || 'AB7K9Q',
+      sessionId,
+    })
+    await this.loadSession()
+  },
+
+  async onShow() {
+    if (!this.data.sessionId && !getSessionRuntime().sessionId) {
+      return
+    }
+    await this.loadSession()
+  },
+
+  onShareAppMessage() {
+    return {
+      title: `${this.data.sessionName} 邀你入局`,
+      path: `/pages/join-claim/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,
+      imageUrl: 'https://api.pomer.cn/static/party-hero.png',
+    }
+  },
+
+  async loadSession() {
+    const runtime = getSessionRuntime()
+    const liveSession = await getManagedLiveSession(this.data.sessionId || runtime.sessionId, this.data.inviteCode || runtime.inviteCode)
+    this.setData({
+      avatars: liveSession.joinedPlayers.map((item) => item.avatarUrl).slice(0, liveSession.playerCount),
+      inviteCode: liveSession.inviteCode,
+      joinedCount: liveSession.joinedCount,
+      joinStatusPlayers: liveSession.joinStatusPlayers,
+      playerCount: liveSession.playerCount,
+      sessionId: liveSession.id,
+      sessionName: liveSession.sessionName,
     })
   },
 
@@ -86,28 +114,20 @@ Page<SharePreviewState, SharePreviewMethods>({
     })
   },
 
-  handleSaveTap() {
-    this.openPage('/pages/share-helper/index?scene=preview&channel=save&label=保存海报')
-  },
-
-  handleShareTap(event) {
-    const { id, name } = event.currentTarget.dataset as { id: string; name: string }
-    this.openPage(`/pages/share-helper/index?scene=preview&channel=${encodeURIComponent(id)}&label=${encodeURIComponent(name)}`)
+  async handleSaveTap() {
+    try {
+      const tempFilePath = await downloadFile('https://api.pomer.cn/static/party-hero.png')
+      await saveImage(tempFilePath)
+      this.showPreviewToast('邀请卡已保存到相册')
+    } catch {
+      this.showPreviewToast('保存失败，请检查相册权限')
+    }
   },
 
   showPreviewToast(message) {
     wx.showToast({
       title: message,
       icon: 'none',
-    })
-  },
-
-  openPage(url) {
-    wx.navigateTo({
-      url,
-      fail: () => {
-        wx.redirectTo({ url })
-      },
     })
   },
 })

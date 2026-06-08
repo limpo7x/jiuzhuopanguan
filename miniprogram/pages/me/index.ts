@@ -56,6 +56,7 @@ interface MePageMethods {
   handleSaveFriendTap: (event: WechatMiniprogram.BaseEvent) => void
   handleStartEditTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleWineStatTap: (event: WechatMiniprogram.BaseEvent) => void
   loadSocialData: () => Promise<void>
   openPage: (url: string) => void
   showPreviewToast: (message: string) => void
@@ -92,6 +93,7 @@ Page<MePageState, MePageMethods>({
       { value: '16', label: '发起酒局' },
       { value: '48', label: '参与场次' },
       { value: '23', label: '战报分享' },
+      { value: '0', label: '我的聚友' },
     ],
     features: [
       { id: 'favorites', name: '我的收藏', iconClass: 'me-icon-star' },
@@ -130,6 +132,12 @@ Page<MePageState, MePageMethods>({
         { value: String(commerceState?.unlockedTemplateIds?.length ?? 0), label: '资产包' },
       ],
       currentProfile,
+      wineStats: [
+        { value: '16', label: '发起酒局' },
+        { value: '48', label: '参与场次' },
+        { value: '23', label: '战报分享' },
+        { value: String(wineFriends.length), label: '我的聚友' },
+      ],
       wineFriends,
     })
   },
@@ -307,6 +315,20 @@ Page<MePageState, MePageMethods>({
     }
 
     wx.redirectTo({ url: target })
+  },
+
+  handleWineStatTap(event) {
+    const { label } = event.currentTarget.dataset as { label: string }
+    const routes: Record<string, string> = {
+      发起酒局: '/pages/wine-history/index',
+      参与场次: '/pages/wine-history/index',
+      战报分享: '/pages/share-poster/index',
+      我的聚友: '/pages/friend-hub/index',
+    }
+    const target = routes[label]
+    if (target) {
+      this.openPage(target)
+    }
   },
 
   showPreviewToast(message) {

@@ -1,5 +1,6 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath, staticAsset } from '../config/assets'
+import { getUserAuthHeaders } from '../utils/social'
 import {
   TOOL_CATEGORIES,
   TOOL_LIST,
@@ -53,6 +54,7 @@ interface RemoteToolsResponse {
 interface RemoteSessionPlayer {
   avatarUrl?: string
   name?: string
+  profileId?: string
   status?: string
 }
 
@@ -84,6 +86,7 @@ export interface ManagedToolCatalog {
 export interface ManagedSessionPlayer {
   avatarUrl: string
   name: string
+  profileId?: string
   status: string
 }
 
@@ -105,9 +108,12 @@ export interface ManagedLiveSession {
 }
 
 export interface ManagedSessionMutationPayload {
+  hostAvatarUrl?: string
   hostName?: string
+  hostProfileId?: string
   inviteCode?: string
   playerCount?: number
+  selectedPlayers?: ManagedSessionPlayer[]
   sessionName?: string
   source?: string
   state?: string
@@ -158,6 +164,7 @@ const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', da
   new Promise((resolve, reject) => {
     wx.request({
       url: `${getApiBase()}${path}`,
+      header: getUserAuthHeaders(),
       method,
       data,
       timeout: 5000,
@@ -176,6 +183,7 @@ const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', da
 const normalizeSessionPlayer = (player?: RemoteSessionPlayer): ManagedSessionPlayer => ({
   avatarUrl: normalizeManagedAssetPath(player?.avatarUrl) || 'https://api.pomer.cn/static/avatar-1.png',
   name: player?.name || '玩家',
+  profileId: player?.profileId || '',
   status: player?.status || '待加入',
 })
 
@@ -233,6 +241,51 @@ export const getManagedToolsCatalog = async (): Promise<ManagedToolCatalog> => {
     }
   } catch {
     return DEFAULT_TOOLS_CATALOG
+  }
+}
+
+export const getManagedLiveSession = async (sessionId?: string, inviteCode?: string): Promise<ManagedLiveSession> => {
+  try {
+    const query = [
+      sessionId ? `sessionId=${encodeURIComponent(sessionId)}` : '',
+      inviteCode ? `inviteCode=${encodeURIComponent(inviteCode)}` : '',
+    ]
+      .filter(Boolean)
+      .join('&')
+    const remote = await requestJson<RemoteLiveSession>(`/sessions/live${query ? `?${query}` : ''}`)
+    const joinedPlayers = remote.joinedPlayers?.length ? remote.joinedPlayers.map(normalizeSessionPlayer) : DEFAULT_LIVE_SESSION.joinedPlayers
+    const joinStatusPlayers = remote.joinStatusPlayers?.length
+      ? remote.joinStatusPlayers.map(normalizeSessionPlayer)
+      : joinedPlayers
+
+    return {
+      ...DEFAULT_LIVE_SESSION,
+      hostName: remote.hostName || DEFAULT_LIVE_SESSION.hostName,
+      id: remote.id || DEFAULT_LIVE_SESSION.id,
+      inviteCode: remote.inviteCode || DEFAULT_LIVE_SESSION.inviteCode,
+      joinedCount: Number(remote.joinedCount) || joinedPlayers.length || DEFAULT_LIVE_SESSION.joinedCount,
+      joinedPlayers,
+      joinStatusPlayers,
+      playerCount: Number(remote.playerCount) || DEFAULT_LIVE_SESSION.playerCount,
+      sessionName: remote.sessionName || DEFAULT_LIVE_SESSION.sessionName,
+      source: remote.source || DEFAULT_LIVE_SESSION.source,
+      stateText: remote.stateText || DEFAULT_LIVE_SESSION.stateText,
+      status: remote.status || DEFAULT_LIVE_SESSION.status,
+      subtitle: remote.subtitle || DEFAULT_LIVE_SESSION.subtitle,
+      templateName: remote.templateName || DEFAULT_LIVE_SESSION.templateName,
+      title: remote.title || DEFAULT_LIVE_SESSION.title,
+    }
+  } catch {
+    return DEFAULT_LIVE_SESSION
+  }
+}
+
+export const joinManagedSession = async (inviteCode: string): Promise<ManagedLiveSession> => {
+  const remote = await requestJson<RemoteLiveSession>('/sessions/join', 'POST', { inviteCode })
+  return {
+    ...(await getManagedLiveSession(remote.id, inviteCode)),
+    id: remote.id || '',
+    inviteCode: remote.inviteCode || inviteCode,
   }
 }
 
