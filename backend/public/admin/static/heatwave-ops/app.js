@@ -412,10 +412,28 @@ const renderAssetInput = (field, value, collectionKey, itemId) => `
     ${renderFieldMeta(field)}
   </div>`
 
+const renderSelectField = (field, value, common) => {
+  const options = Array.isArray(field?.options) ? field.options : []
+  const currentValue = value == null ? '' : String(value)
+  return `<select ${common}>
+    <option value="">请选择</option>
+    ${options
+      .map((option) => {
+        const optionValue = option && typeof option === 'object' ? String(option.value ?? '') : String(option ?? '')
+        const optionLabel = option && typeof option === 'object' ? String(option.label ?? optionValue) : optionValue
+        return `<option value="${escapeHtml(optionValue)}" ${optionValue === currentValue ? 'selected' : ''}>${escapeHtml(optionLabel)}</option>`
+      })
+      .join('')}
+  </select>`
+}
+
 const renderField = (field, value, collectionKey, itemId) => {
   const common = `data-field="${field.key}" data-collection="${collectionKey || ''}" data-item-id="${itemId || ''}"`
   if (isAssetField(field)) {
     return renderAssetInput(field, value, collectionKey, itemId)
+  }
+  if (field.type === 'select') {
+    return renderSelectField(field, value, common)
   }
   if (field.type === 'textarea') {
     return `<textarea ${common}>${value || ''}</textarea>`
@@ -510,7 +528,7 @@ const renderCollectionEditor = (collection, options = {}) => {
                 <div class="field">
                   <label>${field.label}</label>
                   ${readOnly ? `<div class="readonly-value">${selected[field.key] ?? ''}</div>` : renderField(field, selected[field.key], collection.key, selected.id)}
-                  ${renderFieldMeta(field)}
+                  ${readOnly || !isAssetField(field) ? renderFieldMeta(field) : ''}
                 </div>`,
                 )
                 .join('')}

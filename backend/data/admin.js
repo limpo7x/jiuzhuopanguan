@@ -1055,6 +1055,73 @@ const finishManagedSession = (payload = {}) => {
   return report
 }
 
+const toOption = (value, label = value) => ({
+  value: String(value || '').trim(),
+  label: String(label || value || '').trim(),
+})
+
+const uniqueOptions = (values = []) =>
+  [...new Set(values.map((item) => String(item || '').trim()).filter(Boolean))].map((item) => toOption(item))
+
+const mergeOptions = (...groups) => uniqueOptions(groups.flat())
+
+const YES_NO_OPTIONS = [toOption('是'), toOption('否')]
+const QUESTION_TYPE_OPTIONS = [toOption('互动'), toOption('惩罚'), toOption('问答')]
+const QUESTION_DIFFICULTY_OPTIONS = [toOption('简单'), toOption('中等'), toOption('困难')]
+const RISK_LEVEL_OPTIONS = [toOption('低'), toOption('中'), toOption('高')]
+const TOOL_PLACEMENT_OPTIONS = [toOption('home'), toOption('tools'), toOption('both')]
+const USER_STATUS_OPTIONS = [toOption('高活跃'), toOption('普通'), toOption('高价值'), toOption('沉默')]
+const ADMIN_STATUS_OPTIONS = [toOption('active', '启用'), toOption('disabled', '停用')]
+const POINT_ICON_OPTIONS = [
+  toOption('icon-signin'),
+  toOption('icon-video'),
+  toOption('icon-share'),
+  toOption('icon-task'),
+  toOption('icon-coin'),
+  toOption('icon-ticket'),
+  toOption('icon-star'),
+]
+
+const getTemplateTitleOptions = () => uniqueOptions((getTemplateConfig().templates || []).map((item) => item.title))
+const getProfileCityOptions = () => uniqueOptions((listProfiles() || []).map((item) => item.city))
+const getIdentityTagOptions = () => uniqueOptions((listProfiles() || []).map((item) => item.identityTag))
+const getTemplateFilterOptions = () =>
+  (getTemplateConfig().filters || []).map((item) => toOption(item.id, `${item.name} (${item.id})`))
+const getProfileNameOptions = () => uniqueOptions((listProfiles() || []).map((item) => item.name))
+const getQuestionTemplateOptions = () => mergeOptions(getTemplateTitleOptions().map((item) => item.value), ['生日专属', '整活大挑战', '友情互损'])
+const getQuestionStatusOptions = () => mergeOptions(['待审核', '上线中', '停用'], (readStore().questionBank || []).map((item) => item.status))
+const getShareAssetTypeOptions = () => mergeOptions(['战报海报', '邀局卡', '分享码'], (readStore().shareAssets || []).map((item) => item.assetType))
+const getShareSceneOptions = () => mergeOptions(['战报分享', '邀请好友', '群邀请'], (readStore().shareAssets || []).map((item) => item.scene))
+const getShareStatusOptions = () => mergeOptions(['上线中', '灰度', '停用'], (readStore().shareAssets || []).map((item) => item.status))
+const getToolCategoryOptions = () => mergeOptions(['分享生成', '图片处理', '开发工具', '计算工具'], (readStore().toolsCatalog || []).map((item) => item.category))
+const getToolTargetOptions = () => mergeOptions(['邀局裂变', '工具留存', '日活补充', '实用转化', '日常工具', '分享物料', '内容编辑'], (readStore().toolsCatalog || []).map((item) => item.target))
+const getToolStatusOptions = () => mergeOptions(['启用', '停用', '灰度'], (readStore().toolsCatalog || []).map((item) => item.status))
+const getSessionTemplateOptions = () => mergeOptions(getTemplateTitleOptions().map((item) => item.value), (readStore().liveSessions || []).map((item) => item.template))
+const getSessionStateOptions = () => mergeOptions(['等待开局', '进行中', '已结束'], (readStore().liveSessions || []).map((item) => item.state))
+const getSessionSourceOptions = () => mergeOptions(['直接创建', '群分享', '好友邀请', '二维码加入'], (readStore().liveSessions || []).map((item) => item.source))
+const getSessionStatusOptions = () => mergeOptions(['正常', '待观察', '灰度', '停用'], (readStore().liveSessions || []).map((item) => item.status))
+const getReportSceneOptions = () => mergeOptions(['常规局', '生日局', '夜场'], (readStore().reports || []).map((item) => item.scene))
+const getReportStatusOptions = () => mergeOptions(['正常', '爆发', '灰度', '停用'], (readStore().reports || []).map((item) => item.status))
+const getMembershipStatusOptions = () => mergeOptions(['上线中', '灰度', '停用'], (readStore().membershipPlans || []).map((item) => item.status))
+const getMembershipScopeOptions = () => mergeOptions(['高级模板页', '分享战报页', '海报模板'], (readStore().membershipBenefits || []).map((item) => item.scope))
+const getBenefitStatusOptions = () => mergeOptions(['启用', '停用'], (readStore().membershipBenefits || []).map((item) => item.status))
+const getAdPageOptions = () => mergeOptions(['高级模板', '分享战报', '工具详情'], (readStore().adSlots || []).map((item) => item.page))
+const getAdTypeOptions = () => mergeOptions(['激励视频', 'Banner'], (readStore().adSlots || []).map((item) => item.adType))
+const getAdStatusOptions = () => mergeOptions(['启用', '停用', '灰度'], (readStore().adSlots || []).map((item) => item.status))
+const getMerchantCategoryOptions = () => mergeOptions(['代驾', '夜宵', '娱乐'], (readStore().merchants || []).map((item) => item.category))
+const getMerchantStatusOptions = () => mergeOptions(['上线中', '灰度', '停用'], (readStore().merchants || []).map((item) => item.status))
+const getCampaignStatusOptions = () => mergeOptions(['进行中', '灰度', '已结束'], (readStore().campaigns || []).map((item) => item.status))
+const getRoleIdOptions = () => (readStore().roles || []).map((item) => toOption(item.id, `${item.name} (${item.id})`))
+const getRoleScopeOptions = () => mergeOptions(['全量模块', '首页、模板、题库、素材', '积分、会员、广告、商户'], (readStore().roles || []).map((item) => item.scope))
+const getRoleStatusOptions = () => mergeOptions(['active', 'disabled'], (readStore().roles || []).map((item) => item.status))
+const getAdminScopeOptions = () => mergeOptions(['生产 / 全局', '生产 / 分享', '灰度 / 首页'], (readStore().baseConfigs || []).map((item) => item.scope))
+const getAdminConfigKeyOptions = () => (readStore().baseConfigs || []).map((item) => toOption(item.key, item.key))
+const getBaseConfigStatusOptions = () => mergeOptions(['已生效', '待发布', '灰度'], (readStore().baseConfigs || []).map((item) => item.status))
+const getSensitiveSceneOptions = () => mergeOptions(['活动文案', '模板文案', '题库'], (readStore().sensitiveWords || []).map((item) => item.scene))
+const getSensitiveStatusOptions = () => mergeOptions(['启用', '停用'], (readStore().sensitiveWords || []).map((item) => item.status))
+const getAuditSourceOptions = () => mergeOptions(['题库', '模板文案', '用户昵称'], (readStore().auditQueue || []).map((item) => item.source))
+const getAuditStatusOptions = () => mergeOptions(['待审核', '已拦截', '已通过'], (readStore().auditQueue || []).map((item) => item.status))
+
 const pageMap = {
   'overview-dashboard': () => {
     return {
@@ -1077,14 +1144,14 @@ const pageMap = {
         fields: [
           { key: 'heroTitle', label: '主标题', type: 'text' },
           { key: 'heroSubtitle', label: '副标题', type: 'textarea' },
-          { key: 'heroImageUrl', label: '主图地址', type: 'text' },
+          { key: 'heroImageUrl', label: '主图地址', type: 'image' },
         ],
       },
       {
         title: '活动 Banner',
         fields: [
           { key: 'bannerTitle', label: '活动标题', type: 'text' },
-          { key: 'bannerImageUrl', label: '活动图片', type: 'text' },
+          { key: 'bannerImageUrl', label: '活动图片', type: 'image' },
         ],
       },
       {
@@ -1130,11 +1197,11 @@ const pageMap = {
         itemLabel: '模板',
         fields: [
           { key: 'id', label: '模板 ID', type: 'text' },
-          { key: 'filterId', label: '分类 ID', type: 'text' },
+          { key: 'filterId', label: '分类 ID', type: 'select', options: getTemplateFilterOptions() },
           { key: 'title', label: '模板名称', type: 'text' },
           { key: 'meta', label: '描述文案', type: 'textarea' },
           { key: 'cost', label: '积分价格', type: 'number' },
-          { key: 'imageUrl', label: '封面图地址', type: 'text' },
+          { key: 'imageUrl', label: '封面图地址', type: 'image' },
         ],
         columns: [
           { key: 'title', label: '模板名称' },
@@ -1158,11 +1225,11 @@ const pageMap = {
         itemLabel: '题目',
         fields: [
           { key: 'content', label: '题目内容', type: 'textarea' },
-          { key: 'type', label: '类型', type: 'text' },
-          { key: 'difficulty', label: '难度', type: 'text' },
-          { key: 'template', label: '适用模板', type: 'text' },
-          { key: 'riskLevel', label: '风险等级', type: 'text' },
-          { key: 'status', label: '状态', type: 'text' },
+          { key: 'type', label: '类型', type: 'select', options: QUESTION_TYPE_OPTIONS },
+          { key: 'difficulty', label: '难度', type: 'select', options: QUESTION_DIFFICULTY_OPTIONS },
+          { key: 'template', label: '适用模板', type: 'select', options: getQuestionTemplateOptions() },
+          { key: 'riskLevel', label: '风险等级', type: 'select', options: RISK_LEVEL_OPTIONS },
+          { key: 'status', label: '状态', type: 'select', options: getQuestionStatusOptions() },
         ],
         columns: [
           { key: 'content', label: '题目' },
@@ -1188,12 +1255,12 @@ const pageMap = {
         fields: [
           { key: 'id', label: '素材 ID', type: 'text' },
           { key: 'name', label: '素材名称', type: 'text' },
-          { key: 'assetType', label: '素材类型', type: 'text' },
-          { key: 'scene', label: '场景', type: 'text' },
+          { key: 'assetType', label: '素材类型', type: 'select', options: getShareAssetTypeOptions() },
+          { key: 'scene', label: '场景', type: 'select', options: getShareSceneOptions() },
           { key: 'imageUrl', label: '素材图片', type: 'image' },
           { key: 'openRate', label: '打开率', type: 'text' },
           { key: 'returnRate', label: '回流率', type: 'text' },
-          { key: 'status', label: '状态', type: 'text' },
+          { key: 'status', label: '状态', type: 'select', options: getShareStatusOptions() },
         ],
         columns: [
           { key: 'id', label: 'ID' },
@@ -1221,15 +1288,15 @@ const pageMap = {
         fields: [
           { key: 'id', label: '工具 ID', type: 'text' },
           { key: 'name', label: '工具名称', type: 'text' },
-          { key: 'category', label: '分类', type: 'text' },
-          { key: 'target', label: '导流目标', type: 'text' },
+          { key: 'category', label: '分类', type: 'select', options: getToolCategoryOptions() },
+          { key: 'target', label: '导流目标', type: 'select', options: getToolTargetOptions() },
           { key: 'imageUrl', label: '工具图片', type: 'image' },
           { key: 'usageCount', label: '使用量', type: 'number' },
           { key: 'favoriteRate', label: '收藏率', type: 'text' },
           { key: 'sortOrder', label: '排序值', type: 'number' },
-          { key: 'isHot', label: '热门推荐（是/否）', type: 'text' },
-          { key: 'placement', label: '投放位置（home/tools/both）', type: 'text' },
-          { key: 'status', label: '状态', type: 'text' },
+          { key: 'isHot', label: '热门推荐（是/否）', type: 'select', options: YES_NO_OPTIONS },
+          { key: 'placement', label: '投放位置（home/tools/both）', type: 'select', options: TOOL_PLACEMENT_OPTIONS },
+          { key: 'status', label: '状态', type: 'select', options: getToolStatusOptions() },
         ],
         columns: [
           { key: 'id', label: 'ID' },
@@ -1266,9 +1333,9 @@ const pageMap = {
         itemLabel: '用户',
         fields: [
           { key: 'name', label: '昵称', type: 'text' },
-          { key: 'city', label: '城市', type: 'text' },
-          { key: 'identityTag', label: '身份标签', type: 'text' },
-          { key: 'status', label: '运营状态', type: 'text' },
+          { key: 'city', label: '城市', type: 'select', options: getProfileCityOptions() },
+          { key: 'identityTag', label: '身份标签', type: 'select', options: getIdentityTagOptions() },
+          { key: 'status', label: '运营状态', type: 'select', options: USER_STATUS_OPTIONS },
           { key: 'tagsText', label: '运营标签（顿号分隔）', type: 'text' },
           { key: 'note', label: '运营备注', type: 'textarea' },
         ],
@@ -1323,12 +1390,12 @@ const pageMap = {
         fields: [
           { key: 'name', label: '酒局名称', type: 'text' },
           { key: 'players', label: '人数', type: 'number' },
-          { key: 'template', label: '模板', type: 'text' },
-          { key: 'hostName', label: '发起人', type: 'text' },
+          { key: 'template', label: '模板', type: 'select', options: getSessionTemplateOptions() },
+          { key: 'hostName', label: '发起人', type: 'select', options: getProfileNameOptions() },
           { key: 'inviteCode', label: '口令', type: 'text' },
-          { key: 'state', label: '流程状态', type: 'text' },
-          { key: 'source', label: '分享来源', type: 'text' },
-          { key: 'status', label: '运营状态', type: 'text' },
+          { key: 'state', label: '流程状态', type: 'select', options: getSessionStateOptions() },
+          { key: 'source', label: '分享来源', type: 'select', options: getSessionSourceOptions() },
+          { key: 'status', label: '运营状态', type: 'select', options: getSessionStatusOptions() },
         ],
         columns: [
           { key: 'name', label: '酒局名称' },
@@ -1354,15 +1421,15 @@ const pageMap = {
         itemLabel: '战报',
         fields: [
           { key: 'name', label: '战报名称', type: 'text' },
-          { key: 'template', label: '模板', type: 'text' },
+          { key: 'template', label: '模板', type: 'select', options: getSessionTemplateOptions() },
           { key: 'title', label: '战报标题', type: 'text' },
-          { key: 'scene', label: '场景', type: 'text' },
+          { key: 'scene', label: '场景', type: 'select', options: getReportSceneOptions() },
           { key: 'highlight1', label: '亮点 1', type: 'text' },
           { key: 'highlight2', label: '亮点 2', type: 'text' },
           { key: 'highlight3', label: '亮点 3', type: 'text' },
           { key: 'shareRate', label: '分享率', type: 'text' },
           { key: 'replayRate', label: '再开一局率', type: 'text' },
-          { key: 'status', label: '状态', type: 'text' },
+          { key: 'status', label: '状态', type: 'select', options: getReportStatusOptions() },
         ],
         columns: [
           { key: 'name', label: '战报名称' },
@@ -1385,7 +1452,7 @@ const pageMap = {
       metrics: getPointsMetrics(),
       metaFields: [
         { key: 'balance', label: '展示积分余额', type: 'number' },
-        { key: 'bannerImageUrl', label: '横幅图片地址', type: 'text' },
+        { key: 'bannerImageUrl', label: '横幅图片地址', type: 'image' },
       ],
       meta: {
         balance: pointsConfig.balance,
@@ -1400,7 +1467,7 @@ const pageMap = {
             { key: 'id', label: '任务 ID', type: 'text' },
             { key: 'title', label: '任务标题', type: 'text' },
             { key: 'value', label: '奖励积分', type: 'number' },
-            { key: 'iconClass', label: '图标类名', type: 'text' },
+            { key: 'iconClass', label: '图标类名', type: 'select', options: POINT_ICON_OPTIONS },
           ],
           columns: [
             { key: 'title', label: '任务标题' },
@@ -1418,7 +1485,7 @@ const pageMap = {
             { key: 'title', label: '商品标题', type: 'text' },
             { key: 'subtitle', label: '商品副标题', type: 'textarea' },
             { key: 'cost', label: '积分价格', type: 'number' },
-            { key: 'iconClass', label: '图标类名', type: 'text' },
+            { key: 'iconClass', label: '图标类名', type: 'select', options: POINT_ICON_OPTIONS },
           ],
           columns: [
             { key: 'title', label: '商品标题' },
@@ -1449,7 +1516,7 @@ const pageMap = {
             { key: 'duration', label: '时长', type: 'text' },
             { key: 'conversionRate', label: '转化率', type: 'text' },
             { key: 'renewRate', label: '续费率', type: 'text' },
-            { key: 'status', label: '状态', type: 'text' },
+            { key: 'status', label: '状态', type: 'select', options: getMembershipStatusOptions() },
           ],
           columns: [
             { key: 'name', label: '套餐' },
@@ -1466,8 +1533,8 @@ const pageMap = {
           itemLabel: '权益',
           fields: [
             { key: 'name', label: '权益名称', type: 'text' },
-            { key: 'scope', label: '作用范围', type: 'text' },
-            { key: 'status', label: '状态', type: 'text' },
+            { key: 'scope', label: '作用范围', type: 'select', options: getMembershipScopeOptions() },
+            { key: 'status', label: '状态', type: 'select', options: getBenefitStatusOptions() },
             { key: 'note', label: '说明', type: 'textarea' },
           ],
           columns: [
@@ -1493,11 +1560,11 @@ const pageMap = {
         itemLabel: '广告位',
         fields: [
           { key: 'name', label: '广告位名称', type: 'text' },
-          { key: 'page', label: '页面', type: 'text' },
-          { key: 'adType', label: '广告类型', type: 'text' },
+          { key: 'page', label: '页面', type: 'select', options: getAdPageOptions() },
+          { key: 'adType', label: '广告类型', type: 'select', options: getAdTypeOptions() },
           { key: 'completionRate', label: '完成率 / 点击率', type: 'text' },
           { key: 'revenue', label: '收益', type: 'text' },
-          { key: 'status', label: '状态', type: 'text' },
+          { key: 'status', label: '状态', type: 'select', options: getAdStatusOptions() },
         ],
         columns: [
           { key: 'name', label: '广告位' },
@@ -1522,11 +1589,11 @@ const pageMap = {
         itemLabel: '商户券',
         fields: [
           { key: 'name', label: '券 / 商户名称', type: 'text' },
-          { key: 'category', label: '品类', type: 'text' },
+          { key: 'category', label: '品类', type: 'select', options: getMerchantCategoryOptions() },
           { key: 'inventory', label: '库存 / 有效期', type: 'text' },
           { key: 'claimCount', label: '领取量', type: 'text' },
           { key: 'verifyRate', label: '核销率', type: 'text' },
-          { key: 'status', label: '状态', type: 'text' },
+          { key: 'status', label: '状态', type: 'select', options: getMerchantStatusOptions() },
         ],
         columns: [
           { key: 'name', label: '券 / 商户' },
@@ -1554,7 +1621,7 @@ const pageMap = {
           { key: 'reward', label: '奖励 / 时间', type: 'text' },
           { key: 'participants', label: '参与人数', type: 'text' },
           { key: 'returnRate', label: '回流率', type: 'text' },
-          { key: 'status', label: '状态', type: 'text' },
+          { key: 'status', label: '状态', type: 'select', options: getCampaignStatusOptions() },
         ],
         columns: [
           { key: 'name', label: '活动名称' },
@@ -1600,8 +1667,8 @@ const pageMap = {
           fields: [
             { key: 'username', label: '登录账号', type: 'text' },
             { key: 'name', label: '姓名', type: 'text' },
-            { key: 'roleId', label: '角色 ID', type: 'text' },
-            { key: 'status', label: '状态', type: 'text' },
+            { key: 'roleId', label: '角色 ID', type: 'select', options: getRoleIdOptions() },
+            { key: 'status', label: '状态', type: 'select', options: getRoleStatusOptions() },
           ],
           columns: [
             { key: 'username', label: '账号' },
@@ -1624,9 +1691,9 @@ const pageMap = {
           fields: [
             { key: 'id', label: '角色 ID', type: 'text' },
             { key: 'name', label: '角色名称', type: 'text' },
-            { key: 'scope', label: '权限范围', type: 'text' },
+            { key: 'scope', label: '权限范围', type: 'select', options: getRoleScopeOptions() },
             { key: 'permissionsText', label: '权限（逗号分隔）', type: 'textarea' },
-            { key: 'status', label: '状态', type: 'text' },
+            { key: 'status', label: '状态', type: 'select', options: getRoleStatusOptions() },
           ],
           columns: [
             { key: 'name', label: '角色名称' },
@@ -1656,11 +1723,11 @@ const pageMap = {
         key: 'baseConfigs',
         itemLabel: '配置项',
         fields: [
-          { key: 'key', label: '配置键', type: 'text' },
+          { key: 'key', label: '配置键', type: 'select', options: getAdminConfigKeyOptions() },
           { key: 'value', label: '配置值', type: 'textarea' },
-          { key: 'scope', label: '环境 / 作用域', type: 'text' },
+          { key: 'scope', label: '环境 / 作用域', type: 'select', options: getAdminScopeOptions() },
           { key: 'updatedAt', label: '更新时间文案', type: 'text' },
-          { key: 'status', label: '状态', type: 'text' },
+          { key: 'status', label: '状态', type: 'select', options: getBaseConfigStatusOptions() },
         ],
         columns: [
           { key: 'key', label: '配置键' },
@@ -1693,9 +1760,9 @@ const pageMap = {
           itemLabel: '敏感词',
           fields: [
             { key: 'word', label: '敏感词', type: 'text' },
-            { key: 'level', label: '等级', type: 'text' },
-            { key: 'scene', label: '场景', type: 'text' },
-            { key: 'status', label: '状态', type: 'text' },
+            { key: 'level', label: '等级', type: 'select', options: RISK_LEVEL_OPTIONS },
+            { key: 'scene', label: '场景', type: 'select', options: getSensitiveSceneOptions() },
+            { key: 'status', label: '状态', type: 'select', options: getSensitiveStatusOptions() },
           ],
           columns: [
             { key: 'word', label: '敏感词' },
@@ -1711,10 +1778,10 @@ const pageMap = {
           itemLabel: '审核项',
           fields: [
             { key: 'target', label: '审核对象', type: 'textarea' },
-            { key: 'source', label: '来源', type: 'text' },
+            { key: 'source', label: '来源', type: 'select', options: getAuditSourceOptions() },
             { key: 'reason', label: '命中原因', type: 'textarea' },
             { key: 'submittedAt', label: '提交时间', type: 'text' },
-            { key: 'status', label: '状态', type: 'text' },
+            { key: 'status', label: '状态', type: 'select', options: getAuditStatusOptions() },
           ],
           columns: [
             { key: 'target', label: '审核对象' },
@@ -1752,10 +1819,10 @@ pageMap['user-profiles'] = () => {
         { key: 'name', label: '昵称', type: 'text' },
         { key: 'phone', label: '手机号', type: 'text' },
         { key: 'wechatOpenId', label: '微信 OpenID', type: 'text' },
-        { key: 'city', label: '城市', type: 'text' },
-        { key: 'identityTag', label: '身份标签', type: 'text' },
+        { key: 'city', label: '城市', type: 'select', options: getProfileCityOptions() },
+        { key: 'identityTag', label: '身份标签', type: 'select', options: getIdentityTagOptions() },
         { key: 'points', label: '当前积分', type: 'number' },
-        { key: 'status', label: '运营状态', type: 'text' },
+        { key: 'status', label: '运营状态', type: 'select', options: USER_STATUS_OPTIONS },
         { key: 'tagsText', label: '运营标签（顿号分隔）', type: 'text' },
         { key: 'note', label: '运营备注', type: 'textarea' },
       ],
@@ -1780,7 +1847,7 @@ pageMap['commerce-points'] = () => {
     metrics: getManagedPointsMetrics(),
     metaFields: [
       { key: 'balance', label: '展示积分余额', type: 'number' },
-      { key: 'bannerImageUrl', label: '横幅图片地址', type: 'text' },
+        { key: 'bannerImageUrl', label: '横幅图片地址', type: 'image' },
     ],
     meta: {
       balance: pointsConfig.balance,
@@ -1795,7 +1862,7 @@ pageMap['commerce-points'] = () => {
           { key: 'id', label: '任务 ID', type: 'text' },
           { key: 'title', label: '任务标题', type: 'text' },
           { key: 'value', label: '奖励积分', type: 'number' },
-          { key: 'iconClass', label: '图标类名', type: 'text' },
+          { key: 'iconClass', label: '图标类名', type: 'select', options: POINT_ICON_OPTIONS },
         ],
         columns: [
           { key: 'title', label: '任务标题' },
@@ -1813,7 +1880,7 @@ pageMap['commerce-points'] = () => {
           { key: 'title', label: '商品标题', type: 'text' },
           { key: 'subtitle', label: '商品副标题', type: 'textarea' },
           { key: 'cost', label: '积分价格', type: 'number' },
-          { key: 'iconClass', label: '图标类名', type: 'text' },
+          { key: 'iconClass', label: '图标类名', type: 'select', options: POINT_ICON_OPTIONS },
         ],
         columns: [
           { key: 'title', label: '商品标题' },
