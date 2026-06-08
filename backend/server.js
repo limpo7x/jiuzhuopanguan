@@ -1,4 +1,5 @@
 const http = require('http')
+const QRCode = require('qrcode')
 const url = require('url')
 const { compliance, getHomeConfig, profile, toolHistory, updateHomeHero } = require('./data/home')
 const {
@@ -30,6 +31,17 @@ const send = (response, data, statusCode = 200) => {
       data,
     })
   )
+}
+
+const sendBinary = (response, buffer, contentType, statusCode = 200) => {
+  response.writeHead(statusCode, {
+    'Content-Type': contentType,
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Cache-Control': 'no-store',
+  })
+  response.end(buffer)
 }
 
 const readJsonBody = (request) =>
@@ -97,6 +109,23 @@ const server = http.createServer((request, response) => {
 
   if (request.method === 'GET' && pathname === '/api/v1/tools/history') {
     send(response, toolHistory)
+    return
+  }
+
+  if (request.method === 'GET' && pathname === '/api/v1/tools/qr-code.png') {
+    const text = String(query.text || '').trim() || '酒桌判官'
+    const buffer = await QRCode.toBuffer(text, {
+      errorCorrectionLevel: 'M',
+      margin: 2,
+      scale: 8,
+      color: {
+        dark: '#24160f',
+        light: '#FFFFFFFF',
+      },
+      type: 'png',
+      width: 640,
+    })
+    sendBinary(response, buffer, 'image/png')
     return
   }
 

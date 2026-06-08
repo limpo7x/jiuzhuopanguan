@@ -31,7 +31,13 @@
     </view>
 
     <view class="me-stat-row">
-      <view wx:for="{{assetStats}}" wx:key="label" class="me-stat-item">
+      <view
+        wx:for="{{assetStats}}"
+        wx:key="label"
+        class="me-stat-item"
+        data-label="{{item.label}}"
+        bindtap="handleAssetTap"
+      >
         <text class="me-stat-value">{{item.value}}</text>
         <text class="me-stat-label">{{item.label}}</text>
       </view>

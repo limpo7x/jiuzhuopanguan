@@ -29,6 +29,182 @@
     </view>
 
     <view class="tool-detail-card">
+      <text class="tool-detail-section-title">立即使用</text>
+
+      <view wx:if="{{toolMode === 'text-count'}}" class="tool-workbench">
+        <textarea
+          class="tool-textarea"
+          value="{{toolInput}}"
+          placeholder="把要统计的文字粘贴到这里"
+          bindinput="handleTextInput"
+        ></textarea>
+      </view>
+
+      <view wx:if="{{toolMode === 'json'}}" class="tool-workbench">
+        <textarea
+          class="tool-textarea tool-textarea-tall"
+          value="{{toolInput}}"
+          placeholder="粘贴 JSON 内容"
+          bindinput="handleJsonInput"
+        ></textarea>
+        <view class="tool-inline-actions">
+          <view class="tool-inline-button tool-inline-button-primary" bindtap="handleFormatJson">格式化</view>
+          <view class="tool-inline-button" bindtap="handleMinifyJson">压缩</view>
+          <view class="tool-inline-button" bindtap="handleCopyOutput">复制结果</view>
+        </view>
+        <text wx:if="{{jsonError}}" class="tool-error">{{jsonError}}</text>
+        <textarea
+          class="tool-textarea tool-textarea-tall tool-textarea-result"
+          value="{{toolOutput}}"
+          placeholder="处理结果会显示在这里"
+          disabled
+        ></textarea>
+      </view>
+
+      <view wx:if="{{toolMode === 'loan'}}" class="tool-workbench">
+        <view class="tool-field">
+          <text class="tool-field-label">贷款总额（万元）</text>
+          <input class="tool-field-input" type="digit" value="{{loanAmount}}" data-field="loanAmount" bindinput="handleLoanInput" />
+        </view>
+        <view class="tool-field-grid">
+          <view class="tool-field">
+            <text class="tool-field-label">年利率（%）</text>
+            <input class="tool-field-input" type="digit" value="{{loanRate}}" data-field="loanRate" bindinput="handleLoanInput" />
+          </view>
+          <view class="tool-field">
+            <text class="tool-field-label">年限</text>
+            <input class="tool-field-input" type="number" value="{{loanYears}}" data-field="loanYears" bindinput="handleLoanInput" />
+          </view>
+        </view>
+        <view class="tool-result-panel">
+          <view class="tool-result-item">
+            <text class="tool-result-label">月供</text>
+            <text class="tool-result-value">{{loanMonthly}}</text>
+          </view>
+          <view class="tool-result-item">
+            <text class="tool-result-label">总利息</text>
+            <text class="tool-result-value">{{loanTotalInterest}}</text>
+          </view>
+          <view class="tool-result-item">
+            <text class="tool-result-label">总还款</text>
+            <text class="tool-result-value">{{loanTotalPayment}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{toolMode === 'currency'}}" class="tool-workbench">
+        <view class="tool-field">
+          <text class="tool-field-label">金额</text>
+          <input class="tool-field-input" type="digit" value="{{currencyAmount}}" bindinput="handleCurrencyAmountInput" />
+        </view>
+        <view class="tool-picker-row">
+          <picker mode="selector" range="{{currencyOptions}}" value="{{currencyFromIndex}}" data-field="currencyFromIndex" bindchange="handleCurrencyPickerChange">
+            <view class="tool-picker">{{currencyFromLabel}}</view>
+          </picker>
+          <view class="tool-swap" bindtap="handleSwapCurrency">⇄</view>
+          <picker mode="selector" range="{{currencyOptions}}" value="{{currencyToIndex}}" data-field="currencyToIndex" bindchange="handleCurrencyPickerChange">
+            <view class="tool-picker">{{currencyToLabel}}</view>
+          </picker>
+        </view>
+        <view class="tool-result-panel">
+          <view class="tool-result-item">
+            <text class="tool-result-label">换算结果</text>
+            <text class="tool-result-value">{{currencyResult}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{toolMode === 'unit'}}" class="tool-workbench">
+        <view class="tool-picker-row tool-picker-row-stacked">
+          <picker mode="selector" range="{{unitDimensions}}" value="{{unitDimensionIndex}}" bindchange="handleUnitDimensionChange">
+            <view class="tool-picker tool-picker-wide">{{unitDimensionLabel}}</view>
+          </picker>
+          <input class="tool-field-input tool-field-inline-input" type="digit" value="{{unitAmount}}" bindinput="handleUnitAmountInput" />
+        </view>
+        <view class="tool-picker-row">
+          <picker mode="selector" range="{{unitOptions}}" value="{{unitFromIndex}}" data-field="unitFromIndex" bindchange="handleUnitPickerChange">
+            <view class="tool-picker">{{unitFromLabel}}</view>
+          </picker>
+          <text class="tool-arrow">→</text>
+          <picker mode="selector" range="{{unitOptions}}" value="{{unitToIndex}}" data-field="unitToIndex" bindchange="handleUnitPickerChange">
+            <view class="tool-picker">{{unitToLabel}}</view>
+          </picker>
+        </view>
+        <view class="tool-result-panel">
+          <view class="tool-result-item">
+            <text class="tool-result-label">换算结果</text>
+            <text class="tool-result-value">{{unitResult}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{toolMode === 'qr-code'}}" class="tool-workbench">
+        <textarea
+          class="tool-textarea"
+          value="{{qrInput}}"
+          placeholder="输入分享文案、链接或加入口令"
+          bindinput="handleQrInput"
+        ></textarea>
+        <view class="tool-inline-actions">
+          <view class="tool-inline-button tool-inline-button-primary" bindtap="handleGenerateShareCode">生成分享码</view>
+          <view class="tool-inline-button" bindtap="handleCopyShareCode">复制分享码</view>
+          <view class="tool-inline-button" bindtap="handleDownloadQrCode">保存二维码</view>
+        </view>
+        <view class="tool-qr-card">
+          <image class="tool-qr-image" src="{{qrImageUrl}}" mode="aspectFit"></image>
+          <view class="tool-qr-copy">
+            <text class="tool-qr-code">{{qrCode}}</text>
+            <text class="tool-qr-meta">把这串分享码配合口令一起发给朋友即可。</text>
+          </view>
+        </view>
+      </view>
+
+      <view wx:if="{{isImageTool}}" class="tool-workbench">
+        <view class="tool-inline-actions">
+          <view class="tool-inline-button tool-inline-button-primary" bindtap="handleChooseImage">选择图片</view>
+          <view wx:if="{{toolMode === 'image-compress'}}" class="tool-inline-button" bindtap="handleRunCompress">开始压缩</view>
+          <view wx:if="{{imageSource}}" class="tool-inline-button" bindtap="handleSaveImageResult">保存结果</view>
+        </view>
+
+        <view wx:if="{{toolMode === 'image-compress'}}" class="tool-slider-wrap">
+          <text class="tool-field-label">压缩质量 {{compressQuality}}</text>
+          <slider min="20" max="100" step="5" show-value value="{{compressQuality}}" bindchange="handleCompressQualityChange"></slider>
+        </view>
+
+        <view wx:if="{{toolMode === 'watermark'}}" class="tool-watermark-tabs">
+          <view
+            wx:for="{{watermarkPositions}}"
+            wx:key="*this"
+            class="tool-watermark-chip {{item === watermarkPosition ? 'tool-watermark-chip-active' : ''}}"
+            data-position="{{item}}"
+            bindtap="handleWatermarkPositionTap"
+          >{{item}}</view>
+        </view>
+
+        <view wx:if="{{imageSource}}" class="tool-image-stage">
+          <image class="tool-image-preview" src="{{imagePreviewSrc}}" mode="widthFix"></image>
+          <view wx:if="{{toolMode === 'watermark'}}" class="tool-watermark-mask {{watermarkMaskClass}}"></view>
+          <view wx:if="{{toolMode === 'watermark'}}" class="tool-watermark-label">{{watermarkLabel}}</view>
+        </view>
+
+        <view wx:if="{{toolMode === 'nine-grid' && nineGridTiles.length}}" class="tool-nine-grid">
+          <view wx:for="{{nineGridTiles}}" wx:key="id" class="tool-nine-grid-item" style="{{item.style}}"></view>
+        </view>
+
+        <view class="tool-result-panel">
+          <view class="tool-result-item">
+            <text class="tool-result-label">原图大小</text>
+            <text class="tool-result-value">{{originalSizeText}}</text>
+          </view>
+          <view class="tool-result-item">
+            <text class="tool-result-label">{{toolMode === 'image-compress' ? '处理结果' : '当前状态'}}</text>
+            <text class="tool-result-value">{{resultSizeText}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="tool-detail-card">
       <text class="tool-detail-section-title">使用步骤</text>
       <view wx:for="{{steps}}" wx:key="title" class="tool-detail-step">
         <view class="tool-detail-step-index">{{index + 1}}</view>
@@ -44,4 +220,9 @@
       <view class="tool-detail-secondary" bindtap="handleSecondaryTap">返回工具箱</view>
     </view>
   </scroll-view>
+  <canvas
+    canvas-id="toolExportCanvas"
+    class="tool-export-canvas"
+    style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+  ></canvas>
 </view>

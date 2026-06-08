@@ -40,6 +40,7 @@ interface MePageState {
 }
 
 interface MePageMethods {
+  handleAssetTap: (event: WechatMiniprogram.BaseEvent) => void
   handleAddFriendTap: () => void
   handleAddRegisteredFriendTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleCancelEditTap: () => void
@@ -131,6 +132,21 @@ Page<MePageState, MePageMethods>({
     this.openPage('/pages/member-center/index')
   },
 
+  handleAssetTap(event) {
+    const { label } = event.currentTarget.dataset as { label: string }
+    const routes: Record<string, string> = {
+      '我的积分': '/pages/wine-points/index?tab=tasks',
+      优惠券: '/pages/coupon-center/index',
+      资产包: '/pages/premium-templates/index',
+    }
+    const target = routes[label]
+    if (!target) {
+      return
+    }
+
+    this.openPage(target)
+  },
+
   handleFeatureTap(event) {
     const { name } = event.currentTarget.dataset as { name: string }
     const routes: Record<string, string> = {
@@ -138,7 +154,7 @@ Page<MePageState, MePageMethods>({
       '使用记录': '/pages/usage-history/index',
       '我的战报': '/pages/wine-history/index',
       '优惠券': '/pages/coupon-center/index',
-      '积分商城': '/pages/wine-points/index',
+      '积分商城': '/pages/wine-points/index?tab=mall',
       '商户优惠': '/pages/merchant-partners/index',
       '邀请好友': '/pages/invite-friends/index',
       '设置': '/pages/settings/index',

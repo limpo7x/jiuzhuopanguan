@@ -10,8 +10,21 @@
   <scroll-view class="tools-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="tools-search">
       <view class="tools-search-icon tools-icon-search"></view>
-      <text class="tools-search-text">搜索工具</text>
-      <view class="tools-search-focus tools-icon-focus"></view>
+      <input
+        class="tools-search-input"
+        type="text"
+        value="{{searchKeyword}}"
+        placeholder="搜索工具"
+        placeholder-class="tools-search-placeholder"
+        confirm-type="search"
+        bindinput="handleSearchInput"
+      />
+      <view
+        wx:if="{{searchKeyword}}"
+        class="tools-search-clear"
+        bindtap="handleSearchClear"
+      >清空</view>
+      <view wx:else class="tools-search-focus tools-icon-focus"></view>
     </view>
 
     <view class="tools-hero">
@@ -28,6 +41,8 @@
         wx:for="{{categories}}"
         wx:key="id"
         class="tools-chip {{item.active ? 'tools-chip-active' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="handleCategoryTap"
       >{{item.name}}</view>
     </view>
 
@@ -50,6 +65,10 @@
         <text class="tools-tile-label">{{item.name}}</text>
       </view>
     </view>
+    <view wx:if="{{!popularTools.length}}" class="tools-empty">
+      <text class="tools-empty-title">没找到匹配工具</text>
+      <text class="tools-empty-meta">试试切换分类，或者换一个关键词。</text>
+    </view>
 
     <view class="tools-section-head">
       <text class="tools-section-title">工具分类</text>
@@ -62,7 +81,7 @@
         class="tools-list-item"
         data-id="{{item.id}}"
         data-name="{{item.name}}"
-        bindtap="handleToolTap"
+        bindtap="handleCategoryTap"
       >
         <view class="tools-list-thumb">
           <image src="{{item.imageUrl}}" mode="aspectFill"></image>
@@ -73,6 +92,9 @@
         </view>
         <text class="tools-list-arrow">›</text>
       </view>
+    </view>
+    <view wx:if="{{!categoryCards.length}}" class="tools-empty tools-empty-soft">
+      <text class="tools-empty-meta">当前筛选下没有分类结果。</text>
     </view>
   </scroll-view>
 

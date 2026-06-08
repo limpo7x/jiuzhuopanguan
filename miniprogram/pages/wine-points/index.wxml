@@ -14,34 +14,49 @@
       <image class="points-image" src="/assets/home/points-gift.png" mode="aspectFill"></image>
     </view>
 
-    <view class="points-section-head">
-      <text class="points-section-title">每日任务</text>
-      <text class="points-section-link">积分明细</text>
+    <view class="points-tab-row">
+      <view
+        wx:for="{{tabs}}"
+        wx:key="id"
+        class="points-tab-chip {{activeTab === item.id ? 'points-tab-chip-active' : ''}}"
+        data-tab="{{item.id}}"
+        bindtap="handleTabTap"
+      >{{item.name}}</view>
     </view>
 
-    <view class="points-card">
-      <view wx:for="{{tasks}}" wx:key="title" class="points-task-item">
-        <view class="points-task-icon {{item.iconClass}}"></view>
-        <view class="points-task-copy">
-          <text class="points-task-title">{{item.title}}</text>
-          <text class="points-task-meta">完成任务获得积分</text>
+    <view wx:if="{{activeTab === 'tasks'}}">
+      <view class="points-section-head">
+        <text class="points-section-title">每日任务</text>
+        <text class="points-section-link">积分明细</text>
+      </view>
+
+      <view class="points-card">
+        <view wx:for="{{tasks}}" wx:key="title" class="points-task-item">
+          <view class="points-task-icon {{item.iconClass}}"></view>
+          <view class="points-task-copy">
+            <text class="points-task-title">{{item.title}}</text>
+            <text class="points-task-meta">完成任务获得积分</text>
+          </view>
+          <view class="points-tag">+{{item.value}}</view>
         </view>
-        <view class="points-tag">+{{item.value}}</view>
       </view>
     </view>
 
-    <view class="points-section-head">
-      <text class="points-section-title">积分兑换</text>
-    </view>
+    <view wx:if="{{activeTab === 'mall'}}">
+      <view class="points-section-head">
+        <text class="points-section-title">积分商城</text>
+        <text class="points-section-link">积分兑换</text>
+      </view>
 
-    <view class="points-list">
-      <view wx:for="{{rewards}}" wx:key="title" class="points-list-item">
-        <view class="points-task-icon {{item.iconClass}}"></view>
-        <view class="points-task-copy">
-          <text class="points-task-title">{{item.title}}</text>
-          <text class="points-task-meta">需要 {{item.cost}} 积分</text>
+      <view class="points-list">
+        <view wx:for="{{rewards}}" wx:key="title" class="points-list-item">
+          <view class="points-task-icon {{item.iconClass}}"></view>
+          <view class="points-task-copy">
+            <text class="points-task-title">{{item.title}}</text>
+            <text class="points-task-meta">{{item.subtitle}}</text>
+          </view>
+          <view class="points-tag points-tag-solid">{{item.cost}} 积分</view>
         </view>
-        <view class="points-tag">兑换</view>
       </view>
     </view>
   </scroll-view>

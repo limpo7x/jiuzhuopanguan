@@ -5,5 +5,8 @@
   "description": "酒桌判官本地 Node 后端",
   "scripts": {
     "start": "node server.js"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
   }
 }
