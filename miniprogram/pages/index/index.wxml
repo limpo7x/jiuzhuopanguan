@@ -30,7 +30,7 @@
     <view class="spacer"></view>
 
     <view class="hero">
-      <image class="hero-image" src="{{home.hero.imageUrl}}" mode="aspectFill"></image>
+      <image class="hero-image" src="{{home.hero.imageUrl}}" mode="scaleToFill"></image>
       <view class="hero-overlay"></view>
       <view class="hero-content">
         <view class="hero-title-wrap">
