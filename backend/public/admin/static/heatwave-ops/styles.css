@@ -1076,16 +1076,7 @@ a {
 }
 
 .collection-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.72fr);
-  gap: 18px;
-}
-
-.editor-panel {
-  padding: 16px;
-  border: 1px solid var(--line-soft);
-  border-radius: var(--radius-md);
-  background: rgba(255, 250, 242, 0.86);
+  display: block;
 }
 
 .field-grid {
@@ -1108,20 +1099,41 @@ a {
   line-height: 1.6;
 }
 
+.readonly-rich {
+  display: block;
+}
+
+.readonly-asset {
+  display: grid;
+  gap: 10px;
+}
+
+.readonly-asset img {
+  width: 100%;
+  max-height: 220px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.readonly-asset-url {
+  color: var(--text-subtle);
+  font-size: 12px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
 .table-scroll {
   overflow-x: auto;
 }
 
-.table-selectable tbody tr {
-  cursor: pointer;
-}
-
 .table-selectable tbody tr:hover {
-  background: rgba(255, 240, 232, 0.45);
+  background: rgba(255, 248, 239, 0.72);
 }
 
-.row-active {
-  background: rgba(255, 240, 232, 0.62);
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .mini-btn,
@@ -1143,6 +1155,93 @@ a {
   border-color: rgba(211, 79, 63, 0.2);
   background: rgba(211, 79, 63, 0.08);
   color: var(--danger);
+}
+
+.editor-overlay-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+}
+
+.editor-overlay-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(36, 22, 15, 0.32);
+  backdrop-filter: blur(6px);
+}
+
+.editor-dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: min(980px, calc(100vw - 96px));
+  max-height: calc(100vh - 72px);
+  overflow: hidden;
+  border: 1px solid rgba(104, 71, 46, 0.16);
+  border-radius: 28px;
+  background: rgba(255, 253, 248, 0.98);
+  box-shadow: 0 28px 64px rgba(36, 22, 15, 0.18);
+}
+
+.editor-dialog-head,
+.editor-dialog-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+}
+
+.editor-dialog-head {
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.editor-dialog-foot {
+  border-top: 1px solid var(--line-soft);
+  justify-content: flex-end;
+}
+
+.editor-dialog-title {
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.editor-dialog-copy {
+  margin-top: 8px;
+  color: var(--text-subtle);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.editor-dialog-body {
+  flex: 1;
+  overflow: auto;
+  padding: 22px;
+}
+
+.editor-dialog-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialog-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgba(104, 71, 46, 0.16);
+  border-radius: 999px;
+  background: var(--bg-shell);
+  color: var(--text-main);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .muted {

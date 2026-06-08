@@ -63,10 +63,12 @@ const state = {
   slug: document.body.dataset.page || 'overview-dashboard',
   user: null,
   page: null,
+  formData: {},
   collections: {},
   selected: {},
   meta: {},
   navOpen: {},
+  editor: null,
 }
 
 const icon = (id, cls = 'ui-icon') => `<svg class="${cls}" aria-hidden="true"><use href="/admin/static/heatwave-ops/icons.svg#${id}"></use></svg>`
@@ -300,6 +302,103 @@ const ensureMetaState = () => {
   }
 }
 
+const ensureFormState = () => {
+  if (!Object.keys(state.formData).length && state.page?.data) {
+    state.formData = clone(state.page.data)
+  }
+}
+
+const getCollectionDefinition = (collectionKey) => {
+  if (state.page?.view === 'collection' && state.page.collection?.key === collectionKey) {
+    return state.page.collection
+  }
+  if (state.page?.view === 'multi-collection') {
+    return (state.page.collections || []).find((collection) => collection.key === collectionKey) || null
+  }
+  return null
+}
+
+const getEditorCloseButton = () => `<button class="dialog-close-btn" type="button" data-action="close-editor">关闭</button>`
+
+const getDisplayValue = (field, value) => {
+  if (value == null || value === '') {
+    return '<span class="muted">未配置</span>'
+  }
+  if (isAssetField(field)) {
+    return `
+      <div class="readonly-asset">
+        <img src="${value}" alt="${escapeHtml(field.label)}" />
+        <div class="readonly-asset-url">${escapeHtml(String(value))}</div>
+      </div>`
+  }
+  return escapeHtml(String(value)).replace(/\n/g, '<br />')
+}
+
+const isMeaningfulItem = (item, fields = []) =>
+  fields.some((field) => {
+    if (field.key === 'id') {
+      return false
+    }
+    const value = item?.[field.key]
+    if (field.type === 'number') {
+      return Number(value || 0) !== 0
+    }
+    return String(value || '').trim() !== ''
+  })
+
+const closeEditor = () => {
+  const current = state.editor
+  if (current?.mode === 'collection-item' && current?.isNew) {
+    const collection = getCollectionDefinition(current.collectionKey)
+    const items = state.collections[current.collectionKey] || []
+    const item = items.find((entry) => entry.id === current.itemId)
+    if (collection && item && !isMeaningfulItem(item, collection.fields || [])) {
+      state.collections[current.collectionKey] = items.filter((entry) => entry.id !== current.itemId)
+    }
+  }
+  state.editor = null
+  render()
+}
+
+const openFormSectionEditor = (sectionIndex) => {
+  ensureFormState()
+  const section = state.page?.formSections?.[sectionIndex]
+  if (!section) {
+    return
+  }
+  state.editor = {
+    mode: 'form-section',
+    sectionIndex,
+    title: `${section.title}编辑`,
+  }
+  render()
+}
+
+const openMetaEditor = () => {
+  ensureMetaState()
+  state.editor = {
+    mode: 'meta',
+    title: '基础配置编辑',
+  }
+  render()
+}
+
+const openCollectionItemEditor = (collectionKey, itemId, isNew = false) => {
+  const collection = getCollectionDefinition(collectionKey)
+  if (!collection) {
+    return
+  }
+  state.selected[collectionKey] = itemId
+  state.editor = {
+    mode: 'collection-item',
+    collectionKey,
+    itemId,
+    isNew,
+    title: `${collection.itemLabel || '详情'}编辑`,
+  }
+  render()
+}
+
 const renderSidebar = () => {
   ensureNavState()
   return `
@@ -441,29 +540,32 @@ const renderField = (field, value, collectionKey, itemId) => {
   return `<input type="${field.type === 'number' ? 'number' : 'text'}" value="${value ?? ''}" ${common} />`
 }
 
-const renderFormSections = () =>
-  (state.page.formSections || [])
+const renderSummaryField = (field, value) => `
+  <div class="field summary-field">
+    <label>${field.label}</label>
+    <div class="readonly-value readonly-rich">${getDisplayValue(field, value)}</div>
+    ${renderFieldMeta(field)}
+  </div>`
+
+const renderFormSections = () => {
+  ensureFormState()
+  return (state.page.formSections || [])
     .map(
-      (section) => `
+      (section, index) => `
       <section class="section-card">
         <div class="section-head">
           <div class="section-title">${section.title}</div>
+          <div class="inline-actions">
+            <button class="mini-btn" type="button" data-action="open-form-editor" data-section-index="${index}">编辑</button>
+          </div>
         </div>
         <div class="field-grid">
-          ${section.fields
-            .map(
-              (field) => `
-            <div class="field">
-              <label>${field.label}</label>
-              ${renderField(field, state.page.data?.[field.key], 'form', 'form')}
-              ${isAssetField(field) ? '' : renderFieldMeta(field)}
-            </div>`,
-            )
-            .join('')}
+          ${section.fields.map((field) => renderSummaryField(field, state.formData?.[field.key])).join('')}
         </div>
       </section>`,
     )
     .join('')
+}
 
 const getSelectedItem = (collection) => {
   const items = getCollectionState(collection)
@@ -481,7 +583,6 @@ const buildBlankItem = (collection) => {
 
 const renderCollectionEditor = (collection, options = {}) => {
   const items = getCollectionState(collection)
-  const selected = getSelectedItem(collection)
   const readOnly = Boolean(options.readOnly)
   return `
     <section class="collection-card">
@@ -494,7 +595,10 @@ const renderCollectionEditor = (collection, options = {}) => {
           <div class="table-scroll">
             <table class="table table-selectable">
               <thead>
-                <tr>${collection.columns.map((column) => `<th>${column.label}</th>`).join('')}</tr>
+                <tr>
+                  ${collection.columns.map((column) => `<th>${column.label}</th>`).join('')}
+                  ${readOnly ? '' : '<th>操作</th>'}
+                </tr>
               </thead>
               <tbody>
                 ${
@@ -502,40 +606,27 @@ const renderCollectionEditor = (collection, options = {}) => {
                     ? items
                         .map(
                           (item) => `
-                        <tr class="${item.id === selected?.id ? 'row-active' : ''}" data-action="select-item" data-collection="${collection.key}" data-item-id="${item.id}">
+                        <tr>
                           ${collection.columns.map((column) => `<td>${item[column.key] ?? ''}</td>`).join('')}
+                          ${
+                            readOnly
+                              ? ''
+                              : `<td>
+                                  <div class="table-actions">
+                                    <button class="mini-btn" type="button" data-action="edit-item" data-collection="${collection.key}" data-item-id="${item.id}">编辑</button>
+                                    <button class="danger-inline" type="button" data-action="remove-item" data-collection="${collection.key}" data-item-id="${item.id}">删除</button>
+                                  </div>
+                                </td>`
+                          }
                         </tr>`,
                         )
                         .join('')
-                    : `<tr><td colspan="${collection.columns.length}"><div class="empty-state">暂无${collection.itemLabel || '数据'}</div></td></tr>`
+                    : `<tr><td colspan="${collection.columns.length + (readOnly ? 0 : 1)}"><div class="empty-state">暂无${collection.itemLabel || '数据'}</div></td></tr>`
                 }
               </tbody>
             </table>
           </div>
         </div>
-        <aside class="editor-panel">
-          ${
-            selected
-              ? `
-            <div class="panel-head">
-              <div class="section-title">${collection.itemLabel || '详情'}编辑</div>
-              ${readOnly ? '' : `<button class="danger-inline" data-action="remove-item" data-collection="${collection.key}" data-item-id="${selected.id}">删除</button>`}
-            </div>
-            <div class="field-grid">
-              ${collection.fields
-                .map(
-                  (field) => `
-                <div class="field">
-                  <label>${field.label}</label>
-                  ${readOnly ? `<div class="readonly-value">${selected[field.key] ?? ''}</div>` : renderField(field, selected[field.key], collection.key, selected.id)}
-                  ${readOnly || !isAssetField(field) ? renderFieldMeta(field) : ''}
-                </div>`,
-                )
-                .join('')}
-            </div>`
-              : `<div class="empty-state">请选择${collection.itemLabel || '项'}</div>`
-          }
-        </aside>
       </div>
     </section>`
 }
@@ -549,18 +640,12 @@ const renderMultiCollection = () => {
       <section class="section-card">
         <div class="section-head">
           <div class="section-title">基础配置</div>
+          <div class="inline-actions">
+            <button class="mini-btn" type="button" data-action="open-meta-editor">编辑</button>
+          </div>
         </div>
         <div class="field-grid">
-          ${state.page.metaFields
-            .map(
-              (field) => `
-            <div class="field">
-              <label>${field.label}</label>
-              ${renderField(field, state.meta[field.key], 'meta', 'meta')}
-              ${isAssetField(field) ? '' : renderFieldMeta(field)}
-            </div>`,
-            )
-            .join('')}
+          ${state.page.metaFields.map((field) => renderSummaryField(field, state.meta[field.key])).join('')}
         </div>
       </section>`
         : ''
@@ -609,15 +694,102 @@ const renderWorkspace = () => {
   return `<div class="empty-state">未识别页面类型</div>`
 }
 
+const getEditorContext = () => {
+  if (!state.editor) {
+    return null
+  }
+  if (state.editor.mode === 'form-section') {
+    ensureFormState()
+    const section = state.page?.formSections?.[state.editor.sectionIndex]
+    if (!section) {
+      return null
+    }
+    return {
+      title: state.editor.title,
+      copy: '编辑完成后请点击页面顶部“保存修改”同步到后台。',
+      fields: section.fields || [],
+      collectionKey: 'form',
+      itemId: 'form',
+      values: state.formData,
+    }
+  }
+  if (state.editor.mode === 'meta') {
+    ensureMetaState()
+    return {
+      title: state.editor.title,
+      copy: '编辑完成后请点击页面顶部“保存修改”同步到后台。',
+      fields: state.page?.metaFields || [],
+      collectionKey: 'meta',
+      itemId: 'meta',
+      values: state.meta,
+    }
+  }
+  if (state.editor.mode === 'collection-item') {
+    const collection = getCollectionDefinition(state.editor.collectionKey)
+    const item = (state.collections[state.editor.collectionKey] || []).find((entry) => entry.id === state.editor.itemId)
+    if (!collection || !item) {
+      return null
+    }
+    return {
+      title: state.editor.title,
+      copy: '编辑完成后请点击页面顶部“保存修改”同步到后台。',
+      fields: collection.fields || [],
+      collectionKey: collection.key,
+      itemId: item.id,
+      values: item,
+      canDelete: true,
+    }
+  }
+  return null
+}
+
+const renderEditorOverlay = () => {
+  const context = getEditorContext()
+  if (!context) {
+    return ''
+  }
+  return `
+    <div class="editor-overlay-shell">
+      <div class="editor-overlay-backdrop"></div>
+      <section class="editor-dialog" role="dialog" aria-modal="true" aria-label="${escapeHtml(context.title)}">
+        <div class="editor-dialog-head">
+          <div>
+            <div class="editor-dialog-title">${context.title}</div>
+            <div class="editor-dialog-copy">${context.copy}</div>
+          </div>
+          ${getEditorCloseButton()}
+        </div>
+        <div class="editor-dialog-body">
+          <div class="field-grid editor-dialog-grid">
+            ${context.fields
+              .map(
+                (field) => `
+              <div class="field">
+                <label>${field.label}</label>
+                ${renderField(field, context.values?.[field.key], context.collectionKey, context.itemId)}
+                ${isAssetField(field) ? '' : renderFieldMeta(field)}
+              </div>`,
+              )
+              .join('')}
+          </div>
+        </div>
+        ${
+          context.canDelete
+            ? `<div class="editor-dialog-foot">
+                <button class="danger-inline" type="button" data-action="remove-item" data-collection="${context.collectionKey}" data-item-id="${context.itemId}" data-close-editor="1">删除当前项</button>
+              </div>`
+            : ''
+        }
+      </section>
+    </div>`
+}
+
 const isEditable = () => ['form', 'collection', 'multi-collection'].includes(state.page?.view)
 
 const buildPayload = () => {
   if (state.page.view === 'form') {
-    const data = {}
-    document.querySelectorAll('[data-collection="form"]').forEach((node) => {
-      data[node.dataset.field] = node.value
-    })
-    return { data }
+    ensureFormState()
+    return { data: clone(state.formData) }
   }
 
   if (state.page.view === 'collection') {
@@ -625,15 +797,11 @@ const buildPayload = () => {
   }
 
   if (state.page.view === 'multi-collection') {
-    const meta = {}
-    document.querySelectorAll('[data-collection="meta"]').forEach((node) => {
-      meta[node.dataset.field] = node.value
-    })
     const collections = {}
     ;(state.page.collections || []).forEach((collection) => {
       collections[collection.key] = state.collections[collection.key] || []
     })
-    return { meta, collections }
+    return { meta: clone(state.meta), collections }
   }
 
   return {}
@@ -665,6 +833,12 @@ const applyFieldValue = ({ collectionKey, itemId, fieldKey, value }) => {
   }
 
   if (collectionKey === 'form' || collectionKey === 'meta') {
+    if (collectionKey === 'form') {
+      state.formData[fieldKey] = value
+    }
+    if (collectionKey === 'meta') {
+      state.meta[fieldKey] = value
+    }
     return
   }
 
@@ -759,6 +933,7 @@ const render = () => {
         </section>
       </main>
     </div>`
+    + renderEditorOverlay()
 
   bindEvents()
 }
@@ -779,50 +954,81 @@ const bindEvents = () => {
     })
   })
 
-  document.querySelectorAll('[data-action="select-item"]').forEach((node) => {
-    node.addEventListener('click', () => {
-      state.selected[node.dataset.collection] = node.dataset.itemId
-      render()
-    })
-  })
-
   document.querySelectorAll('[data-action="add-item"]').forEach((node) => {
     node.addEventListener('click', () => {
-      const collection = state.page.collections
-        ? state.page.collections.find((item) => item.key === node.dataset.collection)
-        : state.page.collection
+      const collection = getCollectionDefinition(node.dataset.collection)
+      if (!collection) {
+        return
+      }
       const items = getCollectionState(collection)
       const blank = buildBlankItem(collection)
       items.unshift(blank)
       state.selected[collection.key] = blank.id
-      render()
+      openCollectionItemEditor(collection.key, blank.id, true)
+    })
+  })
+
+  document.querySelectorAll('[data-action="open-form-editor"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      openFormSectionEditor(Number(node.dataset.sectionIndex))
+    })
+  })
+
+  document.querySelectorAll('[data-action="open-meta-editor"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      openMetaEditor()
+    })
+  })
+
+  document.querySelectorAll('[data-action="edit-item"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      openCollectionItemEditor(node.dataset.collection, node.dataset.itemId)
+    })
+  })
+
+  document.querySelectorAll('[data-action="close-editor"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      closeEditor()
     })
   })
 
   document.querySelectorAll('[data-action="remove-item"]').forEach((node) => {
     node.addEventListener('click', () => {
+      if (!window.confirm('确认删除这条记录？')) {
+        return
+      }
       const key = node.dataset.collection
       state.collections[key] = (state.collections[key] || []).filter((item) => item.id !== node.dataset.itemId)
       state.selected[key] = state.collections[key]?.[0]?.id || ''
+      if (node.dataset.closeEditor === '1') {
+        state.editor = null
+      }
       render()
     })
   })
 
   document.querySelectorAll('[data-collection]').forEach((node) => {
-    if (node.dataset.collection === 'form' || node.dataset.collection === 'meta') {
-      if (node.classList.contains('asset-input-control')) {
-        node.addEventListener('input', () => {
-          syncAssetPreview(node)
-        })
-      }
-      return
-    }
     node.addEventListener('input', (event) => {
       const target = event.currentTarget
+      const nextValue = target.type === 'number' ? Number(target.value) || 0 : target.value
+      if (target.dataset.collection === 'form') {
+        state.formData[target.dataset.field] = nextValue
+        if (target.classList.contains('asset-input-control')) {
+          syncAssetPreview(target)
+        }
+        return
+      }
+      if (target.dataset.collection === 'meta') {
+        state.meta[target.dataset.field] = nextValue
+        if (target.classList.contains('asset-input-control')) {
+          syncAssetPreview(target)
+        }
+        return
+      }
       const items = state.collections[target.dataset.collection] || []
       const item = items.find((entry) => entry.id === target.dataset.itemId)
       if (!item) return
-      item[target.dataset.field] = target.type === 'number' ? Number(target.value) || 0 : target.value
+      item[target.dataset.field] = nextValue
       if (target.classList.contains('asset-input-control')) {
         syncAssetPreview(target)
       }
@@ -845,9 +1051,11 @@ const savePage = async () => {
     })
     state.user = data.user
     state.page = data.page
+    state.formData = {}
     state.collections = {}
     state.selected = {}
     state.meta = {}
+    state.editor = null
     render()
     setStatus('保存成功', 'success')
   } catch (error) {
