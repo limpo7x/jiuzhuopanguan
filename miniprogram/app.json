@@ -1,0 +1,55 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/tools/index",
+    "pages/judge/index",
+    "pages/me/index",
+    "pages/create-session/index",
+    "pages/session-rules/index",
+    "pages/add-players/index",
+    "pages/invite-group/index",
+    "pages/join-claim/index",
+    "pages/share-preview/index",
+    "pages/compliance-guide/index",
+    "pages/flow-overview/index",
+    "pages/live-record/index",
+    "pages/table-mode/index",
+    "pages/judge-wheel/index",
+    "pages/result-report/index",
+    "pages/share-poster/index",
+    "pages/wine-history/index",
+    "pages/wine-points/index",
+    "pages/premium-templates/index",
+    "pages/merchant-partners/index",
+    "pages/invalid-state/index",
+    "pages/restart-state/index",
+    "pages/tool-detail/index",
+    "pages/profile-edit/index",
+    "pages/member-center/index",
+    "pages/favorites/index",
+    "pages/usage-history/index",
+    "pages/coupon-center/index",
+    "pages/settings/index",
+    "pages/invite-friends/index",
+    "pages/share-helper/index",
+    "pages/question-bank/index",
+    "pages/waiting-room/index",
+    "pages/logs/logs"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationStyle": "custom"
+  },
+  "style": "v2",
+  "rendererOptions": {
+    "skyline": {
+      "defaultDisplayBlock": true,
+      "disableABTest": true,
+      "sdkVersionBegin": "3.0.0",
+      "sdkVersionEnd": "15.255.255"
+    }
+  },
+  "componentFramework": "glass-easel",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

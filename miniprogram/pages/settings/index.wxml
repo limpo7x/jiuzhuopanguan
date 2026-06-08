@@ -1,0 +1,13 @@
+<navigation-bar title="设置" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
+
+<view class="settings-page">
+  <scroll-view class="settings-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view wx:for="{{items}}" wx:key="name" class="settings-item">
+      <view class="settings-copy">
+        <text class="settings-title">{{item.name}}</text>
+        <text class="settings-desc">{{item.desc}}</text>
+      </view>
+      <text class="settings-value">{{item.value}}</text>
+    </view>
+  </scroll-view>
+</view>

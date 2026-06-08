@@ -1,0 +1,60 @@
+<navigation-bar
+  title="再来一局？"
+  back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="restart-nav"
+></navigation-bar>
+
+<view class="restart-page">
+  <scroll-view class="restart-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="restart-center">
+      <text class="restart-title">换个玩法，继续快乐！</text>
+      <image class="restart-state-image" src="/assets/home/beer-toast.png" mode="aspectFill"></image>
+    </view>
+
+    <view class="restart-section-head">
+      <text class="restart-section-title">上次使用模板</text>
+    </view>
+
+    <view class="restart-item">
+      <view class="restart-thumb">
+        <image src="/assets/home/toolbox-hero.png" mode="aspectFill"></image>
+      </view>
+      <view class="restart-copy">
+        <text class="restart-item-title">多模板混合局</text>
+        <text class="restart-item-meta">6人</text>
+      </view>
+      <view class="restart-inline-primary" bindtap="handleReuseTap">继续同款</view>
+    </view>
+
+    <view class="restart-section-head">
+      <text class="restart-section-title">推荐模板</text>
+      <text class="restart-section-link">查看全部</text>
+    </view>
+
+    <view class="restart-pill-row">
+      <view wx:for="{{templates}}" wx:key="name" class="restart-pill {{item.active ? 'restart-pill-active' : ''}}">{{item.name}}</view>
+    </view>
+
+    <view class="restart-primary" bindtap="handleQuickStartTap">快速开局</view>
+
+    <view class="restart-section-head">
+      <text class="restart-section-title">邀请好友一起玩</text>
+    </view>
+
+    <view class="restart-share-grid">
+      <view wx:for="{{shareItems}}" wx:key="id" class="restart-share-item" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="handleShareTap">
+        <view class="restart-share-icon {{item.iconClass}}"></view>
+        <text class="restart-share-label">{{item.name}}</text>
+      </view>
+    </view>
+
+    <view class="restart-notice">
+      <view class="restart-notice-icon"></view>
+      <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+    </view>
+  </scroll-view>
+</view>

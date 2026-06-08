@@ -1,0 +1,450 @@
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff8ee;
+}
+
+.judge-nav {
+  border-bottom: 1px solid rgba(234, 223, 206, 0.55);
+  box-shadow: 0 2px 8px rgba(135, 84, 31, 0.04);
+}
+
+.judge-page {
+  flex: 1;
+  min-height: 0;
+  color: #24160f;
+  background: linear-gradient(180deg, #fffdf8 0%, #fff8ee 100%);
+}
+
+.judge-scroll {
+  height: 100%;
+  padding: 12px 14px calc(74px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.judge-hero {
+  position: relative;
+  overflow: hidden;
+  min-height: 138px;
+  border-radius: 13px;
+  background: #1b130f;
+  color: #fff;
+}
+
+.judge-hero-image,
+.judge-hero-mask {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.judge-hero-mask {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.58));
+}
+
+.judge-hero-content {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.judge-hero-title {
+  font-size: 23px;
+  line-height: 1.18;
+  font-weight: 950;
+}
+
+.judge-hero-subtitle {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.judge-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  width: 100%;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff5b3d, #ff7645);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 900;
+  box-shadow: 0 9px 18px rgba(255, 91, 61, 0.24);
+}
+
+.judge-primary-icon,
+.judge-tile-glyph,
+.judge-tab-icon {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.judge-primary-icon {
+  width: 12px;
+  height: 12px;
+}
+
+.judge-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.judge-tile {
+  display: flex;
+  min-width: 0;
+  min-height: 70px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 6px;
+  border: 1px solid #eadfce;
+  border-radius: 10px;
+  background: #fffdf8;
+  color: #604d3f;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.judge-tile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #fff0df;
+}
+
+.judge-tile-blue .judge-tile-icon {
+  background: #edf2ff;
+}
+
+.judge-tile-green .judge-tile-icon {
+  background: #e8f6ec;
+}
+
+.judge-tile-glyph {
+  width: 20px;
+  height: 20px;
+}
+
+.judge-tile-label {
+  overflow: hidden;
+  width: 100%;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.judge-section-head {
+  margin: 12px 0 8px;
+}
+
+.judge-section-title {
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.judge-template-list {
+  display: grid;
+  gap: 8px;
+}
+
+.judge-template-card {
+  padding: 10px;
+  border: 1px solid #eadfce;
+  border-radius: 10px;
+  background: #fffdf8;
+}
+
+.judge-template-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.judge-template-title {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.judge-template-tag,
+.judge-session-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 25px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #fff1df;
+  color: #ff5b3d;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.judge-template-meta {
+  display: block;
+  margin-top: 5px;
+  color: #8f7f6d;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.judge-session-card {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 64px;
+  padding: 8px;
+  border: 1px solid #eadfce;
+  border-radius: 10px;
+  background: #fffdf8;
+}
+
+.judge-poke-card {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  margin-bottom: 8px;
+  padding: 10px;
+  border: 1px solid rgba(255, 91, 61, 0.2);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #fff7ef, #fffdf8);
+  position: relative;
+}
+
+.judge-poke-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #f7ead8;
+}
+
+.judge-poke-copy {
+  min-width: 0;
+}
+
+.judge-poke-title {
+  display: block;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.judge-poke-meta {
+  display: block;
+  margin-top: 4px;
+  color: #7f6f63;
+  font-size: 10px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.judge-poke-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.judge-poke-btn,
+.judge-poke-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.judge-poke-btn-ghost {
+  border: 1px solid #eadfce;
+  background: #fffdf8;
+  color: #604d3f;
+}
+
+.judge-poke-btn-primary {
+  background: linear-gradient(135deg, #ff5b3d, #ff7645);
+  color: #fff;
+}
+
+.judge-poke-status {
+  background: rgba(255, 91, 61, 0.12);
+  color: #ff5b3d;
+}
+
+.judge-poke-status-matched {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  background: rgba(66, 184, 131, 0.12);
+  color: #2d7f58;
+}
+
+.judge-session-thumb {
+  overflow: hidden;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: #f7ead8;
+}
+
+.judge-session-thumb image {
+  width: 100%;
+  height: 100%;
+}
+
+.judge-session-copy {
+  min-width: 0;
+}
+
+.judge-session-title {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.judge-session-meta {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: #8f7f6d;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.judge-session-tag {
+  background: #e8f6ec;
+  color: #259161;
+}
+
+.judge-tabbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  height: calc(58px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid rgba(234, 223, 206, 0.72);
+  background: rgba(255, 253, 248, 0.95);
+  box-sizing: border-box;
+  backdrop-filter: blur(14px);
+}
+
+.judge-tab-item {
+  display: flex;
+  width: 100%;
+  height: 58px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 0;
+  overflow: hidden;
+  color: #827569;
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+.judge-tab-active {
+  color: #ff5b3d;
+}
+
+.judge-tab-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.judge-tab-label {
+  display: block;
+  font-size: 10px;
+  line-height: 1.1;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.judge-icon-flash {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M11.6 1.8L4.9 10.3H9.3L8.2 18.2L15.1 9.1H10.9L11.6 1.8Z' fill='%23ffffff'/%3E%3C/svg%3E");
+}
+
+.judge-icon-list {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M5 5H19V7H5V5ZM5 11H19V13H5V11ZM5 17H15V19H5V17Z' fill='%23ff5b3d'/%3E%3C/svg%3E");
+}
+
+.judge-icon-history {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 4C16.4 4 20 7.6 20 12C20 16.4 16.4 20 12 20C9.5 20 7.3 18.9 5.8 17.1L7.3 15.8C8.4 17.1 10 18 12 18C15.3 18 18 15.3 18 12C18 8.7 15.3 6 12 6C9.9 6 8.1 7.1 7 8.8H10V10.8H4V4.8H6V7.1C7.5 5.2 9.7 4 12 4ZM11 8H13V12.4L16 14.2L15 15.9L11 13.5V8Z' fill='%234c6fff'/%3E%3C/svg%3E");
+}
+
+.judge-icon-trophy {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M7 4H17V6H20V9C20 11.3 18.3 13.2 16 13.5C15.4 14.4 14.4 15 13 15.2V18H17V20H7V18H11V15.2C9.6 15 8.6 14.4 8 13.5C5.7 13.2 4 11.3 4 9V6H7V4ZM6 8V9C6 10.1 6.6 11 7.5 11.4C7.2 10.4 7 9.2 7 8H6ZM17 8C17 9.2 16.8 10.4 16.5 11.4C17.4 11 18 10.1 18 9V8H17Z' fill='%23ff5b3d'/%3E%3C/svg%3E");
+}
+
+.judge-icon-store {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M4 5H20L19 11H18V20H6V11H5L4 5ZM8 11V18H11V14H13V18H16V11H8ZM6.4 7L6.8 9H17.2L17.6 7H6.4Z' fill='%2342b883'/%3E%3C/svg%3E");
+}
+
+.judge-nav-home {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Cpath d='M3.5 9.8L11 4L18.5 9.8V18H13.2V13H8.8V18H3.5V9.8Z' fill='%23827569'/%3E%3C/svg%3E");
+}
+
+.judge-nav-tools {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Cpath d='M4 4H9V9H4V4ZM13 4H18V9H13V4ZM4 13H9V18H4V13ZM13 13H18V18H13V13Z' fill='%23827569'/%3E%3C/svg%3E");
+}
+
+.judge-nav-judge {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Cpath d='M7 4H15L13.5 10.5H8.5L7 4ZM9.2 11.8H12.8V18H9.2V11.8ZM6.5 18H15.5V20H6.5V18Z' fill='%23827569'/%3E%3C/svg%3E");
+}
+
+.judge-nav-judge.judge-nav-active {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Cpath d='M7 4H15L13.5 10.5H8.5L7 4ZM9.2 11.8H12.8V18H9.2V11.8ZM6.5 18H15.5V20H6.5V18Z' fill='%23ff5b3d'/%3E%3C/svg%3E");
+}
+
+.judge-nav-me {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Cpath d='M11 4.2C13.1 4.2 14.8 5.9 14.8 8C14.8 10.1 13.1 11.8 11 11.8C8.9 11.8 7.2 10.1 7.2 8C7.2 5.9 8.9 4.2 11 4.2ZM4.8 17.8C5.5 15.1 8 13.5 11 13.5C14 13.5 16.5 15.1 17.2 17.8H4.8Z' fill='%23827569'/%3E%3C/svg%3E");
+}

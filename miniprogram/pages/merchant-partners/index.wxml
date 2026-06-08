@@ -1,0 +1,61 @@
+<navigation-bar
+  title="同城合作"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="merchant-nav"
+></navigation-bar>
+
+<view class="merchant-page">
+  <scroll-view class="merchant-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="merchant-head-row">
+      <text class="merchant-title">同城合作</text>
+      <view class="merchant-city-chip">杭州市</view>
+    </view>
+
+    <view class="merchant-banner">
+      <text class="merchant-banner-title">聚会好去处 · 专属优惠</text>
+      <text class="merchant-banner-meta">酒桌判官用户专享权益</text>
+    </view>
+
+    <view class="merchant-grid">
+      <view wx:for="{{categories}}" wx:key="name" class="merchant-tile {{item.toneClass}}">
+        <view class="merchant-tile-icon {{item.iconClass}}"></view>
+        <text class="merchant-tile-label">{{item.name}}</text>
+      </view>
+    </view>
+
+    <view class="merchant-section-head">
+      <text class="merchant-section-title">精选商户</text>
+    </view>
+
+    <view class="merchant-list">
+      <view wx:for="{{shops}}" wx:key="name" class="merchant-item">
+        <view class="merchant-thumb">
+          <image src="{{item.imageUrl}}" mode="aspectFill"></image>
+        </view>
+        <view class="merchant-copy">
+          <text class="merchant-item-title">{{item.name}}</text>
+          <text class="merchant-item-meta">{{item.meta}}</text>
+        </view>
+        <view class="merchant-tag">领券</view>
+      </view>
+    </view>
+
+    <view class="merchant-section-head">
+      <text class="merchant-section-title">安全返程</text>
+    </view>
+
+    <view class="merchant-grid">
+      <view wx:for="{{safeBack}}" wx:key="name" class="merchant-tile {{item.toneClass}}">
+        <view class="merchant-tile-icon {{item.iconClass}}"></view>
+        <text class="merchant-tile-label">{{item.name}}</text>
+      </view>
+    </view>
+
+    <view class="merchant-notice">
+      <view class="merchant-notice-icon"></view>
+      <text>喝酒不开车，安全你我他</text>
+    </view>
+  </scroll-view>
+</view>

@@ -1,0 +1,14 @@
+<navigation-bar title="我的收藏" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
+
+<view class="favorites-page">
+  <scroll-view class="favorites-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view wx:for="{{items}}" wx:key="name" class="favorites-item" data-route="{{item.route}}" bindtap="handleItemTap">
+      <image class="favorites-thumb" src="{{item.imageUrl}}" mode="aspectFill"></image>
+      <view class="favorites-copy">
+        <text class="favorites-title">{{item.name}}</text>
+        <text class="favorites-meta">{{item.meta}}</text>
+      </view>
+      <text class="favorites-arrow">›</text>
+    </view>
+  </scroll-view>
+</view>

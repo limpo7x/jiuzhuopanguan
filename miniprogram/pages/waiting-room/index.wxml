@@ -1,0 +1,48 @@
+<navigation-bar
+  title="等待开局"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="waiting-nav"
+></navigation-bar>
+
+<view class="waiting-page">
+  <scroll-view class="waiting-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="waiting-center">
+      <text class="waiting-title">组局中，等人齐</text>
+      <text class="waiting-subtitle">人齐自动开局，无需群主操作</text>
+      <view class="waiting-counter">
+        <text class="waiting-counter-value">{{joinedCount}} / {{playerCount}}</text>
+        <text class="waiting-counter-label">已加入人数</text>
+      </view>
+    </view>
+
+    <view class="waiting-avatar-row">
+      <view wx:for="{{joinedPlayers}}" wx:key="name" class="waiting-avatar-card">
+        <image class="waiting-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <text class="waiting-avatar-name">{{item.name}}</text>
+      </view>
+      <view wx:for="{{emptySeats}}" wx:key="index" class="waiting-avatar-card">
+        <view class="waiting-avatar waiting-avatar-empty">?</view>
+        <text class="waiting-avatar-name">待加入</text>
+      </view>
+    </view>
+
+    <view class="waiting-card">
+      <view class="waiting-row-between">
+        <text class="waiting-card-title">酒局信息</text>
+        <text class="waiting-card-link" bindtap="handleOverviewTap">更多</text>
+      </view>
+      <text class="waiting-card-meta">{{sessionName}}</text>
+      <text class="waiting-card-meta">玩法：经典欠酒版 · 人数：{{playerCount}}人</text>
+      <text class="waiting-card-meta">创建：小太阳组会玩</text>
+    </view>
+
+    <view class="waiting-action-row">
+      <view class="waiting-ghost" bindtap="handleInviteTap">提醒好友</view>
+      <view class="waiting-ghost" bindtap="handleCodeTap">查看口令</view>
+    </view>
+
+    <view class="waiting-primary" bindtap="handleStartTap">进入本局</view>
+  </scroll-view>
+</view>

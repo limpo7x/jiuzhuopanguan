@@ -1,0 +1,88 @@
+<navigation-bar
+  title="{{sessionName}}"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="live-nav"
+></navigation-bar>
+
+<view class="live-page">
+  <scroll-view class="live-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="live-top-row">
+      <text class="live-round-title">{{sessionName}}</text>
+      <view class="live-tag">已进行 {{elapsedText}}</view>
+    </view>
+
+    <view class="live-avatar-row">
+      <view wx:for="{{players}}" wx:key="name" class="live-avatar-card">
+        <image class="live-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <text class="live-avatar-name">{{item.name}}</text>
+      </view>
+      <view class="live-avatar-card">
+        <view class="live-avatar live-avatar-add">+</view>
+        <text class="live-avatar-name">添加</text>
+      </view>
+    </view>
+
+    <view class="live-card live-form-card">
+      <text class="live-block-title">欠酒记录</text>
+      <view wx:for="{{records}}" wx:key="id" class="live-record-item">
+        <view class="live-row-between live-record-top">
+          <view class="live-record-user">
+            <image class="live-record-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <view class="live-record-copy">
+              <text class="live-record-title">{{item.name}}</text>
+              <text class="live-record-meta">{{item.meta}}</text>
+            </view>
+          </view>
+          <view class="live-record-clear">已消 {{item.clearedCount}} / 3</view>
+        </view>
+
+        <view class="live-record-stats">
+          <view class="live-record-stat-card">
+            <text class="live-record-stat-label">欠酒</text>
+            <view wx:if="{{isJudge}}" class="live-record-adjuster">
+              <view class="live-adjust-btn live-adjust-btn-minus" data-id="{{item.id}}" data-field="debtCount" data-delta="-1" bindtap="handleAdjustTap">-</view>
+              <view class="live-record-score-box">
+                <text class="live-record-score">{{item.debtCount}}</text>
+                <text class="live-record-score-unit">杯</text>
+              </view>
+              <view class="live-adjust-btn live-adjust-btn-active" data-id="{{item.id}}" data-field="debtCount" data-delta="1" bindtap="handleAdjustTap">+</view>
+            </view>
+            <text wx:else class="live-record-score">{{item.debtCount}}杯</text>
+          </view>
+
+          <view class="live-record-stat-card">
+            <text class="live-record-stat-label">已喝</text>
+            <view wx:if="{{isJudge}}" class="live-record-adjuster">
+              <view class="live-adjust-btn live-adjust-btn-minus" data-id="{{item.id}}" data-field="drinkCount" data-delta="-1" bindtap="handleAdjustTap">-</view>
+              <view class="live-record-score-box">
+                <text class="live-record-score live-record-score-warm">{{item.drinkCount}}</text>
+                <text class="live-record-score-unit">杯</text>
+              </view>
+              <view class="live-adjust-btn live-adjust-btn-active" data-id="{{item.id}}" data-field="drinkCount" data-delta="1" bindtap="handleAdjustTap">+</view>
+            </view>
+            <text wx:else class="live-record-score live-record-score-warm">{{item.drinkCount}}杯</text>
+          </view>
+        </view>
+
+        <view wx:if="{{isJudge}}" class="live-record-wheel" data-id="{{item.id}}" bindtap="handleWheelTap">转盘消 1 杯</view>
+      </view>
+    </view>
+
+    <view class="live-card live-form-card live-spacing-top">
+      <text class="live-block-title">整活事件</text>
+      <view wx:for="{{events}}" wx:key="text" class="live-row-between">
+        <text class="live-event-text">{{item.text}}</text>
+        <text class="live-event-score">+1</text>
+      </view>
+    </view>
+
+    <view class="live-primary live-primary-full" bindtap="handleSaveTap">桌面模式</view>
+
+    <view class="live-notice">
+      <view class="live-notice-icon"></view>
+      <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+    </view>
+  </scroll-view>
+</view>

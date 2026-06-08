@@ -1,0 +1,16 @@
+<navigation-bar title="优惠券" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
+
+<view class="coupon-page">
+  <scroll-view class="coupon-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view wx:for="{{coupons}}" wx:key="name" class="coupon-item" data-route="{{item.route}}" bindtap="handleUseTap">
+      <view class="coupon-left">
+        <view class="coupon-tag">{{item.tag}}</view>
+      </view>
+      <view class="coupon-copy">
+        <text class="coupon-title">{{item.name}}</text>
+        <text class="coupon-desc">{{item.desc}}</text>
+      </view>
+      <view class="coupon-action">去使用</view>
+    </view>
+  </scroll-view>
+</view>

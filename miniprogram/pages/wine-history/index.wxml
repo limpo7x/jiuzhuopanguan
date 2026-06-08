@@ -1,0 +1,36 @@
+<navigation-bar
+  title="我的酒局"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="history-nav"
+></navigation-bar>
+
+<view class="history-page">
+  <scroll-view class="history-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="history-chip-row">
+      <view wx:for="{{filters}}" wx:key="name" class="history-chip {{item.active ? 'history-chip-active' : ''}}">{{item.name}}</view>
+    </view>
+
+    <view class="history-list">
+      <view
+        wx:for="{{sessions}}"
+        wx:key="name"
+        class="history-item"
+        data-id="{{item.id}}"
+        bindtap="handleSessionTap"
+      >
+        <view class="history-thumb">
+          <image src="{{item.imageUrl}}" mode="aspectFill"></image>
+        </view>
+        <view class="history-copy">
+          <text class="history-title">{{item.name}}</text>
+          <text class="history-meta">{{item.meta}}</text>
+        </view>
+        <view class="history-tag {{item.done ? 'history-tag-green' : ''}}">{{item.tag}}</view>
+      </view>
+    </view>
+
+    <view class="history-primary" bindtap="handleCreateTap">创建新酒局</view>
+  </scroll-view>
+</view>

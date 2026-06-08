@@ -1,0 +1,147 @@
+<navigation-bar
+  title="我的"
+  back="{{false}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="me-nav"
+></navigation-bar>
+
+<view class="me-page">
+  <scroll-view class="me-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="me-profile-row">
+      <view class="me-user">
+        <image class="me-avatar" src="{{currentProfile.avatarUrl}}" mode="aspectFill"></image>
+        <view class="me-user-copy">
+          <view class="me-name-row">
+            <text class="me-name">{{currentProfile.name}}</text>
+            <view class="me-vip-tag">V1</view>
+          </view>
+          <text class="me-id">ID: 88998866</text>
+        </view>
+      </view>
+      <view class="me-edit-btn" bindtap="handleEditTap">编辑资料</view>
+    </view>
+
+    <view class="me-member-card">
+      <view class="me-member-top">
+        <text class="me-member-title">闪享会员</text>
+        <view class="me-member-btn" bindtap="handleMemberTap">立即开通</view>
+      </view>
+      <text class="me-member-desc">尊享每月畅玩 6 大权益</text>
+    </view>
+
+    <view class="me-stat-row">
+      <view wx:for="{{assetStats}}" wx:key="label" class="me-stat-item">
+        <text class="me-stat-value">{{item.value}}</text>
+        <text class="me-stat-label">{{item.label}}</text>
+      </view>
+    </view>
+
+    <view class="me-section-head">
+      <text class="me-section-title">我的酒局</text>
+      <text class="me-section-link">最近酒友</text>
+    </view>
+
+    <view class="me-stat-row">
+      <view wx:for="{{wineStats}}" wx:key="label" class="me-stat-item">
+        <text class="me-stat-value">{{item.value}}</text>
+        <text class="me-stat-label">{{item.label}}</text>
+      </view>
+    </view>
+
+    <view class="me-friend-create">
+      <input
+        class="me-friend-input"
+        value="{{newFriendName}}"
+        placeholder="搜索已注册酒友"
+        placeholder-class="me-friend-placeholder"
+        bindinput="handleNewFriendInput"
+      />
+      <view class="me-friend-add-btn" bindtap="handleAddFriendTap">按昵称新增</view>
+    </view>
+
+    <view wx:if="{{newFriendMatches.length}}" class="me-friend-search-list">
+      <view wx:for="{{newFriendMatches}}" wx:key="id" class="me-friend-search-card">
+        <image class="me-friend-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view class="me-friend-copy">
+          <text class="me-friend-name">{{item.name}}</text>
+          <text class="me-friend-meta">{{item.city}} · {{item.identityTag}}</text>
+        </view>
+        <view
+          class="me-friend-inline-btn {{item.alreadyFriend ? 'me-friend-inline-btn-disabled' : ''}}"
+          data-profile-id="{{item.id}}"
+          data-name="{{item.name}}"
+          bindtap="handleAddRegisteredFriendTap"
+        >
+          {{item.alreadyFriend ? '已是酒友' : '添加酒友'}}
+        </view>
+      </view>
+    </view>
+
+    <view class="me-friend-list">
+      <view wx:for="{{wineFriends}}" wx:key="id" class="me-friend-card">
+        <image class="me-friend-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view class="me-friend-copy">
+          <input
+            wx:if="{{item.editing}}"
+            class="me-friend-edit-input"
+            value="{{editingFriendName}}"
+            focus="{{true}}"
+            bindinput="handleEditFriendInput"
+          />
+          <text wx:else class="me-friend-name">{{item.name}}</text>
+          <text class="me-friend-meta">{{item.meta}}</text>
+        </view>
+        <view wx:if="{{item.editing}}" class="me-friend-action-col">
+          <view class="me-friend-mini-btn me-friend-save-btn" data-id="{{item.id}}" bindtap="handleSaveFriendTap">保存</view>
+          <view class="me-friend-mini-btn" bindtap="handleCancelEditTap">取消</view>
+        </view>
+        <view wx:else class="me-friend-action-col">
+          <view class="me-friend-poke-btn" data-id="{{item.id}}" bindtap="handlePokeTap">拍一拍</view>
+          <view class="me-friend-mini-row">
+            <view class="me-friend-mini-btn" data-id="{{item.id}}" bindtap="handleStartEditTap">编辑</view>
+            <view class="me-friend-mini-btn me-friend-delete-btn" data-id="{{item.id}}" bindtap="handleDeleteFriendTap">删除</view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="me-section-head">
+      <text class="me-section-title">常用功能</text>
+    </view>
+
+    <view class="me-grid">
+      <view
+        wx:for="{{features}}"
+        wx:key="id"
+        class="me-tile"
+        data-name="{{item.name}}"
+        bindtap="handleFeatureTap"
+      >
+        <view class="me-tile-icon">
+          <view class="me-tile-glyph {{item.iconClass}}"></view>
+        </view>
+        <text class="me-tile-label">{{item.name}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="me-tabbar">
+    <view class="me-tab-item" data-tab="home" bindtap="handleTabTap">
+      <view class="me-tab-icon me-nav-home"></view>
+      <text class="me-tab-label">首页</text>
+    </view>
+    <view class="me-tab-item" data-tab="tools" bindtap="handleTabTap">
+      <view class="me-tab-icon me-nav-tools"></view>
+      <text class="me-tab-label">工具箱</text>
+    </view>
+    <view class="me-tab-item" data-tab="judge" bindtap="handleTabTap">
+      <view class="me-tab-icon me-nav-judge"></view>
+      <text class="me-tab-label">酒桌判官</text>
+    </view>
+    <view class="me-tab-item me-tab-active" data-tab="me" bindtap="handleTabTap">
+      <view class="me-tab-icon me-nav-me me-nav-active"></view>
+      <text class="me-tab-label">我的</text>
+    </view>
+  </view>
+</view>

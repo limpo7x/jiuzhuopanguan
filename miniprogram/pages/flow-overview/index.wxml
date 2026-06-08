@@ -1,0 +1,32 @@
+<navigation-bar
+  title="链路进度"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="flow-nav"
+></navigation-bar>
+
+<view class="flow-page">
+  <scroll-view class="flow-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="flow-timeline">
+      <view wx:for="{{steps}}" wx:key="title" class="flow-step {{item.done ? '' : 'flow-step-pending'}}">
+        <text class="flow-step-index">{{index + 1}}</text>
+        <view class="flow-step-copy">
+          <text class="flow-step-title">{{item.title}}</text>
+          <text class="flow-step-meta">{{item.meta}}</text>
+        </view>
+        <view class="flow-step-state {{item.done ? 'flow-step-state-done' : 'flow-step-state-pending'}}"></view>
+      </view>
+    </view>
+
+    <view class="flow-notice">
+      <view class="flow-notice-icon"></view>
+      <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+    </view>
+
+    <view class="flow-primary" bindtap="handleEnterTap">
+      <text>进入本局</text>
+      <view class="flow-primary-icon"></view>
+    </view>
+  </scroll-view>
+</view>

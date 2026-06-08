@@ -1,0 +1,115 @@
+<navigation-bar
+  title="首页"
+  back="{{false}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="home-nav"
+></navigation-bar>
+
+<view class="page-shell">
+
+  <scroll-view class="screen-body scroll-body with-tabs" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="top-row">
+      <view class="home-chip home-chip-active">
+        <text>上海</text>
+        <text class="home-chip-arrow">▾</text>
+      </view>
+      <view class="top-row-spacer"></view>
+      <view class="sign-tag" bindtap="handleCheckIn">
+        <view class="sign-tag-icon icon-coin"></view>
+        <text class="sign-tag-text">{{checkedIn ? '今日已签' : '签到 +10'}}</text>
+      </view>
+    </view>
+
+    <view class="home-search-box">
+      <view class="search-glyph icon-search"></view>
+      <text class="search-text">{{home.searchPlaceholder}}</text>
+      <text class="search-action">搜索</text>
+    </view>
+
+    <view class="spacer"></view>
+
+    <view class="hero">
+      <image class="hero-image" src="{{home.hero.imageUrl}}" mode="aspectFill"></image>
+      <view class="hero-overlay"></view>
+      <view class="hero-content">
+        <view class="hero-title-wrap">
+          <text class="hero-title">今晚聚会主推</text>
+          <text class="hero-title">{{home.hero.title}}</text>
+        </view>
+        <text class="hero-subtitle">{{home.hero.subtitle}}</text>
+        <view class="hero-button-wrap">
+          <button class="primary-btn full-btn" bindtap="handlePrimaryTap">
+            <text>去开一局</text>
+            <view class="btn-glyph icon-flash"></view>
+          </button>
+        </view>
+      </view>
+    </view>
+
+    <view class="home-section-head">
+      <text class="home-section-title">常用工具</text>
+      <text class="home-section-link">编辑</text>
+    </view>
+
+    <view class="quick-tool-grid">
+      <view
+        wx:for="{{home.quickTools}}"
+        wx:key="id"
+        class="quick-tool-tile {{item.toneClass ? 'quick-tool-tile-' + item.toneClass : ''}}"
+        data-id="{{item.id}}"
+        data-name="{{item.name}}"
+        bindtap="handleQuickToolTap"
+      >
+        <view class="quick-tool-icon">
+          <view class="quick-tool-icon-glyph {{item.iconClass}}"></view>
+        </view>
+        <text class="quick-tool-label">{{item.name}}</text>
+      </view>
+    </view>
+
+    <view class="home-section-head">
+      <text class="home-section-title">最近使用</text>
+      <text class="home-section-link">全部</text>
+    </view>
+
+    <view class="recent-list">
+      <view
+        wx:for="{{home.recentTools}}"
+        wx:key="id"
+        class="recent-list-item"
+        data-id="{{item.id}}"
+        data-name="{{item.name}}"
+        bindtap="handleToolTap"
+      >
+        <view class="recent-thumb">
+          <image src="{{item.imageUrl}}" mode="aspectFill"></image>
+        </view>
+        <view class="recent-item-copy">
+          <text class="recent-item-title">{{item.name}}</text>
+          <text class="recent-item-meta">{{item.usedAt}}</text>
+        </view>
+        <view class="recent-tag {{item.badgeClass === 'green' ? 'recent-tag-green' : '' }}">{{item.badgeText}}</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="bottom-nav">
+    <view class="bottom-item active" data-tab="home" bindtap="handleTabTap">
+      <view class="bottom-icon nav-home active"></view>
+      <text class="bottom-label">首页</text>
+    </view>
+    <view class="bottom-item" data-tab="tools" bindtap="handleTabTap">
+      <view class="bottom-icon nav-tools"></view>
+      <text class="bottom-label">工具箱</text>
+    </view>
+    <view class="bottom-item" data-tab="judge" bindtap="handleTabTap">
+      <view class="bottom-icon nav-judge"></view>
+      <text class="bottom-label">酒桌判官</text>
+    </view>
+    <view class="bottom-item" data-tab="me" bindtap="handleTabTap">
+      <view class="bottom-icon nav-me"></view>
+      <text class="bottom-label">我的</text>
+    </view>
+  </view>
+</view>

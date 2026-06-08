@@ -1,0 +1,50 @@
+<navigation-bar
+  title="分享战报"
+  back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="poster-nav"
+></navigation-bar>
+
+<view class="poster-page">
+  <scroll-view class="poster-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="poster-card">
+      <image class="poster-image" src="/assets/home/report-poster.png" mode="aspectFill"></image>
+      <view class="poster-copy">
+        <view class="poster-tag">{{sessionName}}</view>
+        <text class="poster-title">这局快乐就完事了！</text>
+        <view class="poster-ranks">
+          <view wx:for="{{ranks}}" wx:key="title" class="poster-rank-card">
+            <view class="poster-rank-tag">{{item.title}}</view>
+            <image class="poster-rank-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <text class="poster-rank-name">{{item.name}}</text>
+            <text class="poster-rank-value">{{item.value}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="poster-section-head">
+      <text class="poster-section-title">分享</text>
+    </view>
+
+    <view class="poster-share-grid">
+      <view wx:for="{{shareItems}}" wx:key="id" class="poster-share-item" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="handleShareTap">
+        <view class="poster-share-icon {{item.iconClass}}"></view>
+        <text class="poster-share-label">{{item.name}}</text>
+      </view>
+    </view>
+
+    <view class="poster-primary" bindtap="handleCreateTap">
+      <text>我也开一局</text>
+      <view class="poster-primary-icon"></view>
+    </view>
+
+    <view class="poster-notice">
+      <view class="poster-notice-icon"></view>
+      <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+    </view>
+  </scroll-view>
+</view>

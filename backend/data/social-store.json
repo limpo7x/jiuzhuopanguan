@@ -1,0 +1,112 @@
+{
+  "profiles": [
+    {
+      "id": "user-search-b",
+      "name": "SearchB",
+      "avatarUrl": "/assets/avatars/avatar-2.png",
+      "city": "??",
+      "signature": "B",
+      "identityTag": "???",
+      "createdAt": 1780891821936,
+      "updatedAt": 1780891848911
+    },
+    {
+      "id": "user-search-a",
+      "name": "SearchA",
+      "avatarUrl": "/assets/avatars/avatar-1.png",
+      "city": "??",
+      "signature": "A",
+      "identityTag": "???",
+      "createdAt": 1780891821902,
+      "updatedAt": 1780891848879
+    },
+    {
+      "id": "user-test-b",
+      "name": "???",
+      "avatarUrl": "/assets/avatars/avatar-2.png",
+      "city": "??",
+      "signature": "B",
+      "identityTag": "??",
+      "createdAt": 1780890453382,
+      "updatedAt": 1780890453382
+    },
+    {
+      "id": "user-test-a",
+      "name": "???",
+      "avatarUrl": "/assets/avatars/avatar-1.png",
+      "city": "??",
+      "signature": "A",
+      "identityTag": "???",
+      "createdAt": 1780890453341,
+      "updatedAt": 1780890453341
+    },
+    {
+      "id": "user-1001",
+      "name": "阿浩",
+      "avatarUrl": "/assets/avatars/avatar-1.png",
+      "city": "上海",
+      "signature": "今晚这局不见不散。",
+      "identityTag": "气氛组",
+      "createdAt": 1,
+      "updatedAt": 1
+    },
+    {
+      "id": "user-1002",
+      "name": "小熊",
+      "avatarUrl": "/assets/avatars/avatar-2.png",
+      "city": "上海",
+      "signature": "喝归喝，整活不能少。",
+      "identityTag": "热场王",
+      "createdAt": 2,
+      "updatedAt": 2
+    },
+    {
+      "id": "user-1003",
+      "name": "Mika",
+      "avatarUrl": "/assets/avatars/avatar-3.png",
+      "city": "杭州",
+      "signature": "负责点题，也负责拱火。",
+      "identityTag": "判官常驻",
+      "createdAt": 3,
+      "updatedAt": 3
+    },
+    {
+      "id": "user-1004",
+      "name": "可可",
+      "avatarUrl": "/assets/avatars/avatar-4.png",
+      "city": "深圳",
+      "signature": "我只负责起哄。",
+      "identityTag": "酒局观察员",
+      "createdAt": 4,
+      "updatedAt": 4
+    }
+  ],
+  "friendships": [
+    {
+      "id": "friendship-1780891821937",
+      "ownerId": "user-search-a",
+      "friendId": "user-search-b",
+      "alias": "SearchB",
+      "meta": "??",
+      "updatedAt": 1780891848912
+    },
+    {
+      "id": "friendship-1780890453384",
+      "ownerId": "user-test-a",
+      "friendId": "user-test-b",
+      "alias": "???",
+      "meta": "????",
+      "updatedAt": 1780890453384
+    }
+  ],
+  "pokes": [
+    {
+      "id": "user-test-a__user-test-b",
+      "senderId": "user-test-a",
+      "receiverId": "user-test-b",
+      "status": "matched",
+      "createdAt": 1780890453389,
+      "updatedAt": 1780890453396
+    }
+  ]
+}

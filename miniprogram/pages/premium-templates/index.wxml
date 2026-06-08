@@ -1,0 +1,36 @@
+<navigation-bar
+  title="高级模板"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="pro-nav"
+></navigation-bar>
+
+<view class="pro-page">
+  <scroll-view class="pro-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pro-chip-row">
+      <view wx:for="{{filters}}" wx:key="name" class="pro-chip {{item.active ? 'pro-chip-active' : ''}}">{{item.name}}</view>
+    </view>
+
+    <view class="pro-list">
+      <view wx:for="{{templates}}" wx:key="title" class="pro-item" data-title="{{item.title}}" bindtap="handleTemplateTap">
+        <view class="pro-thumb">
+          <image src="{{item.imageUrl}}" mode="aspectFill"></image>
+        </view>
+        <view class="pro-copy">
+          <text class="pro-title">{{item.title}}</text>
+          <text class="pro-meta">{{item.meta}}</text>
+        </view>
+        <view class="pro-tag">{{item.cost}}积分</view>
+      </view>
+    </view>
+
+    <view class="pro-unlock-card">
+      <view class="pro-unlock-head">
+        <text class="pro-unlock-title">看激励视频解锁 PRO 模板</text>
+        <view class="pro-tag">0/3</view>
+      </view>
+      <view class="pro-primary" bindtap="handleUnlockTap">立即解锁</view>
+    </view>
+  </scroll-view>
+</view>

@@ -1,0 +1,73 @@
+<navigation-bar
+  title="创建酒局"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="rules-nav"
+></navigation-bar>
+
+<view class="rules-page">
+  <scroll-view class="rules-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="rules-progress">
+      <view class="rules-progress-step rules-progress-step-done">
+        <text class="rules-progress-dot">1</text>
+        <text>创建酒局</text>
+      </view>
+      <view class="rules-progress-step rules-progress-step-active">
+        <text class="rules-progress-dot">2</text>
+        <text>玩法设置</text>
+      </view>
+      <view class="rules-progress-step">
+        <text class="rules-progress-dot">3</text>
+        <text>邀请开局</text>
+      </view>
+    </view>
+
+    <view class="rules-card rules-form-card">
+      <text class="rules-block-title">玩法设置</text>
+
+      <view class="rules-field">
+        <text class="rules-label">局内规则</text>
+        <view class="rules-chip-row">
+          <view wx:for="{{roundRules}}" wx:key="name" class="rules-chip {{item.active ? 'rules-chip-active' : ''}}" data-group="roundRules" data-name="{{item.name}}" bindtap="handleChipTap">{{item.name}}</view>
+        </view>
+      </view>
+
+      <view class="rules-field">
+        <text class="rules-label">欠酒规则</text>
+        <view class="rules-chip-row">
+          <view wx:for="{{penaltyRules}}" wx:key="name" class="rules-chip {{item.active ? 'rules-chip-active' : ''}}" data-group="penaltyRules" data-name="{{item.name}}" bindtap="handleChipTap">{{item.name}}</view>
+        </view>
+      </view>
+
+      <view class="rules-row-between">
+        <view>
+          <text class="rules-item-title">整活任务数量</text>
+          <text class="rules-item-meta">每轮触发轻整活</text>
+        </view>
+        <view class="rules-stepper">
+          <view class="rules-stepper-btn" data-action="minus" bindtap="handleTaskCountTap">-</view>
+          <text class="rules-stepper-value">{{taskCount}}个</text>
+          <view class="rules-stepper-btn" data-action="plus" bindtap="handleTaskCountTap">+</view>
+        </view>
+      </view>
+
+      <view class="rules-row-between">
+        <text class="rules-item-title">是否开启惩罚卡</text>
+        <view class="rules-toggle {{penaltyEnabled ? 'rules-toggle-on' : ''}}" bindtap="handlePenaltyToggle"></view>
+      </view>
+
+      <view class="rules-field">
+        <text class="rules-label">惩罚卡强度</text>
+        <view class="rules-chip-row">
+          <view wx:for="{{penaltyLevels}}" wx:key="name" class="rules-chip {{item.active ? 'rules-chip-active' : ''}}" data-group="penaltyLevels" data-name="{{item.name}}" bindtap="handleChipTap">{{item.name}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="rules-primary" bindtap="handleNextTap">
+      <text>下一步 添加玩家</text>
+      <view class="rules-primary-icon rules-icon-user"></view>
+    </view>
+  </scroll-view>
+</view>

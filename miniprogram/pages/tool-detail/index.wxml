@@ -1,0 +1,47 @@
+<navigation-bar
+  title="{{toolName}}"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="tool-detail-nav"
+></navigation-bar>
+
+<view class="tool-detail-page">
+  <scroll-view class="tool-detail-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="tool-detail-hero">
+      <image class="tool-detail-hero-image" src="{{heroImage}}" mode="aspectFill"></image>
+      <view class="tool-detail-hero-mask"></view>
+      <view class="tool-detail-hero-copy">
+        <text class="tool-detail-hero-title">{{toolName}}</text>
+        <text class="tool-detail-hero-subtitle">{{subtitle}}</text>
+      </view>
+    </view>
+
+    <view class="tool-detail-card">
+      <text class="tool-detail-section-title">能力说明</text>
+      <text class="tool-detail-summary">{{summary}}</text>
+      <view class="tool-detail-tip-row">
+        <view wx:for="{{tips}}" wx:key="label" class="tool-detail-tip-item">
+          <text class="tool-detail-tip-label">{{item.label}}</text>
+          <text class="tool-detail-tip-value">{{item.value}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="tool-detail-card">
+      <text class="tool-detail-section-title">使用步骤</text>
+      <view wx:for="{{steps}}" wx:key="title" class="tool-detail-step">
+        <view class="tool-detail-step-index">{{index + 1}}</view>
+        <view class="tool-detail-step-copy">
+          <text class="tool-detail-step-title">{{item.title}}</text>
+          <text class="tool-detail-step-desc">{{item.desc}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="tool-detail-actions">
+      <view class="tool-detail-primary" bindtap="handlePrimaryTap">查看使用记录</view>
+      <view class="tool-detail-secondary" bindtap="handleSecondaryTap">返回工具箱</view>
+    </view>
+  </scroll-view>
+</view>

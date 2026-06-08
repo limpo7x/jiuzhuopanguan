@@ -1,0 +1,48 @@
+<navigation-bar
+  title="本局战报"
+  back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="report-nav"
+></navigation-bar>
+
+<view class="report-page">
+  <scroll-view class="report-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="report-poster-card">
+      <view class="report-poster-copy">
+        <view class="report-tag">本局战报</view>
+        <text class="report-title">这局快乐就完事了！</text>
+        <text class="report-meta">{{metaText}}</text>
+
+        <view class="report-ranks">
+          <view wx:for="{{ranks}}" wx:key="title" class="report-rank-card">
+            <view class="report-rank-tag">{{item.title}}</view>
+            <image class="report-rank-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <text class="report-rank-name">{{item.name}}</text>
+            <text class="report-rank-value">{{item.value}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="report-section-head">
+      <text class="report-section-title">本局精彩事件</text>
+    </view>
+
+    <view class="report-card report-form-card">
+      <text wx:for="{{events}}" wx:key="text" class="report-event-text">· {{item.text}}</text>
+    </view>
+
+    <view class="report-action-row">
+      <view class="report-ghost" bindtap="handleRestartTap">再开一局</view>
+      <view class="report-primary" bindtap="handleShareTap">分享战报</view>
+    </view>
+
+    <view class="report-notice">
+      <view class="report-notice-icon"></view>
+      <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+    </view>
+  </scroll-view>
+</view>

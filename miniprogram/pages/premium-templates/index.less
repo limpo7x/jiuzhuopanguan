@@ -1,0 +1,157 @@
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff8ee;
+}
+
+.pro-nav {
+  border-bottom: 1px solid rgba(234, 223, 206, 0.55);
+}
+
+.pro-page {
+  flex: 1;
+  min-height: 0;
+  background: linear-gradient(180deg, #fffdf8 0%, #fff8ee 100%);
+  color: #24160f;
+}
+
+.pro-scroll {
+  height: 100%;
+  padding: 12px 14px 18px;
+  box-sizing: border-box;
+}
+
+.pro-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.pro-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 25px;
+  padding: 0 9px;
+  border: 1px solid #eadfce;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #8f7f6d;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.pro-chip-active {
+  border-color: transparent;
+  background: #ff6847;
+  color: #fff;
+}
+
+.pro-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.pro-item {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 64px;
+  padding: 8px;
+  border: 1px solid #eadfce;
+  border-radius: 10px;
+  background: #fffdf8;
+}
+
+.pro-thumb {
+  overflow: hidden;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: #f7ead8;
+}
+
+.pro-thumb image {
+  width: 100%;
+  height: 100%;
+}
+
+.pro-copy {
+  min-width: 0;
+}
+
+.pro-title {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pro-meta {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: #8f7f6d;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pro-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 25px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #fff1df;
+  color: #ff5b3d;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.pro-unlock-card {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  background: #fff2df;
+}
+
+.pro-unlock-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pro-unlock-title {
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.pro-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff5b3d, #ff7645);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 900;
+  box-shadow: 0 9px 18px rgba(255, 91, 61, 0.24);
+}

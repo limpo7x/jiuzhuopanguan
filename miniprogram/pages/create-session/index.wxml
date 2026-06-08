@@ -1,0 +1,83 @@
+<navigation-bar
+  title="创建酒局"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="create-nav"
+></navigation-bar>
+
+<view class="create-page">
+  <scroll-view class="create-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="create-progress">
+      <view class="create-progress-step create-progress-step-active">
+        <text class="create-progress-dot">1</text>
+        <text>创建酒局</text>
+      </view>
+      <view class="create-progress-step">
+        <text class="create-progress-dot">2</text>
+        <text>玩法设置</text>
+      </view>
+      <view class="create-progress-step">
+        <text class="create-progress-dot">3</text>
+        <text>邀请开局</text>
+      </view>
+    </view>
+
+    <view class="create-card create-form-card">
+      <view class="create-field">
+        <text class="create-label">酒局名称</text>
+        <view class="create-input">{{sessionName}}</view>
+      </view>
+
+      <view class="create-pill-row">
+        <view
+          wx:for="{{sessionNamePresets}}"
+          wx:key="name"
+          class="create-pill {{item.active ? 'create-pill-active' : ''}}"
+          data-name="{{item.name}}"
+          bindtap="handlePresetTap"
+        >{{item.name}}</view>
+      </view>
+
+      <view class="create-field">
+        <text class="create-label">选择人数</text>
+        <view class="create-row-between">
+          <view class="create-stepper">
+            <view class="create-stepper-btn" data-action="minus" bindtap="handlePlayerCountTap">-</view>
+            <text class="create-stepper-value">{{playerCount}}人</text>
+            <view class="create-stepper-btn" data-action="plus" bindtap="handlePlayerCountTap">+</view>
+          </view>
+          <text class="create-tiny">支持 2-12 人</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="create-section-head">
+      <text class="create-section-title">选择玩法模板</text>
+      <text class="create-section-link" bindtap="handleMoreTemplatesTap">更多模板</text>
+    </view>
+
+    <view class="create-template-grid">
+      <view
+        wx:for="{{templates}}"
+        wx:key="id"
+        class="create-template-card {{item.active ? 'create-template-card-active' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="handleTemplateTap"
+      >
+        <image class="create-template-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
+        <text class="create-template-name">{{item.name}}</text>
+      </view>
+    </view>
+
+    <view class="create-primary" bindtap="handleNextTap">
+      <text>下一步 设置玩法</text>
+      <view class="create-primary-icon create-icon-arrow"></view>
+    </view>
+
+    <view class="create-notice">
+      <view class="create-notice-icon create-icon-shield"></view>
+      <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+    </view>
+  </scroll-view>
+</view>

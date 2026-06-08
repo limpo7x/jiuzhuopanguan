@@ -1,0 +1,41 @@
+<navigation-bar
+  title="酒局已结束"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="invalid-nav"
+></navigation-bar>
+
+<view class="invalid-page">
+  <scroll-view class="invalid-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="invalid-center">
+      <image class="invalid-state-image" src="/assets/home/beer-toast.png" mode="aspectFill"></image>
+      <text class="invalid-title">本局已结束</text>
+      <text class="invalid-subtitle">美好时光总是短暂的</text>
+
+      <view class="invalid-stat-row">
+        <view wx:for="{{stats}}" wx:key="label" class="invalid-stat-item">
+          <text class="invalid-stat-value">{{item.value}}</text>
+          <text class="invalid-stat-label">{{item.label}}</text>
+        </view>
+      </view>
+
+      <view class="invalid-action-row">
+        <view class="invalid-ghost" bindtap="handleReportTap">查看战报回顾</view>
+        <view class="invalid-primary" bindtap="handleRestartTap">再开一局</view>
+      </view>
+
+      <view class="invalid-grid">
+        <view wx:for="{{quickItems}}" wx:key="name" class="invalid-tile {{item.toneClass}}" data-route="{{item.route}}" bindtap="handleQuickTap">
+          <view class="invalid-tile-icon {{item.iconClass}}"></view>
+          <text class="invalid-tile-label">{{item.name}}</text>
+        </view>
+      </view>
+
+      <view class="invalid-notice">
+        <view class="invalid-notice-icon"></view>
+        <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

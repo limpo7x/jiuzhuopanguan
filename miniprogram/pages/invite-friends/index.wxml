@@ -1,0 +1,21 @@
+<navigation-bar title="邀请好友" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
+
+<view class="invite-friends-page">
+  <scroll-view class="invite-friends-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="invite-friends-hero">
+      <text class="invite-friends-title">一起把酒局圈子拉起来</text>
+      <text class="invite-friends-subtitle">邀请越多，积分、模板和商户福利越多。</text>
+    </view>
+
+    <view class="invite-friends-card">
+      <text class="invite-friends-section-title">邀请奖励</text>
+      <view wx:for="{{rewards}}" wx:key="label" class="invite-friends-reward-row">
+        <text class="invite-friends-reward-label">{{item.label}}</text>
+        <text class="invite-friends-reward-value">{{item.value}}</text>
+      </view>
+    </view>
+
+    <view class="invite-friends-primary" bindtap="handleInviteTap">去发邀请</view>
+    <view class="invite-friends-secondary" bindtap="handlePosterTap">先看分享海报</view>
+  </scroll-view>
+</view>

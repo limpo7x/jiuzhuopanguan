@@ -1,0 +1,191 @@
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff8ee;
+}
+
+.report-nav {
+  border-bottom: 1px solid rgba(234, 223, 206, 0.55);
+}
+
+.report-page {
+  flex: 1;
+  min-height: 0;
+  background: linear-gradient(180deg, #fffdf8 0%, #fff8ee 100%);
+  color: #24160f;
+}
+
+.report-scroll {
+  height: 100%;
+  padding: 12px 14px 18px;
+  box-sizing: border-box;
+}
+
+.report-poster-card {
+  overflow: hidden;
+  border-radius: 14px;
+  background: #fff1e2;
+  box-shadow: 0 8px 22px rgba(255, 117, 65, 0.12);
+}
+
+.report-poster-copy {
+  padding: 12px;
+}
+
+.report-tag,
+.report-rank-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 25px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #fff1df;
+  color: #ff5b3d;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.report-title {
+  display: block;
+  margin-top: 8px;
+  font-size: 23px;
+  line-height: 1.1;
+  font-weight: 950;
+}
+
+.report-meta {
+  display: block;
+  margin-top: 6px;
+  color: #8f7f6d;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.report-ranks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.report-rank-card {
+  min-width: 0;
+  padding: 9px 5px;
+  border: 1px solid #f0dfc7;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fff7e9, #fffdf8);
+  text-align: center;
+}
+
+.report-rank-avatar {
+  width: 34px;
+  height: 34px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: #fff0df;
+}
+
+.report-rank-name {
+  display: block;
+  margin-top: 5px;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.report-rank-value {
+  display: block;
+  margin-top: 2px;
+  color: #ff5b3d;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.report-section-head {
+  margin: 12px 0 8px;
+}
+
+.report-section-title {
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.report-card {
+  border: 1px solid #eadfce;
+  border-radius: 10px;
+  background: #fffdf8;
+}
+
+.report-form-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.report-event-text {
+  color: #8f7f6d;
+  font-size: 10px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.report-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.report-ghost,
+.report-primary {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border-radius: 999px;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.report-ghost {
+  border: 1px solid #eadfce;
+  background: #fffdf8;
+  color: #24160f;
+}
+
+.report-primary {
+  background: linear-gradient(135deg, #ff5b3d, #ff7645);
+  color: #fff;
+  box-shadow: 0 9px 18px rgba(255, 91, 61, 0.24);
+}
+
+.report-notice {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  margin-top: 10px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(66, 184, 131, 0.1);
+  color: #4e8062;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.report-notice-icon {
+  width: 12px;
+  height: 12px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M10 2.5L15.5 5V9.1C15.5 12.8 13.2 15.6 10 17C6.8 15.6 4.5 12.8 4.5 9.1V5L10 2.5ZM8.9 10.9L12.8 7L11.7 5.9L8.9 8.7L7.8 7.6L6.7 8.7L8.9 10.9Z' fill='%234e8062'/%3E%3C/svg%3E") center/contain no-repeat;
+}

@@ -1,0 +1,114 @@
+<navigation-bar
+  title="创建酒局"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="players-nav"
+></navigation-bar>
+
+<view class="players-page">
+  <scroll-view class="players-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="players-progress">
+      <view class="players-progress-step players-progress-step-done">
+        <text class="players-progress-dot">1</text>
+        <text>创建酒局</text>
+      </view>
+      <view class="players-progress-step players-progress-step-done">
+        <text class="players-progress-dot">2</text>
+        <text>玩法设置</text>
+      </view>
+      <view class="players-progress-step players-progress-step-active">
+        <text class="players-progress-dot">3</text>
+        <text>邀请开局</text>
+      </view>
+    </view>
+
+    <text class="players-heading">添加玩家（{{selectedCount}}/{{playerLimit}}）</text>
+
+    <view class="players-search">
+      <view class="players-search-icon players-icon-search"></view>
+      <input
+        class="players-search-input"
+        value="{{searchKeyword}}"
+        placeholder="搜索联系人或输入昵称"
+        placeholder-class="players-search-placeholder"
+        confirm-type="search"
+        bindinput="handleSearchInput"
+      />
+    </view>
+
+    <view wx:if="{{searchMatches.length}}" class="players-section-head">
+      <text class="players-section-title">已注册用户</text>
+      <text class="players-section-link">搜索结果</text>
+    </view>
+
+    <view wx:if="{{searchMatches.length}}" class="players-list">
+      <view wx:for="{{searchMatches}}" wx:key="id" class="players-list-item players-list-item-registered">
+        <image class="players-list-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view class="players-list-copy">
+          <text class="players-list-title">{{item.name}}</text>
+          <text class="players-list-meta">{{item.city}} · {{item.identityTag}}</text>
+        </view>
+        <view
+          class="players-inline-action {{item.alreadyFriend ? 'players-inline-action-disabled' : ''}}"
+          data-profile-id="{{item.id}}"
+          data-name="{{item.name}}"
+          bindtap="handleAddRegisteredTap"
+        >
+          {{item.alreadyFriend ? '已在最近联系人' : '添加'}}
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{createCandidateName}}" class="players-create-card" bindtap="handleAddCandidateTap">
+      <view class="players-create-copy">
+        <text class="players-create-title">添加玩家 “{{createCandidateName}}”</text>
+        <text class="players-create-meta">未搜到已注册用户，可手动加入这次酒局并写入最近联系人</text>
+      </view>
+      <view class="players-create-action">添加</view>
+    </view>
+
+    <view class="players-section-head">
+      <text class="players-section-title">常用玩家</text>
+      <text class="players-section-link">更多</text>
+    </view>
+
+    <view class="players-avatar-row">
+      <view wx:for="{{favoritePlayers}}" wx:key="name" class="players-avatar-card" data-name="{{item.name}}" bindtap="handlePlayerToggle">
+        <image class="players-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <text class="players-avatar-name">{{item.name}}</text>
+      </view>
+    </view>
+
+    <view class="players-section-head">
+      <text class="players-section-title">最近联系人</text>
+    </view>
+
+    <view class="players-list">
+      <view
+        wx:for="{{filteredPlayers}}"
+        wx:key="name"
+        class="players-list-item"
+        data-name="{{item.name}}"
+        bindtap="handlePlayerToggle"
+      >
+        <image class="players-list-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view class="players-list-copy">
+          <text class="players-list-title">{{item.name}}</text>
+          <text class="players-list-meta">{{item.meta}}</text>
+        </view>
+        <view class="players-check {{item.selected ? 'players-check-active' : ''}}"></view>
+      </view>
+    </view>
+
+    <view wx:if="{{!filteredPlayers.length && !createCandidateName}}" class="players-empty">
+      <text class="players-empty-title">没有找到这个酒友</text>
+      <text class="players-empty-meta">换个昵称试试，或者直接输入完整姓名后新增</text>
+    </view>
+
+    <view class="players-footer-row">
+      <view class="players-ghost" bindtap="handleSelectAllTap">全选</view>
+      <view class="players-primary" bindtap="handleNextTap">邀请他们（{{selectedCount}}）</view>
+    </view>
+  </scroll-view>
+</view>

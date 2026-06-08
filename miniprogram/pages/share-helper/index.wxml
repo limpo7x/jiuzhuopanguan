@@ -1,0 +1,30 @@
+<navigation-bar
+  title="分享助手"
+  back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="share-helper-nav"
+></navigation-bar>
+
+<view class="share-helper-page">
+  <scroll-view class="share-helper-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="share-helper-hero">
+      <text class="share-helper-scene">{{sceneTitle}}</text>
+      <text class="share-helper-title">{{actionTitle}}</text>
+      <text class="share-helper-summary">{{summary}}</text>
+    </view>
+
+    <view class="share-helper-card">
+      <text class="share-helper-section-title">当前进度</text>
+      <view wx:for="{{steps}}" wx:key="title" class="share-helper-step">
+        <view class="share-helper-dot {{item.done ? 'share-helper-dot-done' : ''}}"></view>
+        <text class="share-helper-step-text">{{item.title}}</text>
+      </view>
+    </view>
+
+    <view class="share-helper-primary" bindtap="handlePrimaryTap">{{primaryText}}</view>
+    <view class="share-helper-secondary" bindtap="handleBackTap">返回上一页</view>
+  </scroll-view>
+</view>

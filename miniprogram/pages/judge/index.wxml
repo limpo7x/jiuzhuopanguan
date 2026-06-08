@@ -1,0 +1,107 @@
+<navigation-bar
+  title="酒桌判官"
+  back="{{false}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="judge-nav"
+></navigation-bar>
+
+<view class="judge-page">
+  <scroll-view class="judge-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="judge-hero">
+      <image class="judge-hero-image" src="/assets/home/party-hero.png" mode="aspectFill"></image>
+      <view class="judge-hero-mask"></view>
+      <view class="judge-hero-content">
+        <text class="judge-hero-title">这局，快乐就完事了！</text>
+        <text class="judge-hero-subtitle">欠酒互动才是朋友聚会的灵魂</text>
+        <view class="judge-primary" bindtap="handleCreateTap">
+          <text>快速开一局</text>
+          <view class="judge-primary-icon judge-icon-flash"></view>
+        </view>
+      </view>
+    </view>
+
+    <view class="judge-grid">
+      <view
+        wx:for="{{quickEntries}}"
+        wx:key="id"
+        class="judge-tile {{item.toneClass}}"
+        data-name="{{item.name}}"
+        bindtap="handleEntryTap"
+      >
+        <view class="judge-tile-icon">
+          <view class="judge-tile-glyph {{item.iconClass}}"></view>
+        </view>
+        <text class="judge-tile-label">{{item.name}}</text>
+      </view>
+    </view>
+
+    <view class="judge-section-head">
+      <text class="judge-section-title">热门模板</text>
+    </view>
+
+    <view class="judge-template-list">
+      <view
+        wx:for="{{templates}}"
+        wx:key="id"
+        class="judge-template-card"
+        data-name="{{item.name}}"
+        bindtap="handleEntryTap"
+      >
+        <view class="judge-template-top">
+          <text class="judge-template-title">{{item.name}}</text>
+          <view class="judge-template-tag">{{item.tag}}</view>
+        </view>
+        <text class="judge-template-meta">{{item.meta}}</text>
+      </view>
+    </view>
+
+    <view class="judge-section-head">
+      <text class="judge-section-title">我的酒局</text>
+    </view>
+
+    <view wx:for="{{pokeCards}}" wx:key="id" class="judge-poke-card">
+      <image class="judge-poke-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+      <view class="judge-poke-copy">
+        <text class="judge-poke-title">{{item.name}}</text>
+        <text class="judge-poke-meta">{{item.message}}</text>
+      </view>
+      <view wx:if="{{item.actionState === 'incoming'}}" class="judge-poke-actions">
+        <view class="judge-poke-btn judge-poke-btn-ghost" data-id="{{item.id}}" data-action="ignore" bindtap="handlePokeActionTap">忽略</view>
+        <view class="judge-poke-btn judge-poke-btn-primary" data-id="{{item.id}}" data-action="reply" bindtap="handlePokeActionTap">回拍</view>
+      </view>
+      <view wx:elif="{{item.actionState === 'outgoing'}}" class="judge-poke-status">{{item.statusLabel}}</view>
+      <view wx:elif="{{item.actionState === 'matched'}}" class="judge-poke-status judge-poke-status-matched">{{item.statusLabel}}</view>
+    </view>
+
+    <view class="judge-session-card">
+      <view class="judge-session-thumb">
+        <image src="/assets/home/report-poster.png" mode="aspectFill"></image>
+      </view>
+      <view class="judge-session-copy">
+        <text class="judge-session-title">{{sessionName}}</text>
+        <text class="judge-session-meta">{{sessionMeta}}</text>
+      </view>
+      <view class="judge-session-tag">{{sessionTag}}</view>
+    </view>
+  </scroll-view>
+
+  <view class="judge-tabbar">
+    <view class="judge-tab-item" data-tab="home" bindtap="handleTabTap">
+      <view class="judge-tab-icon judge-nav-home"></view>
+      <text class="judge-tab-label">首页</text>
+    </view>
+    <view class="judge-tab-item" data-tab="tools" bindtap="handleTabTap">
+      <view class="judge-tab-icon judge-nav-tools"></view>
+      <text class="judge-tab-label">工具箱</text>
+    </view>
+    <view class="judge-tab-item judge-tab-active" data-tab="judge" bindtap="handleTabTap">
+      <view class="judge-tab-icon judge-nav-judge judge-nav-active"></view>
+      <text class="judge-tab-label">酒桌判官</text>
+    </view>
+    <view class="judge-tab-item" data-tab="me" bindtap="handleTabTap">
+      <view class="judge-tab-icon judge-nav-me"></view>
+      <text class="judge-tab-label">我的</text>
+    </view>
+  </view>
+</view>

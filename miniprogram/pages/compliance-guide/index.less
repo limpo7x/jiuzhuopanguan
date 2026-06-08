@@ -1,0 +1,160 @@
+page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff8ee;
+}
+
+.guide-nav {
+  border-bottom: 1px solid rgba(234, 223, 206, 0.55);
+}
+
+.guide-page {
+  flex: 1;
+  min-height: 0;
+  background: linear-gradient(180deg, #fffdf8 0%, #fff8ee 100%);
+  color: #24160f;
+}
+
+.guide-scroll {
+  height: 100%;
+  padding: 12px 14px 18px;
+  box-sizing: border-box;
+}
+
+.guide-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.guide-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 25px;
+  padding: 0 9px;
+  border: 1px solid #eadfce;
+  border-radius: 999px;
+  background: #fffdf8;
+  color: #8f7f6d;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.guide-chip-active {
+  border-color: transparent;
+  background: #ff6847;
+  color: #fff;
+}
+
+.guide-center {
+  display: flex;
+  min-height: 96px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.guide-title {
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 950;
+}
+
+.guide-list {
+  display: grid;
+  gap: 8px;
+}
+
+.guide-list-item {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: center;
+  gap: 9px;
+  min-height: 64px;
+  padding: 8px;
+  border: 1px solid #eadfce;
+  border-radius: 10px;
+  background: #fffdf8;
+}
+
+.guide-task-icon,
+.guide-primary-icon {
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.guide-task-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background-color: #fff0df;
+}
+
+.guide-list-copy {
+  min-width: 0;
+}
+
+.guide-list-title {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guide-list-meta {
+  display: block;
+  overflow: hidden;
+  margin-top: 4px;
+  color: #8f7f6d;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guide-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  margin-top: 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff5b3d, #ff7645);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 900;
+  box-shadow: 0 9px 18px rgba(255, 91, 61, 0.24);
+}
+
+.guide-primary-icon {
+  width: 12px;
+  height: 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M5 10.4L8.2 13.5L15 6.7' fill='none' stroke='%23ffffff' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.guide-icon-book {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M6 4H18C19.1 4 20 4.9 20 6V18C20 19.1 19.1 20 18 20H8C6.9 20 6 19.1 6 18V4ZM8 6V18H18V6H8ZM4 6H5V18H4C2.9 18 2 17.1 2 16V8C2 6.9 2.9 6 4 6Z' fill='%23ff5b3d'/%3E%3C/svg%3E");
+}
+
+.guide-icon-leaf {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M19 3C12.9 3.2 7.6 5.5 5.1 10C3.1 13.6 3.5 18.1 6.2 20.8C8.9 23.5 13.4 23.9 17 21.9C21.5 19.4 23.8 14.1 24 8C20 8.2 16.8 9.5 14.3 12C12.8 13.5 11.7 15.3 11 17.4C10.7 15.6 10.8 13.7 11.3 11.9C12.1 8.9 14 6.3 17 4.4C17.7 4 18.4 3.5 19 3Z' fill='%23ff5b3d'/%3E%3C/svg%3E");
+}
+
+.guide-icon-home {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 5.7L18 10.5V19H14V14H10V19H6V10.5L12 5.7ZM12 3L4 9.4V21H20V9.4L12 3ZM17 4H19V8L17 6.5V4Z' fill='%23ff5b3d'/%3E%3C/svg%3E");
+}
+
+.guide-icon-group {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M16 11C17.7 11 19 9.7 19 8C19 6.3 17.7 5 16 5C14.3 5 13 6.3 13 8C13 9.7 14.3 11 16 11ZM8 11C9.7 11 11 9.7 11 8C11 6.3 9.7 5 8 5C6.3 5 5 6.3 5 8C5 9.7 6.3 11 8 11ZM8 13C5.8 13 1.5 14.1 1.5 16.3V19H14.5V16.3C14.5 14.1 10.2 13 8 13ZM16 13C15.7 13 15.3 13 14.9 13.1C16 13.9 16.5 15 16.5 16.3V19H22.5V16.3C22.5 14.1 18.2 13 16 13Z' fill='%23ff5b3d'/%3E%3C/svg%3E");
+}

@@ -1,0 +1,79 @@
+<navigation-bar
+  title="{{sessionName}}"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="table-nav"
+></navigation-bar>
+
+<view class="table-page">
+  <scroll-view class="table-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="table-center">
+      <text class="table-title">{{sessionName}}</text>
+      <text class="table-subtitle">桌面模式</text>
+    </view>
+
+    <view class="table-score-wrap">
+      <view class="table-score-head">
+        <view class="table-head-cell table-head-user">玩家</view>
+        <view class="table-head-cell">欠酒</view>
+        <view class="table-head-cell">已喝</view>
+        <view class="table-head-cell">已消</view>
+        <view class="table-head-cell">总计</view>
+      </view>
+      <view wx:for="{{rows}}" wx:key="name" class="table-score-item">
+        <view class="table-score-row">
+          <view class="table-cell table-col-user">
+            <image class="table-col-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <text class="table-col-user-name">{{item.name}}</text>
+          </view>
+          <view class="table-cell">{{item.debt}}</view>
+          <view class="table-cell">{{item.drink}}</view>
+          <view class="table-cell">{{item.cleared}}</view>
+          <view class="table-cell table-col-total">{{item.total}}</view>
+        </view>
+        <view wx:if="{{!isJudge}}" class="table-reaction-row">
+          <view class="table-reaction-copy">
+            <text class="table-reaction-title">{{item.canReact ? '给这位酒友一点态度' : '这是你自己，不能给自己操作'}}</text>
+            <text class="table-reaction-meta">已获 👍 {{item.likeCount}} · 🤏 {{item.weakCount}}</text>
+          </view>
+          <view class="table-reaction-actions">
+            <view
+              class="table-reaction-btn table-reaction-btn-like {{item.likedByMe ? 'table-reaction-btn-active' : ''}} {{!item.canReact ? 'table-reaction-btn-disabled' : ''}}"
+              data-player-name="{{item.name}}"
+              data-mode="like"
+              bindtap="handleReactionTap"
+            >
+              <text class="table-reaction-btn-text">👍 点赞</text>
+            </view>
+            <view
+              class="table-reaction-btn table-reaction-btn-weak {{item.weakedByMe ? 'table-reaction-btn-active' : ''}} {{!item.canReact ? 'table-reaction-btn-disabled' : ''}}"
+              data-player-name="{{item.name}}"
+              data-mode="weak"
+              bindtap="handleReactionTap"
+            >
+              <text class="table-reaction-btn-text">🤏 小拇指</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="table-countdown-card">
+      <view class="table-row-between">
+        <text class="table-card-title">已开局时长</text>
+        <text class="table-countdown-value">{{elapsedText}}</text>
+      </view>
+    </view>
+
+    <view class="table-notice">
+      <view class="table-notice-icon"></view>
+      <text>桌面模式更清晰，大家围坐一起看</text>
+    </view>
+
+    <view class="table-action-row">
+      <view class="table-ghost {{isJudge ? '' : 'table-ghost-full'}}" bindtap="handleBackTap">返回</view>
+      <view wx:if="{{isJudge}}" class="table-primary" bindtap="handleFinishTap">结束本局</view>
+    </view>
+  </scroll-view>
+</view>

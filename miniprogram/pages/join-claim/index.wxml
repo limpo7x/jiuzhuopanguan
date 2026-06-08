@@ -1,0 +1,48 @@
+<navigation-bar
+  title="加入酒局"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="join-nav"
+></navigation-bar>
+
+<view class="join-page">
+  <scroll-view class="join-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="join-center">
+      <view class="join-goblet-icon"></view>
+      <text class="join-title">朋友喊你来一局</text>
+      <text class="join-subtitle">今晚聚会不醉不归</text>
+    </view>
+
+    <view class="join-field">
+      <text class="join-label">输入你的昵称</text>
+      <view class="join-input">小太阳</view>
+    </view>
+
+    <view class="join-section-head">
+      <text class="join-section-title">选择头像</text>
+    </view>
+
+    <view class="join-avatar-grid">
+      <view
+        wx:for="{{avatars}}"
+        wx:key="id"
+        class="join-avatar-item {{item.active ? 'join-avatar-item-active' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="handleAvatarTap"
+      >
+        <image class="join-avatar" src="{{item.url}}" mode="aspectFill"></image>
+      </view>
+    </view>
+
+    <view class="join-primary" bindtap="handleJoinTap">
+      <text>确认加入</text>
+      <view class="join-primary-icon"></view>
+    </view>
+
+    <view class="join-notice">
+      <view class="join-notice-icon"></view>
+      <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+    </view>
+  </scroll-view>
+</view>

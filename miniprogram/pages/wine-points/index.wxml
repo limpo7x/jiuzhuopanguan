@@ -1,0 +1,48 @@
+<navigation-bar
+  title="积分中心"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="points-nav"
+></navigation-bar>
+
+<view class="points-page">
+  <scroll-view class="points-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="points-banner">
+      <text class="points-value">3286</text>
+      <text class="points-subtitle">可用积分</text>
+      <image class="points-image" src="/assets/home/points-gift.png" mode="aspectFill"></image>
+    </view>
+
+    <view class="points-section-head">
+      <text class="points-section-title">每日任务</text>
+      <text class="points-section-link">积分明细</text>
+    </view>
+
+    <view class="points-card">
+      <view wx:for="{{tasks}}" wx:key="title" class="points-task-item">
+        <view class="points-task-icon {{item.iconClass}}"></view>
+        <view class="points-task-copy">
+          <text class="points-task-title">{{item.title}}</text>
+          <text class="points-task-meta">完成任务获得积分</text>
+        </view>
+        <view class="points-tag">+{{item.value}}</view>
+      </view>
+    </view>
+
+    <view class="points-section-head">
+      <text class="points-section-title">积分兑换</text>
+    </view>
+
+    <view class="points-list">
+      <view wx:for="{{rewards}}" wx:key="title" class="points-list-item">
+        <view class="points-task-icon {{item.iconClass}}"></view>
+        <view class="points-task-copy">
+          <text class="points-task-title">{{item.title}}</text>
+          <text class="points-task-meta">需要 {{item.cost}} 积分</text>
+        </view>
+        <view class="points-tag">兑换</view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

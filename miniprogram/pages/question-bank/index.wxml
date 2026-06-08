@@ -1,0 +1,31 @@
+<navigation-bar
+  title="换个问题"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="question-bank-nav"
+></navigation-bar>
+
+<view class="question-bank-page">
+  <scroll-view class="question-bank-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="question-bank-hero">
+      <text class="question-bank-title">挑一题更合适的</text>
+      <text class="question-bank-subtitle">保留这轮玩家，换一条更合适的任务或惩罚。</text>
+    </view>
+
+    <view class="question-bank-list">
+      <view
+        wx:for="{{questions}}"
+        wx:key="text"
+        class="question-bank-item {{item.active ? 'question-bank-item-active' : ''}}"
+        data-text="{{item.text}}"
+        bindtap="handleSelectTap"
+      >
+        <view class="question-bank-tag">{{item.tag}}</view>
+        <text class="question-bank-text">{{item.text}}</text>
+      </view>
+    </view>
+
+    <view class="question-bank-primary" bindtap="handleUseTap">使用这题继续</view>
+  </scroll-view>
+</view>

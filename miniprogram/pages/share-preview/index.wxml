@@ -1,0 +1,61 @@
+<navigation-bar
+  title="分享预览"
+  back="{{true}}"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="share-nav"
+></navigation-bar>
+
+<view class="share-page">
+  <scroll-view class="share-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="share-chip-row">
+      <view class="share-chip {{!showJoinStatus ? 'share-chip-active' : ''}}" data-tab="preview" bindtap="handleTabTap">分享卡片预览</view>
+      <view class="share-chip {{showJoinStatus ? 'share-chip-active' : ''}}" data-tab="status" bindtap="handleTabTap">口令加入状态</view>
+    </view>
+
+    <view wx:if="{{!showJoinStatus}}" class="share-poster-card">
+      <view class="share-poster-copy">
+        <text class="share-poster-title">这局快乐就完事了！</text>
+        <text class="share-poster-subtitle">{{sessionName}}</text>
+        <view class="share-poster-row">
+          <view class="share-avatar-stack">
+            <image wx:for="{{avatars}}" wx:key="index" class="share-avatar" src="{{item}}" mode="aspectFill"></image>
+          </view>
+          <text class="share-poster-count">{{joinedCount}}/{{playerCount}} 已加入</text>
+        </view>
+        <view class="share-code-box">AB7K9Q</view>
+      </view>
+    </view>
+    <view wx:else class="share-poster-card">
+      <view class="share-poster-copy">
+        <text class="share-poster-title">口令加入状态</text>
+        <text class="share-poster-subtitle">邀请码 AB7K9Q · 当前 {{joinedCount}}/{{playerCount}} 已加入</text>
+        <view class="share-status-list">
+          <view wx:for="{{joinStatusPlayers}}" wx:key="name" class="share-status-item">
+            <view class="share-status-user">
+              <image class="share-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+              <text class="share-status-name">{{item.name}}</text>
+            </view>
+            <text class="share-status-tag">{{item.status}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="share-section-head">
+      <text class="share-section-title">可分享到</text>
+    </view>
+
+    <view class="share-grid">
+      <view wx:for="{{shareItems}}" wx:key="id" class="share-item" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="handleShareTap">
+        <view class="share-item-icon {{item.iconClass}}"></view>
+        <text class="share-item-label">{{item.name}}</text>
+      </view>
+    </view>
+
+    <view class="share-primary" bindtap="handleSaveTap">
+      <text>保存海报</text>
+      <view class="share-primary-icon"></view>
+    </view>
+  </scroll-view>
+</view>

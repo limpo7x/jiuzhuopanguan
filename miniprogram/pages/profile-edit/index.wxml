@@ -1,0 +1,41 @@
+<navigation-bar title="编辑资料" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
+
+<view class="profile-edit-page">
+  <scroll-view class="profile-edit-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="profile-edit-avatar-card">
+      <image class="profile-edit-avatar" src="{{avatarUrl}}" mode="aspectFill"></image>
+      <view class="profile-edit-avatar-list">
+        <view
+          wx:for="{{avatars}}"
+          wx:key="url"
+          class="profile-edit-avatar-option {{item.active ? 'profile-edit-avatar-option-active' : ''}}"
+          data-url="{{item.url}}"
+          bindtap="handleAvatarTap"
+        >
+          <image class="profile-edit-avatar-option-image" src="{{item.url}}" mode="aspectFill"></image>
+        </view>
+      </view>
+    </view>
+
+    <view class="profile-edit-form-card">
+      <view class="profile-edit-field">
+        <text class="profile-edit-label">昵称</text>
+        <input class="profile-edit-input" value="{{name}}" data-field="name" bindinput="handleFieldInput" />
+      </view>
+      <view class="profile-edit-field">
+        <text class="profile-edit-label">城市</text>
+        <input class="profile-edit-input" value="{{city}}" data-field="city" bindinput="handleFieldInput" />
+      </view>
+      <view class="profile-edit-field">
+        <text class="profile-edit-label">个性签名</text>
+        <input class="profile-edit-input" value="{{signature}}" data-field="signature" bindinput="handleFieldInput" />
+      </view>
+      <view class="profile-edit-field">
+        <text class="profile-edit-label">常用身份</text>
+        <input class="profile-edit-input" value="{{identityTag}}" data-field="identityTag" bindinput="handleFieldInput" />
+      </view>
+    </view>
+
+    <view class="profile-edit-primary" bindtap="handleSaveTap">保存资料</view>
+  </scroll-view>
+</view>

@@ -1,0 +1,4 @@
+<view class="compliance-bar">
+  <text class="bar-icon">18+</text>
+  <text class="bar-copy">{{copy}}</text>
+</view>

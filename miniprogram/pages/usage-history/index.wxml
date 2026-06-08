@@ -1,0 +1,16 @@
+<navigation-bar title="使用记录" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
+
+<view class="usage-page">
+  <scroll-view class="usage-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view wx:for="{{records}}" wx:key="name" class="usage-item" data-route="{{item.route}}" bindtap="handleRecordTap">
+      <view class="usage-copy">
+        <view class="usage-title-row">
+          <text class="usage-title">{{item.name}}</text>
+          <view class="usage-tag">{{item.tag}}</view>
+        </view>
+        <text class="usage-meta">{{item.meta}}</text>
+      </view>
+      <text class="usage-arrow">›</text>
+    </view>
+  </scroll-view>
+</view>
