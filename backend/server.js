@@ -56,6 +56,7 @@ const port = Number(process.env.PORT || 3010)
 const publicDir = path.join(__dirname, 'public')
 const heatwaveDir = path.join(publicDir, 'admin', 'static', 'heatwave-ops')
 const assetsDir = path.join(__dirname, '..', 'miniprogram', 'assets')
+const publicStaticDir = path.join(publicDir, 'static')
 const uploadsDir = path.join(publicDir, 'uploads')
 const sessionCookieName = 'jiuzhuopanguan_admin_session'
 
@@ -68,13 +69,30 @@ const MIME_MAP = {
   '.svg': 'image/svg+xml',
 }
 
+const resolveFirstExistingPath = (...candidatePaths) => candidatePaths.find((candidatePath) => fs.existsSync(candidatePath))
+
 const staticAssetMap = {
   '/static/avatar-host.png': path.join(assetsDir, 'avatars', 'avatar-1.png'),
-  '/static/party-hero.png': path.join(assetsDir, 'home', 'party-hero.png'),
-  '/static/points-gift.png': path.join(assetsDir, 'home', 'points-gift.png'),
-  '/static/report-poster.png': path.join(assetsDir, 'home', 'report-poster.png'),
-  '/static/toolbox-hero.png': path.join(assetsDir, 'home', 'toolbox-hero.png'),
-  '/static/image-process-hero.png': path.join(assetsDir, 'home', 'image-process-hero.png'),
+  '/static/party-hero.png': resolveFirstExistingPath(
+    path.join(publicStaticDir, 'party-hero.png'),
+    path.join(assetsDir, 'home', 'party-hero.png'),
+  ),
+  '/static/points-gift.png': resolveFirstExistingPath(
+    path.join(publicStaticDir, 'points-gift.png'),
+    path.join(assetsDir, 'home', 'points-gift.png'),
+  ),
+  '/static/report-poster.png': resolveFirstExistingPath(
+    path.join(publicStaticDir, 'report-poster.png'),
+    path.join(assetsDir, 'home', 'report-poster.png'),
+  ),
+  '/static/toolbox-hero.png': resolveFirstExistingPath(
+    path.join(publicStaticDir, 'toolbox-hero.png'),
+    path.join(assetsDir, 'home', 'toolbox-hero.png'),
+  ),
+  '/static/image-process-hero.png': resolveFirstExistingPath(
+    path.join(publicStaticDir, 'image-process-hero.png'),
+    path.join(assetsDir, 'home', 'image-process-hero.png'),
+  ),
 }
 
 const sendJson = (response, statusCode, payload, cookieHeaders = []) => {
@@ -127,7 +145,7 @@ const sendRedirect = (response, location) => {
 }
 
 const sendFile = (response, filePath) => {
-  if (!fs.existsSync(filePath)) {
+  if (!filePath || !fs.existsSync(filePath)) {
     sendError(response, 404, 'not found')
     return
   }
