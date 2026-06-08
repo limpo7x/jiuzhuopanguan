@@ -1,4 +1,5 @@
 import { getSessionReport, getSessionRuntime } from '../../utils/session'
+import { avatarAsset } from '../../config/assets'
 
 interface PosterRank {
   avatarUrl: string
@@ -30,9 +31,9 @@ interface SharePosterMethods {
 Page<SharePosterState, SharePosterMethods>({
   data: {
     ranks: [
-      { title: '欠酒王', avatarUrl: '/assets/avatars/avatar-1.png', name: '阿浩', value: '欠了6杯' },
-      { title: '背锅侠', avatarUrl: '/assets/avatars/avatar-2.png', name: '小熊', value: '点名3次' },
-      { title: '整活王', avatarUrl: '/assets/avatars/avatar-3.png', name: 'Mika', value: '3个题' },
+      { title: '欠酒王', avatarUrl: avatarAsset(1), name: '阿浩', value: '欠了6杯' },
+      { title: '背锅侠', avatarUrl: avatarAsset(2), name: '小熊', value: '点名3次' },
+      { title: '整活王', avatarUrl: avatarAsset(3), name: 'Mika', value: '3个题' },
     ],
     shareItems: [
       { id: 'save', name: '保存图片', iconClass: 'poster-icon-download' },

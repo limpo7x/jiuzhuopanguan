@@ -1,4 +1,5 @@
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
+import { avatarAsset } from '../../config/assets'
 
 interface JoinedPlayer {
   name: string
@@ -27,10 +28,10 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     joinedCount: 4,
     isJudge: true,
     joinedPlayers: [
-      { name: '阿浩', avatarUrl: '/assets/avatars/avatar-1.png' },
-      { name: '小熊', avatarUrl: '/assets/avatars/avatar-2.png' },
-      { name: 'Mika', avatarUrl: '/assets/avatars/avatar-3.png' },
-      { name: '可可', avatarUrl: '/assets/avatars/avatar-4.png' },
+      { name: '阿浩', avatarUrl: avatarAsset(1) },
+      { name: '小熊', avatarUrl: avatarAsset(2) },
+      { name: 'Mika', avatarUrl: avatarAsset(3) },
+      { name: '可可', avatarUrl: avatarAsset(4) },
     ],
     emptySeats: [1, 2],
     playerCount: 6,

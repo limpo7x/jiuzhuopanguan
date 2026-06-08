@@ -1,3 +1,5 @@
+import { avatarAsset } from '../../config/assets'
+
 interface WheelHistory {
   active?: boolean
   text: string
@@ -58,7 +60,7 @@ let spinTimer = 0
 
 Page<JudgeWheelState, JudgeWheelMethods>({
   data: {
-    currentPlayerAvatar: '/assets/avatars/avatar-2.png',
+    currentPlayerAvatar: avatarAsset(2),
     currentPlayerId: 'xiaoxiong',
     currentPlayerName: '小熊',
     currentTask: QUESTION_SOURCE[0].text,

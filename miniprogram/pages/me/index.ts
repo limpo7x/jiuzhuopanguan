@@ -11,6 +11,7 @@ import {
   type SocialProfile,
   type WineFriend,
 } from '../../utils/social'
+import { avatarAsset } from '../../config/assets'
 
 interface StatItem {
   label: string
@@ -76,7 +77,7 @@ Page<MePageState, MePageMethods>({
     currentProfile: {
       id: 'me-owner',
       name: '小太阳组会玩',
-      avatarUrl: '/assets/avatars/avatar-1.png',
+      avatarUrl: avatarAsset(1),
       city: '上海',
       identityTag: '酒局常驻玩家',
       signature: '今晚这局不见不散。',

@@ -1,4 +1,5 @@
 import { getApiBase } from '../config/api'
+import { avatarAsset } from '../config/assets'
 
 export interface SocialProfile {
   avatarUrl: string
@@ -62,10 +63,10 @@ const LOCAL_POKE_THREADS_KEY = 'social-local-poke-threads'
 const LOCAL_WINE_FRIENDS_KEY = 'social-local-wine-friends'
 const PROFILE_ID_KEY = 'social-current-profile-id'
 const AVATAR_POOL = [
-  '/assets/avatars/avatar-1.png',
-  '/assets/avatars/avatar-2.png',
-  '/assets/avatars/avatar-3.png',
-  '/assets/avatars/avatar-4.png',
+  avatarAsset(1),
+  avatarAsset(2),
+  avatarAsset(3),
+  avatarAsset(4),
 ]
 let backendDownUntil = 0
 
@@ -73,7 +74,7 @@ const DEFAULT_DIRECTORY: SocialProfile[] = [
   {
     id: 'user-1001',
     name: '阿浩',
-    avatarUrl: '/assets/avatars/avatar-1.png',
+    avatarUrl: avatarAsset(1),
     city: '上海',
     signature: '今晚这局不见不散。',
     identityTag: '气氛组',
@@ -81,7 +82,7 @@ const DEFAULT_DIRECTORY: SocialProfile[] = [
   {
     id: 'user-1002',
     name: '小熊',
-    avatarUrl: '/assets/avatars/avatar-2.png',
+    avatarUrl: avatarAsset(2),
     city: '上海',
     signature: '喝归喝，整活不能少。',
     identityTag: '热场王',
@@ -89,7 +90,7 @@ const DEFAULT_DIRECTORY: SocialProfile[] = [
   {
     id: 'user-1003',
     name: 'Mika',
-    avatarUrl: '/assets/avatars/avatar-3.png',
+    avatarUrl: avatarAsset(3),
     city: '杭州',
     signature: '负责点题，也负责拱火。',
     identityTag: '判官常驻',
@@ -97,7 +98,7 @@ const DEFAULT_DIRECTORY: SocialProfile[] = [
   {
     id: 'user-1004',
     name: '可可',
-    avatarUrl: '/assets/avatars/avatar-4.png',
+    avatarUrl: avatarAsset(4),
     city: '深圳',
     signature: '我只负责起哄。',
     identityTag: '酒局观察员',

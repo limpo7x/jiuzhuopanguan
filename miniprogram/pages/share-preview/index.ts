@@ -1,4 +1,5 @@
 import { getSessionRuntime } from '../../utils/session'
+import { avatarAsset } from '../../config/assets'
 
 interface SharePreviewItem {
   iconClass: string
@@ -27,19 +28,19 @@ interface SharePreviewMethods {
 Page<SharePreviewState, SharePreviewMethods>({
   data: {
     avatars: [
-      '/assets/avatars/avatar-1.png',
-      '/assets/avatars/avatar-2.png',
-      '/assets/avatars/avatar-3.png',
-      '/assets/avatars/avatar-4.png',
+      avatarAsset(1),
+      avatarAsset(2),
+      avatarAsset(3),
+      avatarAsset(4),
     ],
     joinedCount: 4,
     joinStatusPlayers: [
-      { name: '阿浩', avatarUrl: '/assets/avatars/avatar-1.png', status: '已加入' },
-      { name: '小熊', avatarUrl: '/assets/avatars/avatar-2.png', status: '已加入' },
-      { name: 'Mika', avatarUrl: '/assets/avatars/avatar-3.png', status: '待确认' },
-      { name: '可可', avatarUrl: '/assets/avatars/avatar-4.png', status: '已加入' },
-      { name: '阿乐', avatarUrl: '/assets/avatars/avatar-1.png', status: '待加入' },
-      { name: 'Nina', avatarUrl: '/assets/avatars/avatar-2.png', status: '待加入' },
+      { name: '阿浩', avatarUrl: avatarAsset(1), status: '已加入' },
+      { name: '小熊', avatarUrl: avatarAsset(2), status: '已加入' },
+      { name: 'Mika', avatarUrl: avatarAsset(3), status: '待确认' },
+      { name: '可可', avatarUrl: avatarAsset(4), status: '已加入' },
+      { name: '阿乐', avatarUrl: avatarAsset(1), status: '待加入' },
+      { name: 'Nina', avatarUrl: avatarAsset(2), status: '待加入' },
     ],
     playerCount: 6,
     sessionName: '今晚聚会不醉不归',

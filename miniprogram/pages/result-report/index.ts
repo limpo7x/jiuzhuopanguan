@@ -1,4 +1,5 @@
 import { getSessionReport, getSessionRuntime } from '../../utils/session'
+import { avatarAsset } from '../../config/assets'
 
 interface ReportRank {
   avatarUrl: string
@@ -29,9 +30,9 @@ Page<ResultReportState, ResultReportMethods>({
   data: {
     metaText: '周五热场局 · 6人局 · 2024.05.20',
     ranks: [
-      { title: '欠酒大王', avatarUrl: '/assets/avatars/avatar-1.png', name: '阿浩', value: '欠了 6 杯' },
-      { title: '背锅侠', avatarUrl: '/assets/avatars/avatar-2.png', name: '小熊', value: '被点名 3 次' },
-      { title: '整活王', avatarUrl: '/assets/avatars/avatar-3.png', name: 'Mika', value: '贡献 3 个题' },
+      { title: '欠酒大王', avatarUrl: avatarAsset(1), name: '阿浩', value: '欠了 6 杯' },
+      { title: '背锅侠', avatarUrl: avatarAsset(2), name: '小熊', value: '被点名 3 次' },
+      { title: '整活王', avatarUrl: avatarAsset(3), name: 'Mika', value: '贡献 3 个题' },
     ],
     sessionName: '周五热场局',
     events: [

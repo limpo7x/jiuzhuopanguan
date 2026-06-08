@@ -1,4 +1,5 @@
 import { formatElapsed, getSessionRuntime, type SessionParticipant } from '../../utils/session'
+import { avatarAsset } from '../../config/assets'
 
 interface LivePlayer {
   avatarUrl: string
@@ -43,29 +44,29 @@ const JUDGE_WHEEL_RESULT_KEY = 'judge-wheel-result'
 const MAX_CLEAR_PER_PLAYER = 3
 let liveTimer = 0
 const DEFAULT_PLAYERS: SessionParticipant[] = [
-  { name: '阿浩', avatarUrl: '/assets/avatars/avatar-1.png' },
-  { name: '小熊', avatarUrl: '/assets/avatars/avatar-2.png' },
-  { name: 'Mika', avatarUrl: '/assets/avatars/avatar-3.png' },
-  { name: '可可', avatarUrl: '/assets/avatars/avatar-4.png' },
-  { name: '阿乐', avatarUrl: '/assets/avatars/avatar-1.png' },
-  { name: 'Nina', avatarUrl: '/assets/avatars/avatar-2.png' },
+  { name: '阿浩', avatarUrl: avatarAsset(1) },
+  { name: '小熊', avatarUrl: avatarAsset(2) },
+  { name: 'Mika', avatarUrl: avatarAsset(3) },
+  { name: '可可', avatarUrl: avatarAsset(4) },
+  { name: '阿乐', avatarUrl: avatarAsset(1) },
+  { name: 'Nina', avatarUrl: avatarAsset(2) },
 ]
 
 Page<LiveRecordState, LiveRecordMethods>({
   data: {
     elapsedText: '00:00:00',
     players: [
-      { name: '阿浩', avatarUrl: '/assets/avatars/avatar-1.png' },
-      { name: '小熊', avatarUrl: '/assets/avatars/avatar-2.png' },
-      { name: 'Mika', avatarUrl: '/assets/avatars/avatar-3.png' },
-      { name: '可可', avatarUrl: '/assets/avatars/avatar-4.png' },
-      { name: '阿乐', avatarUrl: '/assets/avatars/avatar-1.png' },
+      { name: '阿浩', avatarUrl: avatarAsset(1) },
+      { name: '小熊', avatarUrl: avatarAsset(2) },
+      { name: 'Mika', avatarUrl: avatarAsset(3) },
+      { name: '可可', avatarUrl: avatarAsset(4) },
+      { name: '阿乐', avatarUrl: avatarAsset(1) },
     ],
     isJudge: true,
     records: [
-      { id: 'ahao', name: '阿浩', avatarUrl: '/assets/avatars/avatar-1.png', meta: '真心话大胆抢了', debtCount: 2, drinkCount: 1, clearedCount: 1 },
-      { id: 'xiaoxiong', name: '小熊', avatarUrl: '/assets/avatars/avatar-2.png', meta: '对朋友了几口，认真~', debtCount: 1, drinkCount: 2, clearedCount: 0 },
-      { id: 'mika', name: 'Mika', avatarUrl: '/assets/avatars/avatar-3.png', meta: '话题继续加码', debtCount: 1, drinkCount: 1, clearedCount: 2 },
+      { id: 'ahao', name: '阿浩', avatarUrl: avatarAsset(1), meta: '真心话大胆抢了', debtCount: 2, drinkCount: 1, clearedCount: 1 },
+      { id: 'xiaoxiong', name: '小熊', avatarUrl: avatarAsset(2), meta: '对朋友了几口，认真~', debtCount: 1, drinkCount: 2, clearedCount: 0 },
+      { id: 'mika', name: 'Mika', avatarUrl: avatarAsset(3), meta: '话题继续加码', debtCount: 1, drinkCount: 1, clearedCount: 2 },
     ],
     sessionName: '今晚聚会不醉不归',
     events: [

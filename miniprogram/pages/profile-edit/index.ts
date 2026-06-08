@@ -1,4 +1,5 @@
 import { getCurrentProfile, saveCurrentProfile } from '../../utils/social'
+import { avatarAsset } from '../../config/assets'
 
 interface ProfileAvatar {
   active?: boolean
@@ -23,12 +24,12 @@ interface ProfileEditMethods {
 
 Page<ProfileEditState, ProfileEditMethods>({
   data: {
-    avatarUrl: '/assets/avatars/avatar-1.png',
+    avatarUrl: avatarAsset(1),
     avatars: [
-      { url: '/assets/avatars/avatar-1.png', active: true },
-      { url: '/assets/avatars/avatar-2.png' },
-      { url: '/assets/avatars/avatar-3.png' },
-      { url: '/assets/avatars/avatar-4.png' },
+      { url: avatarAsset(1), active: true },
+      { url: avatarAsset(2) },
+      { url: avatarAsset(3) },
+      { url: avatarAsset(4) },
     ],
     city: '上海',
     identityTag: '酒局发起人 / 气氛组',

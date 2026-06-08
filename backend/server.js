@@ -72,7 +72,10 @@ const MIME_MAP = {
 const resolveFirstExistingPath = (...candidatePaths) => candidatePaths.find((candidatePath) => fs.existsSync(candidatePath))
 
 const staticAssetMap = {
-  '/static/avatar-host.png': path.join(assetsDir, 'avatars', 'avatar-1.png'),
+  '/static/avatar-host.png': resolveFirstExistingPath(
+    path.join(publicStaticDir, 'avatar-1.png'),
+    path.join(assetsDir, 'avatars', 'avatar-1.png'),
+  ),
   '/static/party-hero.png': resolveFirstExistingPath(
     path.join(publicStaticDir, 'party-hero.png'),
     path.join(assetsDir, 'home', 'party-hero.png'),
@@ -241,6 +244,21 @@ const server = http.createServer((request, response) => {
 
     if (request.method === 'GET' && pathname && staticAssetMap[pathname]) {
       sendFile(response, staticAssetMap[pathname])
+      return
+    }
+
+    if (request.method === 'GET' && pathname && pathname.startsWith('/static/')) {
+      const relativePath = pathname.replace('/static/', '')
+      const staticFilePath = sanitizePathWithin(publicStaticDir, relativePath)
+      if (staticFilePath && fs.existsSync(staticFilePath)) {
+        sendFile(response, staticFilePath)
+        return
+      }
+      if (staticAssetMap[pathname]) {
+        sendFile(response, staticAssetMap[pathname])
+        return
+      }
+      sendError(response, 404, 'not found')
       return
     }
 

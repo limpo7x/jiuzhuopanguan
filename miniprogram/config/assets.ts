@@ -1,6 +1,10 @@
 import { getApiBase } from './api'
 
-const HOME_ASSET_FILE_BY_LOCAL_PATH: Record<string, string> = {
+const STATIC_ASSET_FILE_BY_LOCAL_PATH: Record<string, string> = {
+  '/assets/avatars/avatar-1.png': 'avatar-1.png',
+  '/assets/avatars/avatar-2.png': 'avatar-2.png',
+  '/assets/avatars/avatar-3.png': 'avatar-3.png',
+  '/assets/avatars/avatar-4.png': 'avatar-4.png',
   '/assets/home/beer-toast.png': 'beer-toast.png',
   '/assets/home/image-process-hero.png': 'image-process-hero.png',
   '/assets/home/party-hero.png': 'party-hero.png',
@@ -18,6 +22,11 @@ export const staticAsset = (fileName: string) => {
   const origin = getApiOrigin()
   const normalized = fileName.replace(/^\/+/, '')
   return origin ? `${origin}/static/${normalized}` : `/static/${normalized}`
+}
+
+export const avatarAsset = (index: number | string) => {
+  const normalized = String(index).replace(/^avatar-/, '').replace(/\.png$/i, '')
+  return staticAsset(`avatar-${normalized}.png`)
 }
 
 export const normalizeManagedAssetPath = (path?: string) => {
@@ -39,9 +48,9 @@ export const normalizeManagedAssetPath = (path?: string) => {
     return origin ? `${origin}${path}` : path
   }
 
-  const homeAssetFile = HOME_ASSET_FILE_BY_LOCAL_PATH[path]
-  if (homeAssetFile) {
-    return staticAsset(homeAssetFile)
+  const staticAssetFile = STATIC_ASSET_FILE_BY_LOCAL_PATH[path]
+  if (staticAssetFile) {
+    return staticAsset(staticAssetFile)
   }
 
   return path

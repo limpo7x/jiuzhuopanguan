@@ -1,3 +1,4 @@
+import { avatarAsset } from '../../config/assets'
 import {
   formatElapsed,
   getSessionRuntime,
@@ -39,12 +40,12 @@ interface TableModeMethods {
 
 let tableTimer = 0
 const DEFAULT_TABLE_PLAYERS: SessionParticipant[] = [
-  { name: '阿浩', avatarUrl: '/assets/avatars/avatar-1.png' },
-  { name: '小熊', avatarUrl: '/assets/avatars/avatar-2.png' },
-  { name: 'Mika', avatarUrl: '/assets/avatars/avatar-3.png' },
-  { name: '可可', avatarUrl: '/assets/avatars/avatar-4.png' },
-  { name: '阿乐', avatarUrl: '/assets/avatars/avatar-1.png' },
-  { name: 'Nina', avatarUrl: '/assets/avatars/avatar-2.png' },
+  { name: '阿浩', avatarUrl: avatarAsset(1) },
+  { name: '小熊', avatarUrl: avatarAsset(2) },
+  { name: 'Mika', avatarUrl: avatarAsset(3) },
+  { name: '可可', avatarUrl: avatarAsset(4) },
+  { name: '阿乐', avatarUrl: avatarAsset(1) },
+  { name: 'Nina', avatarUrl: avatarAsset(2) },
 ]
 
 const getRowBaseStats = (index: number) => {
@@ -133,7 +134,7 @@ Page<TableModeState, TableModeMethods>({
     rows: [
       {
         name: '阿浩',
-        avatarUrl: '/assets/avatars/avatar-1.png',
+        avatarUrl: avatarAsset(1),
         debt: 2,
         drink: 1,
         cleared: 1,
@@ -239,31 +240,31 @@ Page<TableModeState, TableModeMethods>({
         {
           title: '欠酒大王',
           name: rowsByDebt[0]?.name || '暂无',
-          avatarUrl: rowsByDebt[0]?.avatarUrl || '/assets/avatars/avatar-1.png',
+          avatarUrl: rowsByDebt[0]?.avatarUrl || avatarAsset(1),
           value: `欠了 ${rowsByDebt[0]?.debt || 0} 杯`,
         },
         {
           title: '干杯王',
           name: rowsByDrink[0]?.name || '暂无',
-          avatarUrl: rowsByDrink[0]?.avatarUrl || '/assets/avatars/avatar-2.png',
+          avatarUrl: rowsByDrink[0]?.avatarUrl || avatarAsset(2),
           value: `已喝 ${rowsByDrink[0]?.drink || 0} 杯`,
         },
         {
           title: '消杯王',
           name: rowsByCleared[0]?.name || '暂无',
-          avatarUrl: rowsByCleared[0]?.avatarUrl || '/assets/avatars/avatar-3.png',
+          avatarUrl: rowsByCleared[0]?.avatarUrl || avatarAsset(3),
           value: `消了 ${rowsByCleared[0]?.cleared || 0} 杯`,
         },
         {
           title: '最被敬畏的人',
           name: topLikeRow?.name || '暂无',
-          avatarUrl: topLikeRow?.avatarUrl || '/assets/avatars/avatar-4.png',
+          avatarUrl: topLikeRow?.avatarUrl || avatarAsset(4),
           value: topLikeRow ? `收到了 ${topLikeRow.likeCount} 个点赞` : '本局还没人被点赞',
         },
         {
           title: '公认最弱',
           name: topWeakRow?.name || '暂无',
-          avatarUrl: topWeakRow?.avatarUrl || '/assets/avatars/avatar-1.png',
+          avatarUrl: topWeakRow?.avatarUrl || avatarAsset(1),
           value: topWeakRow ? `收到了 ${topWeakRow.weakCount} 个小拇指` : '本局还没人被点小拇指',
         },
       ],

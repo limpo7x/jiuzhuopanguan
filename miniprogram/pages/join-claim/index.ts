@@ -1,4 +1,5 @@
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
+import { avatarAsset } from '../../config/assets'
 
 interface JoinAvatar {
   active?: boolean
@@ -18,16 +19,16 @@ interface JoinClaimMethods {
 Page<JoinClaimState, JoinClaimMethods>({
   data: {
     avatars: [
-      { id: '1', url: '/assets/avatars/avatar-1.png' },
-      { id: '2', url: '/assets/avatars/avatar-2.png' },
-      { id: '3', url: '/assets/avatars/avatar-3.png', active: true },
-      { id: '4', url: '/assets/avatars/avatar-4.png' },
-      { id: '5', url: '/assets/avatars/avatar-1.png' },
-      { id: '6', url: '/assets/avatars/avatar-2.png' },
-      { id: '7', url: '/assets/avatars/avatar-3.png' },
-      { id: '8', url: '/assets/avatars/avatar-4.png' },
-      { id: '9', url: '/assets/avatars/avatar-1.png' },
-      { id: '10', url: '/assets/avatars/avatar-2.png' },
+      { id: '1', url: avatarAsset(1) },
+      { id: '2', url: avatarAsset(2) },
+      { id: '3', url: avatarAsset(3), active: true },
+      { id: '4', url: avatarAsset(4) },
+      { id: '5', url: avatarAsset(1) },
+      { id: '6', url: avatarAsset(2) },
+      { id: '7', url: avatarAsset(3) },
+      { id: '8', url: avatarAsset(4) },
+      { id: '9', url: avatarAsset(1) },
+      { id: '10', url: avatarAsset(2) },
     ],
   },
 
