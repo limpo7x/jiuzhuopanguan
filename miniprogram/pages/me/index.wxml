@@ -16,10 +16,11 @@
             <text class="me-name">{{currentProfile.name}}</text>
             <view class="me-vip-tag">V1</view>
           </view>
-          <text class="me-id">ID: 88998866</text>
+          <text class="me-id">手机号: {{currentProfile.phoneMasked || '未绑定'}}</text>
+          <text class="me-id">微信ID: {{currentProfile.wechatOpenId || currentProfile.id}}</text>
         </view>
       </view>
-      <view class="me-edit-btn" bindtap="handleEditTap">编辑资料</view>
+      <view class="me-edit-btn" bindtap="handleEditTap">{{currentProfile.phone ? '编辑资料' : '微信登录'}}</view>
     </view>
 
     <view class="me-member-card">

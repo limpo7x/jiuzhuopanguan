@@ -1,5 +1,6 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath } from '../config/assets'
+import { getUserAuthHeaders } from '../utils/social'
 
 interface ApiResponse<T> {
   code: number
@@ -132,6 +133,7 @@ const request = <T>(path: string, method: 'GET' | 'PUT' | 'POST' = 'GET', data?:
       url: `${getApiBase()}${path}`,
       method,
       data: data as WechatMiniprogram.IAnyObject | undefined,
+      header: getUserAuthHeaders(),
       timeout: 5000,
       success: (response) => {
         const payload = response.data as ApiResponse<T>

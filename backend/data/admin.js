@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const { createStoreAccessor } = require('./store-accessor')
 const {
+  createDefaultUserCommerceState,
   getCompliance,
   getHomeConfig,
   getPointsConfig,
@@ -14,6 +15,7 @@ const {
   updateHomeConfig,
   updatePointsConfig,
   updateTemplateConfig,
+  writeContentStore,
 } = require('./content')
 const {
   ensureProfile,
@@ -115,6 +117,7 @@ const createDefaultStore = () => ({
     },
   ],
   sessions: [],
+  operationLogs: [],
   userOps: [
     { id: 'user-1001', status: '高活跃', tags: ['模板偏好', '战报分享'], note: '最近 7 天连续开局' },
     { id: 'user-1002', status: '普通', tags: ['工具用户'], note: '二维码与图片工具使用较高' },
@@ -283,20 +286,92 @@ const formatNumber = (value) => Math.round(Number(value || 0)).toLocaleString('e
 const ratioPercent = (numerator, denominator, digits = 1) => formatPercent(denominator ? (Number(numerator || 0) / Number(denominator || 0)) * 100 : 0, digits)
 const byNumericDesc = (selector) => (left, right) => Number(selector(right) || 0) - Number(selector(left) || 0)
 
+const getUserCommerceMap = (contentStore = readContentStore()) =>
+  contentStore.userCommerce && typeof contentStore.userCommerce === 'object' ? contentStore.userCommerce : {}
+
 const buildUserProfileItems = (adminStore = readStore(), contentStore = readContentStore(), socialStore = readSocialStore()) =>
   socialStore.profiles.map((profile) => {
     const meta = adminStore.userOps.find((item) => item.id === profile.id) || { status: '', tags: [], note: '' }
+    const commerce = getUserCommerceMap(contentStore)[profile.id] || {}
     return {
       id: profile.id,
       name: profile.name,
       city: profile.city,
       identityTag: profile.identityTag,
+      phone: profile.phone || '',
+      wechatOpenId: profile.wechatOpenId || '',
+      loginCount: Number(profile.loginCount) || 0,
+      lastLoginAt: profile.lastLoginAt || '',
       status: meta.status,
       tagsText: Array.isArray(meta.tags) ? meta.tags.join('、') : '',
       note: meta.note || '',
-      points: contentStore.profile.points || 0,
+      points: Number(commerce.points) || 0,
     }
   })
+
+const buildUserPointsItems = (contentStore = readContentStore(), socialStore = readSocialStore()) =>
+  socialStore.profiles
+    .filter((profile) => profile.phone)
+    .map((profile) => {
+      const state = getUserCommerceMap(contentStore)[profile.id] || {}
+      return {
+        id: profile.id,
+        name: profile.name,
+        phone: profile.phone || '',
+        wechatOpenId: profile.wechatOpenId || '',
+        points: Number(state.points) || 0,
+        claimedTaskCount: Array.isArray(state.claimedTaskIds) ? state.claimedTaskIds.length : 0,
+        ledgerCount: Array.isArray(state.pointsLedger) ? state.pointsLedger.length : 0,
+        adjustment: 0,
+        adjustReason: '',
+      }
+    })
+    .sort((left, right) => Number(right.points) - Number(left.points))
+
+const buildPointsLedgerRows = (contentStore = readContentStore(), socialStore = readSocialStore()) => {
+  const profileMap = new Map((socialStore.profiles || []).map((item) => [item.id, item]))
+  return Object.entries(getUserCommerceMap(contentStore))
+    .flatMap(([profileId, state]) =>
+      (Array.isArray(state?.pointsLedger) ? state.pointsLedger : []).map((entry) => ({
+        id: entry.id,
+        profileId,
+        userName: profileMap.get(profileId)?.name || profileId,
+        phone: profileMap.get(profileId)?.phone || '',
+        title: entry.title || '',
+        delta: Number(entry.delta) || 0,
+        kind: entry.kind || '',
+        createdAt: entry.createdAt || '',
+      })),
+    )
+    .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+}
+
+const buildUserLoginLogRows = (socialStore = readSocialStore()) => {
+  const profileMap = new Map((socialStore.profiles || []).map((item) => [item.id, item]))
+  return (socialStore.loginLogs || [])
+    .map((entry) => ({
+      id: entry.id,
+      userName: profileMap.get(entry.profileId)?.name || entry.profileId,
+      phone: entry.phone || profileMap.get(entry.profileId)?.phone || '',
+      wechatOpenId: entry.wechatOpenId || profileMap.get(entry.profileId)?.wechatOpenId || '',
+      loginAt: entry.loginAt || '',
+      source: entry.source || 'wechat-miniapp',
+    }))
+    .sort((left, right) => String(right.loginAt).localeCompare(String(left.loginAt)))
+}
+
+const buildAdminOperationLogRows = (adminStore = readStore()) =>
+  (adminStore.operationLogs || [])
+    .map((entry) => ({
+      id: entry.id,
+      operator: entry.operator || '',
+      action: entry.action || '',
+      targetName: entry.targetName || '',
+      targetPhone: entry.targetPhone || '',
+      detail: entry.detail || '',
+      createdAt: entry.createdAt || '',
+    }))
+    .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
 
 const buildOverviewTable = (adminStore = readStore(), contentStore = readContentStore()) => {
   const templates = contentStore.templateConfig.templates || []
@@ -475,6 +550,20 @@ const getPointsMetrics = () => {
     { label: '任务数', value: String(pointsConfig.tasks.length), trend: `合计发放 ${formatNumber(sumBy(pointsConfig.tasks, (item) => item.value))} 分`, tone: 'up' },
     { label: '已兑换商品', value: formatNumber((commerce.rewardRedemptions || []).length), trend: `商品池 ${formatNumber(pointsConfig.rewards.length)} 个`, tone: 'up' },
     { label: '积分净变动', value: formatNumber(sumBy(commerce.pointsLedger || [], (item) => item.delta)), trend: `流水 ${formatNumber((commerce.pointsLedger || []).length)} 条`, tone: 'up' },
+  ]
+}
+
+const getManagedPointsMetrics = () => {
+  const pointsConfig = getPointsConfig()
+  const contentStore = readContentStore()
+  const userPoints = buildUserPointsItems(contentStore, readSocialStore())
+  const totalPoints = sumBy(userPoints, (item) => item.points)
+  const totalLedger = sumBy(userPoints, (item) => item.ledgerCount)
+  return [
+    { label: '已绑手机号用户', value: formatNumber(userPoints.length), trend: `积分用户 ${formatNumber(userPoints.length)} 个`, tone: 'up' },
+    { label: '任务数', value: String(pointsConfig.tasks.length), trend: `合计发放 ${formatNumber(sumBy(pointsConfig.tasks, (item) => item.value))} 积分`, tone: 'up' },
+    { label: '用户积分总额', value: formatNumber(totalPoints), trend: `商品池 ${formatNumber(pointsConfig.rewards.length)} 个`, tone: 'up' },
+    { label: '积分流水总数', value: formatNumber(totalLedger), trend: `人均 ${formatNumber(userPoints.length ? totalLedger / userPoints.length : 0)} 条`, tone: 'up' },
   ]
 }
 
@@ -1487,6 +1576,270 @@ const pageMap = {
   },
 }
 
+pageMap['user-profiles'] = () => {
+  const adminStore = readStore()
+  const contentStore = readContentStore()
+  const socialStore = readSocialStore()
+  const profiles = buildUserProfileItems(adminStore, contentStore, socialStore)
+  return {
+    slug: 'user-profiles',
+    title: '用户中心',
+    view: 'collection',
+    metrics: [
+      { label: '用户总数', value: String(profiles.length), trend: `已绑手机 ${countBy(profiles, (item) => Boolean(item.phone))} 人`, tone: 'up' },
+      { label: '高价值用户', value: String(countBy(profiles, (item) => String(item.status || '').includes('高价值'))), trend: `占比 ${ratioPercent(countBy(profiles, (item) => String(item.status || '').includes('高价值')), profiles.length)}`, tone: 'up' },
+      { label: '高活跃用户', value: String(countBy(profiles, (item) => String(item.status || '').includes('高活跃'))), trend: `占比 ${ratioPercent(countBy(profiles, (item) => String(item.status || '').includes('高活跃')), profiles.length)}`, tone: 'up' },
+      { label: '积分用户', value: String(countBy(profiles, (item) => Number(item.points) > 0)), trend: `酒友关系 ${listFriendships().length} 条`, tone: 'up' },
+    ],
+    collection: {
+      key: 'userProfiles',
+      itemLabel: '用户',
+      fields: [
+        { key: 'name', label: '昵称', type: 'text' },
+        { key: 'phone', label: '手机号', type: 'text' },
+        { key: 'wechatOpenId', label: '微信 OpenID', type: 'text' },
+        { key: 'city', label: '城市', type: 'text' },
+        { key: 'identityTag', label: '身份标签', type: 'text' },
+        { key: 'points', label: '当前积分', type: 'number' },
+        { key: 'status', label: '运营状态', type: 'text' },
+        { key: 'tagsText', label: '运营标签（顿号分隔）', type: 'text' },
+        { key: 'note', label: '运营备注', type: 'textarea' },
+      ],
+      columns: [
+        { key: 'name', label: '用户' },
+        { key: 'phone', label: '手机号' },
+        { key: 'wechatOpenId', label: 'OpenID' },
+        { key: 'points', label: '积分' },
+        { key: 'status', label: '状态' },
+      ],
+      items: profiles,
+    },
+  }
+}
+
+pageMap['commerce-points'] = () => {
+  const pointsConfig = getPointsConfig()
+  return {
+    slug: 'commerce-points',
+    title: '积分体系',
+    view: 'multi-collection',
+    metrics: getManagedPointsMetrics(),
+    metaFields: [
+      { key: 'balance', label: '展示积分余额', type: 'number' },
+      { key: 'bannerImageUrl', label: '横幅图片地址', type: 'text' },
+    ],
+    meta: {
+      balance: pointsConfig.balance,
+      bannerImageUrl: pointsConfig.bannerImageUrl,
+    },
+    collections: [
+      {
+        key: 'tasks',
+        title: '每日任务',
+        itemLabel: '任务',
+        fields: [
+          { key: 'id', label: '任务 ID', type: 'text' },
+          { key: 'title', label: '任务标题', type: 'text' },
+          { key: 'value', label: '奖励积分', type: 'number' },
+          { key: 'iconClass', label: '图标类名', type: 'text' },
+        ],
+        columns: [
+          { key: 'title', label: '任务标题' },
+          { key: 'value', label: '积分' },
+          { key: 'iconClass', label: '图标' },
+        ],
+        items: pointsConfig.tasks,
+      },
+      {
+        key: 'rewards',
+        title: '积分商品',
+        itemLabel: '商品',
+        fields: [
+          { key: 'id', label: '商品 ID', type: 'text' },
+          { key: 'title', label: '商品标题', type: 'text' },
+          { key: 'subtitle', label: '商品副标题', type: 'textarea' },
+          { key: 'cost', label: '积分价格', type: 'number' },
+          { key: 'iconClass', label: '图标类名', type: 'text' },
+        ],
+        columns: [
+          { key: 'title', label: '商品标题' },
+          { key: 'subtitle', label: '副标题' },
+          { key: 'cost', label: '积分' },
+          { key: 'iconClass', label: '图标' },
+        ],
+        items: pointsConfig.rewards,
+      },
+      {
+        key: 'userPoints',
+        title: '用户积分列表',
+        itemLabel: '用户积分',
+        fields: [
+          { key: 'name', label: '昵称', type: 'text' },
+          { key: 'phone', label: '手机号（唯一标识）', type: 'text' },
+          { key: 'wechatOpenId', label: '微信 OpenID', type: 'text' },
+          { key: 'points', label: '当前积分', type: 'number' },
+          { key: 'claimedTaskCount', label: '已领任务数', type: 'number' },
+          { key: 'ledgerCount', label: '流水条数', type: 'number' },
+          { key: 'adjustment', label: '本次增减积分', type: 'number' },
+          { key: 'adjustReason', label: '调整原因', type: 'textarea' },
+        ],
+        columns: [
+          { key: 'name', label: '用户' },
+          { key: 'phone', label: '手机号' },
+          { key: 'points', label: '当前积分' },
+          { key: 'claimedTaskCount', label: '任务数' },
+          { key: 'ledgerCount', label: '流水数' },
+        ],
+        items: buildUserPointsItems(),
+      },
+    ],
+  }
+}
+
+pageMap['commerce-point-ledger'] = () => {
+  const rows = buildPointsLedgerRows()
+  return {
+    slug: 'commerce-point-ledger',
+    title: '积分变动记录',
+    view: 'readonly',
+    metrics: [
+      { label: '积分流水总数', value: formatNumber(rows.length), trend: `用户 ${formatNumber(new Set(rows.map((item) => item.profileId)).size)} 人`, tone: 'up' },
+      { label: '加分流水', value: formatNumber(countBy(rows, (item) => Number(item.delta) > 0)), trend: `减分 ${formatNumber(countBy(rows, (item) => Number(item.delta) < 0))} 条`, tone: 'up' },
+      { label: '任务发放', value: formatNumber(countBy(rows, (item) => item.kind === 'task')), trend: `后台调整 ${formatNumber(countBy(rows, (item) => item.kind === 'admin-adjust'))} 条`, tone: 'up' },
+      { label: '兑换扣减', value: formatNumber(countBy(rows, (item) => item.kind === 'reward')), trend: `最近 ${rows[0]?.createdAt || '--'}`, tone: 'up' },
+    ],
+    tables: [
+      {
+        title: '用户积分流水',
+        columns: [
+          { key: 'userName', label: '用户' },
+          { key: 'phone', label: '手机号' },
+          { key: 'title', label: '变动原因' },
+          { key: 'delta', label: '积分变化' },
+          { key: 'kind', label: '类型' },
+          { key: 'createdAt', label: '时间' },
+        ],
+        rows,
+      },
+    ],
+  }
+}
+
+pageMap['user-login-logs'] = () => {
+  const rows = buildUserLoginLogRows()
+  return {
+    slug: 'user-login-logs',
+    title: '用户登录记录',
+    view: 'readonly',
+    metrics: [
+      { label: '登录记录数', value: formatNumber(rows.length), trend: `绑定用户 ${formatNumber(new Set(rows.map((item) => item.phone).filter(Boolean)).size)} 人`, tone: 'up' },
+      { label: '微信登录', value: formatNumber(countBy(rows, (item) => item.source === 'wechat-miniapp')), trend: `最近 ${rows[0]?.loginAt || '--'}`, tone: 'up' },
+      { label: '含手机号记录', value: formatNumber(countBy(rows, (item) => Boolean(item.phone))), trend: `缺手机号 ${formatNumber(countBy(rows, (item) => !item.phone))} 条`, tone: 'up' },
+      { label: '独立 OpenID', value: formatNumber(new Set(rows.map((item) => item.wechatOpenId).filter(Boolean)).size), trend: '用于用户强绑定', tone: 'up' },
+    ],
+    tables: [
+      {
+        title: '小程序登录日志',
+        columns: [
+          { key: 'userName', label: '用户' },
+          { key: 'phone', label: '手机号' },
+          { key: 'wechatOpenId', label: '微信 OpenID' },
+          { key: 'source', label: '来源' },
+          { key: 'loginAt', label: '登录时间' },
+        ],
+        rows,
+      },
+    ],
+  }
+}
+
+pageMap['system-operation-logs'] = () => {
+  const rows = buildAdminOperationLogRows()
+  return {
+    slug: 'system-operation-logs',
+    title: '后台积分操作日志',
+    view: 'readonly',
+    metrics: [
+      { label: '操作日志数', value: formatNumber(rows.length), trend: `最近 ${rows[0]?.createdAt || '--'}`, tone: 'up' },
+      { label: '加分操作', value: formatNumber(countBy(rows, (item) => String(item.action).includes('增加'))), trend: `减分 ${formatNumber(countBy(rows, (item) => String(item.action).includes('减少')))} 次`, tone: 'up' },
+      { label: '操作用户数', value: formatNumber(new Set(rows.map((item) => item.targetPhone || item.targetName).filter(Boolean)).size), trend: '积分管理可追溯', tone: 'up' },
+      { label: '操作人', value: formatNumber(new Set(rows.map((item) => item.operator).filter(Boolean)).size), trend: '当前默认 admin-console', tone: 'up' },
+    ],
+    tables: [
+      {
+        title: '后台积分调整日志',
+        columns: [
+          { key: 'operator', label: '操作人' },
+          { key: 'action', label: '动作' },
+          { key: 'targetName', label: '目标用户' },
+          { key: 'targetPhone', label: '手机号' },
+          { key: 'detail', label: '详情' },
+          { key: 'createdAt', label: '时间' },
+        ],
+        rows,
+      },
+    ],
+  }
+}
+
+const saveUserPointsCollection = (items = []) => {
+  const contentStore = readContentStore()
+  const adminStore = readStore()
+  const socialStore = readSocialStore()
+  const profileMap = new Map((socialStore.profiles || []).map((item) => [item.id, item]))
+  const nextUserCommerce = {
+    ...(contentStore.userCommerce || {}),
+  }
+
+  items.forEach((item) => {
+    const profileId = String(item.id || '').trim()
+    if (!profileId) {
+      return
+    }
+    const currentState = nextUserCommerce[profileId] || createDefaultUserCommerceState()
+    const currentPoints = Number(currentState.points || 0)
+    const directPoints = Number(item.points)
+    const requestedDelta =
+      Number(item.adjustment || 0) || (Number.isFinite(directPoints) ? directPoints - currentPoints : 0)
+    const nextPoints = Math.max(0, currentPoints + requestedDelta)
+    const actualDelta = nextPoints - currentPoints
+    const nextState = {
+      ...currentState,
+      points: nextPoints,
+    }
+    if (actualDelta !== 0) {
+      nextState.pointsLedger = [
+        {
+          id: createId('admin-ledger'),
+          title: item.adjustReason || `后台${actualDelta > 0 ? '加' : '减'}积分`,
+          createdAt: iso(),
+          delta: actualDelta,
+          kind: 'admin-adjust',
+          sourceId: 'admin-console',
+        },
+        ...(Array.isArray(currentState.pointsLedger) ? currentState.pointsLedger : []),
+      ]
+      const profile = profileMap.get(profileId)
+      adminStore.operationLogs = Array.isArray(adminStore.operationLogs) ? adminStore.operationLogs : []
+      adminStore.operationLogs.unshift({
+        id: createId('admin-op'),
+        operator: 'admin-console',
+        action: actualDelta > 0 ? '增加用户积分' : '减少用户积分',
+        targetId: profileId,
+        targetName: profile?.name || profileId,
+        targetPhone: profile?.phone || '',
+        detail: `${actualDelta > 0 ? '+' : ''}${actualDelta} 分${item.adjustReason ? `，原因：${item.adjustReason}` : ''}`,
+        createdAt: iso(),
+      })
+    }
+    nextUserCommerce[profileId] = nextState
+  })
+
+  contentStore.userCommerce = nextUserCommerce
+  writeContentStore(contentStore)
+  writeStore(adminStore)
+}
+
 const getPageData = (slug) => {
   const factory = pageMap[slug]
   if (!factory) {
@@ -1565,10 +1918,16 @@ const savePageData = (slug, payload = {}) => {
           ...existed,
           id: item.id,
           name: item.name,
+          phone: existed.phone || '',
+          wechatOpenId: existed.wechatOpenId || '',
+          wechatUnionId: existed.wechatUnionId || '',
           city: item.city,
           identityTag: item.identityTag,
           signature: existed.signature || '',
           avatarUrl: existed.avatarUrl || '',
+          phoneBoundAt: existed.phoneBoundAt || '',
+          lastLoginAt: existed.lastLoginAt || '',
+          loginCount: existed.loginCount || 0,
         }),
       )
       nextUserOps.push({
@@ -1609,6 +1968,7 @@ const savePageData = (slug, payload = {}) => {
       tasks: payload.collections.tasks,
       rewards: payload.collections.rewards,
     })
+    saveUserPointsCollection(payload.collections.userPoints || [])
     return getPageData(slug)
   }
 

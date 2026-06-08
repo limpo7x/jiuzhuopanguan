@@ -1,6 +1,7 @@
 import { homePageMock, type HomePageData } from '../mock/home'
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath, staticAsset } from '../config/assets'
+import { getUserAuthHeaders } from '../utils/social'
 import { resolveToolId } from '../utils/toolkit'
 
 interface ApiResponse<T> {
@@ -145,6 +146,7 @@ const request = <T>(path: string): Promise<T> =>
 
     wx.request({
       url: `${getApiBase()}${path}`,
+      header: getUserAuthHeaders(),
       timeout: 2500,
       success: (response) => {
         const payload = response.data as ApiResponse<T>

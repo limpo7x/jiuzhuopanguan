@@ -56,6 +56,11 @@ const createDefaultCommerce = () => ({
   unlockedTemplateIds: [],
 })
 
+const createDefaultUserCommerceState = () => ({
+  points: 168,
+  ...createDefaultCommerce(),
+})
+
 const createDefaultStore = () => ({
   profile: {
     nickname: '酒局发起人',
@@ -124,6 +129,7 @@ const createDefaultStore = () => ({
     },
   },
   commerce: createDefaultCommerce(),
+  userCommerce: {},
 })
 
 const isBrokenSample = (value) =>
@@ -231,6 +237,26 @@ const normalizeCommerce = (commerce = {}) => {
   }
 }
 
+const normalizeUserCommerceState = (state = {}) => {
+  const defaults = createDefaultUserCommerceState()
+  const normalizedCommerce = normalizeCommerce(state)
+  return {
+    ...normalizedCommerce,
+    points: Number(state?.points) >= 0 ? Number(state.points) : defaults.points,
+  }
+}
+
+const normalizeUserCommerceMap = (userCommerce = {}) => {
+  if (!userCommerce || typeof userCommerce !== 'object' || Array.isArray(userCommerce)) {
+    return {}
+  }
+
+  return Object.entries(userCommerce).reduce((accumulator, [profileId, state]) => {
+    accumulator[String(profileId)] = normalizeUserCommerceState(state)
+    return accumulator
+  }, {})
+}
+
 const normalizeStore = (store = {}) => {
   const defaults = createDefaultStore()
 
@@ -276,6 +302,7 @@ const normalizeStore = (store = {}) => {
       },
     },
     commerce: normalizeCommerce(store?.commerce),
+    userCommerce: normalizeUserCommerceMap(store?.userCommerce),
   }
 }
 
@@ -384,4 +411,5 @@ module.exports = {
   updatePointsConfig,
   updateTemplateConfig,
   writeContentStore: writeStore,
+  createDefaultUserCommerceState,
 }

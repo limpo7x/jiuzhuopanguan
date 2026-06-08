@@ -1,20 +1,25 @@
-<navigation-bar title="编辑资料" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
+<navigation-bar title="微信登录 / 编辑资料" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
 
 <view class="profile-edit-page">
   <scroll-view class="profile-edit-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="profile-edit-avatar-card">
       <image class="profile-edit-avatar" src="{{avatarUrl}}" mode="aspectFill"></image>
-      <view class="profile-edit-avatar-list">
-        <view
-          wx:for="{{avatars}}"
-          wx:key="url"
-          class="profile-edit-avatar-option {{item.active ? 'profile-edit-avatar-option-active' : ''}}"
-          data-url="{{item.url}}"
-          bindtap="handleAvatarTap"
-        >
-          <image class="profile-edit-avatar-option-image" src="{{item.url}}" mode="aspectFill"></image>
+      <view class="profile-edit-form-card">
+        <view class="profile-edit-field">
+          <text class="profile-edit-label">登录状态</text>
+          <view class="profile-edit-value">{{loggedIn ? '已绑定微信手机号' : '未登录'}}</view>
+        </view>
+        <view class="profile-edit-field">
+          <text class="profile-edit-label">手机号</text>
+          <view class="profile-edit-value">{{phoneMasked || '未绑定'}}</view>
+        </view>
+        <view class="profile-edit-field">
+          <text class="profile-edit-label">微信 OpenID</text>
+          <view class="profile-edit-value">{{wechatOpenId || '未生成'}}</view>
         </view>
       </view>
+      <view class="profile-edit-primary" bindtap="handleWechatProfileTap">1. 获取微信头像昵称</view>
+      <button class="profile-edit-primary" open-type="getPhoneNumber" bindgetphonenumber="handlePhoneBind">2. 一键绑定手机号并登录</button>
     </view>
 
     <view class="profile-edit-form-card">

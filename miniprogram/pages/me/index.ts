@@ -12,6 +12,7 @@ import {
   type WineFriend,
 } from '../../utils/social'
 import { avatarAsset } from '../../config/assets'
+import { getUserCommerceState } from '../../services/content'
 
 interface StatItem {
   label: string
@@ -81,6 +82,9 @@ Page<MePageState, MePageMethods>({
       city: '上海',
       identityTag: '酒局常驻玩家',
       signature: '今晚这局不见不散。',
+      phone: '',
+      phoneMasked: '',
+      wechatOpenId: '',
     },
     editingFriendId: '',
     editingFriendName: '',
@@ -113,13 +117,18 @@ Page<MePageState, MePageMethods>({
   },
 
   async loadSocialData() {
-    const currentProfile = await getCurrentProfile()
+    const [currentProfile, commerceState] = await Promise.all([getCurrentProfile(), getUserCommerceState().catch(() => null)])
     const wineFriends = (await getWineFriends()).map((item) => ({
       ...item,
       editing: item.id === this.data.editingFriendId,
     }))
 
     this.setData({
+      assetStats: [
+        { value: String(commerceState?.points ?? 0), label: '我的积分' },
+        { value: String(commerceState?.ownedRewardIds?.length ?? 0), label: '优惠券' },
+        { value: String(commerceState?.unlockedTemplateIds?.length ?? 0), label: '资产包' },
+      ],
       currentProfile,
       wineFriends,
     })

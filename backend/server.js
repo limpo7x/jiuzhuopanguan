@@ -2,12 +2,14 @@ require('./load-env')
 
 const fs = require('fs')
 const http = require('http')
+const https = require('https')
 const path = require('path')
 const QRCode = require('qrcode')
 const url = require('url')
 const { initAssetsManifest, listAdminAssets, saveAdminImage } = require('./data/assets')
 const {
   activateMembershipPlan,
+  adjustUserPointsByAdmin,
   claimPointsTask,
   getMembershipCatalog,
   getUserCommerceState,
@@ -29,8 +31,10 @@ const {
 } = require('./data/content')
 const {
   addFriend,
+  bindWechatUser,
   ensureProfile,
   getBootstrap,
+  getMiniUserSession,
   initSocialStore,
   ignorePoke,
   replyPoke,
@@ -59,6 +63,15 @@ const assetsDir = path.join(__dirname, '..', 'miniprogram', 'assets')
 const publicStaticDir = path.join(publicDir, 'static')
 const uploadsDir = path.join(publicDir, 'uploads')
 const sessionCookieName = 'jiuzhuopanguan_admin_session'
+const userSessionHeaderName = 'x-jzp-user-token'
+const wechatConfig = {
+  appId: process.env.WECHAT_APP_ID || '',
+  appSecret: process.env.WECHAT_APP_SECRET || '',
+}
+const wechatAccessTokenCache = {
+  token: '',
+  expiresAt: 0,
+}
 
 const MIME_MAP = {
   '.css': 'text/css; charset=utf-8',
@@ -103,7 +116,7 @@ const sendJson = (response, statusCode, payload, cookieHeaders = []) => {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-JZP-User-Token',
   }
   if (cookieHeaders.length) {
     headers['Set-Cookie'] = cookieHeaders
@@ -209,6 +222,115 @@ const resolveAdminSession = (request) => {
   return getSession(cookies[sessionCookieName])
 }
 
+const resolveUserToken = (request) => {
+  const directHeader = request.headers[userSessionHeaderName]
+  if (typeof directHeader === 'string' && directHeader.trim()) {
+    return directHeader.trim()
+  }
+  const authHeader = request.headers.authorization
+  if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
+    return authHeader.slice(7).trim()
+  }
+  return ''
+}
+
+const resolveUserSession = (request) => getMiniUserSession(resolveUserToken(request))
+
+const requireUserSession = (request, response) => {
+  const session = resolveUserSession(request)
+  if (!session) {
+    sendError(response, 401, 'unauthorized')
+    return null
+  }
+  return session
+}
+
+const httpsJsonRequest = (requestUrl, options = {}, payload) =>
+  new Promise((resolve, reject) => {
+    const target = new URL(requestUrl)
+    const requestOptions = {
+      method: payload ? 'POST' : 'GET',
+      hostname: target.hostname,
+      path: `${target.pathname}${target.search}`,
+      headers: payload
+        ? {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(payload),
+          }
+        : undefined,
+      ...options,
+    }
+    const req = https.request(requestOptions, (res) => {
+      let raw = ''
+      res.on('data', (chunk) => {
+        raw += chunk
+      })
+      res.on('end', () => {
+        try {
+          resolve(JSON.parse(raw || '{}'))
+        } catch (error) {
+          reject(error)
+        }
+      })
+    })
+    req.on('error', reject)
+    if (payload) {
+      req.write(payload)
+    }
+    req.end()
+  })
+
+const getWechatAccessToken = async () => {
+  if (!wechatConfig.appId || !wechatConfig.appSecret) {
+    throw Object.assign(new Error('wechat login not configured'), { statusCode: 503 })
+  }
+  if (wechatAccessTokenCache.token && wechatAccessTokenCache.expiresAt > Date.now() + 60 * 1000) {
+    return wechatAccessTokenCache.token
+  }
+
+  const payload = await httpsJsonRequest(
+    `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${encodeURIComponent(wechatConfig.appId)}&secret=${encodeURIComponent(wechatConfig.appSecret)}`,
+  )
+  if (!payload.access_token) {
+    throw Object.assign(new Error(payload.errmsg || 'failed to get wechat access token'), { statusCode: 502 })
+  }
+  wechatAccessTokenCache.token = payload.access_token
+  wechatAccessTokenCache.expiresAt = Date.now() + Math.max(300, Number(payload.expires_in) || 7200) * 1000
+  return wechatAccessTokenCache.token
+}
+
+const getWechatSessionByCode = async (loginCode) => {
+  if (!loginCode) {
+    throw Object.assign(new Error('missing login code'), { statusCode: 400 })
+  }
+  if (!wechatConfig.appId || !wechatConfig.appSecret) {
+    throw Object.assign(new Error('wechat login not configured'), { statusCode: 503 })
+  }
+  const payload = await httpsJsonRequest(
+    `https://api.weixin.qq.com/sns/jscode2session?appid=${encodeURIComponent(wechatConfig.appId)}&secret=${encodeURIComponent(wechatConfig.appSecret)}&js_code=${encodeURIComponent(loginCode)}&grant_type=authorization_code`,
+  )
+  if (!payload.openid) {
+    throw Object.assign(new Error(payload.errmsg || 'failed to exchange wechat session'), { statusCode: 502 })
+  }
+  return payload
+}
+
+const getWechatPhoneNumber = async (phoneCode) => {
+  if (!phoneCode) {
+    throw Object.assign(new Error('missing phone code'), { statusCode: 400 })
+  }
+  const accessToken = await getWechatAccessToken()
+  const payload = await httpsJsonRequest(
+    `https://api.weixin.qq.com/wxa/business/getuserphonenumber?access_token=${encodeURIComponent(accessToken)}`,
+    { method: 'POST' },
+    JSON.stringify({ code: phoneCode }),
+  )
+  if (!payload.phone_info?.phoneNumber) {
+    throw Object.assign(new Error(payload.errmsg || 'failed to get wechat phone number'), { statusCode: 502 })
+  }
+  return payload.phone_info
+}
+
 const requireAdminSession = (request, response) => {
   const session = resolveAdminSession(request)
   if (!session) {
@@ -234,7 +356,7 @@ const server = http.createServer((request, response) => {
       response.writeHead(204, {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-JZP-User-Token',
       })
       response.end()
       return
@@ -366,6 +488,35 @@ const server = http.createServer((request, response) => {
       return
     }
 
+    if (request.method === 'GET' && pathname === '/api/v1/user/auth/session') {
+      const session = resolveUserSession(request)
+      sendOk(response, {
+        loggedIn: Boolean(session),
+        profile: session?.profile || null,
+      })
+      return
+    }
+
+    if (request.method === 'POST' && pathname === '/api/v1/user/auth/login') {
+      const payload = await readJsonBody(request)
+      const wechatSession = await getWechatSessionByCode(String(payload.loginCode || '').trim())
+      const phoneInfo = await getWechatPhoneNumber(String(payload.phoneCode || '').trim())
+      const session = bindWechatUser({
+        phone: phoneInfo.phoneNumber,
+        wechatOpenId: wechatSession.openid,
+        wechatUnionId: wechatSession.unionid || '',
+        profile: {
+          name: payload.profile?.name || payload.profile?.nickName || '',
+          avatarUrl: payload.profile?.avatarUrl || '',
+          city: payload.profile?.city || '',
+          signature: payload.profile?.signature || '',
+          identityTag: payload.profile?.identityTag || '',
+        },
+      })
+      sendOk(response, session)
+      return
+    }
+
     if (request.method === 'GET' && pathname === '/api/v1/config/home') {
       sendOk(response, getHomeConfig())
       return
@@ -382,12 +533,25 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/user/profile') {
-      sendOk(response, getProfile())
+      const session = resolveUserSession(request)
+      sendOk(
+        response,
+        session
+          ? {
+              ...session.profile,
+              points: getUserCommerceState(session.profile.id).points,
+            }
+          : {
+              ...getProfile(),
+              points: 0,
+            },
+      )
       return
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/user/commerce') {
-      sendOk(response, getUserCommerceState())
+      const session = resolveUserSession(request)
+      sendOk(response, getUserCommerceState(session?.profile?.id || ''))
       return
     }
 
@@ -417,31 +581,48 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/points/tasks/') && pathname.endsWith('/claim')) {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
       const taskId = pathname.replace('/api/v1/points/tasks/', '').replace('/claim', '').replace(/^\/+|\/+$/g, '')
-      sendOk(response, claimPointsTask(taskId))
+      sendOk(response, claimPointsTask(session.profile.id, taskId))
       return
     }
 
     if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/points/rewards/') && pathname.endsWith('/redeem')) {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
       const rewardId = pathname.replace('/api/v1/points/rewards/', '').replace('/redeem', '').replace(/^\/+|\/+$/g, '')
-      sendOk(response, redeemPointsReward(rewardId))
+      sendOk(response, redeemPointsReward(session.profile.id, rewardId))
       return
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/membership/catalog') {
-      sendOk(response, getMembershipCatalog())
+      const session = resolveUserSession(request)
+      sendOk(response, getMembershipCatalog(session?.profile?.id || ''))
       return
     }
 
     if (request.method === 'POST' && pathname === '/api/v1/membership/activate') {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
       const payload = await readJsonBody(request)
-      sendOk(response, activateMembershipPlan(String(payload.planId || '')))
+      sendOk(response, activateMembershipPlan(session.profile.id, String(payload.planId || '')))
       return
     }
 
     if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/templates/') && pathname.endsWith('/unlock')) {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
       const templateId = pathname.replace('/api/v1/templates/', '').replace('/unlock', '').replace(/^\/+|\/+$/g, '')
-      sendOk(response, unlockTemplateByAd(templateId))
+      sendOk(response, unlockTemplateByAd(session.profile.id, templateId))
       return
     }
 

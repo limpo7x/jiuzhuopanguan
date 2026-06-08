@@ -20,6 +20,7 @@ const navGroups = [
     title: '用户与酒局',
     items: [
       { slug: 'user-profiles', title: '用户中心', icon: 'icon-user' },
+      { slug: 'user-login-logs', title: '用户登录记录', icon: 'icon-user' },
       { slug: 'social-friends', title: '酒友社交', icon: 'icon-friends' },
       { slug: 'sessions', title: '酒局管理', icon: 'icon-session' },
       { slug: 'reports', title: '战报中心', icon: 'icon-report' },
@@ -30,6 +31,7 @@ const navGroups = [
     title: '商业化',
     items: [
       { slug: 'commerce-points', title: '积分体系', icon: 'icon-points' },
+      { slug: 'commerce-point-ledger', title: '积分变动记录', icon: 'icon-points' },
       { slug: 'commerce-membership', title: '会员体系', icon: 'icon-member' },
       { slug: 'commerce-ads', title: '广告运营', icon: 'icon-ads' },
       { slug: 'commerce-merchants', title: '商户合作', icon: 'icon-store' },
@@ -50,6 +52,7 @@ const navGroups = [
     title: '系统设置',
     items: [
       { slug: 'system-permissions', title: '账号权限', icon: 'icon-security' },
+      { slug: 'system-operation-logs', title: '后台积分操作日志', icon: 'icon-security' },
       { slug: 'system-config', title: '基础配置', icon: 'icon-settings' },
       { slug: 'system-compliance', title: '合规风控', icon: 'icon-alert' },
     ],

@@ -1,14 +1,16 @@
+const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const { createStoreAccessor } = require('./store-accessor')
 
 const storePath = path.join(__dirname, 'social-store.json')
 const avatarPool = [
-  '/assets/avatars/avatar-1.png',
-  '/assets/avatars/avatar-2.png',
-  '/assets/avatars/avatar-3.png',
-  '/assets/avatars/avatar-4.png',
+  '/static/avatar-1.png',
+  '/static/avatar-2.png',
+  '/static/avatar-3.png',
+  '/static/avatar-4.png',
 ]
+const USER_SESSION_TTL = 1000 * 60 * 60 * 24 * 30
 
 const hashNameToAvatar = (name = '') => {
   const sum = Array.from(name).reduce((total, char) => total + char.charCodeAt(0), 0)
@@ -16,16 +18,28 @@ const hashNameToAvatar = (name = '') => {
 }
 
 const now = () => Date.now()
+const normalizeAvatarUrl = (value = '', fallbackName = '') => {
+  const raw = String(value || '').trim()
+  if (!raw) {
+    return hashNameToAvatar(fallbackName || '酒友')
+  }
+  if (raw.startsWith('/assets/avatars/')) {
+    return `/static/${raw.split('/').pop()}`
+  }
+  return raw
+}
 
 const createDefaultStore = () => ({
   profiles: [
-    { id: 'user-1001', name: '阿浩', avatarUrl: avatarPool[0], city: '上海', signature: '今晚这局不见不散。', identityTag: '气氛组长', createdAt: 1, updatedAt: 1 },
-    { id: 'user-1002', name: '小熊', avatarUrl: avatarPool[1], city: '上海', signature: '喝归喝，整活不能少。', identityTag: '热场王者', createdAt: 2, updatedAt: 2 },
-    { id: 'user-1003', name: 'Mika', avatarUrl: avatarPool[2], city: '杭州', signature: '负责点题，也负责拱火。', identityTag: '判官常驻', createdAt: 3, updatedAt: 3 },
-    { id: 'user-1004', name: '可可', avatarUrl: avatarPool[3], city: '深圳', signature: '我只负责起哄。', identityTag: '酒局观察员', createdAt: 4, updatedAt: 4 },
+    { id: 'user-1001', name: '阿浩', avatarUrl: avatarPool[0], city: '上海', signature: '今晚这局不见不散。', identityTag: '气氛组长', phone: '', wechatOpenId: '', wechatUnionId: '', phoneBoundAt: '', lastLoginAt: '', loginCount: 0, createdAt: 1, updatedAt: 1 },
+    { id: 'user-1002', name: '小熊', avatarUrl: avatarPool[1], city: '上海', signature: '喝归喝，整活不能少。', identityTag: '热场王者', phone: '', wechatOpenId: '', wechatUnionId: '', phoneBoundAt: '', lastLoginAt: '', loginCount: 0, createdAt: 2, updatedAt: 2 },
+    { id: 'user-1003', name: 'Mika', avatarUrl: avatarPool[2], city: '杭州', signature: '负责点题，也负责拱火。', identityTag: '判官常驻', phone: '', wechatOpenId: '', wechatUnionId: '', phoneBoundAt: '', lastLoginAt: '', loginCount: 0, createdAt: 3, updatedAt: 3 },
+    { id: 'user-1004', name: '可可', avatarUrl: avatarPool[3], city: '深圳', signature: '我只负责起哄。', identityTag: '酒局观察员', phone: '', wechatOpenId: '', wechatUnionId: '', phoneBoundAt: '', lastLoginAt: '', loginCount: 0, createdAt: 4, updatedAt: 4 },
   ],
   friendships: [],
+  loginLogs: [],
   pokes: [],
+  userSessions: [],
 })
 
 const isBrokenSample = (value) =>
@@ -40,10 +54,36 @@ const normalizeProfile = (profile = {}, fallback = {}) => {
   return {
     id: String(profile.id || fallback.id || `user-${timestamp}`),
     name,
-    avatarUrl: profile.avatarUrl || fallback.avatarUrl || hashNameToAvatar(name),
+    avatarUrl: normalizeAvatarUrl(profile.avatarUrl || fallback.avatarUrl, name),
     city: isBrokenSample(profile.city) ? fallback.city || '上海' : String(profile.city || fallback.city || '上海').trim(),
     signature: isBrokenSample(profile.signature) ? fallback.signature || '今晚这局不见不散。' : String(profile.signature || fallback.signature || '今晚这局不见不散。').trim(),
     identityTag: isBrokenSample(profile.identityTag) ? fallback.identityTag || '酒局常驻玩家' : String(profile.identityTag || fallback.identityTag || '酒局常驻玩家').trim(),
+    phone: typeof profile.phone === 'string' ? profile.phone.trim() : typeof fallback.phone === 'string' ? fallback.phone.trim() : '',
+    wechatOpenId:
+      typeof profile.wechatOpenId === 'string'
+        ? profile.wechatOpenId.trim()
+        : typeof fallback.wechatOpenId === 'string'
+          ? fallback.wechatOpenId.trim()
+          : '',
+    wechatUnionId:
+      typeof profile.wechatUnionId === 'string'
+        ? profile.wechatUnionId.trim()
+        : typeof fallback.wechatUnionId === 'string'
+          ? fallback.wechatUnionId.trim()
+          : '',
+    phoneBoundAt:
+      typeof profile.phoneBoundAt === 'string'
+        ? profile.phoneBoundAt
+        : typeof fallback.phoneBoundAt === 'string'
+          ? fallback.phoneBoundAt
+          : '',
+    lastLoginAt:
+      typeof profile.lastLoginAt === 'string'
+        ? profile.lastLoginAt
+        : typeof fallback.lastLoginAt === 'string'
+          ? fallback.lastLoginAt
+          : '',
+    loginCount: Math.max(0, Number(profile.loginCount ?? fallback.loginCount) || 0),
     createdAt: profile.createdAt || fallback.createdAt || timestamp,
     updatedAt: timestamp,
   }
@@ -65,6 +105,18 @@ const normalizeStore = (store = {}) => {
           updatedAt: Number(item.updatedAt) || now(),
         }))
       : [],
+    loginLogs: Array.isArray(store.loginLogs)
+      ? store.loginLogs
+          .map((item, index) => ({
+            id: String(item?.id || `login-log-${index + 1}`),
+            profileId: String(item?.profileId || ''),
+            phone: typeof item?.phone === 'string' ? item.phone.trim() : '',
+            wechatOpenId: typeof item?.wechatOpenId === 'string' ? item.wechatOpenId.trim() : '',
+            loginAt: typeof item?.loginAt === 'string' ? item.loginAt : '',
+            source: typeof item?.source === 'string' ? item.source : 'wechat-miniapp',
+          }))
+          .filter((item) => item.profileId)
+      : [],
     pokes: Array.isArray(store.pokes)
       ? store.pokes.map((item) => ({
           id: String(item.id || ''),
@@ -74,6 +126,16 @@ const normalizeStore = (store = {}) => {
           createdAt: Number(item.createdAt) || now(),
           updatedAt: Number(item.updatedAt) || now(),
         }))
+      : [],
+    userSessions: Array.isArray(store.userSessions)
+      ? store.userSessions
+          .map((item) => ({
+            token: String(item?.token || ''),
+            profileId: String(item?.profileId || ''),
+            createdAt: Number(item?.createdAt) || now(),
+            expiresAt: Number(item?.expiresAt) || 0,
+          }))
+          .filter((item) => item.token && item.profileId && item.expiresAt > now())
       : [],
   }
 }
@@ -90,6 +152,128 @@ const readStore = () => storeAccessor.read()
 const writeStore = (store) => storeAccessor.write(store)
 
 const getProfileById = (store, profileId) => store.profiles.find((item) => item.id === profileId)
+const getProfileByPhone = (store, phone) => store.profiles.find((item) => item.phone && item.phone === phone)
+const getProfileByOpenId = (store, openId) => store.profiles.find((item) => item.wechatOpenId && item.wechatOpenId === openId)
+const isoNow = () => new Date().toISOString()
+const randomToken = () => crypto.randomBytes(24).toString('hex')
+const maskPhone = (phone = '') => (phone.length === 11 ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : phone)
+
+const remapProfileReferences = (store, sourceId, targetId) => {
+  if (!sourceId || !targetId || sourceId === targetId) {
+    return
+  }
+  store.friendships = store.friendships.map((item) => ({
+    ...item,
+    ownerId: item.ownerId === sourceId ? targetId : item.ownerId,
+    friendId: item.friendId === sourceId ? targetId : item.friendId,
+  }))
+  store.pokes = store.pokes.map((item) => ({
+    ...item,
+    senderId: item.senderId === sourceId ? targetId : item.senderId,
+    receiverId: item.receiverId === sourceId ? targetId : item.receiverId,
+  }))
+  store.userSessions = store.userSessions.map((item) => ({
+    ...item,
+    profileId: item.profileId === sourceId ? targetId : item.profileId,
+  }))
+}
+
+const bindWechatUser = ({
+  phone,
+  wechatOpenId,
+  wechatUnionId = '',
+  profile = {},
+}) => {
+  const store = readStore()
+  const normalizedPhone = String(phone || '').trim()
+  const normalizedOpenId = String(wechatOpenId || '').trim()
+  const phoneProfile = normalizedPhone ? getProfileByPhone(store, normalizedPhone) : null
+  const openIdProfile = normalizedOpenId ? getProfileByOpenId(store, normalizedOpenId) : null
+  let targetProfile = phoneProfile || openIdProfile
+
+  if (phoneProfile && openIdProfile && phoneProfile.id !== openIdProfile.id) {
+    remapProfileReferences(store, openIdProfile.id, phoneProfile.id)
+    store.profiles = store.profiles.filter((item) => item.id !== openIdProfile.id)
+    targetProfile = phoneProfile
+  }
+
+  const timestamp = now()
+  const loginAt = isoNow()
+  const nextProfile = normalizeProfile(
+    {
+      ...(targetProfile || {}),
+      id: targetProfile?.id || `user-${timestamp}`,
+      name: profile.name || targetProfile?.name || `微信用户${String(normalizedPhone || timestamp).slice(-4)}`,
+      avatarUrl: profile.avatarUrl || targetProfile?.avatarUrl || hashNameToAvatar(profile.name || normalizedPhone || '微信用户'),
+      city: profile.city || targetProfile?.city || '上海',
+      signature: profile.signature || targetProfile?.signature || '已使用微信登录',
+      identityTag: profile.identityTag || targetProfile?.identityTag || '微信已绑定用户',
+      phone: normalizedPhone,
+      wechatOpenId: normalizedOpenId,
+      wechatUnionId: wechatUnionId || targetProfile?.wechatUnionId || '',
+      phoneBoundAt: targetProfile?.phoneBoundAt || loginAt,
+      lastLoginAt: loginAt,
+      loginCount: Math.max(0, Number(targetProfile?.loginCount) || 0) + 1,
+      createdAt: targetProfile?.createdAt || timestamp,
+      updatedAt: timestamp,
+    },
+    targetProfile || {},
+  )
+
+  if (targetProfile) {
+    store.profiles = store.profiles.map((item) => (item.id === nextProfile.id ? { ...item, ...nextProfile, createdAt: item.createdAt } : item))
+  } else {
+    store.profiles.unshift(nextProfile)
+  }
+
+  const token = randomToken()
+  store.userSessions = store.userSessions.filter((item) => item.profileId !== nextProfile.id && item.expiresAt > timestamp)
+  store.userSessions.unshift({
+    token,
+    profileId: nextProfile.id,
+    createdAt: timestamp,
+    expiresAt: timestamp + USER_SESSION_TTL,
+  })
+  store.loginLogs = Array.isArray(store.loginLogs) ? store.loginLogs : []
+  store.loginLogs.unshift({
+    id: `login-log-${timestamp}`,
+    profileId: nextProfile.id,
+    phone: nextProfile.phone,
+    wechatOpenId: nextProfile.wechatOpenId,
+    loginAt: loginAt,
+    source: 'wechat-miniapp',
+  })
+  writeStore(store)
+  return {
+    token,
+    profile: {
+      ...nextProfile,
+      phoneMasked: maskPhone(nextProfile.phone),
+    },
+  }
+}
+
+const getMiniUserSession = (token) => {
+  if (!token) {
+    return null
+  }
+  const store = readStore()
+  const session = store.userSessions.find((item) => item.token === token && item.expiresAt > now())
+  if (!session) {
+    return null
+  }
+  const profile = getProfileById(store, session.profileId)
+  if (!profile) {
+    return null
+  }
+  return {
+    token: session.token,
+    profile: {
+      ...profile,
+      phoneMasked: maskPhone(profile.phone),
+    },
+  }
+}
 
 const ensureProfile = (inputProfile) => {
   const store = readStore()
@@ -392,8 +576,11 @@ const getBootstrap = (profileId) => {
 
 module.exports = {
   addFriend,
+  bindWechatUser,
   ensureProfile,
   getBootstrap,
+  getMiniUserSession,
+  getProfileById,
   initSocialStore: storeAccessor.init,
   ignorePoke,
   listAllPokes,

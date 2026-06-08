@@ -6,8 +6,13 @@ export interface SocialProfile {
   city: string
   id: string
   identityTag: string
+  lastLoginAt?: string
+  loginCount?: number
   name: string
+  phone?: string
+  phoneMasked?: string
   signature: string
+  wechatOpenId?: string
 }
 
 export interface WineFriend {
@@ -56,12 +61,24 @@ interface SocialBootstrapResponse {
   wineFriends: WineFriend[]
 }
 
+export interface UserAuthSession {
+  loggedIn: boolean
+  profile: SocialProfile | null
+}
+
+export interface UserLoginPayload {
+  loginCode: string
+  phoneCode: string
+  profile: Pick<SocialProfile, 'avatarUrl' | 'city' | 'identityTag' | 'name' | 'signature'>
+}
+
 const BACKEND_RETRY_INTERVAL = 30000
 const CURRENT_PROFILE_KEY = 'social-current-profile'
 const LOCAL_DIRECTORY_KEY = 'social-local-directory'
 const LOCAL_POKE_THREADS_KEY = 'social-local-poke-threads'
 const LOCAL_WINE_FRIENDS_KEY = 'social-local-wine-friends'
 const PROFILE_ID_KEY = 'social-current-profile-id'
+const USER_TOKEN_KEY = 'jzp-user-token'
 const AVATAR_POOL = [
   avatarAsset(1),
   avatarAsset(2),
@@ -120,6 +137,7 @@ const request = <T>(
       url: `${getApiBase()}${path}`,
       method,
       data,
+      header: getUserAuthHeaders(),
       timeout: 3000,
       success: (response) => {
         const payload = response.data as ApiResponse<T>
@@ -138,6 +156,21 @@ const request = <T>(
       },
     })
   })
+
+export const getUserSessionToken = () => String(wx.getStorageSync(USER_TOKEN_KEY) || '')
+
+export const getUserAuthHeaders = (): WechatMiniprogram.IAnyObject => {
+  const token = getUserSessionToken()
+  return token ? { 'X-JZP-User-Token': token } : {}
+}
+
+const cacheUserToken = (token: string) => {
+  if (token) {
+    wx.setStorageSync(USER_TOKEN_KEY, token)
+  } else {
+    wx.removeStorageSync(USER_TOKEN_KEY)
+  }
+}
 
 const hashNameToAvatar = (name: string) => {
   const sum = Array.from(name).reduce((total, char) => total + char.charCodeAt(0), 0)
@@ -313,6 +346,18 @@ const buildLocalBootstrap = (profile: SocialProfile): SocialBootstrapResponse =>
 }
 
 export const ensureCurrentProfile = async (): Promise<SocialProfile> => {
+  const token = getUserSessionToken()
+  if (token) {
+    try {
+      const session = await request<UserAuthSession>('/user/auth/session')
+      if (session.loggedIn && session.profile) {
+        return upsertLocalProfile(session.profile)
+      }
+    } catch {
+      cacheUserToken('')
+    }
+  }
+
   const local = getLocalProfile()
 
   try {
@@ -338,6 +383,30 @@ export const bootstrapSocial = async (): Promise<SocialBootstrapResponse> => {
 }
 
 export const getCurrentProfile = async (): Promise<SocialProfile> => ensureCurrentProfile()
+
+export const getUserAuthSession = async (): Promise<UserAuthSession> => {
+  const token = getUserSessionToken()
+  if (!token) {
+    return { loggedIn: false, profile: null }
+  }
+  try {
+    const session = await request<UserAuthSession>('/user/auth/session')
+    if (session.loggedIn && session.profile) {
+      upsertLocalProfile(session.profile)
+      return session
+    }
+    cacheUserToken('')
+    return { loggedIn: false, profile: null }
+  } catch {
+    return { loggedIn: false, profile: null }
+  }
+}
+
+export const loginWithWechatPhone = async (payload: UserLoginPayload): Promise<SocialProfile> => {
+  const result = await request<{ profile: SocialProfile; token: string }>('/user/auth/login', 'POST', payload as WechatMiniprogram.IAnyObject)
+  cacheUserToken(result.token)
+  return upsertLocalProfile(result.profile)
+}
 
 export const saveCurrentProfile = async (patch: Partial<SocialProfile>): Promise<SocialProfile> => {
   const current = getLocalProfile()
