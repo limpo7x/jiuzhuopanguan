@@ -1,7 +1,5 @@
 const LOCAL_API_BASE = 'http://127.0.0.1:3010/api/v1'
-
-// 填入正式 HTTPS 后端地址后，前台会优先直连远端。
-const REMOTE_API_BASE = ''
+const REMOTE_API_BASE = 'https://api.pomer.cn/api/v1'
 
 const STORAGE_KEY = 'runtime-api-base'
 

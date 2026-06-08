@@ -1,11 +1,10 @@
 import {
-  TOOL_CATEGORIES,
-  TOOL_LIST,
-  getToolCategoryCards,
   resolveToolId,
   type ToolCategoryCard,
   type ToolDescriptor,
 } from '../../utils/toolkit'
+import { staticAsset } from '../../config/assets'
+import { getManagedToolsCatalog } from '../../services/operations'
 
 interface CategoryViewItem {
   id: string
@@ -15,8 +14,13 @@ interface CategoryViewItem {
 
 interface ToolsPageState {
   activeCategory: string
+  allCategoryCards: ToolCategoryCard[]
+  allTools: ToolDescriptor[]
   categories: CategoryViewItem[]
   categoryCards: ToolCategoryCard[]
+  heroImageUrl: string
+  heroSubtitle: string
+  heroTitle: string
   popularTools: ToolDescriptor[]
   searchKeyword: string
 }
@@ -28,6 +32,7 @@ interface ToolsPageMethods {
   handleSearchClear: () => void
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
   handleToolTap: (event: WechatMiniprogram.BaseEvent) => void
+  loadCatalog: () => Promise<void>
   openPage: (url: string) => void
 }
 
@@ -43,25 +48,52 @@ const normalizeKeyword = (value: string) => value.trim().toLowerCase()
 Page<ToolsPageState, ToolsPageMethods>({
   data: {
     activeCategory: 'all',
-    categories: TOOL_CATEGORIES.map((item) => ({
-      id: item.id,
-      name: item.name,
-      active: item.id === 'all',
-    })),
-    categoryCards: getToolCategoryCards(),
-    popularTools: TOOL_LIST,
+    allCategoryCards: [],
+    allTools: [],
+    categories: [],
+    categoryCards: [],
+    heroImageUrl: staticAsset('toolbox-hero.png'),
+    heroSubtitle: '高效 · 实用 · 有趣',
+    heroTitle: '工具在手 生活不愁',
+    popularTools: [],
     searchKeyword: '',
   },
 
   onLoad() {
-    this.applyFilters()
+    void this.loadCatalog()
+  },
+
+  async loadCatalog() {
+    const catalog = await getManagedToolsCatalog()
+    this.setData(
+      {
+        allCategoryCards: catalog.categoryCards,
+        allTools: catalog.tools,
+        categories: catalog.categories.map((item) => ({
+          id: item.id,
+          name: item.name,
+          active: item.id === 'all',
+        })),
+        categoryCards: catalog.categoryCards,
+        heroImageUrl: catalog.hero.imageUrl,
+        heroSubtitle: catalog.hero.subtitle,
+        heroTitle: catalog.hero.title,
+        popularTools: catalog.tools,
+      },
+      () => {
+        this.applyFilters()
+      },
+    )
   },
 
   applyFilters() {
-    const { activeCategory, searchKeyword } = this.data
+    const { activeCategory, allCategoryCards, allTools, categories, searchKeyword } = this.data
     const keyword = normalizeKeyword(searchKeyword)
+    const sourceTools = allTools.length ? allTools : this.data.popularTools
+    const sourceCards = allCategoryCards.length ? allCategoryCards : this.data.categoryCards
+    const sourceCategories = categories.length ? categories : [{ id: 'all', name: '全部', active: true }]
 
-    const visibleTools = TOOL_LIST.filter((tool) => {
+    const visibleTools = sourceTools.filter((tool) => {
       const matchCategory = activeCategory === 'all' || tool.categoryId === activeCategory
       if (!matchCategory) {
         return false
@@ -74,7 +106,7 @@ Page<ToolsPageState, ToolsPageMethods>({
       return `${tool.name} ${tool.meta}`.toLowerCase().includes(keyword)
     })
 
-    const visibleCards = getToolCategoryCards().filter((card) => {
+    const visibleCards = sourceCards.filter((card) => {
       if (activeCategory !== 'all' && card.id !== activeCategory) {
         return false
       }
@@ -87,7 +119,7 @@ Page<ToolsPageState, ToolsPageMethods>({
     })
 
     this.setData({
-      categories: TOOL_CATEGORIES.map((item) => ({
+      categories: sourceCategories.map((item) => ({
         id: item.id,
         name: item.name,
         active: item.id === activeCategory,

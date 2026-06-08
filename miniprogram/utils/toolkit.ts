@@ -1,3 +1,5 @@
+import { staticAsset } from '../config/assets'
+
 export interface ToolCategory {
   id: string
   name: string
@@ -35,7 +37,7 @@ export interface ToolCategoryCard {
   imageUrl: string
 }
 
-const asset = (path: string) => `/assets/${path}`
+const asset = (path: string) => (path.startsWith('home/') ? staticAsset(path.replace(/^home\//, '')) : `/assets/${path}`)
 
 export const TOOL_CATEGORIES: ToolCategory[] = [
   { id: 'all', name: '全部' },

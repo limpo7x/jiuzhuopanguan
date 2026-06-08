@@ -9,28 +9,35 @@
 <view class="pro-page">
   <scroll-view class="pro-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="pro-chip-row">
-      <view wx:for="{{filters}}" wx:key="name" class="pro-chip {{item.active ? 'pro-chip-active' : ''}}">{{item.name}}</view>
+      <view
+        wx:for="{{filters}}"
+        wx:key="id"
+        class="pro-chip {{item.active ? 'pro-chip-active' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="handleFilterTap"
+      >{{item.name}}</view>
     </view>
 
     <view class="pro-list">
-      <view wx:for="{{templates}}" wx:key="title" class="pro-item" data-title="{{item.title}}" bindtap="handleTemplateTap">
+      <view wx:for="{{visibleTemplates}}" wx:key="id" class="pro-item" data-id="{{item.id}}" data-title="{{item.title}}" bindtap="handleTemplateTap">
         <view class="pro-thumb">
           <image src="{{item.imageUrl}}" mode="aspectFill"></image>
         </view>
         <view class="pro-copy">
           <text class="pro-title">{{item.title}}</text>
           <text class="pro-meta">{{item.meta}}</text>
+          <text class="pro-meta">{{pendingTemplateId === item.id ? '解锁处理中' : item.accessText}}</text>
         </view>
-        <view class="pro-tag">{{item.cost}}积分</view>
+        <view class="pro-tag">{{item.locked ? '解锁' : (membershipActive ? '会员' : '已开通')}}</view>
       </view>
     </view>
 
     <view class="pro-unlock-card">
       <view class="pro-unlock-head">
-        <text class="pro-unlock-title">看激励视频解锁 PRO 模板</text>
-        <view class="pro-tag">0/3</view>
+        <text class="pro-unlock-title">{{unlockTitle}}</text>
+        <view class="pro-tag">{{unlockProgressText}}</view>
       </view>
-      <view class="pro-primary" bindtap="handleUnlockTap">立即解锁</view>
+      <view class="pro-primary" bindtap="handleUnlockTap">{{membershipActive ? '会员已开通' : '开通会员免广告解锁'}}</view>
     </view>
   </scroll-view>
 </view>

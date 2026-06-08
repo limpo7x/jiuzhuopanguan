@@ -2,9 +2,16 @@
 node_modules/
 
 project.private.config.json
+backend/data/content-store.json
+backend/data/social-store.json
+backend/data/admin-store.json
+backend/data/asset-manifest.json
 
 *.log
 *.tmp
 *.temp
 .DS_Store
 Thumbs.db
+backend.zip
+docs/archived-home-assets/
+docs/archived-avatar-assets/

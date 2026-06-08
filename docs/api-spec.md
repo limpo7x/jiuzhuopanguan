@@ -3,7 +3,7 @@
 ## 1. 基准地址
 
 - 本地：`http://127.0.0.1:3010/api/v1`
-- 线上：`https://pomer.cn/api/v1`
+- 线上：`https://api.pomer.cn/api/v1`
 
 统一响应结构：
 

@@ -1,0 +1,11 @@
+CREATE DATABASE IF NOT EXISTS `jiuzhuopanguan`
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE `jiuzhuopanguan`;
+
+CREATE TABLE IF NOT EXISTS `app_store` (
+  `store_key` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `data_json` LONGTEXT NOT NULL,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

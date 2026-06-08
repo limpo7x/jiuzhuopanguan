@@ -9,9 +9,9 @@
 <view class="points-page">
   <scroll-view class="points-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="points-banner">
-      <text class="points-value">3286</text>
+      <text class="points-value">{{balance}}</text>
       <text class="points-subtitle">可用积分</text>
-      <image class="points-image" src="/assets/home/points-gift.png" mode="aspectFill"></image>
+      <image class="points-image" src="{{bannerImageUrl}}" mode="aspectFill"></image>
     </view>
 
     <view class="points-tab-row">
@@ -37,7 +37,11 @@
             <text class="points-task-title">{{item.title}}</text>
             <text class="points-task-meta">完成任务获得积分</text>
           </view>
-          <view class="points-tag">+{{item.value}}</view>
+          <view
+            class="points-tag {{claimedTaskIds.indexOf(item.id) !== -1 ? 'points-tag-solid' : ''}}"
+            data-id="{{item.id}}"
+            bindtap="handleTaskClaim"
+          >{{claimedTaskIds.indexOf(item.id) !== -1 ? '已领取' : (pendingActionId === item.id ? '处理中' : ('+ ' + item.value))}}</view>
         </view>
       </view>
     </view>
@@ -55,7 +59,11 @@
             <text class="points-task-title">{{item.title}}</text>
             <text class="points-task-meta">{{item.subtitle}}</text>
           </view>
-          <view class="points-tag points-tag-solid">{{item.cost}} 积分</view>
+          <view
+            class="points-tag points-tag-solid"
+            data-id="{{item.id}}"
+            bindtap="handleRewardRedeem"
+          >{{ownedRewardIds.indexOf(item.id) !== -1 ? '已兑换' : (pendingActionId === item.id ? '处理中' : (item.cost + ' 积分'))}}</view>
         </view>
       </view>
     </view>

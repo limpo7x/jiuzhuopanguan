@@ -1,3 +1,5 @@
+import { createManagedSession } from '../../services/operations'
+import { staticAsset } from '../../config/assets'
 import { setSessionRuntime } from '../../utils/session'
 
 interface NamePreset {
@@ -21,7 +23,7 @@ interface CreateSessionState {
 
 interface CreateSessionMethods {
   handleMoreTemplatesTap: () => void
-  handleNextTap: () => void
+  handleNextTap: () => Promise<void>
   handlePlayerCountTap: (event: WechatMiniprogram.BaseEvent) => void
   handlePresetTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTemplateTap: (event: WechatMiniprogram.BaseEvent) => void
@@ -38,9 +40,9 @@ Page<CreateSessionState, CreateSessionMethods>({
       { name: '生日局' },
     ],
     templates: [
-      { id: 'classic', name: '经典喝酒版', imageUrl: '/assets/home/party-hero.png', active: true },
-      { id: 'report', name: '战报分享版', imageUrl: '/assets/home/report-poster.png' },
-      { id: 'toolbox', name: '轻松整活版', imageUrl: '/assets/home/toolbox-hero.png' },
+      { id: 'classic', name: '经典喝酒版', imageUrl: staticAsset('party-hero.png'), active: true },
+      { id: 'report', name: '战报分享版', imageUrl: staticAsset('report-poster.png') },
+      { id: 'toolbox', name: '轻松整活版', imageUrl: staticAsset('toolbox-hero.png') },
     ],
   },
 
@@ -96,7 +98,21 @@ Page<CreateSessionState, CreateSessionMethods>({
     this.setData({ templates })
   },
 
-  handleNextTap() {
+  async handleNextTap() {
+    const activeTemplate = this.data.templates.find((item) => item.active) || this.data.templates[0]
+    try {
+      await createManagedSession({
+        hostName: '当前发起人',
+        playerCount: this.data.playerCount,
+        sessionName: this.data.sessionName,
+        source: '直接创建',
+        state: '等待开局',
+        templateName: activeTemplate?.name || '经典喝酒版',
+      })
+    } catch {
+      // Fall back to local runtime creation when backend is unavailable.
+    }
+
     setSessionRuntime({
       isJudge: true,
       playerCount: this.data.playerCount,

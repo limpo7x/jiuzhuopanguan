@@ -12,7 +12,7 @@
   <scroll-view class="restart-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="restart-center">
       <text class="restart-title">换个玩法，继续快乐！</text>
-      <image class="restart-state-image" src="/assets/home/beer-toast.png" mode="aspectFill"></image>
+      <image class="restart-state-image" src="https://api.pomer.cn/static/beer-toast.png" mode="aspectFill"></image>
     </view>
 
     <view class="restart-section-head">
@@ -21,7 +21,7 @@
 
     <view class="restart-item">
       <view class="restart-thumb">
-        <image src="/assets/home/toolbox-hero.png" mode="aspectFill"></image>
+        <image src="https://api.pomer.cn/static/toolbox-hero.png" mode="aspectFill"></image>
       </view>
       <view class="restart-copy">
         <text class="restart-item-title">多模板混合局</text>

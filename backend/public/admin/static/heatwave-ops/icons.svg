@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="icon-dashboard" viewBox="0 0 24 24">
+    <path fill="#FF5B3D" d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/>
+  </symbol>
+  <symbol id="icon-content" viewBox="0 0 24 24">
+    <path fill="#FF7645" d="M4 5h16v4H4zm0 5h10v4H4zm0 5h16v4H4z"/>
+  </symbol>
+  <symbol id="icon-template" viewBox="0 0 24 24">
+    <path fill="#FF5B3D" d="M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm1 3v10h12V7zm2 2h4v3H8zm0 4h8v2H8z"/>
+  </symbol>
+  <symbol id="icon-question" viewBox="0 0 24 24">
+    <path fill="#FF5B3D" d="M12 3a9 9 0 1 1 0 18a9 9 0 0 1 0-18zm0 13.5a1.2 1.2 0 1 0 0 2.4a1.2 1.2 0 0 0 0-2.4zm0-10a4.2 4.2 0 0 0-4.2 4.2h2.4A1.8 1.8 0 1 1 12 12.5v2h2.4v-1.5c0-1.05.52-1.48 1.14-2.02A4.2 4.2 0 0 0 12 6.5z"/>
+  </symbol>
+  <symbol id="icon-share" viewBox="0 0 24 24">
+    <path fill="#FF7645" d="M18 8a3 3 0 1 0-2.75-4.2a3 3 0 0 0 .34 2.4L8.9 9.5A3 3 0 0 0 6 8.5A3 3 0 1 0 8.9 14l6.68 3.3A3 3 0 1 0 16.5 15L9.83 11.7A3.1 3.1 0 0 0 9.8 12c0 .1 0 .2.02.3l6.67-3.3A3 3 0 0 0 18 9z"/>
+  </symbol>
+  <symbol id="icon-tool" viewBox="0 0 24 24">
+    <path fill="#FF5B3D" d="M20.7 7.3a5 5 0 0 1-6.5 6.5l-6.6 6.6a1.5 1.5 0 0 1-2.1-2.1l6.6-6.6a5 5 0 0 1 6.5-6.5l-3 3v2h2z"/>
+  </symbol>
+  <symbol id="icon-user" viewBox="0 0 24 24">
+    <path fill="#FF7645" d="M12 12a4 4 0 1 0-4-4a4 4 0 0 0 4 4zm0 2c-4 0-7 2.24-7 5v1h14v-1c0-2.76-3-5-7-5z"/>
+  </symbol>
+  <symbol id="icon-friends" viewBox="0 0 24 24">
+    <path fill="#FF5B3D" d="M8.5 11A3.5 3.5 0 1 0 5 7.5A3.5 3.5 0 0 0 8.5 11zm7 0A3.5 3.5 0 1 0 12 7.5A3.5 3.5 0 0 0 15.5 11zM8.5 13C5.46 13 3 14.57 3 16.5V19h11v-2.5C14 14.57 11.54 13 8.5 13zm7 0c-.58 0-1.14.06-1.67.18A5.16 5.16 0 0 1 17 16.5V19h4v-2.1c0-2.2-2.24-3.9-5.5-3.9z"/>
+  </symbol>
+  <symbol id="icon-session" viewBox="0 0 24 24">
+    <path fill="#FF7645" d="M6 4h12l2 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8zm2 6v2h8v-2zm0 4v2h5v-2z"/>
+  </symbol>
+  <symbol id="icon-report" viewBox="0 0 24 24">
+    <path fill="#FF5B3D" d="M6 3h9l5 5v13H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm7 1v5h5zm-5 9h8v2H8zm0 4h8v2H8zm0-8h4v2H8z"/>
+  </symbol>
+  <symbol id="icon-points" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8" fill="#FF5B3D"/>
+    <path fill="#fff" d="M12 6l1.6 3.2l3.4.5l-2.5 2.4l.6 3.4l-3.1-1.7l-3.1 1.7l.6-3.4L7 9.7l3.4-.5z"/>
+  </symbol>
+  <symbol id="icon-member" viewBox="0 0 24 24">
+    <path fill="#E5B86F" d="M4 18l2-10l5 5l2-7l5 7l2-5l2 10z"/>
+  </symbol>
+  <symbol id="icon-ads" viewBox="0 0 24 24">
+    <path fill="#FF7645" d="M4 7h10l6-3v16l-6-3H4zm3 3v4h4v-4z"/>
+  </symbol>
+  <symbol id="icon-store" viewBox="0 0 24 24">
+    <path fill="#FF5B3D" d="M4 8l2-4h12l2 4v2a3 3 0 0 1-3 3v7H7v-7a3 3 0 0 1-3-3zm5 6v4h6v-4z"/>
+  </symbol>
+  <symbol id="icon-chart" viewBox="0 0 24 24">
+    <path fill="#FF7645" d="M5 19V5h2v14zm4 0V11h2v8zm4 0V8h2v11zm4 0V3h2v16z"/>
+  </symbol>
+  <symbol id="icon-security" viewBox="0 0 24 24">
+    <path fill="#FF5B3D" d="M12 3l7 3v5c0 4.7-2.9 8.2-7 10c-4.1-1.8-7-5.3-7-10V6zm0 5a2 2 0 0 0-2 2v1h4v-1a2 2 0 0 0-2-2zm-3 5v3h6v-3z"/>
+  </symbol>
+  <symbol id="icon-settings" viewBox="0 0 24 24">
+    <path fill="#FF7645" d="M19.4 13a7.9 7.9 0 0 0 .05-2l2.05-1.6l-2-3.4l-2.5 1a8.8 8.8 0 0 0-1.7-1l-.4-2.7H11l-.4 2.7a8.8 8.8 0 0 0-1.7 1l-2.5-1l-2 3.4L6.45 11a7.9 7.9 0 0 0 0 2L4.4 14.6l2 3.4l2.5-1a8.8 8.8 0 0 0 1.7 1L11 20.7h4l.4-2.7a8.8 8.8 0 0 0 1.7-1l2.5 1l2-3.4zM13.9 12A1.9 1.9 0 1 1 12 10.1A1.9 1.9 0 0 1 13.9 12z"/>
+  </symbol>
+  <symbol id="icon-search" viewBox="0 0 24 24">
+    <path fill="#7B6451" d="M10 4a6 6 0 1 1 0 12a6 6 0 0 1 0-12zm8.7 13.3l2.3 2.3l-1.4 1.4l-2.3-2.3z"/>
+  </symbol>
+  <symbol id="icon-filter" viewBox="0 0 24 24">
+    <path fill="#7B6451" d="M4 6h16v2l-6 6v5l-4-2v-3L4 8z"/>
+  </symbol>
+  <symbol id="icon-alert" viewBox="0 0 24 24">
+    <path fill="#D34F3F" d="M12 3l10 18H2zm-1 6h2v5h-2zm0 7h2v2h-2z"/>
+  </symbol>
+  <symbol id="icon-eye" viewBox="0 0 24 24">
+    <path fill="#7B6451" d="M12 6c5.5 0 9 6 9 6s-3.5 6-9 6s-9-6-9-6s3.5-6 9-6zm0 3.2a2.8 2.8 0 1 0 0 5.6a2.8 2.8 0 0 0 0-5.6z"/>
+  </symbol>
+  <symbol id="icon-publish" viewBox="0 0 24 24">
+    <path fill="#1B8F62" d="M12 4l5 5h-3v6h-4V9H7zm-6 12h12v4H6z"/>
+  </symbol>
+  <symbol id="icon-edit" viewBox="0 0 24 24">
+    <path fill="#CC7A22" d="M5 16.8L15.8 6l2.2 2.2L7.2 19H5zm13.7-9.5l-2.2-2.2l1.4-1.4a1.6 1.6 0 0 1 2.2 0l.8.8a1.6 1.6 0 0 1 0 2.2z"/>
+  </symbol>
+</svg>

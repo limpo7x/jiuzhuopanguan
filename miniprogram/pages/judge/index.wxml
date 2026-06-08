@@ -9,7 +9,7 @@
 <view class="judge-page">
   <scroll-view class="judge-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="judge-hero">
-      <image class="judge-hero-image" src="/assets/home/party-hero.png" mode="aspectFill"></image>
+      <image class="judge-hero-image" src="https://api.pomer.cn/static/party-hero.png" mode="aspectFill"></image>
       <view class="judge-hero-mask"></view>
       <view class="judge-hero-content">
         <text class="judge-hero-title">这局，快乐就完事了！</text>
@@ -76,7 +76,7 @@
 
     <view class="judge-session-card">
       <view class="judge-session-thumb">
-        <image src="/assets/home/report-poster.png" mode="aspectFill"></image>
+        <image src="https://api.pomer.cn/static/report-poster.png" mode="aspectFill"></image>
       </view>
       <view class="judge-session-copy">
         <text class="judge-session-title">{{sessionName}}</text>

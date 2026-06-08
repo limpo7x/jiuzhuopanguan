@@ -1,0 +1,1658 @@
+const crypto = require('crypto')
+const fs = require('fs')
+const path = require('path')
+const { createStoreAccessor } = require('./store-accessor')
+const {
+  getCompliance,
+  getHomeConfig,
+  getPointsConfig,
+  getProfile,
+  getTemplateConfig,
+  getToolHistory,
+  readContentStore,
+  updateCompliance,
+  updateHomeConfig,
+  updatePointsConfig,
+  updateTemplateConfig,
+} = require('./content')
+const {
+  ensureProfile,
+  listAllPokes,
+  listFriendships,
+  listProfiles,
+  readSocialStore,
+  writeSocialStore,
+} = require('./social')
+
+const storePath = path.join(__dirname, 'admin-store.json')
+const SESSION_TTL = 1000 * 60 * 60 * 12
+
+const hashPassword = (password) => crypto.createHash('sha256').update(password).digest('hex')
+const createId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
+const now = () => Date.now()
+const iso = (value = Date.now()) => new Date(value).toISOString()
+
+const createDefaultStore = () => ({
+  adminUsers: [
+    {
+      id: 'admin-root',
+      username: 'admin',
+      passwordHash: hashPassword('Admin@123456'),
+      name: '系统管理员',
+      roleId: 'role-super-admin',
+      status: 'active',
+      lastLoginAt: '',
+    },
+    {
+      id: 'admin-content',
+      username: 'content.ops',
+      passwordHash: hashPassword('Content@123'),
+      name: '内容运营',
+      roleId: 'role-content-ops',
+      status: 'active',
+      lastLoginAt: '',
+    },
+  ],
+  roles: [
+    {
+      id: 'role-super-admin',
+      name: '超级管理员',
+      scope: '全量模块',
+      permissions: ['*'],
+      status: 'active',
+    },
+    {
+      id: 'role-content-ops',
+      name: '内容运营',
+      scope: '首页、模板、题库、素材',
+      permissions: ['content', 'share', 'tools'],
+      status: 'active',
+    },
+    {
+      id: 'role-commerce-ops',
+      name: '商业化运营',
+      scope: '积分、会员、广告、商户',
+      permissions: ['points', 'membership', 'ads', 'merchant'],
+      status: 'active',
+    },
+  ],
+  sessions: [],
+  userOps: [
+    { id: 'user-1001', status: '高活跃', tags: ['模板偏好', '战报分享'], note: '最近 7 天连续开局' },
+    { id: 'user-1002', status: '普通', tags: ['工具用户'], note: '二维码与图片工具使用较高' },
+    { id: 'user-1003', status: '高价值', tags: ['会员', '深夜场景'], note: '会员套餐转化概率高' },
+  ],
+  questionBank: [
+    { id: 'q-1', content: '给左手边玩家唱一句祝酒词', type: '互动', difficulty: '简单', template: '生日专属', riskLevel: '低', status: '待审核' },
+    { id: 'q-2', content: '分享一张本周最尴尬照片', type: '惩罚', difficulty: '中等', template: '整活大挑战', riskLevel: '中', status: '待审核' },
+    { id: 'q-3', content: '让全场投票你今晚最像谁', type: '问答', difficulty: '简单', template: '友情互损', riskLevel: '低', status: '上线中' },
+  ],
+  shareAssets: [
+    { id: 'share-1', name: '热场局战报海报 A', assetType: '战报海报', scene: '战报分享', imageUrl: '/static/report-poster.png', openRate: '52.1%', returnRate: '11.6%', status: '上线中' },
+    { id: 'share-2', name: '好友邀局卡 B', assetType: '邀局卡', scene: '邀请好友', imageUrl: '/static/party-hero.png', openRate: '36.8%', returnRate: '8.1%', status: '上线中' },
+    { id: 'share-3', name: '群分享二维码卡片', assetType: '分享码', scene: '群邀请', imageUrl: '/static/report-poster.png', openRate: '29.4%', returnRate: '14.3%', status: '上线中' },
+  ],
+  toolsCatalog: [
+    { id: 'tool-qr', name: '二维码生成', category: '分享生成', target: '邀局裂变', imageUrl: '/static/report-poster.png', usageCount: 5622, favoriteRate: '16.8%', status: '启用' },
+    { id: 'tool-compress', name: '图片压缩', category: '图片处理', target: '工具留存', imageUrl: '/static/image-process-hero.png', usageCount: 3410, favoriteRate: '13.2%', status: '启用' },
+    { id: 'tool-json', name: 'JSON 格式化', category: '开发工具', target: '日活补充', imageUrl: '/static/toolbox-hero.png', usageCount: 2184, favoriteRate: '8.7%', status: '启用' },
+  ],
+  liveSessions: [
+    { id: 'session-1', name: '周五热场局', players: 6, template: '友情互损', hostName: '阿浩', inviteCode: 'A17K9Q', state: '进行中 26 分钟', source: '群分享', status: '正常' },
+    { id: 'session-2', name: '生日专属局', players: 8, template: '生日专属', hostName: 'Mika', inviteCode: 'N27K9Q', state: '已结束', source: '好友邀请', status: '正常' },
+    { id: 'session-3', name: '午夜整活场', players: 5, template: '午夜热场局', hostName: '可可', inviteCode: 'N37K9Q', state: '等待开局', source: '二维码加入', status: '待观察' },
+  ],
+  reports: [
+    { id: 'report-1', name: '周五热场局战报', template: '友情互损', title: '这局一开口就停不下来', scene: '常规局', highlight1: '阿浩 连续被点名，直接坐实欠酒大王', highlight2: '小熊 跑调版《孤勇者》成了本局名场面', highlight3: '全场在最后一轮临时加赛，笑点拉满', shareRate: '46.8%', replayRate: '18.2%', status: '正常' },
+    { id: 'report-2', name: '生日专属局战报', template: '生日专属', title: '这局快乐就完事了！', scene: '生日局', highlight1: '寿星开局被全员围攻，气氛直接起飞', highlight2: 'Mika 的临场加题把全桌带进爆笑节奏', highlight3: '战报转发到 3 个群后继续带来回流', shareRate: '52.1%', replayRate: '22.7%', status: '爆发' },
+    { id: 'report-3', name: '午夜整活局战报', template: '午夜热场局', title: '夜场这波整活值回票价', scene: '夜场', highlight1: '可可 主动加赛海草舞，现场彻底放开', highlight2: '阿乐 的口头禅被挖出来，全场接龙', highlight3: '最后一轮回看战报时，又拉回一局', shareRate: '37.6%', replayRate: '15.1%', status: '正常' },
+  ],
+  membershipPlans: [
+    { id: 'member-1', name: '闪享月卡', price: '¥18', duration: '30 天', conversionRate: '4.2%', renewRate: '38.4%', status: '上线中' },
+    { id: 'member-2', name: '闪享季卡', price: '¥48', duration: '90 天', conversionRate: '2.6%', renewRate: '46.3%', status: '上线中' },
+    { id: 'member-3', name: '闪享年卡', price: '¥158', duration: '365 天', conversionRate: '0.8%', renewRate: '61.7%', status: '上线中' },
+  ],
+  membershipBenefits: [
+    { id: 'benefit-1', name: '模板无限看', scope: '高级模板页', status: '启用', note: '会员专享模板全量可见' },
+    { id: 'benefit-2', name: '战报导出免广告', scope: '分享战报页', status: '启用', note: '跳过激励视频' },
+    { id: 'benefit-3', name: '会员专属海报', scope: '海报模板', status: '启用', note: '品牌角标与高级背景' },
+  ],
+  adSlots: [
+    { id: 'ad-1', name: '模板解锁视频', page: '高级模板', adType: '激励视频', completionRate: '71.8%', revenue: '¥4,820', status: '启用' },
+    { id: 'ad-2', name: '战报导出视频', page: '分享战报', adType: '激励视频', completionRate: '74.2%', revenue: '¥3,912', status: '启用' },
+    { id: 'ad-3', name: '工具详情 Banner', page: '工具详情', adType: 'Banner', completionRate: 'CTR 3.8%', revenue: '¥1,106', status: '启用' },
+  ],
+  merchants: [
+    { id: 'merchant-1', name: '代驾优惠券', category: '代驾', inventory: '2400 / 7 天', claimCount: '5202', verifyRate: '21.9%', status: '上线中' },
+    { id: 'merchant-2', name: '夜宵满减券', category: '夜宵', inventory: '1800 / 5 天', claimCount: '4116', verifyRate: '17.4%', status: '上线中' },
+    { id: 'merchant-3', name: 'KTV 拼局券', category: '娱乐', inventory: '920 / 14 天', claimCount: '1486', verifyRate: '12.8%', status: '灰度' },
+  ],
+  campaigns: [
+    { id: 'campaign-1', name: '邀请 3 位新朋友解锁模板', reward: '模板包 / 7 天', participants: '4612', returnRate: '18.4%', status: '进行中' },
+    { id: 'campaign-2', name: '生日季专属局裂变', reward: '海报 + 券包 / 10 天', participants: '3286', returnRate: '21.7%', status: '进行中' },
+    { id: 'campaign-3', name: '周末夜场冲刺', reward: '积分 + 代驾券 / 3 天', participants: '1924', returnRate: '16.3%', status: '灰度' },
+  ],
+  baseConfigs: [
+    { id: 'cfg-1', key: 'REMOTE_API_BASE', value: 'https://api.pomer.cn/api/v1', scope: '生产 / 全局', updatedAt: '今天 09:30', status: '已生效' },
+    { id: 'cfg-2', key: 'SHARE_DEFAULT_COPY', value: '欠酒互怼 · 整活不断', scope: '生产 / 分享', updatedAt: '昨天 18:10', status: '已生效' },
+    { id: 'cfg-3', key: 'HOME_BIRTHDAY_BANNER', value: '生日季热场周', scope: '灰度 / 首页', updatedAt: '待 20:00', status: '待发布' },
+  ],
+  sensitiveWords: [
+    { id: 'word-1', word: '未成年也能玩', level: '高', scene: '活动文案', status: '启用' },
+    { id: 'word-2', word: '喝到站不稳', level: '高', scene: '模板文案', status: '启用' },
+    { id: 'word-3', word: '连喝三杯', level: '中', scene: '题库', status: '启用' },
+  ],
+  auditQueue: [
+    { id: 'audit-1', target: '“连喝三杯再自拍发群”', source: '题库', reason: '过度饮酒导向', submittedAt: '今天 11:26', status: '待审核' },
+    { id: 'audit-2', target: '“喝到站不稳才算输”', source: '模板文案', reason: '违规饮酒引导', submittedAt: '今天 09:14', status: '待审核' },
+    { id: 'audit-3', target: '昵称“酒疯子xxx”', source: '用户昵称', reason: '负面引导', submittedAt: '今天 08:22', status: '已拦截' },
+  ],
+})
+
+const normalizeStore = (store = {}) => {
+  const next = {
+    ...createDefaultStore(),
+    ...store,
+    sessions: Array.isArray(store.sessions) ? store.sessions.filter((item) => Number(item.expiresAt) > now()) : [],
+  }
+  return next
+}
+
+const storeAccessor = createStoreAccessor({
+  key: 'admin_store',
+  filePath: storePath,
+  createDefaultStore,
+  normalizeStore,
+})
+
+const readStore = () => storeAccessor.read()
+
+const writeStore = (store) => storeAccessor.write(store)
+
+const getAdminUserView = (user, roles) => ({
+  id: user.id,
+  username: user.username,
+  name: user.name,
+  roleId: user.roleId,
+  roleName: roles.find((item) => item.id === user.roleId)?.name || '',
+  status: user.status,
+  lastLoginAt: user.lastLoginAt || '',
+})
+
+const loginAdmin = ({ username, password }) => {
+  const store = readStore()
+  const user = store.adminUsers.find((item) => item.username === String(username || '').trim())
+  if (!user || user.status !== 'active' || user.passwordHash !== hashPassword(String(password || ''))) {
+    throw new Error('账号或密码错误')
+  }
+
+  const token = crypto.randomBytes(24).toString('hex')
+  const session = {
+    token,
+    userId: user.id,
+    createdAt: now(),
+    expiresAt: now() + SESSION_TTL,
+  }
+  user.lastLoginAt = iso()
+  store.sessions = store.sessions.filter((item) => item.userId !== user.id)
+  store.sessions.unshift(session)
+  writeStore(store)
+  return {
+    token,
+    user: getAdminUserView(user, store.roles),
+  }
+}
+
+const getSession = (token) => {
+  if (!token) {
+    return null
+  }
+  const store = readStore()
+  const session = store.sessions.find((item) => item.token === token && Number(item.expiresAt) > now())
+  if (!session) {
+    return null
+  }
+  const user = store.adminUsers.find((item) => item.id === session.userId)
+  if (!user || user.status !== 'active') {
+    return null
+  }
+  return {
+    token,
+    user: getAdminUserView(user, store.roles),
+  }
+}
+
+const logoutAdmin = (token) => {
+  if (!token) {
+    return
+  }
+  const store = readStore()
+  store.sessions = store.sessions.filter((item) => item.token !== token)
+  writeStore(store)
+}
+
+const numberFromText = (value) => {
+  const matched = String(value || '')
+    .replace(/,/g, '')
+    .match(/-?\d+(?:\.\d+)?/)
+  return matched ? Number(matched[0]) : 0
+}
+
+const average = (values = []) => (values.length ? values.reduce((sum, item) => sum + Number(item || 0), 0) / values.length : 0)
+const sumBy = (list = [], selector) => list.reduce((sum, item, index) => sum + Number(selector(item, index) || 0), 0)
+const avgBy = (list = [], selector) => average(list.map((item, index) => selector(item, index)))
+const countBy = (list = [], predicate) => list.filter(predicate).length
+const formatPercent = (value, digits = 1) => `${Number(value || 0).toFixed(digits).replace(/\.0$/, '').replace(/(\.\d*[1-9])0+$/, '$1')}%`
+const formatCurrency = (value) => `¥${Math.round(Number(value || 0)).toLocaleString('en-US')}`
+const formatNumber = (value) => Math.round(Number(value || 0)).toLocaleString('en-US')
+const ratioPercent = (numerator, denominator, digits = 1) => formatPercent(denominator ? (Number(numerator || 0) / Number(denominator || 0)) * 100 : 0, digits)
+const byNumericDesc = (selector) => (left, right) => Number(selector(right) || 0) - Number(selector(left) || 0)
+
+const buildUserProfileItems = (adminStore = readStore(), contentStore = readContentStore(), socialStore = readSocialStore()) =>
+  socialStore.profiles.map((profile) => {
+    const meta = adminStore.userOps.find((item) => item.id === profile.id) || { status: '', tags: [], note: '' }
+    return {
+      id: profile.id,
+      name: profile.name,
+      city: profile.city,
+      identityTag: profile.identityTag,
+      status: meta.status,
+      tagsText: Array.isArray(meta.tags) ? meta.tags.join('、') : '',
+      note: meta.note || '',
+      points: contentStore.profile.points || 0,
+    }
+  })
+
+const buildOverviewTable = (adminStore = readStore(), contentStore = readContentStore()) => {
+  const templates = contentStore.templateConfig.templates || []
+  const reports = adminStore.reports || []
+  const tools = adminStore.toolsCatalog || []
+  const shareAssets = adminStore.shareAssets || []
+  const adSlots = adminStore.adSlots || []
+  const topTool = [...tools].sort(byNumericDesc((item) => item.usageCount))[0]
+  const topReport = [...reports].sort(byNumericDesc((item) => numberFromText(item.shareRate)))[0]
+  const topTemplate = [...templates].sort(byNumericDesc((item) => item.cost))[0]
+  const topAd = [...adSlots].sort(byNumericDesc((item) => numberFromText(item.revenue)))[0]
+
+  return {
+    title: '经营总览',
+    columns: [
+      { key: 'name', label: '对象' },
+      { key: 'current', label: '当前规模' },
+      { key: 'primary', label: '核心指标' },
+      { key: 'secondary', label: '关联转化' },
+      { key: 'status', label: '状态' },
+    ],
+    rows: [
+      {
+        id: 'overview-template',
+        name: topTemplate?.title || '酒局模板',
+        current: `${templates.length} 套 / ${contentStore.templateConfig.filters.length} 类`,
+        primary: `均价 ${formatNumber(avgBy(templates, (item) => item.cost))} 积分`,
+        secondary: `关联战报均分享 ${formatPercent(avgBy(reports, (item) => numberFromText(item.shareRate)))}`,
+        status: topTemplate ? '已上架' : '待配置',
+      },
+      {
+        id: 'overview-tool',
+        name: topTool?.name || '工具箱',
+        current: `${tools.length} 个工具`,
+        primary: `累计使用 ${formatNumber(sumBy(tools, (item) => item.usageCount))}`,
+        secondary: `平均收藏 ${formatPercent(avgBy(tools, (item) => numberFromText(item.favoriteRate)))}`,
+        status: topTool?.status || '待配置',
+      },
+      {
+        id: 'overview-share',
+        name: topReport?.name || '战报分享',
+        current: `${reports.length} 份战报 / ${shareAssets.length} 套素材`,
+        primary: `战报均分享 ${formatPercent(avgBy(reports, (item) => numberFromText(item.shareRate)))}`,
+        secondary: `素材均回流 ${formatPercent(avgBy(shareAssets, (item) => numberFromText(item.returnRate)))}`,
+        status: topReport?.status || '待生成',
+      },
+      {
+        id: 'overview-ad',
+        name: topAd?.name || '广告位',
+        current: `${adSlots.length} 个广告位`,
+        primary: `累计收入 ${formatCurrency(sumBy(adSlots, (item) => numberFromText(item.revenue)))}`,
+        secondary: `平均完成 ${formatPercent(avgBy(adSlots, (item) => numberFromText(item.completionRate)))}`,
+        status: topAd?.status || '待配置',
+      },
+    ],
+  }
+}
+
+const buildOverviewNotes = (adminStore = readStore()) => {
+  const pendingAudit = countBy(adminStore.auditQueue, (item) => String(item.status || '').includes('待审核'))
+  const waitingSessions = countBy(adminStore.liveSessions, (item) => String(item.state || '').includes('等待'))
+  const pendingConfigs = countBy(adminStore.baseConfigs, (item) => String(item.status || '').includes('待发布'))
+  const grayMerchants = countBy(adminStore.merchants, (item) => String(item.status || '').includes('灰'))
+  return [
+    pendingAudit ? `待审核内容 ${pendingAudit} 条，合规队列需要优先处理。` : '当前没有待审核内容堆积。',
+    waitingSessions ? `等待开局酒局 ${waitingSessions} 个，建议关注是否存在拉人卡点。` : '当前没有长时间等待开局的酒局。',
+    pendingConfigs ? `待发布配置 ${pendingConfigs} 项，发布窗口前需再次核对。` : '当前基础配置没有待发布项。',
+    grayMerchants ? `灰度商户 ${grayMerchants} 个，建议继续观察核销与回流表现。` : '商户合作当前没有灰度试运行项。',
+  ]
+}
+
+const overviewMetrics = () => {
+  const adminStore = readStore()
+  const contentStore = readContentStore()
+  const socialStore = readSocialStore()
+  const activeSessions = countBy(adminStore.liveSessions, (item) => String(item.state || '').includes('进行中'))
+  const pendingAudit = countBy(adminStore.auditQueue, (item) => String(item.status || '').includes('待审核'))
+  const interceptedAudit = countBy(adminStore.auditQueue, (item) => String(item.status || '').includes('拦截'))
+  return [
+    { label: '酒局总数', value: String(adminStore.liveSessions.length), trend: `进行中 ${activeSessions}`, tone: 'up' },
+    { label: '战报分享率', value: formatPercent(avgBy(adminStore.reports, (item) => numberFromText(item.shareRate))), trend: `战报 ${adminStore.reports.length} 份`, tone: 'up' },
+    { label: '积分资产池', value: formatNumber(sumBy(contentStore.pointsConfig.rewards, (item) => item.cost)), trend: `任务 ${contentStore.pointsConfig.tasks.length} 个`, tone: 'up' },
+    { label: '广告完成率', value: formatPercent(avgBy(adminStore.adSlots, (item) => numberFromText(item.completionRate))), trend: `广告位 ${adminStore.adSlots.length} 个`, tone: 'up' },
+    { label: '用户总数', value: String(socialStore.profiles.length), trend: `酒友关系 ${listFriendships().length} 条`, tone: 'up' },
+    { label: '待审核', value: String(pendingAudit), trend: `已拦截 ${interceptedAudit} 条`, tone: pendingAudit ? 'down' : 'up' },
+  ]
+}
+
+const getTemplateMetrics = () => {
+  const templateConfig = getTemplateConfig()
+  const templates = templateConfig.templates || []
+  const filters = templateConfig.filters || []
+  const paidCount = countBy(templates, (item) => Number(item.cost) > 0)
+  return [
+    { label: '上架模板', value: String(templates.length), trend: `可见分类 ${filters.length}`, tone: 'up' },
+    { label: '模板分类', value: String(filters.length), trend: `平均 ${formatNumber(templates.length / Math.max(filters.length, 1))} 套/类`, tone: 'up' },
+    { label: '付费模板占比', value: ratioPercent(paidCount, templates.length), trend: `付费模板 ${paidCount} 套`, tone: 'up' },
+    { label: '平均解锁成本', value: `${formatNumber(avgBy(templates, (item) => item.cost))} 积分`, trend: `最高 ${formatNumber(Math.max(...templates.map((item) => Number(item.cost) || 0), 0))} 积分`, tone: 'up' },
+  ]
+}
+
+const getQuestionBankMetrics = () => {
+  const store = readStore()
+  const lowRiskCount = countBy(store.questionBank, (item) => String(item.riskLevel || '').includes('低'))
+  const onlineCount = countBy(store.questionBank, (item) => String(item.status || '').includes('上线'))
+  return [
+    { label: '题目总数', value: String(store.questionBank.length), trend: `已上线 ${onlineCount} 条`, tone: 'up' },
+    { label: '待审核', value: String(countBy(store.questionBank, (item) => String(item.status || '').includes('待审核'))), trend: `风控中 ${store.questionBank.length - onlineCount} 条`, tone: 'down' },
+    { label: '低风险占比', value: ratioPercent(lowRiskCount, store.questionBank.length), trend: `低风险 ${lowRiskCount} 条`, tone: 'up' },
+    { label: '模板覆盖数', value: String(new Set(store.questionBank.map((item) => item.template).filter(Boolean)).size), trend: `类型 ${new Set(store.questionBank.map((item) => item.type).filter(Boolean)).size} 种`, tone: 'up' },
+  ]
+}
+
+const getShareAssetMetrics = () => {
+  const store = readStore()
+  const groupAssets = countBy(store.shareAssets, (item) => String(item.scene || '').includes('群'))
+  return [
+    { label: '上线素材', value: String(store.shareAssets.length), trend: `上线中 ${countBy(store.shareAssets, (item) => String(item.status || '').includes('上线'))} 套`, tone: 'up' },
+    { label: '平均打开率', value: formatPercent(avgBy(store.shareAssets, (item) => numberFromText(item.openRate))), trend: `最高 ${formatPercent(Math.max(...store.shareAssets.map((item) => numberFromText(item.openRate)), 0))}`, tone: 'up' },
+    { label: '平均回流率', value: formatPercent(avgBy(store.shareAssets, (item) => numberFromText(item.returnRate))), trend: `最高 ${formatPercent(Math.max(...store.shareAssets.map((item) => numberFromText(item.returnRate)), 0))}`, tone: 'up' },
+    { label: '群邀请素材', value: String(groupAssets), trend: `占比 ${ratioPercent(groupAssets, store.shareAssets.length)}`, tone: 'up' },
+  ]
+}
+
+const getToolOpsMetrics = () => {
+  const store = readStore()
+  const history = getToolHistory()
+  return [
+    { label: '启用工具', value: String(countBy(store.toolsCatalog, (item) => !String(item.status || '').includes('停用'))), trend: `总工具 ${store.toolsCatalog.length} 个`, tone: 'up' },
+    { label: '最近使用记录', value: String(history.length), trend: `最近工具 ${history[0]?.name || '暂无'}`, tone: 'up' },
+    { label: '累计使用量', value: formatNumber(sumBy(store.toolsCatalog, (item) => item.usageCount)), trend: `最高 ${formatNumber(Math.max(...store.toolsCatalog.map((item) => Number(item.usageCount) || 0), 0))}`, tone: 'up' },
+    { label: '平均收藏率', value: formatPercent(avgBy(store.toolsCatalog, (item) => numberFromText(item.favoriteRate))), trend: `分类 ${new Set(store.toolsCatalog.map((item) => item.category).filter(Boolean)).size} 个`, tone: 'up' },
+  ]
+}
+
+const getSocialMetrics = () => {
+  const pokes = listAllPokes()
+  const matchedCount = countBy(pokes, (item) => item.status === 'matched')
+  const pendingCount = countBy(pokes, (item) => item.status === 'pending')
+  return [
+    { label: '酒友关系', value: String(listFriendships().length), trend: `涉及用户 ${new Set(listFriendships().map((item) => item.profileId)).size} 人`, tone: 'up' },
+    { label: '拍一拍线程', value: String(pokes.length), trend: `待回应 ${pendingCount} 条`, tone: 'up' },
+    { label: '已匹配线程', value: String(matchedCount), trend: `匹配率 ${ratioPercent(matchedCount, pokes.length)}`, tone: 'up' },
+    { label: '待处理互动', value: String(pendingCount), trend: pendingCount ? '需及时跟进' : '当前无积压', tone: pendingCount ? 'down' : 'up' },
+  ]
+}
+
+const getSessionMetrics = () => {
+  const store = readStore()
+  const activeCount = countBy(store.liveSessions, (item) => String(item.state || '').includes('进行中'))
+  const waitingCount = countBy(store.liveSessions, (item) => String(item.state || '').includes('等待'))
+  return [
+    { label: '酒局总数', value: String(store.liveSessions.length), trend: `等待 ${waitingCount} 个`, tone: 'up' },
+    { label: '进行中', value: String(activeCount), trend: `已结束 ${countBy(store.liveSessions, (item) => String(item.state || '').includes('结束'))} 个`, tone: 'up' },
+    { label: '异常酒局', value: String(countBy(store.liveSessions, (item) => String(item.status || '').includes('异常'))), trend: `待观察 ${countBy(store.liveSessions, (item) => String(item.status || '').includes('观察'))} 个`, tone: 'down' },
+    { label: '战报覆盖率', value: ratioPercent(store.reports.length, store.liveSessions.length), trend: `战报 ${store.reports.length} 份`, tone: 'up' },
+  ]
+}
+
+const getReportMetrics = () => {
+  const store = readStore()
+  return [
+    { label: '战报数', value: String(store.reports.length), trend: `爆发 ${countBy(store.reports, (item) => String(item.status || '').includes('爆'))} 份`, tone: 'up' },
+    { label: '平均分享率', value: formatPercent(avgBy(store.reports, (item) => numberFromText(item.shareRate))), trend: `最高 ${formatPercent(Math.max(...store.reports.map((item) => numberFromText(item.shareRate)), 0))}`, tone: 'up' },
+    { label: '平均再开率', value: formatPercent(avgBy(store.reports, (item) => numberFromText(item.replayRate))), trend: `最高 ${formatPercent(Math.max(...store.reports.map((item) => numberFromText(item.replayRate)), 0))}`, tone: 'up' },
+    { label: '高传播战报', value: String(countBy(store.reports, (item) => numberFromText(item.shareRate) >= 40)), trend: `占比 ${ratioPercent(countBy(store.reports, (item) => numberFromText(item.shareRate) >= 40), store.reports.length)}`, tone: 'up' },
+  ]
+}
+
+const getPointsMetrics = () => {
+  const pointsConfig = getPointsConfig()
+  const contentStore = readContentStore()
+  const commerce = contentStore.commerce || {}
+  return [
+    { label: '当前用户积分', value: formatNumber(contentStore.profile.points), trend: `已领取任务 ${formatNumber((commerce.claimedTaskIds || []).length)} 个`, tone: 'up' },
+    { label: '任务数', value: String(pointsConfig.tasks.length), trend: `合计发放 ${formatNumber(sumBy(pointsConfig.tasks, (item) => item.value))} 分`, tone: 'up' },
+    { label: '已兑换商品', value: formatNumber((commerce.rewardRedemptions || []).length), trend: `商品池 ${formatNumber(pointsConfig.rewards.length)} 个`, tone: 'up' },
+    { label: '积分净变动', value: formatNumber(sumBy(commerce.pointsLedger || [], (item) => item.delta)), trend: `流水 ${formatNumber((commerce.pointsLedger || []).length)} 条`, tone: 'up' },
+  ]
+}
+
+const getMembershipMetrics = () => {
+  const store = readStore()
+  const contentStore = readContentStore()
+  const commerce = contentStore.commerce || {}
+  return [
+    { label: '套餐数', value: String(store.membershipPlans.length), trend: `权益 ${store.membershipBenefits.length} 项`, tone: 'up' },
+    { label: '当前开通状态', value: commerce.membership?.active ? '已开通' : '未开通', trend: commerce.membership?.planId || '当前用户会员态', tone: 'up' },
+    { label: '累计开通', value: formatNumber((commerce.membershipOrders || []).length), trend: `最近方案 ${commerce.membership?.planId || '--'}`, tone: 'up' },
+    { label: '平均续费率', value: formatPercent(avgBy(store.membershipPlans, (item) => numberFromText(item.renewRate))), trend: `最高 ${formatPercent(Math.max(...store.membershipPlans.map((item) => numberFromText(item.renewRate)), 0))}`, tone: 'up' },
+  ]
+}
+
+const getAdsMetrics = () => {
+  const store = readStore()
+  return [
+    { label: '广告位数', value: String(store.adSlots.length), trend: `启用 ${countBy(store.adSlots, (item) => String(item.status || '').includes('启用'))} 个`, tone: 'up' },
+    { label: '平均完成率', value: formatPercent(avgBy(store.adSlots, (item) => numberFromText(item.completionRate))), trend: `最高 ${formatPercent(Math.max(...store.adSlots.map((item) => numberFromText(item.completionRate)), 0))}`, tone: 'up' },
+    { label: '广告收入', value: formatCurrency(sumBy(store.adSlots, (item) => numberFromText(item.revenue))), trend: `单槽最高 ${formatCurrency(Math.max(...store.adSlots.map((item) => numberFromText(item.revenue)), 0))}`, tone: 'up' },
+    { label: 'Banner 占比', value: ratioPercent(countBy(store.adSlots, (item) => String(item.adType || '').toLowerCase().includes('banner')), store.adSlots.length), trend: `激励视频 ${countBy(store.adSlots, (item) => String(item.adType || '').includes('视频'))} 个`, tone: 'up' },
+  ]
+}
+
+const getMerchantMetrics = () => {
+  const store = readStore()
+  return [
+    { label: '合作商户', value: String(store.merchants.length), trend: `上线中 ${countBy(store.merchants, (item) => String(item.status || '').includes('上线'))} 个`, tone: 'up' },
+    { label: '累计领取', value: formatNumber(sumBy(store.merchants, (item) => numberFromText(item.claimCount))), trend: `最高 ${formatNumber(Math.max(...store.merchants.map((item) => numberFromText(item.claimCount)), 0))}`, tone: 'up' },
+    { label: '平均核销率', value: formatPercent(avgBy(store.merchants, (item) => numberFromText(item.verifyRate))), trend: `最高 ${formatPercent(Math.max(...store.merchants.map((item) => numberFromText(item.verifyRate)), 0))}`, tone: 'up' },
+    { label: '灰度商户', value: String(countBy(store.merchants, (item) => String(item.status || '').includes('灰'))), trend: `品类 ${new Set(store.merchants.map((item) => item.category).filter(Boolean)).size} 个`, tone: 'up' },
+  ]
+}
+
+const getCampaignMetrics = () => {
+  const store = readStore()
+  return [
+    { label: '活动数', value: String(store.campaigns.length), trend: `进行中 ${countBy(store.campaigns, (item) => String(item.status || '').includes('进行'))} 个`, tone: 'up' },
+    { label: '累计参与', value: formatNumber(sumBy(store.campaigns, (item) => numberFromText(item.participants))), trend: `单活动最高 ${formatNumber(Math.max(...store.campaigns.map((item) => numberFromText(item.participants)), 0))}`, tone: 'up' },
+    { label: '平均回流率', value: formatPercent(avgBy(store.campaigns, (item) => numberFromText(item.returnRate))), trend: `最高 ${formatPercent(Math.max(...store.campaigns.map((item) => numberFromText(item.returnRate)), 0))}`, tone: 'up' },
+    { label: '灰度活动', value: String(countBy(store.campaigns, (item) => String(item.status || '').includes('灰'))), trend: `奖励方案 ${new Set(store.campaigns.map((item) => item.reward).filter(Boolean)).size} 种`, tone: 'up' },
+  ]
+}
+
+const getUserAnalyticsPage = () => {
+  const adminStore = readStore()
+  const contentStore = readContentStore()
+  const socialStore = readSocialStore()
+  const profiles = buildUserProfileItems(adminStore, contentStore, socialStore)
+  const friendships = listFriendships()
+  const highValueCount = countBy(profiles, (item) => String(item.status || '').includes('高价值'))
+  const highActiveCount = countBy(profiles, (item) => String(item.status || '').includes('高活跃'))
+  return {
+    metrics: [
+      { label: '用户总数', value: String(profiles.length), trend: `高价值 ${highValueCount} 人`, tone: 'up' },
+      { label: '高活跃用户', value: String(highActiveCount), trend: `占比 ${ratioPercent(highActiveCount, profiles.length)}`, tone: 'up' },
+      { label: '酒友关系数', value: String(friendships.length), trend: `人均 ${profiles.length ? (friendships.length / profiles.length).toFixed(1) : '0'} 条`, tone: 'up' },
+      { label: '工具标签用户', value: String(countBy(profiles, (item) => String(item.tagsText || '').includes('工具'))), trend: '可导流酒局', tone: 'up' },
+    ],
+    table: {
+      title: '用户运营明细',
+      columns: [
+        { key: 'name', label: '用户' },
+        { key: 'city', label: '城市' },
+        { key: 'status', label: '运营状态' },
+        { key: 'tagsText', label: '标签' },
+        { key: 'note', label: '备注' },
+      ],
+      rows: profiles.slice(0, 8),
+    },
+    notes: [
+      `高价值用户 ${highValueCount} 人，高活跃用户 ${highActiveCount} 人。`,
+      friendships.length ? `当前已形成 ${friendships.length} 条酒友关系，可继续追踪组局转化。` : '当前还没有形成酒友关系沉淀。',
+    ],
+  }
+}
+
+const getContentAnalyticsPage = () => {
+  const adminStore = readStore()
+  const contentStore = readContentStore()
+  const templateRows = contentStore.templateConfig.templates.map((item) => ({
+    id: `template-${item.id}`,
+    name: item.title,
+    type: '模板',
+    primary: `${Number(item.cost) || 0} 积分`,
+    secondary: adminStore.reports.find((report) => report.template === item.title)?.shareRate || '--',
+    status: '已上架',
+    sortValue: Number(item.cost) || 0,
+  }))
+  const toolRows = adminStore.toolsCatalog.map((item) => ({
+    id: `tool-${item.id}`,
+    name: item.name,
+    type: '工具',
+    primary: formatNumber(item.usageCount),
+    secondary: item.favoriteRate || '0%',
+    status: item.status || '启用',
+    sortValue: Number(item.usageCount) || 0,
+  }))
+  const shareRows = adminStore.shareAssets.map((item) => ({
+    id: `share-${item.id}`,
+    name: item.name,
+    type: '素材',
+    primary: item.openRate || '0%',
+    secondary: item.returnRate || '0%',
+    status: item.status || '上线中',
+    sortValue: numberFromText(item.openRate),
+  }))
+  const rows = [...toolRows, ...shareRows, ...templateRows]
+    .sort(byNumericDesc((item) => item.sortValue))
+    .slice(0, 8)
+    .map(({ sortValue, ...item }) => item)
+
+  return {
+    metrics: [
+      { label: '模板数', value: String(contentStore.templateConfig.templates.length), trend: `分类 ${contentStore.templateConfig.filters.length} 个`, tone: 'up' },
+      { label: '工具总使用', value: formatNumber(sumBy(adminStore.toolsCatalog, (item) => item.usageCount)), trend: `工具 ${adminStore.toolsCatalog.length} 个`, tone: 'up' },
+      { label: '素材平均打开', value: formatPercent(avgBy(adminStore.shareAssets, (item) => numberFromText(item.openRate))), trend: `回流均值 ${formatPercent(avgBy(adminStore.shareAssets, (item) => numberFromText(item.returnRate)))}`, tone: 'up' },
+      { label: '平均模板成本', value: `${formatNumber(avgBy(contentStore.templateConfig.templates, (item) => item.cost))} 积分`, trend: `最高 ${formatNumber(Math.max(...contentStore.templateConfig.templates.map((item) => Number(item.cost) || 0), 0))} 积分`, tone: 'up' },
+    ],
+    table: {
+      title: '内容表现明细',
+      columns: [
+        { key: 'name', label: '内容对象' },
+        { key: 'type', label: '类型' },
+        { key: 'primary', label: '核心值' },
+        { key: 'secondary', label: '传播/回流' },
+        { key: 'status', label: '状态' },
+      ],
+      rows,
+    },
+    notes: [`当前内容池包含模板 ${contentStore.templateConfig.templates.length} 套、分享素材 ${adminStore.shareAssets.length} 套、工具 ${adminStore.toolsCatalog.length} 个。`],
+  }
+}
+
+const getBusinessAnalyticsPage = () => {
+  const adminStore = readStore()
+  const rows = [
+    ...adminStore.membershipPlans.map((item) => ({
+      id: `member-${item.id}`,
+      name: item.name,
+      conversion: item.conversionRate || '0%',
+      amount: item.price || '¥0',
+      repurchase: item.renewRate || '0%',
+      status: item.status || '上线中',
+      sortValue: numberFromText(item.conversionRate),
+    })),
+    ...adminStore.adSlots.map((item) => ({
+      id: `ad-${item.id}`,
+      name: item.name,
+      conversion: item.completionRate || '0%',
+      amount: item.revenue || '¥0',
+      repurchase: '即时',
+      status: item.status || '启用',
+      sortValue: numberFromText(item.revenue),
+    })),
+    ...adminStore.merchants.map((item) => ({
+      id: `merchant-${item.id}`,
+      name: item.name,
+      conversion: item.verifyRate || '0%',
+      amount: item.claimCount || '0',
+      repurchase: item.inventory || '--',
+      status: item.status || '上线中',
+      sortValue: numberFromText(item.claimCount),
+    })),
+  ]
+    .sort(byNumericDesc((item) => item.sortValue))
+    .slice(0, 8)
+    .map(({ sortValue, ...item }) => item)
+
+  return {
+    metrics: [
+      { label: '广告收入', value: formatCurrency(sumBy(adminStore.adSlots, (item) => numberFromText(item.revenue))), trend: `广告位 ${adminStore.adSlots.length} 个`, tone: 'up' },
+      { label: '会员平均转化', value: formatPercent(avgBy(adminStore.membershipPlans, (item) => numberFromText(item.conversionRate))), trend: `续费均值 ${formatPercent(avgBy(adminStore.membershipPlans, (item) => numberFromText(item.renewRate)))}`, tone: 'up' },
+      { label: '商户平均核销', value: formatPercent(avgBy(adminStore.merchants, (item) => numberFromText(item.verifyRate))), trend: `商户 ${adminStore.merchants.length} 个`, tone: 'up' },
+      { label: '活动平均回流', value: formatPercent(avgBy(adminStore.campaigns, (item) => numberFromText(item.returnRate))), trend: `活动 ${adminStore.campaigns.length} 个`, tone: 'up' },
+    ],
+    table: {
+      title: '商业明细',
+      columns: [
+        { key: 'name', label: '对象' },
+        { key: 'conversion', label: '转化/完成' },
+        { key: 'amount', label: '收入/规模' },
+        { key: 'repurchase', label: '续费/库存' },
+        { key: 'status', label: '状态' },
+      ],
+      rows,
+    },
+    notes: ['广告、会员、商户、活动全部来自后台当前 store 聚合，不再走样例值。'],
+  }
+}
+
+const getSystemPermissionMetrics = () => {
+  const store = readStore()
+  return [
+    { label: '管理员账号', value: String(store.adminUsers.length), trend: `启用 ${countBy(store.adminUsers, (item) => item.status === 'active')} 个`, tone: 'up' },
+    { label: '角色数', value: String(store.roles.length), trend: '全量角色已加载', tone: 'up' },
+    { label: '活跃登录会话', value: String(store.sessions.length), trend: `最近登录 ${store.adminUsers.filter((item) => item.lastLoginAt).length} 人`, tone: 'up' },
+    { label: '停用账号', value: String(countBy(store.adminUsers, (item) => item.status !== 'active')), trend: '需要定期复核', tone: 'down' },
+  ]
+}
+
+const getSystemConfigMetrics = () => {
+  const store = readStore()
+  return [
+    { label: '配置项', value: String(store.baseConfigs.length), trend: `已生效 ${countBy(store.baseConfigs, (item) => String(item.status || '').includes('生效'))} 项`, tone: 'up' },
+    { label: '待发布', value: String(countBy(store.baseConfigs, (item) => String(item.status || '').includes('待发布'))), trend: '发布前需复核', tone: 'down' },
+    { label: '灰度配置', value: String(countBy(store.baseConfigs, (item) => String(item.scope || '').includes('灰度'))), trend: '灰度作用域实时可见', tone: 'up' },
+    { label: '生产配置', value: String(countBy(store.baseConfigs, (item) => String(item.scope || '').includes('生产'))), trend: '当前线上配置数量', tone: 'up' },
+  ]
+}
+
+const getComplianceMetrics = () => {
+  const store = readStore()
+  const complianceCopy = getCompliance().copy || ''
+  return [
+    { label: '合规文案字数', value: String(String(complianceCopy).length), trend: '当前前台使用文案', tone: 'up' },
+    { label: '敏感词数', value: String(store.sensitiveWords.length), trend: `高等级 ${countBy(store.sensitiveWords, (item) => String(item.level || '').includes('高'))} 个`, tone: 'up' },
+    { label: '待审队列', value: String(countBy(store.auditQueue, (item) => String(item.status || '').includes('待审核'))), trend: '需及时清理', tone: 'down' },
+    { label: '已拦截条数', value: String(countBy(store.auditQueue, (item) => String(item.status || '').includes('拦截'))), trend: '当前累计已记录', tone: 'up' },
+  ]
+}
+
+const makeHomeFormData = () => {
+  const config = getHomeConfig()
+  return {
+    heroTitle: config.hero.title,
+    heroSubtitle: config.hero.subtitle,
+    heroImageUrl: config.hero.imageUrl,
+    bannerTitle: config.banner.title,
+    bannerImageUrl: config.banner.imageUrl,
+    quickToolsText: config.quickTools.map((item) => `${item.id}|${item.name}`).join('\n'),
+  }
+}
+
+const parseQuickToolsText = (text = '') =>
+  String(text)
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line, index) => {
+      const [id, name] = line.split('|').map((item) => item.trim())
+      return {
+        id: id || `tool-${index + 1}`,
+        name: name || id || `工具 ${index + 1}`,
+      }
+    })
+
+const parseStatus = (value, fallback = '启用') => {
+  return typeof value === 'string' && value.trim() ? value.trim() : fallback
+}
+
+const makeInviteCode = (seed = '') => {
+  const normalized = String(seed).replace(/[^a-z0-9]/gi, '').toUpperCase()
+  return `${normalized.slice(-2).padStart(2, 'A')}7K9Q`
+}
+
+const createManagedSession = (payload = {}) => {
+  const store = readStore()
+  const id = createId('session')
+  const session = {
+    id,
+    name: String(payload.sessionName || '今晚聚会不醉不归').trim() || '今晚聚会不醉不归',
+    players: Math.max(2, Number(payload.playerCount) || 6),
+    template: String(payload.templateName || '经典欠酒版').trim() || '经典欠酒版',
+    hostName: String(payload.hostName || '当前发起人').trim() || '当前发起人',
+    inviteCode: String(payload.inviteCode || makeInviteCode(id)).trim() || makeInviteCode(id),
+    state: String(payload.state || '等待开局').trim() || '等待开局',
+    source: String(payload.source || '直接创建').trim() || '直接创建',
+    status: String(payload.status || '正常').trim() || '正常',
+  }
+  store.liveSessions = [session, ...store.liveSessions.filter((item) => item.id !== id)].slice(0, 50)
+  writeStore(store)
+  return session
+}
+
+const updateManagedSession = (sessionId, payload = {}) => {
+  const store = readStore()
+  const nextItems = store.liveSessions.map((item) => {
+    if (item.id !== sessionId) {
+      return item
+    }
+    return {
+      ...item,
+      name: payload.sessionName || item.name,
+      players: Number(payload.playerCount) || item.players,
+      template: payload.templateName || item.template,
+      hostName: payload.hostName || item.hostName,
+      inviteCode: payload.inviteCode || item.inviteCode,
+      state: payload.state || item.state,
+      source: payload.source || item.source,
+      status: payload.status || item.status,
+    }
+  })
+  store.liveSessions = nextItems
+  writeStore(store)
+  return store.liveSessions.find((item) => item.id === sessionId) || null
+}
+
+const finishManagedSession = (payload = {}) => {
+  const store = readStore()
+  const sessionId = String(payload.sessionId || '').trim()
+  const relatedSession = store.liveSessions.find((item) => item.id === sessionId)
+  const sessionName = String(payload.sessionName || relatedSession?.name || '本局战报').trim() || '本局战报'
+  const templateName = String(payload.templateName || relatedSession?.template || '经典欠酒版').trim() || '经典欠酒版'
+  const playerCount = Math.max(2, Number(payload.playerCount) || Number(relatedSession?.players) || 6)
+  const events = Array.isArray(payload.events) ? payload.events.filter((item) => item && item.text).slice(0, 5) : []
+  const report = {
+    id: createId('report'),
+    name: `${sessionName}战报`,
+    template: templateName,
+    title: String(payload.title || '这局快乐就完事了！').trim() || '这局快乐就完事了！',
+    scene: String(payload.scene || (templateName.includes('生日') ? '生日局' : templateName.includes('夜') ? '夜场' : '常规局')).trim(),
+    highlight1: events[0]?.text || `${sessionName} 本局已结束，自动生成战报`,
+    highlight2: events[1]?.text || `${playerCount} 位玩家参与了本局`,
+    highlight3: events[2]?.text || '可继续分享战报或直接再开一局',
+    shareRate: String(payload.shareRate || `${Math.min(68, 32 + playerCount * 3)}%`).trim(),
+    replayRate: String(payload.replayRate || `${Math.min(34, 10 + playerCount * 2)}%`).trim(),
+    status: String(payload.status || '正常').trim() || '正常',
+  }
+
+  store.reports = [report, ...store.reports].slice(0, 50)
+  if (sessionId) {
+    store.liveSessions = store.liveSessions.map((item) =>
+      item.id === sessionId
+        ? {
+            ...item,
+            state: payload.sessionState || '已结束',
+            status: payload.sessionStatus || '正常',
+          }
+        : item,
+    )
+  }
+  writeStore(store)
+  return report
+}
+
+const pageMap = {
+  'overview-dashboard': () => {
+    return {
+      slug: 'overview-dashboard',
+      title: '经营驾驶舱',
+      view: 'dashboard',
+      metrics: overviewMetrics(),
+      table: buildOverviewTable(),
+      notes: buildOverviewNotes(),
+    }
+  },
+  'content-home-ops': () => ({
+    slug: 'content-home-ops',
+    title: '首页装修',
+    view: 'form',
+    metrics: overviewMetrics().slice(0, 4),
+    formSections: [
+      {
+        title: '主 Hero',
+        fields: [
+          { key: 'heroTitle', label: '主标题', type: 'text' },
+          { key: 'heroSubtitle', label: '副标题', type: 'textarea' },
+          { key: 'heroImageUrl', label: '主图地址', type: 'text' },
+        ],
+      },
+      {
+        title: '活动 Banner',
+        fields: [
+          { key: 'bannerTitle', label: '活动标题', type: 'text' },
+          { key: 'bannerImageUrl', label: '活动图片', type: 'text' },
+        ],
+      },
+      {
+        title: '快捷工具',
+        fields: [
+          { key: 'quickToolsText', label: '快捷工具（每行 `id|名称`）', type: 'textarea' },
+        ],
+      },
+    ],
+    data: makeHomeFormData(),
+  }),
+  'content-templates': () => ({
+    slug: 'content-templates',
+    title: '酒局模板',
+    view: 'multi-collection',
+    metrics: getTemplateMetrics(),
+    metaFields: [
+      { key: 'unlockTitle', label: '解锁卡标题', type: 'text' },
+      { key: 'unlockProgressText', label: '解锁进度文案', type: 'text' },
+    ],
+    meta: {
+      unlockTitle: getTemplateConfig().unlockCard.title,
+      unlockProgressText: getTemplateConfig().unlockCard.progressText,
+    },
+    collections: [
+      {
+        key: 'filters',
+        title: '模板分类',
+        itemLabel: '分类',
+        fields: [
+          { key: 'id', label: '分类 ID', type: 'text' },
+          { key: 'name', label: '分类名称', type: 'text' },
+        ],
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: '分类名称' },
+        ],
+        items: getTemplateConfig().filters,
+      },
+      {
+        key: 'templates',
+        title: '模板列表',
+        itemLabel: '模板',
+        fields: [
+          { key: 'id', label: '模板 ID', type: 'text' },
+          { key: 'filterId', label: '分类 ID', type: 'text' },
+          { key: 'title', label: '模板名称', type: 'text' },
+          { key: 'meta', label: '描述文案', type: 'textarea' },
+          { key: 'cost', label: '积分价格', type: 'number' },
+          { key: 'imageUrl', label: '封面图地址', type: 'text' },
+        ],
+        columns: [
+          { key: 'title', label: '模板名称' },
+          { key: 'filterId', label: '分类' },
+          { key: 'cost', label: '积分' },
+          { key: 'meta', label: '描述' },
+        ],
+        items: getTemplateConfig().templates,
+      },
+    ],
+  }),
+  'content-question-bank': () => {
+    const store = readStore()
+    return {
+      slug: 'content-question-bank',
+      title: '题库与任务',
+      view: 'collection',
+      metrics: getQuestionBankMetrics(),
+      collection: {
+        key: 'questionBank',
+        itemLabel: '题目',
+        fields: [
+          { key: 'content', label: '题目内容', type: 'textarea' },
+          { key: 'type', label: '类型', type: 'text' },
+          { key: 'difficulty', label: '难度', type: 'text' },
+          { key: 'template', label: '适用模板', type: 'text' },
+          { key: 'riskLevel', label: '风险等级', type: 'text' },
+          { key: 'status', label: '状态', type: 'text' },
+        ],
+        columns: [
+          { key: 'content', label: '题目' },
+          { key: 'type', label: '类型' },
+          { key: 'template', label: '适用模板' },
+          { key: 'riskLevel', label: '风险' },
+          { key: 'status', label: '状态' },
+        ],
+        items: store.questionBank,
+      },
+    }
+  },
+  'content-share-assets': () => {
+    const store = readStore()
+    return {
+      slug: 'content-share-assets',
+      title: '分享素材',
+      view: 'collection',
+      metrics: getShareAssetMetrics(),
+      collection: {
+        key: 'shareAssets',
+        itemLabel: '素材',
+        fields: [
+          { key: 'id', label: '素材 ID', type: 'text' },
+          { key: 'name', label: '素材名称', type: 'text' },
+          { key: 'assetType', label: '素材类型', type: 'text' },
+          { key: 'scene', label: '场景', type: 'text' },
+          { key: 'imageUrl', label: '素材图片', type: 'image' },
+          { key: 'openRate', label: '打开率', type: 'text' },
+          { key: 'returnRate', label: '回流率', type: 'text' },
+          { key: 'status', label: '状态', type: 'text' },
+        ],
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: '素材名称' },
+          { key: 'assetType', label: '类型' },
+          { key: 'scene', label: '场景' },
+          { key: 'imageUrl', label: '图片' },
+          { key: 'openRate', label: '打开率' },
+          { key: 'status', label: '状态' },
+        ],
+        items: store.shareAssets,
+      },
+    }
+  },
+  'content-tools-ops': () => {
+    const store = readStore()
+    return {
+      slug: 'content-tools-ops',
+      title: '工具箱运营',
+      view: 'collection',
+      metrics: getToolOpsMetrics(),
+      collection: {
+        key: 'toolsCatalog',
+        itemLabel: '工具',
+        fields: [
+          { key: 'id', label: '工具 ID', type: 'text' },
+          { key: 'name', label: '工具名称', type: 'text' },
+          { key: 'category', label: '分类', type: 'text' },
+          { key: 'target', label: '导流目标', type: 'text' },
+          { key: 'imageUrl', label: '工具图片', type: 'image' },
+          { key: 'usageCount', label: '使用量', type: 'number' },
+          { key: 'favoriteRate', label: '收藏率', type: 'text' },
+          { key: 'status', label: '状态', type: 'text' },
+        ],
+        columns: [
+          { key: 'id', label: 'ID' },
+          { key: 'name', label: '工具名称' },
+          { key: 'category', label: '分类' },
+          { key: 'target', label: '导流目标' },
+          { key: 'usageCount', label: '使用量' },
+          { key: 'status', label: '状态' },
+        ],
+        items: store.toolsCatalog,
+      },
+    }
+  },
+  'user-profiles': () => {
+    const adminStore = readStore()
+    const contentStore = readContentStore()
+    const socialStore = readSocialStore()
+    const profiles = buildUserProfileItems(adminStore, contentStore, socialStore)
+    return {
+      slug: 'user-profiles',
+      title: '用户中心',
+      view: 'collection',
+      metrics: [
+        { label: '总用户数', value: String(profiles.length), trend: `高价值 ${countBy(profiles, (item) => String(item.status || '').includes('高价值'))} 人`, tone: 'up' },
+        { label: '高价值用户', value: String(countBy(profiles, (item) => String(item.status || '').includes('高价值'))), trend: `占比 ${ratioPercent(countBy(profiles, (item) => String(item.status || '').includes('高价值')), profiles.length)}`, tone: 'up' },
+        { label: '高活跃用户', value: String(countBy(profiles, (item) => String(item.status || '').includes('高活跃'))), trend: `占比 ${ratioPercent(countBy(profiles, (item) => String(item.status || '').includes('高活跃')), profiles.length)}`, tone: 'up' },
+        { label: '工具型用户', value: String(countBy(profiles, (item) => String(item.tagsText || '').includes('工具'))), trend: `酒友关系 ${listFriendships().length} 条`, tone: 'up' },
+      ],
+      collection: {
+        key: 'userProfiles',
+        itemLabel: '用户',
+        fields: [
+          { key: 'name', label: '昵称', type: 'text' },
+          { key: 'city', label: '城市', type: 'text' },
+          { key: 'identityTag', label: '身份标签', type: 'text' },
+          { key: 'status', label: '运营状态', type: 'text' },
+          { key: 'tagsText', label: '运营标签（顿号分隔）', type: 'text' },
+          { key: 'note', label: '运营备注', type: 'textarea' },
+        ],
+        columns: [
+          { key: 'name', label: '用户' },
+          { key: 'city', label: '城市' },
+          { key: 'identityTag', label: '身份标签' },
+          { key: 'status', label: '状态' },
+          { key: 'tagsText', label: '标签' },
+        ],
+        items: profiles,
+      },
+    }
+  },
+  'social-friends': () => ({
+    slug: 'social-friends',
+    title: '酒友社交',
+    view: 'readonly',
+    metrics: getSocialMetrics(),
+    tables: [
+      {
+        title: '酒友关系列表',
+        columns: [
+          { key: 'name', label: '酒友' },
+          { key: 'meta', label: '备注' },
+          { key: 'updatedAt', label: '更新时间' },
+        ],
+        rows: listFriendships(),
+      },
+      {
+        title: '拍一拍线程',
+        columns: [
+          { key: 'counterpartName', label: '对象' },
+          { key: 'status', label: '状态' },
+          { key: 'actionState', label: '动作状态' },
+          { key: 'updatedAt', label: '更新时间' },
+        ],
+        rows: listAllPokes(),
+      },
+    ],
+  }),
+  'sessions': () => {
+    const store = readStore()
+    return {
+      slug: 'sessions',
+      title: '酒局管理',
+      view: 'collection',
+      metrics: getSessionMetrics(),
+      collection: {
+        key: 'liveSessions',
+        itemLabel: '酒局',
+        fields: [
+          { key: 'name', label: '酒局名称', type: 'text' },
+          { key: 'players', label: '人数', type: 'number' },
+          { key: 'template', label: '模板', type: 'text' },
+          { key: 'hostName', label: '发起人', type: 'text' },
+          { key: 'inviteCode', label: '口令', type: 'text' },
+          { key: 'state', label: '流程状态', type: 'text' },
+          { key: 'source', label: '分享来源', type: 'text' },
+          { key: 'status', label: '运营状态', type: 'text' },
+        ],
+        columns: [
+          { key: 'name', label: '酒局名称' },
+          { key: 'players', label: '人数' },
+          { key: 'template', label: '模板' },
+          { key: 'inviteCode', label: '口令' },
+          { key: 'state', label: '流程状态' },
+          { key: 'status', label: '状态' },
+        ],
+        items: store.liveSessions,
+      },
+    }
+  },
+  'reports': () => {
+    const store = readStore()
+    return {
+      slug: 'reports',
+      title: '战报中心',
+      view: 'collection',
+      metrics: getReportMetrics(),
+      collection: {
+        key: 'reports',
+        itemLabel: '战报',
+        fields: [
+          { key: 'name', label: '战报名称', type: 'text' },
+          { key: 'template', label: '模板', type: 'text' },
+          { key: 'title', label: '战报标题', type: 'text' },
+          { key: 'scene', label: '场景', type: 'text' },
+          { key: 'highlight1', label: '亮点 1', type: 'text' },
+          { key: 'highlight2', label: '亮点 2', type: 'text' },
+          { key: 'highlight3', label: '亮点 3', type: 'text' },
+          { key: 'shareRate', label: '分享率', type: 'text' },
+          { key: 'replayRate', label: '再开一局率', type: 'text' },
+          { key: 'status', label: '状态', type: 'text' },
+        ],
+        columns: [
+          { key: 'name', label: '战报名称' },
+          { key: 'template', label: '模板' },
+          { key: 'title', label: '战报标题' },
+          { key: 'scene', label: '场景' },
+          { key: 'shareRate', label: '分享率' },
+          { key: 'status', label: '状态' },
+        ],
+        items: store.reports,
+      },
+    }
+  },
+  'commerce-points': () => {
+    const pointsConfig = getPointsConfig()
+    return {
+      slug: 'commerce-points',
+      title: '积分体系',
+      view: 'multi-collection',
+      metrics: getPointsMetrics(),
+      metaFields: [
+        { key: 'balance', label: '展示积分余额', type: 'number' },
+        { key: 'bannerImageUrl', label: '横幅图片地址', type: 'text' },
+      ],
+      meta: {
+        balance: pointsConfig.balance,
+        bannerImageUrl: pointsConfig.bannerImageUrl,
+      },
+      collections: [
+        {
+          key: 'tasks',
+          title: '每日任务',
+          itemLabel: '任务',
+          fields: [
+            { key: 'id', label: '任务 ID', type: 'text' },
+            { key: 'title', label: '任务标题', type: 'text' },
+            { key: 'value', label: '奖励积分', type: 'number' },
+            { key: 'iconClass', label: '图标类名', type: 'text' },
+          ],
+          columns: [
+            { key: 'title', label: '任务标题' },
+            { key: 'value', label: '积分' },
+            { key: 'iconClass', label: '图标' },
+          ],
+          items: pointsConfig.tasks,
+        },
+        {
+          key: 'rewards',
+          title: '积分商品',
+          itemLabel: '商品',
+          fields: [
+            { key: 'id', label: '商品 ID', type: 'text' },
+            { key: 'title', label: '商品标题', type: 'text' },
+            { key: 'subtitle', label: '商品副标题', type: 'textarea' },
+            { key: 'cost', label: '积分价格', type: 'number' },
+            { key: 'iconClass', label: '图标类名', type: 'text' },
+          ],
+          columns: [
+            { key: 'title', label: '商品标题' },
+            { key: 'subtitle', label: '副标题' },
+            { key: 'cost', label: '积分' },
+            { key: 'iconClass', label: '图标' },
+          ],
+          items: pointsConfig.rewards,
+        },
+      ],
+    }
+  },
+  'commerce-membership': () => {
+    const store = readStore()
+    return {
+      slug: 'commerce-membership',
+      title: '会员体系',
+      view: 'multi-collection',
+      metrics: getMembershipMetrics(),
+      collections: [
+        {
+          key: 'membershipPlans',
+          title: '会员套餐',
+          itemLabel: '套餐',
+          fields: [
+            { key: 'name', label: '套餐名称', type: 'text' },
+            { key: 'price', label: '价格', type: 'text' },
+            { key: 'duration', label: '时长', type: 'text' },
+            { key: 'conversionRate', label: '转化率', type: 'text' },
+            { key: 'renewRate', label: '续费率', type: 'text' },
+            { key: 'status', label: '状态', type: 'text' },
+          ],
+          columns: [
+            { key: 'name', label: '套餐' },
+            { key: 'price', label: '价格' },
+            { key: 'duration', label: '时长' },
+            { key: 'conversionRate', label: '转化率' },
+            { key: 'status', label: '状态' },
+          ],
+          items: store.membershipPlans,
+        },
+        {
+          key: 'membershipBenefits',
+          title: '会员权益',
+          itemLabel: '权益',
+          fields: [
+            { key: 'name', label: '权益名称', type: 'text' },
+            { key: 'scope', label: '作用范围', type: 'text' },
+            { key: 'status', label: '状态', type: 'text' },
+            { key: 'note', label: '说明', type: 'textarea' },
+          ],
+          columns: [
+            { key: 'name', label: '权益名称' },
+            { key: 'scope', label: '范围' },
+            { key: 'status', label: '状态' },
+            { key: 'note', label: '说明' },
+          ],
+          items: store.membershipBenefits,
+        },
+      ],
+    }
+  },
+  'commerce-ads': () => {
+    const store = readStore()
+    return {
+      slug: 'commerce-ads',
+      title: '广告运营',
+      view: 'collection',
+      metrics: getAdsMetrics(),
+      collection: {
+        key: 'adSlots',
+        itemLabel: '广告位',
+        fields: [
+          { key: 'name', label: '广告位名称', type: 'text' },
+          { key: 'page', label: '页面', type: 'text' },
+          { key: 'adType', label: '广告类型', type: 'text' },
+          { key: 'completionRate', label: '完成率 / 点击率', type: 'text' },
+          { key: 'revenue', label: '收益', type: 'text' },
+          { key: 'status', label: '状态', type: 'text' },
+        ],
+        columns: [
+          { key: 'name', label: '广告位' },
+          { key: 'page', label: '页面' },
+          { key: 'adType', label: '类型' },
+          { key: 'completionRate', label: '完成率' },
+          { key: 'status', label: '状态' },
+        ],
+        items: store.adSlots,
+      },
+    }
+  },
+  'commerce-merchants': () => {
+    const store = readStore()
+    return {
+      slug: 'commerce-merchants',
+      title: '商户合作',
+      view: 'collection',
+      metrics: getMerchantMetrics(),
+      collection: {
+        key: 'merchants',
+        itemLabel: '商户券',
+        fields: [
+          { key: 'name', label: '券 / 商户名称', type: 'text' },
+          { key: 'category', label: '品类', type: 'text' },
+          { key: 'inventory', label: '库存 / 有效期', type: 'text' },
+          { key: 'claimCount', label: '领取量', type: 'text' },
+          { key: 'verifyRate', label: '核销率', type: 'text' },
+          { key: 'status', label: '状态', type: 'text' },
+        ],
+        columns: [
+          { key: 'name', label: '券 / 商户' },
+          { key: 'category', label: '品类' },
+          { key: 'inventory', label: '库存 / 有效期' },
+          { key: 'claimCount', label: '领取量' },
+          { key: 'status', label: '状态' },
+        ],
+        items: store.merchants,
+      },
+    }
+  },
+  'commerce-campaigns': () => {
+    const store = readStore()
+    return {
+      slug: 'commerce-campaigns',
+      title: '裂变活动',
+      view: 'collection',
+      metrics: getCampaignMetrics(),
+      collection: {
+        key: 'campaigns',
+        itemLabel: '活动',
+        fields: [
+          { key: 'name', label: '活动名称', type: 'text' },
+          { key: 'reward', label: '奖励 / 时间', type: 'text' },
+          { key: 'participants', label: '参与人数', type: 'text' },
+          { key: 'returnRate', label: '回流率', type: 'text' },
+          { key: 'status', label: '状态', type: 'text' },
+        ],
+        columns: [
+          { key: 'name', label: '活动名称' },
+          { key: 'reward', label: '奖励' },
+          { key: 'participants', label: '参与人数' },
+          { key: 'returnRate', label: '回流率' },
+          { key: 'status', label: '状态' },
+        ],
+        items: store.campaigns,
+      },
+    }
+  },
+  'data-users': () => ({
+    slug: 'data-users',
+    title: '????',
+    view: 'dashboard',
+    ...getUserAnalyticsPage(),
+  }),
+  'data-content': () => ({
+    slug: 'data-content',
+    title: '????',
+    view: 'dashboard',
+    ...getContentAnalyticsPage(),
+  }),
+  'data-business': () => ({
+    slug: 'data-business',
+    title: '????',
+    view: 'dashboard',
+    ...getBusinessAnalyticsPage(),
+  }),
+  'system-permissions': () => {
+    const store = readStore()
+    return {
+      slug: 'system-permissions',
+      title: '账号权限',
+      view: 'multi-collection',
+      metrics: getSystemPermissionMetrics(),
+      collections: [
+        {
+          key: 'adminUsers',
+          title: '管理员账号',
+          itemLabel: '管理员',
+          fields: [
+            { key: 'username', label: '登录账号', type: 'text' },
+            { key: 'name', label: '姓名', type: 'text' },
+            { key: 'roleId', label: '角色 ID', type: 'text' },
+            { key: 'status', label: '状态', type: 'text' },
+          ],
+          columns: [
+            { key: 'username', label: '账号' },
+            { key: 'name', label: '姓名' },
+            { key: 'roleId', label: '角色 ID' },
+            { key: 'status', label: '状态' },
+          ],
+          items: store.adminUsers.map((item) => ({
+            id: item.id,
+            username: item.username,
+            name: item.name,
+            roleId: item.roleId,
+            status: item.status,
+          })),
+        },
+        {
+          key: 'roles',
+          title: '角色权限',
+          itemLabel: '角色',
+          fields: [
+            { key: 'id', label: '角色 ID', type: 'text' },
+            { key: 'name', label: '角色名称', type: 'text' },
+            { key: 'scope', label: '权限范围', type: 'text' },
+            { key: 'permissionsText', label: '权限（逗号分隔）', type: 'textarea' },
+            { key: 'status', label: '状态', type: 'text' },
+          ],
+          columns: [
+            { key: 'name', label: '角色名称' },
+            { key: 'scope', label: '范围' },
+            { key: 'permissionsText', label: '权限' },
+            { key: 'status', label: '状态' },
+          ],
+          items: store.roles.map((item) => ({
+            id: item.id,
+            name: item.name,
+            scope: item.scope,
+            permissionsText: Array.isArray(item.permissions) ? item.permissions.join(', ') : '',
+            status: item.status,
+          })),
+        },
+      ],
+    }
+  },
+  'system-config': () => {
+    const store = readStore()
+    return {
+      slug: 'system-config',
+      title: '基础配置',
+      view: 'collection',
+      metrics: getSystemConfigMetrics(),
+      collection: {
+        key: 'baseConfigs',
+        itemLabel: '配置项',
+        fields: [
+          { key: 'key', label: '配置键', type: 'text' },
+          { key: 'value', label: '配置值', type: 'textarea' },
+          { key: 'scope', label: '环境 / 作用域', type: 'text' },
+          { key: 'updatedAt', label: '更新时间文案', type: 'text' },
+          { key: 'status', label: '状态', type: 'text' },
+        ],
+        columns: [
+          { key: 'key', label: '配置键' },
+          { key: 'value', label: '配置值' },
+          { key: 'scope', label: '作用域' },
+          { key: 'updatedAt', label: '更新时间' },
+          { key: 'status', label: '状态' },
+        ],
+        items: store.baseConfigs,
+      },
+    }
+  },
+  'system-compliance': () => {
+    const store = readStore()
+    return {
+      slug: 'system-compliance',
+      title: '合规风控',
+      view: 'multi-collection',
+      metrics: getComplianceMetrics(),
+      metaFields: [
+        { key: 'complianceCopy', label: '合规文案', type: 'textarea' },
+      ],
+      meta: {
+        complianceCopy: getCompliance().copy,
+      },
+      collections: [
+        {
+          key: 'sensitiveWords',
+          title: '敏感词策略',
+          itemLabel: '敏感词',
+          fields: [
+            { key: 'word', label: '敏感词', type: 'text' },
+            { key: 'level', label: '等级', type: 'text' },
+            { key: 'scene', label: '场景', type: 'text' },
+            { key: 'status', label: '状态', type: 'text' },
+          ],
+          columns: [
+            { key: 'word', label: '敏感词' },
+            { key: 'level', label: '等级' },
+            { key: 'scene', label: '场景' },
+            { key: 'status', label: '状态' },
+          ],
+          items: store.sensitiveWords,
+        },
+        {
+          key: 'auditQueue',
+          title: '审核队列',
+          itemLabel: '审核项',
+          fields: [
+            { key: 'target', label: '审核对象', type: 'textarea' },
+            { key: 'source', label: '来源', type: 'text' },
+            { key: 'reason', label: '命中原因', type: 'textarea' },
+            { key: 'submittedAt', label: '提交时间', type: 'text' },
+            { key: 'status', label: '状态', type: 'text' },
+          ],
+          columns: [
+            { key: 'target', label: '审核对象' },
+            { key: 'source', label: '来源' },
+            { key: 'reason', label: '命中原因' },
+            { key: 'submittedAt', label: '提交时间' },
+            { key: 'status', label: '状态' },
+          ],
+          items: store.auditQueue,
+        },
+      ],
+    }
+  },
+}
+
+const getPageData = (slug) => {
+  const factory = pageMap[slug]
+  if (!factory) {
+    throw new Error('page not found')
+  }
+  return factory()
+}
+
+const saveCollectionArray = (items = [], fields = []) =>
+  items.map((item, index) => {
+    const next = { id: item.id || createId(`item${index + 1}`) }
+    fields.forEach((field) => {
+      const value = item[field.key]
+      next[field.key] = field.type === 'number' ? Number(value) || 0 : typeof value === 'string' ? value.trim() : value || ''
+    })
+    return next
+  })
+
+const savePageData = (slug, payload = {}) => {
+  const adminStore = readStore()
+
+  if (slug === 'content-home-ops') {
+    updateHomeConfig({
+      hero: {
+        title: payload.data.heroTitle,
+        subtitle: payload.data.heroSubtitle,
+        imageUrl: payload.data.heroImageUrl,
+      },
+      banner: {
+        title: payload.data.bannerTitle,
+        imageUrl: payload.data.bannerImageUrl,
+      },
+      quickTools: parseQuickToolsText(payload.data.quickToolsText),
+    })
+    return getPageData(slug)
+  }
+
+  if (slug === 'content-templates') {
+    updateTemplateConfig({
+      filters: payload.collections.filters,
+      templates: payload.collections.templates,
+      unlockCard: {
+        title: payload.meta.unlockTitle,
+        progressText: payload.meta.unlockProgressText,
+      },
+    })
+    return getPageData(slug)
+  }
+
+  if (slug === 'content-question-bank') {
+    adminStore.questionBank = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  if (slug === 'content-share-assets') {
+    adminStore.shareAssets = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  if (slug === 'content-tools-ops') {
+    adminStore.toolsCatalog = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  if (slug === 'user-profiles') {
+    const socialStore = readSocialStore()
+    const nextProfiles = []
+    const nextUserOps = []
+    ;(payload.items || []).forEach((item) => {
+      const existed = socialStore.profiles.find((profile) => profile.id === item.id) || { id: item.id }
+      nextProfiles.push(
+        ensureProfile({
+          ...existed,
+          id: item.id,
+          name: item.name,
+          city: item.city,
+          identityTag: item.identityTag,
+          signature: existed.signature || '',
+          avatarUrl: existed.avatarUrl || '',
+        }),
+      )
+      nextUserOps.push({
+        id: item.id,
+        status: item.status || '普通',
+        tags: String(item.tagsText || '')
+          .split(/[、,，]/)
+          .map((tag) => tag.trim())
+          .filter(Boolean),
+        note: item.note || '',
+      })
+    })
+    adminStore.userOps = nextUserOps
+    writeStore(adminStore)
+    writeSocialStore({
+      ...socialStore,
+      profiles: nextProfiles,
+    })
+    return getPageData(slug)
+  }
+
+  if (slug === 'sessions') {
+    adminStore.liveSessions = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  if (slug === 'reports') {
+    adminStore.reports = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  if (slug === 'commerce-points') {
+    updatePointsConfig({
+      balance: Number(payload.meta.balance) || 0,
+      bannerImageUrl: payload.meta.bannerImageUrl || '',
+      tasks: payload.collections.tasks,
+      rewards: payload.collections.rewards,
+    })
+    return getPageData(slug)
+  }
+
+  if (slug === 'commerce-membership') {
+    adminStore.membershipPlans = saveCollectionArray(payload.collections.membershipPlans, pageMap[slug]().collections[0].fields)
+    adminStore.membershipBenefits = saveCollectionArray(payload.collections.membershipBenefits, pageMap[slug]().collections[1].fields)
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  if (slug === 'commerce-ads') {
+    adminStore.adSlots = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  if (slug === 'commerce-merchants') {
+    adminStore.merchants = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  if (slug === 'commerce-campaigns') {
+    adminStore.campaigns = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  if (slug === 'system-permissions') {
+    adminStore.adminUsers = (payload.collections.adminUsers || []).map((item) => {
+      const existed = adminStore.adminUsers.find((user) => user.id === item.id)
+      return {
+        ...(existed || {}),
+        id: item.id || createId('admin'),
+        username: item.username,
+        name: item.name,
+        roleId: item.roleId,
+        status: parseStatus(item.status, 'active'),
+        passwordHash: existed?.passwordHash || hashPassword('Admin@123456'),
+        lastLoginAt: existed?.lastLoginAt || '',
+      }
+    })
+    adminStore.roles = (payload.collections.roles || []).map((item) => ({
+      id: item.id || createId('role'),
+      name: item.name,
+      scope: item.scope,
+      permissions: String(item.permissionsText || '')
+        .split(',')
+        .map((permission) => permission.trim())
+        .filter(Boolean),
+      status: parseStatus(item.status, 'active'),
+    }))
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  if (slug === 'system-config') {
+    adminStore.baseConfigs = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  if (slug === 'system-compliance') {
+    updateCompliance({
+      copy: payload.meta.complianceCopy,
+    })
+    adminStore.sensitiveWords = saveCollectionArray(payload.collections.sensitiveWords, pageMap[slug]().collections[0].fields)
+    adminStore.auditQueue = saveCollectionArray(payload.collections.auditQueue, pageMap[slug]().collections[1].fields)
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
+  throw new Error('page is read only')
+}
+
+module.exports = {
+  createManagedSession,
+  finishManagedSession,
+  getAdminStore: readStore,
+  initAdminStore: storeAccessor.init,
+  getPageData,
+  getSession,
+  loginAdmin,
+  logoutAdmin,
+  savePageData,
+  updateManagedSession,
+  writeAdminStore: writeStore,
+}

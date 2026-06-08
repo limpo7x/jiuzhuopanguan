@@ -4,9 +4,12 @@
   "private": true,
   "description": "酒桌判官本地 Node 后端",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "start:mysql": "node server.js",
+    "mysql:test": "node scripts/test-mysql.js"
   },
   "dependencies": {
+    "mysql2": "^3.22.5",
     "qrcode": "^1.5.4"
   }
 }

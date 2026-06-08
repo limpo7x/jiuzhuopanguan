@@ -1,4 +1,6 @@
-const asset = (path: string): string => `/assets/${path}`
+import { staticAsset } from '../config/assets'
+
+const asset = (path: string): string => (path.startsWith('home/') ? staticAsset(path.replace(/^home\//, '')) : `/assets/${path}`)
 
 export interface HomeHero {
   title: string

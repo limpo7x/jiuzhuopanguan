@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const { createStoreAccessor } = require('./store-accessor')
 
 const storePath = path.join(__dirname, 'social-store.json')
 const avatarPool = [
@@ -18,136 +19,119 @@ const now = () => Date.now()
 
 const createDefaultStore = () => ({
   profiles: [
-    {
-      id: 'user-1001',
-      name: '阿浩',
-      avatarUrl: '/assets/avatars/avatar-1.png',
-      city: '上海',
-      signature: '今晚这局不见不散。',
-      identityTag: '气氛组',
-      createdAt: 1,
-      updatedAt: 1,
-    },
-    {
-      id: 'user-1002',
-      name: '小熊',
-      avatarUrl: '/assets/avatars/avatar-2.png',
-      city: '上海',
-      signature: '喝归喝，整活不能少。',
-      identityTag: '热场王',
-      createdAt: 2,
-      updatedAt: 2,
-    },
-    {
-      id: 'user-1003',
-      name: 'Mika',
-      avatarUrl: '/assets/avatars/avatar-3.png',
-      city: '杭州',
-      signature: '负责点题，也负责拱火。',
-      identityTag: '判官常驻',
-      createdAt: 3,
-      updatedAt: 3,
-    },
-    {
-      id: 'user-1004',
-      name: '可可',
-      avatarUrl: '/assets/avatars/avatar-4.png',
-      city: '深圳',
-      signature: '我只负责起哄。',
-      identityTag: '酒局观察员',
-      createdAt: 4,
-      updatedAt: 4,
-    },
+    { id: 'user-1001', name: '阿浩', avatarUrl: avatarPool[0], city: '上海', signature: '今晚这局不见不散。', identityTag: '气氛组长', createdAt: 1, updatedAt: 1 },
+    { id: 'user-1002', name: '小熊', avatarUrl: avatarPool[1], city: '上海', signature: '喝归喝，整活不能少。', identityTag: '热场王者', createdAt: 2, updatedAt: 2 },
+    { id: 'user-1003', name: 'Mika', avatarUrl: avatarPool[2], city: '杭州', signature: '负责点题，也负责拱火。', identityTag: '判官常驻', createdAt: 3, updatedAt: 3 },
+    { id: 'user-1004', name: '可可', avatarUrl: avatarPool[3], city: '深圳', signature: '我只负责起哄。', identityTag: '酒局观察员', createdAt: 4, updatedAt: 4 },
   ],
   friendships: [],
   pokes: [],
 })
 
-const ensureStoreFile = () => {
-  if (!fs.existsSync(storePath)) {
-    fs.writeFileSync(storePath, JSON.stringify(createDefaultStore(), null, 2), 'utf8')
-  }
-}
+const isBrokenSample = (value) =>
+  typeof value === 'string' && (!value.trim() || value.includes('?'))
 
-const readStore = () => {
-  ensureStoreFile()
-  try {
-    return JSON.parse(fs.readFileSync(storePath, 'utf8'))
-  } catch {
-    const next = createDefaultStore()
-    fs.writeFileSync(storePath, JSON.stringify(next, null, 2), 'utf8')
-    return next
-  }
-}
-
-const writeStore = (store) => {
-  fs.writeFileSync(storePath, JSON.stringify(store, null, 2), 'utf8')
-  return store
-}
-
-const normalizeProfile = (profile = {}) => {
+const normalizeProfile = (profile = {}, fallback = {}) => {
   const timestamp = now()
-  const name = String(profile.name || '').trim() || `酒友${String(profile.id || '').slice(-4) || '0000'}`
+  const name = isBrokenSample(profile.name)
+    ? fallback.name || `酒友${String(profile.id || '').slice(-4) || '0000'}`
+    : String(profile.name || fallback.name || `酒友${String(profile.id || '').slice(-4) || '0000'}`).trim()
 
   return {
-    id: String(profile.id || `user-${timestamp}`),
+    id: String(profile.id || fallback.id || `user-${timestamp}`),
     name,
-    avatarUrl: profile.avatarUrl || hashNameToAvatar(name),
-    city: profile.city || '上海',
-    signature: profile.signature || '今晚这局不见不散。',
-    identityTag: profile.identityTag || '酒局常驻玩家',
-    createdAt: profile.createdAt || timestamp,
+    avatarUrl: profile.avatarUrl || fallback.avatarUrl || hashNameToAvatar(name),
+    city: isBrokenSample(profile.city) ? fallback.city || '上海' : String(profile.city || fallback.city || '上海').trim(),
+    signature: isBrokenSample(profile.signature) ? fallback.signature || '今晚这局不见不散。' : String(profile.signature || fallback.signature || '今晚这局不见不散。').trim(),
+    identityTag: isBrokenSample(profile.identityTag) ? fallback.identityTag || '酒局常驻玩家' : String(profile.identityTag || fallback.identityTag || '酒局常驻玩家').trim(),
+    createdAt: profile.createdAt || fallback.createdAt || timestamp,
     updatedAt: timestamp,
   }
 }
 
+const normalizeStore = (store = {}) => {
+  const defaults = createDefaultStore()
+  return {
+    profiles: Array.isArray(store.profiles) && store.profiles.length
+      ? store.profiles.map((item, index) => normalizeProfile(item, defaults.profiles[index] || {}))
+      : defaults.profiles,
+    friendships: Array.isArray(store.friendships)
+      ? store.friendships.map((item, index) => ({
+          id: String(item.id || `friendship-${index + 1}`),
+          ownerId: String(item.ownerId || ''),
+          friendId: String(item.friendId || ''),
+          alias: typeof item.alias === 'string' ? item.alias.trim() : '',
+          meta: isBrokenSample(item.meta) ? '最近联系' : String(item.meta || '最近联系').trim(),
+          updatedAt: Number(item.updatedAt) || now(),
+        }))
+      : [],
+    pokes: Array.isArray(store.pokes)
+      ? store.pokes.map((item) => ({
+          id: String(item.id || ''),
+          senderId: String(item.senderId || ''),
+          receiverId: String(item.receiverId || ''),
+          status: item.status === 'matched' ? 'matched' : 'pending',
+          createdAt: Number(item.createdAt) || now(),
+          updatedAt: Number(item.updatedAt) || now(),
+        }))
+      : [],
+  }
+}
+
+const storeAccessor = createStoreAccessor({
+  key: 'social_store',
+  filePath: storePath,
+  createDefaultStore,
+  normalizeStore,
+})
+
+const readStore = () => storeAccessor.read()
+
+const writeStore = (store) => storeAccessor.write(store)
+
+const getProfileById = (store, profileId) => store.profiles.find((item) => item.id === profileId)
+
 const ensureProfile = (inputProfile) => {
   const store = readStore()
-  const normalized = normalizeProfile(inputProfile)
-  const existed = store.profiles.find((item) => item.id === normalized.id)
+  const existed = store.profiles.find((item) => item.id === String(inputProfile?.id || ''))
+  const normalized = normalizeProfile(inputProfile, existed)
 
   if (existed) {
-    const nextProfile = {
-      ...existed,
-      ...normalized,
-      createdAt: existed.createdAt || normalized.createdAt,
-    }
-    store.profiles = store.profiles.map((item) => (item.id === normalized.id ? nextProfile : item))
-    writeStore(store)
-    return nextProfile
+    store.profiles = store.profiles.map((item) => (item.id === normalized.id ? { ...item, ...normalized, createdAt: item.createdAt } : item))
+  } else {
+    store.profiles.unshift(normalized)
   }
 
-  store.profiles.unshift(normalized)
   writeStore(store)
   return normalized
 }
 
-const getProfileById = (store, profileId) => store.profiles.find((item) => item.id === profileId)
-
 const getOrCreatePlaceholderProfile = (store, name) => {
   const trimmed = String(name || '').trim()
   const existed = store.profiles.find((item) => item.name.toLowerCase() === trimmed.toLowerCase())
-
   if (existed) {
     return existed
   }
 
-  const profile = normalizeProfile({
-    id: `user-${now()}`,
-    name: trimmed,
-    signature: '刚加入酒局圈子。',
-    identityTag: '最近酒友',
-  })
+  const profile = normalizeProfile(
+    {
+      id: `user-${now()}`,
+      name: trimmed,
+      signature: '刚加入酒局圈子。',
+      identityTag: '最近酒友',
+    },
+    {},
+  )
   store.profiles.unshift(profile)
   return profile
 }
 
 const serializeFriend = (store, friendship) => {
   const profile = getProfileById(store, friendship.friendId)
-
   return {
     id: friendship.id,
     profileId: friendship.friendId,
+    ownerId: friendship.ownerId,
     avatarUrl: profile?.avatarUrl || hashNameToAvatar(friendship.alias || profile?.name || '酒友'),
     name: friendship.alias || profile?.name || '酒友',
     meta: friendship.meta || '最近联系',
@@ -163,24 +147,29 @@ const listFriends = (profileId) => {
     .map((item) => serializeFriend(store, item))
 }
 
+const listProfiles = () => {
+  return readStore().profiles
+}
+
+const listFriendships = () => {
+  const store = readStore()
+  return store.friendships
+    .slice()
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .map((item) => serializeFriend(store, item))
+}
+
 const searchProfiles = ({ ownerId, keyword = '' }) => {
   const store = readStore()
   const trimmed = String(keyword || '').trim().toLowerCase()
-
   if (!trimmed) {
     return []
   }
 
-  const friendIds = new Set(
-    store.friendships.filter((item) => item.ownerId === ownerId).map((item) => item.friendId),
-  )
-
+  const friendIds = new Set(store.friendships.filter((item) => item.ownerId === ownerId).map((item) => item.friendId))
   return store.profiles
     .filter((item) => item.id !== ownerId)
-    .filter((item) => {
-      const haystack = [item.name, item.city, item.identityTag].join(' ').toLowerCase()
-      return haystack.includes(trimmed)
-    })
+    .filter((item) => [item.name, item.city, item.identityTag].join(' ').toLowerCase().includes(trimmed))
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 8)
     .map((item) => ({
@@ -195,7 +184,6 @@ const searchProfiles = ({ ownerId, keyword = '' }) => {
 
 const addFriend = ({ ownerId, friendName, friendProfileId, meta = '最近添加' }) => {
   const store = readStore()
-
   if (!ownerId) {
     throw new Error('missing ownerId')
   }
@@ -204,25 +192,21 @@ const addFriend = ({ ownerId, friendName, friendProfileId, meta = '最近添加'
   if (!targetProfile && friendName) {
     targetProfile = getOrCreatePlaceholderProfile(store, friendName)
   }
-
   if (!targetProfile) {
     throw new Error('friend not found')
   }
-
   if (targetProfile.id === ownerId) {
     throw new Error('cannot add self')
   }
 
-  const existed = store.friendships.find(
-    (item) => item.ownerId === ownerId && item.friendId === targetProfile.id,
-  )
+  const existed = store.friendships.find((item) => item.ownerId === ownerId && item.friendId === targetProfile.id)
   const updatedAt = now()
 
   if (existed) {
     const nextFriendship = {
       ...existed,
       alias: friendName && friendName.trim() ? friendName.trim() : existed.alias,
-      meta,
+      meta: meta || existed.meta,
       updatedAt,
     }
     store.friendships = store.friendships.map((item) => (item.id === existed.id ? nextFriendship : item))
@@ -246,7 +230,6 @@ const addFriend = ({ ownerId, friendName, friendProfileId, meta = '最近添加'
 const updateFriend = ({ ownerId, friendshipId, name, meta }) => {
   const store = readStore()
   const target = store.friendships.find((item) => item.id === friendshipId && item.ownerId === ownerId)
-
   if (!target) {
     throw new Error('friendship not found')
   }
@@ -254,7 +237,7 @@ const updateFriend = ({ ownerId, friendshipId, name, meta }) => {
   const nextFriendship = {
     ...target,
     alias: typeof name === 'string' ? name.trim() : target.alias,
-    meta: typeof meta === 'string' ? meta : target.meta,
+    meta: typeof meta === 'string' ? meta.trim() : target.meta,
     updatedAt: now(),
   }
   store.friendships = store.friendships.map((item) => (item.id === friendshipId ? nextFriendship : item))
@@ -264,9 +247,7 @@ const updateFriend = ({ ownerId, friendshipId, name, meta }) => {
 
 const removeFriend = ({ ownerId, friendshipId }) => {
   const store = readStore()
-  store.friendships = store.friendships.filter(
-    (item) => !(item.id === friendshipId && item.ownerId === ownerId),
-  )
+  store.friendships = store.friendships.filter((item) => !(item.id === friendshipId && item.ownerId === ownerId))
   writeStore(store)
   return listFriends(ownerId)
 }
@@ -279,7 +260,6 @@ const touchFriends = ({ ownerId, participants = [] }) => {
       meta: index < 2 ? '刚一起开过局' : '最近联系',
     })
   })
-
   return listFriends(ownerId)
 }
 
@@ -314,10 +294,17 @@ const listPokes = (profileId) => {
     .map((item) => serializeThread(store, profileId, item))
 }
 
+const listAllPokes = () => {
+  const store = readStore()
+  return store.pokes
+    .slice()
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .map((item) => serializeThread(store, item.receiverId, item))
+}
+
 const sendPoke = ({ ownerId, friendshipId }) => {
   const store = readStore()
   const friendship = store.friendships.find((item) => item.id === friendshipId && item.ownerId === ownerId)
-
   if (!friendship) {
     throw new Error('friendship not found')
   }
@@ -357,11 +344,9 @@ const sendPoke = ({ ownerId, friendshipId }) => {
 const replyPoke = ({ profileId, threadId }) => {
   const store = readStore()
   const target = store.pokes.find((item) => item.id === threadId)
-
   if (!target) {
     throw new Error('thread not found')
   }
-
   if (target.receiverId !== profileId && target.senderId !== profileId) {
     throw new Error('forbidden')
   }
@@ -379,11 +364,9 @@ const replyPoke = ({ profileId, threadId }) => {
 const ignorePoke = ({ profileId, threadId }) => {
   const store = readStore()
   const target = store.pokes.find((item) => item.id === threadId)
-
   if (!target) {
     return listPokes(profileId)
   }
-
   if (target.receiverId !== profileId && target.senderId !== profileId) {
     throw new Error('forbidden')
   }
@@ -396,7 +379,6 @@ const ignorePoke = ({ profileId, threadId }) => {
 const getBootstrap = (profileId) => {
   const store = readStore()
   const currentProfile = getProfileById(store, profileId)
-
   if (!currentProfile) {
     throw new Error('profile not found')
   }
@@ -412,12 +394,18 @@ module.exports = {
   addFriend,
   ensureProfile,
   getBootstrap,
+  initSocialStore: storeAccessor.init,
   ignorePoke,
+  listAllPokes,
+  listFriendships,
   listPokes,
+  listProfiles,
+  readSocialStore: readStore,
   removeFriend,
   replyPoke,
   searchProfiles,
   sendPoke,
   touchFriends,
   updateFriend,
+  writeSocialStore: writeStore,
 }
