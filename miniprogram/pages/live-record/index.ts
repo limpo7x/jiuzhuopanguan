@@ -7,6 +7,7 @@ import {
   type SessionPlayerStat,
 } from '../../utils/session'
 import { updateManagedSession } from '../../services/operations'
+import { confirmAndExitSession } from '../../utils/session-exit'
 
 interface LivePlayer {
   avatarUrl: string
@@ -43,6 +44,7 @@ interface LiveRecordMethods {
   applyWheelResult: () => void
   handleAddPlayerTap: () => void
   handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
+  handleBackTap: () => Promise<void>
   handleNextRoundTap: () => void
   handleTimerTick: () => void
   openPage: (url: string) => void
@@ -341,6 +343,10 @@ Page<LiveRecordState, LiveRecordMethods>({
 
   handleNextRoundTap() {
     this.openPage('/pages/judge-wheel/index')
+  },
+
+  async handleBackTap() {
+    await confirmAndExitSession()
   },
 
   showPreviewToast(message) {

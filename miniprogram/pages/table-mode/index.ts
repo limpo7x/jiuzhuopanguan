@@ -1,4 +1,5 @@
 import { createManagedReport } from '../../services/operations'
+import { confirmAndExitSession } from '../../utils/session-exit'
 import {
   formatElapsed,
   getSessionRuntime,
@@ -31,7 +32,7 @@ interface TableModeState {
 }
 
 interface TableModeMethods {
-  handleBackTap: () => void
+  handleBackTap: () => Promise<void>
   handleFinishTap: () => Promise<void>
   handleReactionTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTimerTick: () => void
@@ -200,12 +201,8 @@ Page<TableModeState, TableModeMethods>({
     })
   },
 
-  handleBackTap() {
-    wx.navigateBack({
-      fail: () => {
-        this.openPage('/pages/live-record/index')
-      },
-    })
+  async handleBackTap() {
+    await confirmAndExitSession()
   },
 
   handleReactionTap(event) {

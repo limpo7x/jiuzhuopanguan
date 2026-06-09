@@ -1335,6 +1335,36 @@ const updateManagedSession = (sessionId, payload = {}) => {
   return store.liveSessions.find((item) => item.id === sessionId) || null
 }
 
+const deleteManagedSession = (sessionId) => {
+  const normalizedSessionId = String(sessionId || '').trim()
+  if (!normalizedSessionId) {
+    return false
+  }
+
+  const store = readStore()
+  const exists = store.liveSessions.some((item) => item.id === normalizedSessionId)
+  if (!exists) {
+    return false
+  }
+
+  const relatedReportIds = new Set(
+    store.reports
+      .filter((item) => String(item.sessionId || '') === normalizedSessionId)
+      .map((item) => String(item.id || '').trim())
+      .filter(Boolean),
+  )
+  store.liveSessions = store.liveSessions.filter((item) => item.id !== normalizedSessionId)
+  store.reports = store.reports.filter((item) => String(item.sessionId || '') !== normalizedSessionId)
+  store.analyticsEvents = store.analyticsEvents.filter((item) => {
+    const eventSessionId = String(item.meta?.sessionId || '')
+    const eventReportSessionId = String(item.sessionId || '')
+    const eventReportId = String(item.reportId || item.meta?.reportId || '')
+    return eventSessionId !== normalizedSessionId && eventReportSessionId !== normalizedSessionId && !relatedReportIds.has(eventReportId)
+  })
+  writeStore(store)
+  return true
+}
+
 const finishManagedSession = (payload = {}) => {
   const store = readStore()
   const sessionId = String(payload.sessionId || '').trim()
@@ -2748,6 +2778,7 @@ const savePageData = (slug, payload = {}) => {
 
 module.exports = {
   createManagedSession,
+  deleteManagedSession,
   finishManagedSession,
   getAdminStore: readStore,
   getManagedReportById,

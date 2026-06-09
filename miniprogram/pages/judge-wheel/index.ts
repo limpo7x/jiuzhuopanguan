@@ -8,6 +8,7 @@ import {
   type ManagedWheelHistoryItem,
 } from '../../services/operations'
 import { getSessionRuntime, resolveSessionParticipants } from '../../utils/session'
+import { confirmAndExitSession } from '../../utils/session-exit'
 
 type QuestionType = '互动' | '惩罚' | '问答'
 
@@ -61,6 +62,7 @@ interface JudgeWheelState {
 interface JudgeWheelMethods {
   applyQuestionType: (type: QuestionType) => void
   handleAcceptTap: () => Promise<void>
+  handleBackTap: () => Promise<void>
   handleSpinTap: () => void
   handleTypeTap: (event: WechatMiniprogram.BaseEvent) => void
   showPreviewToast: (message: string) => void
@@ -476,6 +478,10 @@ Page<JudgeWheelState, JudgeWheelMethods>({
     } finally {
       wx.hideLoading()
     }
+  },
+
+  async handleBackTap() {
+    await confirmAndExitSession()
   },
 
   showPreviewToast(message) {

@@ -1,5 +1,6 @@
 import { getManagedLiveSession, updateManagedSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
+import { confirmAndExitSession } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface JoinedPlayer {
@@ -21,6 +22,7 @@ interface WaitingRoomState {
 }
 
 interface WaitingRoomMethods {
+  handleBackTap: () => Promise<void>
   handleCodeTap: () => void
   handleInviteTap: () => void
   handleOverviewTap: () => void
@@ -139,6 +141,10 @@ Page<WaitingRoomState, WaitingRoomMethods>({
 
   handleOverviewTap() {
     this.openPage('/pages/flow-overview/index')
+  },
+
+  async handleBackTap() {
+    await confirmAndExitSession()
   },
 
   async handleRefreshTap() {

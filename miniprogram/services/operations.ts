@@ -372,7 +372,7 @@ const DEFAULT_TOOLS_CATALOG: ManagedToolCatalog = {
   tools: TOOL_LIST,
 }
 
-const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', data?: Record<string, unknown>): Promise<T> =>
+const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', data?: Record<string, unknown>): Promise<T> =>
   new Promise((resolve, reject) => {
     wx.request({
       url: `${getApiBase()}${path}`,
@@ -545,6 +545,14 @@ export const updateManagedSession = async (sessionId: string, payload: ManagedSe
   }
 
   await requestJson(`/sessions/${encodeURIComponent(sessionId)}`, 'PUT', payload as Record<string, unknown>)
+}
+
+export const deleteManagedSession = async (sessionId: string): Promise<void> => {
+  if (!sessionId) {
+    return
+  }
+
+  await requestJson(`/sessions/${encodeURIComponent(sessionId)}`, 'DELETE')
 }
 
 const normalizeManagedReport = (report?: RemoteManagedReport): ManagedReportDetail => ({

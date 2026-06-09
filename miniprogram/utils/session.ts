@@ -116,6 +116,19 @@ export const setSessionRuntime = (patch: Partial<SessionRuntime>): SessionRuntim
   return next
 }
 
+export const clearSessionRuntime = (): SessionRuntime => {
+  const currentUser = getSessionRuntime().currentUser
+  const next = {
+    ...DEFAULT_SESSION_RUNTIME,
+    currentUser,
+  }
+
+  wx.removeStorageSync(SESSION_REPORT_KEY)
+  wx.removeStorageSync('judge-wheel-result')
+  wx.setStorageSync(SESSION_RUNTIME_KEY, next)
+  return next
+}
+
 export const getSessionReport = (): SessionReport | null => {
   const raw = wx.getStorageSync(SESSION_REPORT_KEY) as SessionReport | undefined
   return raw || null

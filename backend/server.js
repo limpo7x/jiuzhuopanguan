@@ -55,6 +55,7 @@ const {
 } = require('./data/social')
 const {
   createManagedSession,
+  deleteManagedSession,
   finishManagedSession,
   getManagedReportById,
   getManagedSessionById,
@@ -831,6 +832,14 @@ const server = http.createServer((request, response) => {
           return
         }
         sendOk(response, updated)
+        return
+      }
+      if (request.method === 'DELETE') {
+        if (!deleteManagedSession(sessionId)) {
+          sendError(response, 404, 'session not found')
+          return
+        }
+        sendOk(response, { id: sessionId, removed: true })
         return
       }
     }

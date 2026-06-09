@@ -1,6 +1,8 @@
 <navigation-bar
   title="判官转盘"
   back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
   color="#fff6df"
   background="rgba(44,9,6,0.96)"
   ext-class="wheel-nav"
