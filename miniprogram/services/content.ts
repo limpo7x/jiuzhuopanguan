@@ -1,6 +1,6 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath } from '../config/assets'
-import { resolveCachedManagedImagePath } from '../utils/image-cache'
+import { resolveCachedManagedImagePath } from '../utils/imageCache'
 import { getUserAuthHeaders } from '../utils/social'
 
 interface ApiResponse<T> {

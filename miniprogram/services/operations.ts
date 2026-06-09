@@ -1,6 +1,6 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath, staticAsset } from '../config/assets'
-import { resolveCachedManagedImagePath } from '../utils/image-cache'
+import { resolveCachedManagedImagePath } from '../utils/imageCache'
 import { getSessionRuntime, resolveSessionParticipants } from '../utils/session'
 import { getUserAuthHeaders } from '../utils/social'
 import {
