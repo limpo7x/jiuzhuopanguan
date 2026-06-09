@@ -10,6 +10,7 @@ const avatarPool = [
   '/static/avatar-3.png',
   '/static/avatar-4.png',
 ]
+const LEGACY_DEMO_PROFILE_IDS = new Set(['user-1001', 'user-1002', 'user-1003', 'user-1004', 'user-test-a', 'user-test-b', 'user-search-a', 'user-search-b'])
 const USER_SESSION_TTL = 1000 * 60 * 60 * 24 * 30
 
 const hashNameToAvatar = (name = '') => {
@@ -26,6 +27,15 @@ const sanitizeProfileName = (value = '') => {
   const text = String(value || '').trim()
   return isPlaceholderName(text) ? '' : text
 }
+const isLegacyDemoProfile = (profile = {}) => {
+  const id = String(profile.id || '').trim()
+  if (!LEGACY_DEMO_PROFILE_IDS.has(id)) {
+    return false
+  }
+  const openId = String(profile.wechatOpenId || '').trim()
+  const phone = String(profile.phone || '').trim()
+  return !openId && !phone
+}
 const normalizeAvatarUrl = (value = '', fallbackName = '') => {
   const raw = String(value || '').trim()
   if (!raw) {
@@ -38,12 +48,7 @@ const normalizeAvatarUrl = (value = '', fallbackName = '') => {
 }
 
 const createDefaultStore = () => ({
-  profiles: [
-    { id: 'user-1001', name: '阿浩', avatarUrl: avatarPool[0], city: '上海', signature: '今晚这局不见不散。', identityTag: '气氛组长', phone: '', wechatOpenId: '', wechatUnionId: '', phoneBoundAt: '', lastLoginAt: '', loginCount: 0, createdAt: 1, updatedAt: 1 },
-    { id: 'user-1002', name: '小熊', avatarUrl: avatarPool[1], city: '上海', signature: '喝归喝，整活不能少。', identityTag: '热场王者', phone: '', wechatOpenId: '', wechatUnionId: '', phoneBoundAt: '', lastLoginAt: '', loginCount: 0, createdAt: 2, updatedAt: 2 },
-    { id: 'user-1003', name: 'Mika', avatarUrl: avatarPool[2], city: '杭州', signature: '负责点题，也负责拱火。', identityTag: '判官常驻', phone: '', wechatOpenId: '', wechatUnionId: '', phoneBoundAt: '', lastLoginAt: '', loginCount: 0, createdAt: 3, updatedAt: 3 },
-    { id: 'user-1004', name: '可可', avatarUrl: avatarPool[3], city: '深圳', signature: '我只负责起哄。', identityTag: '酒局观察员', phone: '', wechatOpenId: '', wechatUnionId: '', phoneBoundAt: '', lastLoginAt: '', loginCount: 0, createdAt: 4, updatedAt: 4 },
-  ],
+  profiles: [],
   friendships: [],
   loginLogs: [],
   pokes: [],
@@ -101,7 +106,9 @@ const normalizeStore = (store = {}) => {
   const defaults = createDefaultStore()
   return {
     profiles: Array.isArray(store.profiles) && store.profiles.length
-      ? store.profiles.map((item, index) => normalizeProfile(item, defaults.profiles[index] || {}))
+      ? store.profiles
+          .filter((item) => !isLegacyDemoProfile(item))
+          .map((item) => normalizeProfile(item, {}))
       : defaults.profiles,
     friendships: Array.isArray(store.friendships)
       ? store.friendships.map((item, index) => ({

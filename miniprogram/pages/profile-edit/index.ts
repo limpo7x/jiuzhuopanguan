@@ -30,23 +30,46 @@ interface WechatDraftProfile {
   signature: string
 }
 
+interface NicknameInputDetail {
+  value?: string
+}
+
+interface ChooseAvatarDetail {
+  avatarUrl?: string
+}
+
 interface ProfileEditMethods {
+  buildWechatDraftProfile: (nameOverride?: string) => WechatDraftProfile
+  completeLogin: (profile: SocialProfile) => Promise<void>
+  handleChooseAvatar: (event: WechatMiniprogram.CustomEvent<ChooseAvatarDetail>) => void
   handleFieldInput: (event: WechatMiniprogram.Input) => void
+  handleNicknameBlur: (event: WechatMiniprogram.CustomEvent<NicknameInputDetail>) => void
+  handleNicknameInput: (event: WechatMiniprogram.CustomEvent<NicknameInputDetail>) => void
   handlePhoneBind: (event: WechatMiniprogram.CustomEvent<{ code?: string; errMsg?: string }>) => Promise<void>
   handleSaveTap: () => Promise<void>
-  handleWechatProfileTap: () => Promise<void>
-  requestWechatProfile: () => Promise<WechatDraftProfile>
+  handleWechatProfileTap: (event: WechatMiniprogram.CustomEvent<{ value?: Record<string, string> }>) => Promise<void>
   syncProfile: () => Promise<void>
 }
 
 let wechatDraftProfile: WechatDraftProfile | null = null
 
+const DEFAULT_AVATAR = avatarAsset(1)
 const DEFAULT_CITY = '自动获取中'
 const EMPTY_NAME_HINT = '待授权获取'
 
 const isPlaceholderName = (value: string) => {
   const text = String(value || '').trim()
   return !text || /^微信用户/i.test(text) || /^酒友/i.test(text) || text === '未登录' || text === EMPTY_NAME_HINT
+}
+
+const normalizeNickname = (value: string) => {
+  const text = String(value || '').trim()
+  return isPlaceholderName(text) ? '' : text
+}
+
+const isDefaultAvatar = (value: string) => {
+  const text = String(value || '').trim()
+  return !text || text === DEFAULT_AVATAR
 }
 
 const requestLoginCode = () =>
@@ -65,7 +88,7 @@ const requestLoginCode = () =>
 
 Page<ProfileEditState, ProfileEditMethods>({
   data: {
-    avatarUrl: avatarAsset(1),
+    avatarUrl: DEFAULT_AVATAR,
     city: DEFAULT_CITY,
     hasWechatProfile: false,
     identityTag: '',
@@ -98,14 +121,14 @@ Page<ProfileEditState, ProfileEditMethods>({
     const sessionProfile = session.loggedIn && session.profile ? session.profile : null
     const displayProfile =
       sessionProfile && !(isPlaceholderName(sessionProfile.name) && !isPlaceholderName(profile.name)) ? sessionProfile : profile
-    const displayName = isPlaceholderName(displayProfile.name) ? '' : displayProfile.name
-    const displayAvatar = displayProfile.avatarUrl || avatarAsset(1)
+    const displayName = normalizeNickname(displayProfile.name)
+    const displayAvatar = String(displayProfile.avatarUrl || '').trim() || DEFAULT_AVATAR
     const loggedIn = Boolean(sessionProfile?.wechatOpenId || displayProfile.wechatOpenId)
 
     this.setData({
       avatarUrl: displayAvatar,
       city: runtimeLocation?.label || runtimeLocation?.city || displayProfile.city || DEFAULT_CITY,
-      hasWechatProfile: Boolean(displayProfile.wechatOpenId || wechatDraftProfile || displayName || displayAvatar),
+      hasWechatProfile: Boolean(displayProfile.wechatOpenId || (displayName && !isDefaultAvatar(displayAvatar))),
       identityTag: displayProfile.identityTag || '',
       loggedIn,
       name: displayName,
@@ -113,6 +136,20 @@ Page<ProfileEditState, ProfileEditMethods>({
       signature: displayProfile.signature || '',
       wechatOpenId: displayProfile.wechatOpenId || (loggedIn ? '__authorized__' : ''),
     })
+
+    wechatDraftProfile = {
+      avatarUrl: isDefaultAvatar(displayAvatar) ? '' : displayAvatar,
+      identityTag: displayProfile.identityTag || '',
+      name: displayName,
+      signature: displayProfile.signature || '',
+    }
+
+    if (displayName || !isDefaultAvatar(displayAvatar)) {
+      cacheAuthorizedWechatProfile({
+        name: displayName,
+        avatarUrl: isDefaultAvatar(displayAvatar) ? '' : displayAvatar,
+      })
+    }
   },
 
   handleFieldInput(event) {
@@ -123,43 +160,125 @@ Page<ProfileEditState, ProfileEditMethods>({
     } as Record<string, string>)
   },
 
-  async requestWechatProfile() {
-    if (wechatDraftProfile && !isPlaceholderName(wechatDraftProfile.name)) {
-      return wechatDraftProfile
+  handleChooseAvatar(event) {
+    const avatarUrl = String(event.detail?.avatarUrl || '').trim()
+    if (!avatarUrl) {
+      return
     }
-
-    const result = await new Promise<WechatMiniprogram.GetUserProfileSuccessCallbackResult>((resolve, reject) => {
-      wx.getUserProfile({
-        desc: '用于同步你的微信头像和昵称',
-        success: resolve,
-        fail: reject,
-      })
-    })
-
-    const userInfo = result.userInfo
-    const authorizedName = !isPlaceholderName(userInfo.nickName || '') ? String(userInfo.nickName || '').trim() : ''
 
     wechatDraftProfile = {
-      avatarUrl: userInfo.avatarUrl,
+      avatarUrl,
       identityTag: this.data.identityTag.trim(),
-      name: authorizedName,
+      name: normalizeNickname(this.data.name),
       signature: this.data.signature.trim(),
     }
+
     cacheAuthorizedWechatProfile({
-      name: authorizedName,
-      avatarUrl: userInfo.avatarUrl,
+      name: wechatDraftProfile.name,
+      avatarUrl,
     })
+
     this.setData({
-      avatarUrl: userInfo.avatarUrl || avatarAsset(1),
-      hasWechatProfile: true,
-      name: authorizedName,
+      avatarUrl,
+      hasWechatProfile: Boolean(wechatDraftProfile.name || avatarUrl),
     })
-    return wechatDraftProfile
   },
 
-  async handleWechatProfileTap() {
+  handleNicknameInput(event) {
+    const name = normalizeNickname(event.detail?.value || '')
+    const avatarUrl = String(this.data.avatarUrl || '').trim()
+
+    if (wechatDraftProfile) {
+      wechatDraftProfile = {
+        ...wechatDraftProfile,
+        avatarUrl,
+        name,
+      }
+    }
+
+    cacheAuthorizedWechatProfile({
+      name,
+      avatarUrl: isDefaultAvatar(avatarUrl) ? '' : avatarUrl,
+    })
+
+    this.setData({
+      hasWechatProfile: Boolean(name || !isDefaultAvatar(avatarUrl)),
+      name,
+    })
+  },
+
+  handleNicknameBlur(event) {
+    this.handleNicknameInput(event)
+  },
+
+  buildWechatDraftProfile(nameOverride?: string) {
+    const name = normalizeNickname(nameOverride || this.data.name)
+    const avatarUrl = String(this.data.avatarUrl || '').trim()
+
+    if (isDefaultAvatar(avatarUrl)) {
+      throw new Error('请先选择微信头像')
+    }
+
+    if (!name) {
+      throw new Error('请填写微信昵称')
+    }
+
+    const profile: WechatDraftProfile = {
+      avatarUrl,
+      identityTag: this.data.identityTag.trim(),
+      name,
+      signature: this.data.signature.trim(),
+    }
+
+    wechatDraftProfile = profile
+    cacheAuthorizedWechatProfile({
+      name,
+      avatarUrl,
+    })
+
+    return profile
+  },
+
+  async completeLogin(profile: SocialProfile) {
+    const resolvedDisplayName = normalizeNickname(wechatDraftProfile?.name || profile.name || '')
+    const resolvedAvatarUrl = String(wechatDraftProfile?.avatarUrl || profile.avatarUrl || '').trim() || DEFAULT_AVATAR
+
+    wechatDraftProfile = {
+      avatarUrl: resolvedAvatarUrl,
+      identityTag: profile.identityTag,
+      name: resolvedDisplayName,
+      signature: profile.signature,
+    }
+
+    cacheAuthorizedWechatProfile({
+      name: resolvedDisplayName,
+      avatarUrl: isDefaultAvatar(resolvedAvatarUrl) ? '' : resolvedAvatarUrl,
+    })
+
+    this.setData({
+      avatarUrl: resolvedAvatarUrl,
+      hasWechatProfile: Boolean(resolvedDisplayName || !isDefaultAvatar(resolvedAvatarUrl)),
+      loggedIn: Boolean(profile.wechatOpenId),
+      name: resolvedDisplayName,
+      phoneMasked: profile.phoneMasked || '',
+      signature: profile.signature,
+      wechatOpenId: profile.wechatOpenId || '',
+    })
+
+    if (resolvedDisplayName !== normalizeNickname(profile.name || '') || resolvedAvatarUrl !== String(profile.avatarUrl || '').trim()) {
+      await saveCurrentProfile({
+        avatarUrl: resolvedAvatarUrl,
+        identityTag: profile.identityTag,
+        name: resolvedDisplayName,
+        signature: profile.signature,
+      })
+    }
+  },
+
+  async handleWechatProfileTap(event) {
     try {
-      const wechatProfile = await this.requestWechatProfile()
+      const formName = normalizeNickname(event.detail?.value?.nickname || '')
+      const wechatProfile = this.buildWechatDraftProfile(formName)
       const loginCode = await requestLoginCode()
       const profile = await loginWithWechat({
         loginCode,
@@ -171,28 +290,7 @@ Page<ProfileEditState, ProfileEditMethods>({
         },
       })
 
-      wechatDraftProfile = {
-        avatarUrl: profile.avatarUrl,
-        identityTag: profile.identityTag,
-        name: isPlaceholderName(profile.name) ? '' : profile.name,
-        signature: profile.signature,
-      }
-      cacheAuthorizedWechatProfile({
-        name: wechatDraftProfile.name,
-        avatarUrl: profile.avatarUrl,
-      })
-      const resolvedDisplayName = wechatDraftProfile.name || (isPlaceholderName(profile.name) ? '' : profile.name)
-      const resolvedAvatarUrl = profile.avatarUrl || wechatDraftProfile.avatarUrl || avatarAsset(1)
-
-      this.setData({
-        avatarUrl: resolvedAvatarUrl,
-        hasWechatProfile: true,
-        loggedIn: Boolean(profile.wechatOpenId),
-        name: resolvedDisplayName,
-        phoneMasked: profile.phoneMasked || '',
-        signature: profile.signature,
-        wechatOpenId: profile.wechatOpenId || '',
-      })
+      await this.completeLogin(profile)
 
       wx.showToast({
         title: '登录成功',
@@ -244,7 +342,7 @@ Page<ProfileEditState, ProfileEditMethods>({
       if (wasLoggedIn) {
         profile = await bindCurrentUserPhone(detail.code)
       } else {
-        const wechatProfile = await this.requestWechatProfile()
+        const wechatProfile = this.buildWechatDraftProfile()
         const loginCode = await requestLoginCode()
         profile = await loginWithWechat({
           loginCode,
@@ -258,28 +356,7 @@ Page<ProfileEditState, ProfileEditMethods>({
         })
       }
 
-      wechatDraftProfile = {
-        avatarUrl: profile.avatarUrl,
-        identityTag: profile.identityTag,
-        name: isPlaceholderName(profile.name) ? '' : profile.name,
-        signature: profile.signature,
-      }
-      cacheAuthorizedWechatProfile({
-        name: wechatDraftProfile.name,
-        avatarUrl: profile.avatarUrl,
-      })
-      const resolvedDisplayName = wechatDraftProfile.name || (isPlaceholderName(profile.name) ? '' : profile.name)
-      const resolvedAvatarUrl = profile.avatarUrl || wechatDraftProfile.avatarUrl || avatarAsset(1)
-
-      this.setData({
-        avatarUrl: resolvedAvatarUrl,
-        hasWechatProfile: true,
-        loggedIn: Boolean(profile.wechatOpenId),
-        name: resolvedDisplayName,
-        phoneMasked: profile.phoneMasked || '',
-        signature: profile.signature,
-        wechatOpenId: profile.wechatOpenId || '',
-      })
+      await this.completeLogin(profile)
 
       wx.showToast({
         title: wasLoggedIn ? '绑定成功' : '登录成功',
@@ -302,9 +379,15 @@ Page<ProfileEditState, ProfileEditMethods>({
       return
     }
 
+    cacheAuthorizedWechatProfile({
+      name: normalizeNickname(this.data.name),
+      avatarUrl: isDefaultAvatar(this.data.avatarUrl) ? '' : this.data.avatarUrl,
+    })
+
     await saveCurrentProfile({
       avatarUrl: this.data.avatarUrl,
       identityTag: this.data.identityTag.trim(),
+      name: normalizeNickname(this.data.name),
       signature: this.data.signature.trim(),
     })
 

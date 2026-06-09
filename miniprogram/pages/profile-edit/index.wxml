@@ -2,12 +2,28 @@
 
 <view class="profile-edit-page">
   <scroll-view class="profile-edit-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="profile-edit-avatar-card">
-      <image class="profile-edit-avatar" src="{{avatarUrl}}" mode="aspectFill"></image>
-      <view class="profile-edit-form-card">
+    <form class="profile-edit-avatar-card" bindsubmit="handleWechatProfileTap">
+      <button class="profile-edit-avatar-picker" open-type="chooseAvatar" bindchooseavatar="handleChooseAvatar">
+        <image class="profile-edit-avatar" src="{{avatarUrl}}" mode="aspectFill"></image>
+        <text class="profile-edit-avatar-tip">{{hasWechatProfile ? '重新选择微信头像' : '选择微信头像'}}</text>
+      </button>
+
+      <view class="profile-edit-form-card profile-edit-form-card-inline">
         <view class="profile-edit-field">
           <text class="profile-edit-label">登录状态</text>
           <view class="profile-edit-value">{{loggedIn ? '已登录微信' : '未登录'}}</view>
+        </view>
+        <view class="profile-edit-field">
+          <text class="profile-edit-label">微信昵称</text>
+          <input
+            class="profile-edit-input"
+            type="nickname"
+            name="nickname"
+            value="{{name}}"
+            placeholder="请输入微信昵称"
+            bindinput="handleNicknameInput"
+            bindblur="handleNicknameBlur"
+          />
         </view>
         <view class="profile-edit-field">
           <text class="profile-edit-label">手机号</text>
@@ -18,9 +34,10 @@
           <view class="profile-edit-value">{{loggedIn ? '微信 OpenID 已后台自动绑定' : '登录后自动生成'}}</view>
         </view>
       </view>
-      <view class="profile-edit-primary" bindtap="handleWechatProfileTap">1. 一键授权头像昵称并登录</view>
+
+      <button class="profile-edit-primary" form-type="submit">1. 使用微信头像昵称登录</button>
       <button class="profile-edit-primary" open-type="getPhoneNumber" bindgetphonenumber="handlePhoneBind">2. 可选绑定手机号</button>
-    </view>
+    </form>
 
     <view class="profile-edit-form-card">
       <view class="profile-edit-field">

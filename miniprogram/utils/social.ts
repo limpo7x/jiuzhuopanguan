@@ -87,6 +87,7 @@ const USER_TOKEN_KEY = 'jzp-user-token'
 const AUTHORIZED_WECHAT_PROFILE_KEY = 'social-authorized-wechat-profile'
 const AVATAR_POOL = [avatarAsset(1), avatarAsset(2), avatarAsset(3), avatarAsset(4)]
 const DEFAULT_DIRECTORY: SocialProfile[] = []
+const LEGACY_DEMO_PROFILE_IDS = new Set(['user-1001', 'user-1002', 'user-1003', 'user-1004', 'user-test-a', 'user-test-b', 'user-search-a', 'user-search-b'])
 let backendDownUntil = 0
 
 const isPlaceholderSocialName = (value: string) => {
@@ -97,6 +98,16 @@ const isPlaceholderSocialName = (value: string) => {
 const sanitizeSocialName = (value: string) => {
   const text = String(value || '').trim()
   return isPlaceholderSocialName(text) ? '' : text
+}
+
+const isLegacyDemoProfile = (profile: Partial<SocialProfile> | null | undefined) => {
+  const id = String(profile?.id || '').trim()
+  if (!LEGACY_DEMO_PROFILE_IDS.has(id)) {
+    return false
+  }
+  const openId = String(profile?.wechatOpenId || '').trim()
+  const phone = String(profile?.phone || '').trim()
+  return !openId && !phone
 }
 
 const request = <T>(
@@ -222,6 +233,11 @@ const createDefaultProfile = (): SocialProfile => ({
 const getLocalProfile = (): SocialProfile => {
   const raw = wx.getStorageSync(CURRENT_PROFILE_KEY) as Partial<SocialProfile> | undefined
   const profileId = wx.getStorageSync(PROFILE_ID_KEY) as string | undefined
+  if (isLegacyDemoProfile(raw)) {
+    wx.removeStorageSync(CURRENT_PROFILE_KEY)
+    wx.removeStorageSync(PROFILE_ID_KEY)
+    return createDefaultProfile()
+  }
   const normalizedName = sanitizeSocialName(raw?.name || '')
   const normalizedAvatarUrl = String(raw?.avatarUrl || '').trim()
 
@@ -240,6 +256,10 @@ const getLocalProfile = (): SocialProfile => {
   }
 
   if (profileId) {
+    if (LEGACY_DEMO_PROFILE_IDS.has(String(profileId || '').trim())) {
+      wx.removeStorageSync(PROFILE_ID_KEY)
+      return createDefaultProfile()
+    }
     return {
       id: profileId,
       name: '',
@@ -280,7 +300,7 @@ const getLocalDirectory = (): SocialProfile[] => {
   const map = new Map<string, SocialProfile>()
 
   merged.forEach((item) => {
-    if (!item?.id) {
+    if (!item?.id || isLegacyDemoProfile(item)) {
       return
     }
 

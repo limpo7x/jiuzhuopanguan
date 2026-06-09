@@ -24,10 +24,32 @@
   gap: 14px;
 }
 
+.profile-edit-avatar-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.profile-edit-avatar-picker::after {
+  border: 0;
+}
+
 .profile-edit-avatar {
   width: 82px;
   height: 82px;
   border-radius: 41px;
+  border: 1px solid #efdfca;
+}
+
+.profile-edit-avatar-tip {
+  font-size: 12px;
+  line-height: 18px;
+  color: #9e846e;
 }
 
 .profile-edit-primary {
@@ -41,6 +63,11 @@
 
 .profile-edit-form-card {
   margin-top: 14px;
+}
+
+.profile-edit-form-card-inline {
+  width: 100%;
+  margin-top: 0;
 }
 
 .profile-edit-avatar-list {
