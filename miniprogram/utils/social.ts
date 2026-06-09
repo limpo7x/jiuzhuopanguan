@@ -69,7 +69,12 @@ export interface UserAuthSession {
 export interface UserLoginPayload {
   loginCode: string
   phoneCode?: string
-  profile: Pick<SocialProfile, 'avatarUrl' | 'city' | 'identityTag' | 'name' | 'signature'>
+  profile: {
+    avatarUrl: string
+    identityTag?: string
+    name: string
+    signature?: string
+  }
 }
 
 const BACKEND_RETRY_INTERVAL = 30000
@@ -79,48 +84,9 @@ const LOCAL_POKE_THREADS_KEY = 'social-local-poke-threads'
 const LOCAL_WINE_FRIENDS_KEY = 'social-local-wine-friends'
 const PROFILE_ID_KEY = 'social-current-profile-id'
 const USER_TOKEN_KEY = 'jzp-user-token'
-const AVATAR_POOL = [
-  avatarAsset(1),
-  avatarAsset(2),
-  avatarAsset(3),
-  avatarAsset(4),
-]
+const AVATAR_POOL = [avatarAsset(1), avatarAsset(2), avatarAsset(3), avatarAsset(4)]
+const DEFAULT_DIRECTORY: SocialProfile[] = []
 let backendDownUntil = 0
-
-const DEFAULT_DIRECTORY: SocialProfile[] = [
-  {
-    id: 'user-1001',
-    name: '阿浩',
-    avatarUrl: avatarAsset(1),
-    city: '上海',
-    signature: '今晚这局不见不散。',
-    identityTag: '气氛组',
-  },
-  {
-    id: 'user-1002',
-    name: '小熊',
-    avatarUrl: avatarAsset(2),
-    city: '上海',
-    signature: '喝归喝，整活不能少。',
-    identityTag: '热场王',
-  },
-  {
-    id: 'user-1003',
-    name: 'Mika',
-    avatarUrl: avatarAsset(3),
-    city: '杭州',
-    signature: '负责点题，也负责拱火。',
-    identityTag: '判官常驻',
-  },
-  {
-    id: 'user-1004',
-    name: '可可',
-    avatarUrl: avatarAsset(4),
-    city: '深圳',
-    signature: '我只负责起哄。',
-    identityTag: '酒局观察员',
-  },
-]
 
 const request = <T>(
   path: string,
@@ -197,25 +163,20 @@ const openLoginPage = (redirectUrl?: string) => {
 }
 
 const hashNameToAvatar = (name: string) => {
-  const sum = Array.from(name).reduce((total, char) => total + char.charCodeAt(0), 0)
+  const sum = Array.from(name || '未登录').reduce((total, char) => total + char.charCodeAt(0), 0)
   return AVATAR_POOL[sum % AVATAR_POOL.length]
 }
 
 const randomId = () => `${Date.now()}-${Math.floor(Math.random() * 100000)}`
 
-const createDefaultProfile = (): SocialProfile => {
-  const suffix = randomId().slice(-4)
-  const name = `酒友${suffix}`
-
-  return {
-    id: `user-${randomId()}`,
-    name,
-    avatarUrl: hashNameToAvatar(name),
-    city: '上海',
-    signature: '今晚这局不见不散。',
-    identityTag: '酒局常驻玩家',
-  }
-}
+const createDefaultProfile = (): SocialProfile => ({
+  id: `user-${randomId()}`,
+  name: '未登录',
+  avatarUrl: hashNameToAvatar('未登录'),
+  city: '',
+  signature: '',
+  identityTag: '',
+})
 
 const getLocalProfile = (): SocialProfile => {
   const raw = wx.getStorageSync(CURRENT_PROFILE_KEY) as Partial<SocialProfile> | undefined
@@ -223,24 +184,26 @@ const getLocalProfile = (): SocialProfile => {
 
   if (raw?.id) {
     return {
-      avatarUrl: raw.avatarUrl || hashNameToAvatar(raw.name || '酒友'),
-      city: raw.city || '上海',
+      avatarUrl: raw.avatarUrl || hashNameToAvatar(raw.name || '未登录'),
+      city: raw.city || '',
       id: raw.id,
-      identityTag: raw.identityTag || '酒局常驻玩家',
-      name: raw.name || `酒友${raw.id.slice(-4)}`,
-      signature: raw.signature || '今晚这局不见不散。',
+      identityTag: raw.identityTag || '',
+      name: raw.name || '未登录',
+      signature: raw.signature || '',
+      phone: raw.phone || '',
+      phoneMasked: raw.phoneMasked || '',
+      wechatOpenId: raw.wechatOpenId || '',
     }
   }
 
   if (profileId) {
-    const fallbackName = `酒友${profileId.slice(-4)}`
     return {
       id: profileId,
-      name: fallbackName,
-      avatarUrl: hashNameToAvatar(fallbackName),
-      city: '上海',
-      signature: '今晚这局不见不散。',
-      identityTag: '酒局常驻玩家',
+      name: '未登录',
+      avatarUrl: hashNameToAvatar('未登录'),
+      city: '',
+      signature: '',
+      identityTag: '',
     }
   }
 
@@ -265,11 +228,14 @@ const getLocalDirectory = (): SocialProfile[] => {
 
     map.set(item.id, {
       id: item.id,
-      name: item.name,
-      avatarUrl: item.avatarUrl || hashNameToAvatar(item.name),
-      city: item.city || '上海',
-      signature: item.signature || '今晚这局不见不散。',
-      identityTag: item.identityTag || '酒局常驻玩家',
+      name: item.name || '未命名用户',
+      avatarUrl: item.avatarUrl || hashNameToAvatar(item.name || '未命名用户'),
+      city: item.city || '',
+      signature: item.signature || '',
+      identityTag: item.identityTag || '',
+      phone: item.phone || '',
+      phoneMasked: item.phoneMasked || '',
+      wechatOpenId: item.wechatOpenId || '',
     })
   })
 
@@ -283,10 +249,7 @@ const saveLocalDirectory = (profiles: SocialProfile[]) => {
 
 const upsertLocalProfile = (profile: SocialProfile) => {
   const directory = getLocalDirectory()
-  const next = [
-    profile,
-    ...directory.filter((item) => item.id !== profile.id),
-  ]
+  const next = [profile, ...directory.filter((item) => item.id !== profile.id)]
   saveLocalDirectory(next)
   return cacheProfile(profile)
 }
@@ -478,9 +441,9 @@ export const addWineFriend = async (name: string, meta = '最近添加'): Promis
       id: profileId,
       name: trimmed,
       avatarUrl: hashNameToAvatar(trimmed),
-      city: '上海',
-      signature: '刚加入酒局圈子。',
-      identityTag: '最近酒友',
+      city: '',
+      signature: '',
+      identityTag: '',
     }
     saveLocalDirectory([directoryProfile, ...getLocalDirectory().filter((item) => item.id !== profileId)])
     const friend: WineFriend = {
@@ -513,7 +476,7 @@ export const addWineFriendByProfile = async (
     return remote
   } catch {
     const target = getLocalDirectory().find((item) => item.id === friendProfileId)
-    const localName = friendName?.trim() || target?.name || '酒友'
+    const localName = friendName?.trim() || target?.name || '未命名用户'
     const friend: WineFriend = {
       id: `local-friend-${randomId()}`,
       profileId: friendProfileId,
@@ -653,9 +616,9 @@ export const sendPokeToFriend = async (friendId: string): Promise<PokeThread | n
       id: friend.profileId,
       name: friend.name,
       avatarUrl: friend.avatarUrl,
-      city: '上海',
-      signature: '今晚这局不见不散。',
-      identityTag: '最近酒友',
+      city: '',
+      signature: '',
+      identityTag: '',
     }
     const threadId = [profile.id, receiver.id].sort().join('__')
     const existed = getLocalPokeThreads().find((item) => item.id === threadId)

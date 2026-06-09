@@ -1,9 +1,10 @@
 import { homePageMock, type HomePageData } from '../../mock/home'
 import { getHomePageData } from '../../services/home'
 import { getStoredRuntimeLocation, requestRuntimeLocation } from '../../utils/location'
-import { ensureUserAuthorized } from '../../utils/social'
+import { ensureUserAuthorized, getUserAuthSession } from '../../utils/social'
 
 interface HomePageState {
+  canCheckIn: boolean
   checkedIn: boolean
   home: HomePageData
   loading: boolean
@@ -13,12 +14,13 @@ interface HomePageMethods {
   announcePreview: (message: string) => void
   handleCheckIn: () => void
   handleLocationTap: () => Promise<void>
-  handlePrimaryTap: () => void
+  handlePrimaryTap: () => Promise<void>
   handleQuickToolTap: (event: WechatMiniprogram.BaseEvent) => void
-  handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleTabTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleToolTap: (event: WechatMiniprogram.BaseEvent) => void
   loadHomePage: () => Promise<void>
   openPage: (url: string) => void
+  syncAuthState: () => Promise<void>
   syncLocation: (silent?: boolean) => Promise<void>
 }
 
@@ -31,16 +33,19 @@ const TAB_ROUTES: Record<string, string> = {
 
 Page<HomePageState, HomePageMethods>({
   data: {
+    canCheckIn: false,
     checkedIn: false,
     home: homePageMock,
     loading: true,
   },
 
   onLoad() {
+    void this.syncAuthState()
     void this.loadHomePage()
   },
 
   onShow() {
+    void this.syncAuthState()
     if (!this.data.loading) {
       void this.loadHomePage()
     }
@@ -83,6 +88,13 @@ Page<HomePageState, HomePageMethods>({
     wx.showToast({
       title: message,
       icon: 'none',
+    })
+  },
+
+  async syncAuthState() {
+    const session = await getUserAuthSession()
+    this.setData({
+      canCheckIn: Boolean(session.loggedIn && session.profile?.wechatOpenId),
     })
   },
 
@@ -131,6 +143,10 @@ Page<HomePageState, HomePageMethods>({
   },
 
   handleCheckIn() {
+    if (!this.data.canCheckIn) {
+      return
+    }
+
     if (this.data.checkedIn) {
       this.announcePreview('今天已经签到过了')
       return

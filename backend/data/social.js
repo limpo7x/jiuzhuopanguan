@@ -18,6 +18,10 @@ const hashNameToAvatar = (name = '') => {
 }
 
 const now = () => Date.now()
+const isPlaceholderName = (value = '') => {
+  const text = String(value || '').trim()
+  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text)
+}
 const normalizeAvatarUrl = (value = '', fallbackName = '') => {
   const raw = String(value || '').trim()
   if (!raw) {
@@ -202,11 +206,16 @@ const bindWechatUser = ({
 
   const timestamp = now()
   const loginAt = isoNow()
+  const nextName = !isPlaceholderName(profile.name)
+    ? String(profile.name).trim()
+    : !isPlaceholderName(targetProfile?.name)
+      ? String(targetProfile?.name).trim()
+      : `微信用户${String(normalizedPhone || timestamp).slice(-4)}`
   const nextProfile = normalizeProfile(
     {
       ...(targetProfile || {}),
       id: targetProfile?.id || `user-${timestamp}`,
-      name: profile.name || targetProfile?.name || `微信用户${String(normalizedPhone || timestamp).slice(-4)}`,
+      name: nextName,
       avatarUrl: profile.avatarUrl || targetProfile?.avatarUrl || hashNameToAvatar(profile.name || normalizedPhone || '微信用户'),
       city: profile.city || targetProfile?.city || '上海',
       signature: profile.signature || targetProfile?.signature || '已使用微信登录',

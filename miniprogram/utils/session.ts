@@ -15,6 +15,16 @@ export interface SessionPlayerReaction {
   weakVoters: string[]
 }
 
+export interface SessionPlayerStat {
+  avatarUrl: string
+  clearedCount: number
+  debtCount: number
+  drinkCount: number
+  meta?: string
+  name: string
+  profileId?: string
+}
+
 export interface SessionReportRank {
   avatarUrl: string
   name: string
@@ -41,6 +51,7 @@ export interface SessionRuntime {
   longitude?: number | null
   playerCount: number
   playerReactions: SessionPlayerReaction[]
+  playerStats: SessionPlayerStat[]
   province?: string
   selectedPlayers: SessionParticipant[]
   sessionId?: string
@@ -63,6 +74,7 @@ const DEFAULT_SESSION_RUNTIME: SessionRuntime = {
   longitude: null,
   playerCount: 6,
   playerReactions: [],
+  playerStats: [],
   province: '',
   selectedPlayers: [],
   sessionId: '',
@@ -87,6 +99,19 @@ export const getSessionRuntime = (): SessionRuntime => {
           likeVoters: Array.isArray(item?.likeVoters) ? item.likeVoters : [],
           weakVoters: Array.isArray(item?.weakVoters) ? item.weakVoters : [],
         }))
+      : [],
+    playerStats: Array.isArray(merged.playerStats)
+      ? merged.playerStats
+          .filter((item) => item?.name)
+          .map((item) => ({
+            avatarUrl: item?.avatarUrl || '',
+            clearedCount: Number(item?.clearedCount) || 0,
+            debtCount: Number(item?.debtCount) || 0,
+            drinkCount: Number(item?.drinkCount) || 0,
+            meta: item?.meta || '',
+            name: item?.name || '',
+            profileId: item?.profileId || '',
+          }))
       : [],
   }
 }
@@ -124,4 +149,27 @@ export const formatElapsed = (startedAt: number, now = Date.now()): string => {
   return [hours, minutes, remainSeconds]
     .map((value) => String(value).padStart(2, '0'))
     .join(':')
+}
+
+export const resolveSessionParticipants = (runtime = getSessionRuntime()): SessionParticipant[] => {
+  const selectedPlayers = Array.isArray(runtime.selectedPlayers)
+    ? runtime.selectedPlayers.filter((item) => item?.name).slice(0, runtime.playerCount)
+    : []
+
+  if (selectedPlayers.length) {
+    return selectedPlayers
+  }
+
+  if (runtime.currentUser?.name) {
+    return [
+      {
+        avatarUrl: runtime.currentUser.avatarUrl,
+        name: runtime.currentUser.name,
+        profileId: runtime.currentUser.id,
+        status: '已加入',
+      },
+    ]
+  }
+
+  return []
 }

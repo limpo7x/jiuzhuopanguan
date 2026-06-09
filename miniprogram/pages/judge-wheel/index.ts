@@ -1,4 +1,5 @@
 import { avatarAsset } from '../../config/assets'
+import { getSessionRuntime, resolveSessionParticipants } from '../../utils/session'
 
 interface WheelHistory {
   active?: boolean
@@ -38,12 +39,12 @@ const JUDGE_WHEEL_RESULT_KEY = 'judge-wheel-result'
 const MAX_CLEAR_PER_PLAYER = 3
 
 const QUESTION_SOURCE = [
-  { shortLabel: '真心话', text: '说出最近一次想赖酒但没赖成的原因' },
-  { shortLabel: '模仿局', text: '模仿酒桌上最会劝酒的人 10 秒' },
-  { shortLabel: '回忆杀', text: '讲一件学生时代最尴尬的社交名场面' },
-  { shortLabel: '快问答', text: '10 秒内说出 3 个不能带上酒桌的秘密' },
-  { shortLabel: '才艺卡', text: '站起来表演一个最拿手但最离谱的才艺' },
-  { shortLabel: '指令牌', text: '给左手边的人设计一句专属敬酒台词' },
+  { shortLabel: '真心话', text: '说出最近一次想赖酒但没赖成的原因。' },
+  { shortLabel: '模仿局', text: '模仿酒桌上最会劝酒的人 10 秒。' },
+  { shortLabel: '回忆杀', text: '讲一件学生时代最尴尬的社交场面。' },
+  { shortLabel: '快问答', text: '10 秒内说出 3 个不能带上酒桌的秘密。' },
+  { shortLabel: '才艺卡', text: '站起来表演一个最拿手但最离谱的才艺。' },
+  { shortLabel: '指令牌', text: '给左手边的人设计一句专属敬酒台词。' },
 ] as const
 
 const buildWheelQuestions = (): WheelQuestion[] =>
@@ -56,15 +57,26 @@ const buildWheelQuestions = (): WheelQuestion[] =>
     }
   })
 
+const getDefaultPlayer = () => {
+  const runtime = getSessionRuntime()
+  const player = resolveSessionParticipants(runtime)[0]
+
+  return {
+    avatarUrl: player?.avatarUrl || avatarAsset(1),
+    id: player?.profileId || 'player-1',
+    name: player?.name || '当前玩家',
+  }
+}
+
 let spinTimer = 0
 
 Page<JudgeWheelState, JudgeWheelMethods>({
   data: {
-    currentPlayerAvatar: avatarAsset(2),
-    currentPlayerId: 'xiaoxiong',
-    currentPlayerName: '小熊',
+    currentPlayerAvatar: getDefaultPlayer().avatarUrl,
+    currentPlayerId: getDefaultPlayer().id,
+    currentPlayerName: getDefaultPlayer().name,
     currentTask: QUESTION_SOURCE[0].text,
-    currentDebtCount: 2,
+    currentDebtCount: 0,
     currentClearedCount: 0,
     hasSpun: false,
     isSpinning: false,
@@ -80,9 +92,10 @@ Page<JudgeWheelState, JudgeWheelMethods>({
   },
 
   onLoad(query) {
-    const playerId = query?.playerId ? decodeURIComponent(query.playerId) : this.data.currentPlayerId
-    const playerName = query?.playerName ? decodeURIComponent(query.playerName) : this.data.currentPlayerName
-    const avatarUrl = query?.avatarUrl ? decodeURIComponent(query.avatarUrl) : this.data.currentPlayerAvatar
+    const defaults = getDefaultPlayer()
+    const playerId = query?.playerId ? decodeURIComponent(query.playerId) : defaults.id
+    const playerName = query?.playerName ? decodeURIComponent(query.playerName) : defaults.name
+    const avatarUrl = query?.avatarUrl ? decodeURIComponent(query.avatarUrl) : defaults.avatarUrl
     const debt = Number(query?.debt || this.data.currentDebtCount)
     const cleared = Number(query?.cleared || this.data.currentClearedCount)
 
@@ -113,7 +126,7 @@ Page<JudgeWheelState, JudgeWheelMethods>({
     }
 
     if (this.data.currentClearedCount >= this.data.maxClearPerPlayer) {
-      this.showPreviewToast(`${this.data.currentPlayerName} 本局已消除满 3 杯`)
+      this.showPreviewToast(`${this.data.currentPlayerName} 本局已消满 3 杯`)
       return
     }
 

@@ -1,11 +1,11 @@
-import { avatarAsset } from '../../config/assets'
 import {
   formatElapsed,
   getSessionRuntime,
+  resolveSessionParticipants,
   setSessionReport,
   setSessionRuntime,
-  type SessionParticipant,
   type SessionPlayerReaction,
+  type SessionPlayerStat,
   type SessionRuntime,
 } from '../../utils/session'
 
@@ -39,47 +39,45 @@ interface TableModeMethods {
 }
 
 let tableTimer = 0
-const DEFAULT_TABLE_PLAYERS: SessionParticipant[] = [
-  { name: '阿浩', avatarUrl: avatarAsset(1) },
-  { name: '小熊', avatarUrl: avatarAsset(2) },
-  { name: 'Mika', avatarUrl: avatarAsset(3) },
-  { name: '可可', avatarUrl: avatarAsset(4) },
-  { name: '阿乐', avatarUrl: avatarAsset(1) },
-  { name: 'Nina', avatarUrl: avatarAsset(2) },
-]
 
-const getRowBaseStats = (index: number) => {
-  const debt = index === 0 ? 2 : index === 1 ? 1 : 0
-  const drink = index <= 1 ? index + 1 : 0
-  const cleared = index === 2 ? 1 : 0
+const buildBaseStats = (runtime: SessionRuntime): SessionPlayerStat[] => {
+  const statMap = new Map(runtime.playerStats.map((item) => [item.profileId || item.name, item]))
 
-  return {
-    cleared,
-    debt,
-    drink,
-    total: debt + drink,
-  }
+  return resolveSessionParticipants(runtime)
+    .slice(0, runtime.playerCount)
+    .map((item) => {
+      const stat = statMap.get(item.profileId || item.name)
+      return {
+        avatarUrl: item.avatarUrl,
+        clearedCount: stat?.clearedCount || 0,
+        debtCount: stat?.debtCount || 0,
+        drinkCount: stat?.drinkCount || 0,
+        meta: stat?.meta || item.status || '',
+        name: item.name,
+        profileId: item.profileId,
+      }
+    })
 }
 
 const buildRows = (runtime: SessionRuntime): ScoreRow[] => {
-  const selectedPlayers = runtime.selectedPlayers?.length
-    ? runtime.selectedPlayers
-    : DEFAULT_TABLE_PLAYERS.slice(0, runtime.playerCount)
+  const baseStats = buildBaseStats(runtime)
   const voterName = runtime.currentUser?.name || ''
 
-  return selectedPlayers.slice(0, runtime.playerCount).map((item, index) => {
+  return baseStats.map((item) => {
     const reaction = runtime.playerReactions.find((record) => record.playerName === item.name)
-    const stats = getRowBaseStats(index)
 
     return {
       avatarUrl: item.avatarUrl,
       canReact: !runtime.isJudge && !!voterName && voterName !== item.name,
+      cleared: item.clearedCount,
+      debt: item.debtCount,
+      drink: item.drinkCount,
       likeCount: reaction?.likeVoters.length || 0,
       likedByMe: voterName ? reaction?.likeVoters.includes(voterName) || false : false,
       name: item.name,
+      total: item.debtCount + item.drinkCount,
       weakCount: reaction?.weakVoters.length || 0,
       weakedByMe: voterName ? reaction?.weakVoters.includes(voterName) || false : false,
-      ...stats,
     }
   })
 }
@@ -88,7 +86,7 @@ const updatePlayerReactions = (
   source: SessionPlayerReaction[],
   playerName: string,
   voterName: string,
-  mode: 'like' | 'weak'
+  mode: 'like' | 'weak',
 ): SessionPlayerReaction[] => {
   const existing = source.find((item) => item.playerName === playerName)
   const list = source
@@ -98,7 +96,7 @@ const updatePlayerReactions = (
         playerName,
         likeVoters: [],
         weakVoters: [],
-      }
+      },
     )
 
   return list.map((item) => {
@@ -127,26 +125,35 @@ const updatePlayerReactions = (
   })
 }
 
+const buildReportEvents = (sessionName: string, rows: ScoreRow[]): Array<{ text: string }> => {
+  const rowsByDebt = [...rows].sort((a, b) => b.debt - a.debt)
+  const rowsByDrink = [...rows].sort((a, b) => b.drink - a.drink)
+  const rowsByCleared = [...rows].sort((a, b) => b.cleared - a.cleared)
+  const rowsByLikes = [...rows].sort((a, b) => b.likeCount - a.likeCount)
+  const rowsByWeak = [...rows].sort((a, b) => b.weakCount - a.weakCount)
+
+  return [
+    { text: `${sessionName} 共 ${rows.length} 位玩家参与。` },
+    { text: rowsByDebt[0] ? `${rowsByDebt[0].name} 欠酒 ${rowsByDebt[0].debt} 杯，为本局最高。` : '本局暂无欠酒记录。' },
+    { text: rowsByDrink[0] ? `${rowsByDrink[0].name} 已喝 ${rowsByDrink[0].drink} 杯。` : '本局暂无饮酒记录。' },
+    { text: rowsByCleared[0] ? `${rowsByCleared[0].name} 完成消杯 ${rowsByCleared[0].cleared} 次。` : '本局暂无消杯记录。' },
+    {
+      text:
+        rowsByLikes[0]?.likeCount > 0
+          ? `${rowsByLikes[0].name} 获得 ${rowsByLikes[0].likeCount} 次点赞。`
+          : rowsByWeak[0]?.weakCount > 0
+            ? `${rowsByWeak[0].name} 被点了 ${rowsByWeak[0].weakCount} 次小拇指。`
+            : '本局还没有玩家互评记录。',
+    },
+  ]
+}
+
 Page<TableModeState, TableModeMethods>({
   data: {
     elapsedText: '00:00:00',
     isJudge: true,
-    rows: [
-      {
-        name: '阿浩',
-        avatarUrl: avatarAsset(1),
-        debt: 2,
-        drink: 1,
-        cleared: 1,
-        total: 3,
-        canReact: false,
-        likeCount: 0,
-        likedByMe: false,
-        weakCount: 0,
-        weakedByMe: false,
-      },
-    ],
-    sessionName: '今晚聚会不醉不归',
+    rows: [],
+    sessionName: '酒桌判官酒局',
   },
 
   onLoad() {
@@ -240,46 +247,41 @@ Page<TableModeState, TableModeMethods>({
         {
           title: '欠酒大王',
           name: rowsByDebt[0]?.name || '暂无',
-          avatarUrl: rowsByDebt[0]?.avatarUrl || avatarAsset(1),
+          avatarUrl: rowsByDebt[0]?.avatarUrl || '',
           value: `欠了 ${rowsByDebt[0]?.debt || 0} 杯`,
         },
         {
           title: '干杯王',
           name: rowsByDrink[0]?.name || '暂无',
-          avatarUrl: rowsByDrink[0]?.avatarUrl || avatarAsset(2),
+          avatarUrl: rowsByDrink[0]?.avatarUrl || '',
           value: `已喝 ${rowsByDrink[0]?.drink || 0} 杯`,
         },
         {
           title: '消杯王',
           name: rowsByCleared[0]?.name || '暂无',
-          avatarUrl: rowsByCleared[0]?.avatarUrl || avatarAsset(3),
+          avatarUrl: rowsByCleared[0]?.avatarUrl || '',
           value: `消了 ${rowsByCleared[0]?.cleared || 0} 杯`,
         },
         {
-          title: '最被敬畏的人',
+          title: '最受欢迎',
           name: topLikeRow?.name || '暂无',
-          avatarUrl: topLikeRow?.avatarUrl || avatarAsset(4),
-          value: topLikeRow ? `收到了 ${topLikeRow.likeCount} 个点赞` : '本局还没人被点赞',
+          avatarUrl: topLikeRow?.avatarUrl || '',
+          value: topLikeRow ? `收到了 ${topLikeRow.likeCount} 次点赞` : '本局暂无点赞记录',
         },
         {
-          title: '公认最弱',
+          title: '全场记忆点',
           name: topWeakRow?.name || '暂无',
-          avatarUrl: topWeakRow?.avatarUrl || avatarAsset(1),
-          value: topWeakRow ? `收到了 ${topWeakRow.weakCount} 个小拇指` : '本局还没人被点小拇指',
+          avatarUrl: topWeakRow?.avatarUrl || '',
+          value: topWeakRow ? `被点了 ${topWeakRow.weakCount} 次小拇指` : '本局暂无互评记录',
         },
       ],
-      events: [
-        { text: '本局已由判官确认结束，已自动生成战报。' },
-        { text: `${this.data.sessionName} 共 ${this.data.rows.length} 位玩家参与。` },
-        { text: topLikeRow ? `${topLikeRow.name} 成为“最被敬畏的人”。` : '本局还没有产生“最被敬畏的人”。' },
-        { text: topWeakRow ? `${topWeakRow.name} 被评为“公认最弱”。` : '本局还没有产生“公认最弱”。' },
-        { text: '可继续分享战报或基于当前模板再开一局。' },
-      ],
+      events: buildReportEvents(this.data.sessionName, this.data.rows),
     })
 
     setSessionRuntime({
       currentUser: null,
       playerReactions: [],
+      playerStats: [],
       startedAt: 0,
     })
 

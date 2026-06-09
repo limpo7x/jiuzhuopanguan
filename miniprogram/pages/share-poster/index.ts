@@ -29,6 +29,8 @@ interface SharePosterMethods {
   showPreviewToast: (message: string) => void
 }
 
+const POSTER_IMAGE_URL = 'https://api.pomer.cn/static/report-poster.png'
+
 const downloadFile = (url: string) =>
   new Promise<string>((resolve, reject) => {
     wx.downloadFile({
@@ -63,7 +65,7 @@ Page<SharePosterState, SharePosterMethods>({
       { id: 'group', name: '分享到群', iconClass: 'poster-icon-group' },
       { id: 'more', name: '更多', iconClass: 'poster-icon-more' },
     ],
-    sessionName: '周五热场局',
+    sessionName: '本局战报',
   },
 
   onLoad() {
@@ -73,7 +75,7 @@ Page<SharePosterState, SharePosterMethods>({
     this.setData({
       inviteCode: runtime.inviteCode || '',
       sessionId: runtime.sessionId || '',
-      sessionName: report?.sessionName || runtime.sessionName,
+      sessionName: report?.sessionName || runtime.sessionName || '本局战报',
       ranks: report?.ranks || [],
     })
   },
@@ -87,16 +89,17 @@ Page<SharePosterState, SharePosterMethods>({
         channel: 'share-poster',
       },
     })
+
     return {
-      title: `${this.data.sessionName} 战报出炉了`,
+      title: `${this.data.sessionName} 战报出炉`,
       path: `/pages/join-claim/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,
-      imageUrl: 'https://api.pomer.cn/static/report-poster.png',
+      imageUrl: POSTER_IMAGE_URL,
     }
   },
 
   async handleSaveTap() {
     try {
-      const tempFilePath = await downloadFile('https://api.pomer.cn/static/report-poster.png')
+      const tempFilePath = await downloadFile(POSTER_IMAGE_URL)
       await saveImage(tempFilePath)
       trackAnalyticsEvent({
         type: 'share_asset_open',

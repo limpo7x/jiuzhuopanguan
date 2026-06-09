@@ -14,9 +14,13 @@
         <text class="home-chip-arrow">▼</text>
       </view>
       <view class="top-row-spacer"></view>
-      <view class="sign-tag" bindtap="handleCheckIn">
+      <view wx:if="{{canCheckIn}}" class="sign-tag" bindtap="handleCheckIn">
         <view class="sign-tag-icon icon-coin"></view>
         <text class="sign-tag-text">{{checkedIn ? '今日已签' : '签到 +10'}}</text>
+      </view>
+      <view wx:else class="sign-tag sign-tag-disabled">
+        <view class="sign-tag-icon icon-coin"></view>
+        <text class="sign-tag-text">登录后签到</text>
       </view>
     </view>
 

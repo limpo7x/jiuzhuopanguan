@@ -1,5 +1,11 @@
-import { formatElapsed, getSessionRuntime, type SessionParticipant } from '../../utils/session'
-import { avatarAsset } from '../../config/assets'
+import {
+  formatElapsed,
+  getSessionRuntime,
+  resolveSessionParticipants,
+  setSessionRuntime,
+  type SessionParticipant,
+  type SessionPlayerStat,
+} from '../../utils/session'
 
 interface LivePlayer {
   avatarUrl: string
@@ -15,6 +21,7 @@ interface LiveRecordItem {
   id: string
   meta: string
   name: string
+  profileId?: string
 }
 
 interface LiveEvent {
@@ -41,59 +48,83 @@ interface LiveRecordMethods {
   handleSaveTap: () => void
   handleWheelTap: (event: WechatMiniprogram.BaseEvent) => void
   showPreviewToast: (message: string) => void
+  syncRecordsToRuntime: (records: LiveRecordItem[]) => void
 }
 
 const JUDGE_WHEEL_RESULT_KEY = 'judge-wheel-result'
 const MAX_CLEAR_PER_PLAYER = 3
 let liveTimer = 0
-const DEFAULT_PLAYERS: SessionParticipant[] = [
-  { name: '阿浩', avatarUrl: avatarAsset(1) },
-  { name: '小熊', avatarUrl: avatarAsset(2) },
-  { name: 'Mika', avatarUrl: avatarAsset(3) },
-  { name: '可可', avatarUrl: avatarAsset(4) },
-  { name: '阿乐', avatarUrl: avatarAsset(1) },
-  { name: 'Nina', avatarUrl: avatarAsset(2) },
-]
+
+const buildPlayers = (runtime = getSessionRuntime()): LivePlayer[] =>
+  resolveSessionParticipants(runtime)
+    .slice(0, runtime.playerCount)
+    .map((item) => ({
+      avatarUrl: item.avatarUrl,
+      name: item.name,
+      profileId: item.profileId,
+    }))
+
+const buildRecordId = (player: LivePlayer, index: number) => player.profileId || `player-${index + 1}`
+
+const buildDefaultMeta = (player: SessionParticipant | LivePlayer) =>
+  ('status' in player && player.status) || '等待本局记录'
+
+const buildRecords = (players: LivePlayer[], runtime = getSessionRuntime()): LiveRecordItem[] => {
+  const statMap = new Map(runtime.playerStats.map((item) => [item.profileId || item.name, item]))
+
+  return players.map((player, index) => {
+    const id = buildRecordId(player, index)
+    const stat = statMap.get(player.profileId || player.name)
+
+    return {
+      avatarUrl: player.avatarUrl,
+      clearedCount: stat?.clearedCount || 0,
+      debtCount: stat?.debtCount || 0,
+      drinkCount: stat?.drinkCount || 0,
+      id,
+      meta: stat?.meta || buildDefaultMeta(player),
+      name: player.name,
+      profileId: player.profileId,
+    }
+  })
+}
+
+const buildInitialEvents = (sessionName: string, players: LivePlayer[]): LiveEvent[] => {
+  if (!players.length) {
+    return [{ text: `${sessionName} 已创建，等待玩家加入。` }]
+  }
+
+  return [{ text: `${sessionName} 当前已有 ${players.length} 位玩家入局，等待判官开始记录。` }]
+}
+
+const toPlayerStats = (records: LiveRecordItem[]): SessionPlayerStat[] =>
+  records.map((item) => ({
+    avatarUrl: item.avatarUrl,
+    clearedCount: item.clearedCount,
+    debtCount: item.debtCount,
+    drinkCount: item.drinkCount,
+    meta: item.meta,
+    name: item.name,
+    profileId: item.profileId,
+  }))
 
 Page<LiveRecordState, LiveRecordMethods>({
   data: {
     elapsedText: '00:00:00',
     playerCount: 6,
-    players: [
-      { name: '阿浩', avatarUrl: avatarAsset(1) },
-      { name: '小熊', avatarUrl: avatarAsset(2) },
-      { name: 'Mika', avatarUrl: avatarAsset(3) },
-      { name: '可可', avatarUrl: avatarAsset(4) },
-      { name: '阿乐', avatarUrl: avatarAsset(1) },
-    ],
+    players: [],
     isJudge: true,
-    records: [
-      { id: 'ahao', name: '阿浩', avatarUrl: avatarAsset(1), meta: '真心话大胆抢了', debtCount: 2, drinkCount: 1, clearedCount: 1 },
-      { id: 'xiaoxiong', name: '小熊', avatarUrl: avatarAsset(2), meta: '对朋友了几口，认真~', debtCount: 1, drinkCount: 2, clearedCount: 0 },
-      { id: 'mika', name: 'Mika', avatarUrl: avatarAsset(3), meta: '话题继续加码', debtCount: 1, drinkCount: 1, clearedCount: 2 },
-    ],
-    sessionName: '今晚聚会不醉不归',
-    events: [
-      { text: '可可 表演了“海草舞”' },
-      { text: '阿乐 唱《孤勇者》跑调' },
-    ],
+    records: [],
+    sessionName: '酒桌判官酒局',
+    events: [],
   },
 
   onLoad(query) {
     const runtime = getSessionRuntime()
     const isJudge = query?.role === 'viewer' ? false : runtime.isJudge
     const sessionName = query?.sessionName ? decodeURIComponent(query.sessionName) : runtime.sessionName
-    const selectedPlayers = runtime.selectedPlayers?.length ? runtime.selectedPlayers : DEFAULT_PLAYERS.slice(0, runtime.playerCount)
-    const players = selectedPlayers.slice(0, runtime.playerCount)
-    const records = players.map((item, index) => ({
-      id: `player-${index + 1}`,
-      name: item.name,
-      avatarUrl: item.avatarUrl,
-      meta: index % 2 === 0 ? '真心话大胆抢了' : '对朋友了几口，认真~',
-      debtCount: index === 0 ? 2 : index === 1 ? 1 : 0,
-      drinkCount: index <= 1 ? index + 1 : 0,
-      clearedCount: index === 2 ? 1 : 0,
-    }))
+    const players = buildPlayers(runtime)
+    const records = buildRecords(players, runtime)
 
     this.setData({
       isJudge,
@@ -101,8 +132,10 @@ Page<LiveRecordState, LiveRecordMethods>({
       players,
       records,
       sessionName,
+      events: buildInitialEvents(sessionName, players),
     })
 
+    this.syncRecordsToRuntime(records)
     this.handleTimerTick()
   },
 
@@ -140,6 +173,12 @@ Page<LiveRecordState, LiveRecordMethods>({
     })
   },
 
+  syncRecordsToRuntime(records) {
+    setSessionRuntime({
+      playerStats: toPlayerStats(records),
+    })
+  },
+
   applyWheelResult() {
     const result = wx.getStorageSync(JUDGE_WHEEL_RESULT_KEY) as
       | {
@@ -161,20 +200,17 @@ Page<LiveRecordState, LiveRecordMethods>({
         ...item,
         debtCount: Math.max(0, item.debtCount - 1),
         clearedCount: Math.min(MAX_CLEAR_PER_PLAYER, item.clearedCount + 1),
+        meta: result.question || item.meta,
       }
     })
 
     const changed = records.find((item) => item.id === result.playerId)
     const events = changed
-      ? [
-          {
-            text: `${changed.name} 完成消杯题：“${result.question || '本轮挑战'}”`,
-          },
-          ...this.data.events,
-        ].slice(0, 4)
+      ? [{ text: `${changed.name} 完成了消杯任务：${result.question || '本轮挑战'}` }, ...this.data.events].slice(0, 4)
       : this.data.events
 
     wx.removeStorageSync(JUDGE_WHEEL_RESULT_KEY)
+    this.syncRecordsToRuntime(records)
 
     this.setData({
       records,
@@ -205,6 +241,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       }
     })
 
+    this.syncRecordsToRuntime(records)
     this.setData({ records })
   },
 
@@ -219,6 +256,7 @@ Page<LiveRecordState, LiveRecordMethods>({
   },
 
   handleSaveTap() {
+    this.syncRecordsToRuntime(this.data.records)
     this.openPage('/pages/table-mode/index')
   },
 
@@ -240,7 +278,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     }
 
     if (target.clearedCount >= MAX_CLEAR_PER_PLAYER) {
-      this.showPreviewToast(`${target.name} 本局已消除满 3 杯`)
+      this.showPreviewToast(`${target.name} 本局已消满 3 杯`)
       return
     }
 

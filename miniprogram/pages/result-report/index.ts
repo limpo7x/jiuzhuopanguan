@@ -1,5 +1,4 @@
 import { getSessionReport, getSessionRuntime } from '../../utils/session'
-import { avatarAsset } from '../../config/assets'
 import { trackAnalyticsEvent } from '../../services/analytics'
 
 interface ReportRank {
@@ -29,23 +28,16 @@ interface ResultReportMethods {
 
 Page<ResultReportState, ResultReportMethods>({
   data: {
-    metaText: '周五热场局 · 6人局 · 2024.05.20',
-    ranks: [
-      { title: '欠酒大王', avatarUrl: avatarAsset(1), name: '阿浩', value: '欠了 6 杯' },
-      { title: '背锅侠', avatarUrl: avatarAsset(2), name: '小熊', value: '被点名 3 次' },
-      { title: '整活王', avatarUrl: avatarAsset(3), name: 'Mika', value: '贡献 3 个题' },
-    ],
-    sessionName: '周五热场局',
-    events: [
-      { text: '可可 表演了“海草舞”' },
-      { text: '小熊 现场唱跑调版《孤勇者》' },
-      { text: 'Mika 爆出阿乐口头禅，全场爆笑' },
-    ],
+    metaText: '',
+    ranks: [],
+    sessionName: '本局战报',
+    events: [],
   },
 
   onLoad() {
     const report = getSessionReport()
     const runtime = getSessionRuntime()
+
     trackAnalyticsEvent({
       type: 'report_view',
       meta: {
@@ -56,15 +48,20 @@ Page<ResultReportState, ResultReportMethods>({
 
     if (!report) {
       this.setData({
-        sessionName: runtime.sessionName,
-        metaText: `${runtime.sessionName} · ${runtime.playerCount}人局`,
+        sessionName: runtime.sessionName || '本局战报',
+        metaText: `${runtime.sessionName || '本局战报'} · ${runtime.playerCount || 0} 人局`,
+        events: runtime.playerStats.length
+          ? runtime.playerStats.map((item) => ({
+              text: `${item.name} 欠酒 ${item.debtCount} 杯，已喝 ${item.drinkCount} 杯，消杯 ${item.clearedCount} 次。`,
+            }))
+          : [{ text: '本局暂未生成完整战报。' }],
       })
       return
     }
 
     this.setData({
       events: report.events,
-      metaText: `${report.sessionName} · ${report.playerCount}人局`,
+      metaText: `${report.sessionName} · ${report.playerCount} 人局`,
       ranks: report.ranks,
       sessionName: report.sessionName,
     })

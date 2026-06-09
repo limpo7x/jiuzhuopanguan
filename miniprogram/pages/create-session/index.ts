@@ -145,6 +145,7 @@ Page<CreateSessionState, CreateSessionMethods>({
       locationLabel: runtimeLocation?.label || '',
       longitude: runtimeLocation?.longitude ?? null,
       playerCount: this.data.playerCount,
+      playerStats: [],
       province: runtimeLocation?.province || '',
       selectedPlayers: [],
       sessionId,

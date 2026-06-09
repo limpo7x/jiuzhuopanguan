@@ -6,6 +6,7 @@ import {
   type SocialProfile,
 } from '../../utils/social'
 import { avatarAsset } from '../../config/assets'
+import { getStoredRuntimeLocation, requestRuntimeLocation } from '../../utils/location'
 
 interface ProfileEditState {
   avatarUrl: string
@@ -20,15 +21,23 @@ interface ProfileEditState {
   wechatOpenId: string
 }
 
+interface WechatDraftProfile {
+  avatarUrl: string
+  identityTag: string
+  name: string
+  signature: string
+}
+
 interface ProfileEditMethods {
   handleFieldInput: (event: WechatMiniprogram.Input) => void
   handlePhoneBind: (event: WechatMiniprogram.CustomEvent<{ code?: string; errMsg?: string }>) => Promise<void>
   handleSaveTap: () => Promise<void>
   handleWechatProfileTap: () => Promise<void>
+  requestWechatProfile: () => Promise<WechatDraftProfile>
   syncProfile: () => Promise<void>
 }
 
-let wechatDraftProfile: Pick<SocialProfile, 'avatarUrl' | 'city' | 'identityTag' | 'name' | 'signature'> | null = null
+let wechatDraftProfile: WechatDraftProfile | null = null
 
 const requestLoginCode = () =>
   new Promise<string>((resolve, reject) => {
@@ -44,10 +53,12 @@ const requestLoginCode = () =>
     })
   })
 
+const isPlaceholderName = (value: string) => !value.trim() || /^微信用户\d*$/.test(value.trim()) || /^酒友\d{3,}$/.test(value.trim())
+
 Page<ProfileEditState, ProfileEditMethods>({
   data: {
     avatarUrl: avatarAsset(1),
-    city: '上海',
+    city: '自动获取中',
     hasWechatProfile: false,
     identityTag: '酒局发起人 / 气氛组',
     loggedIn: false,
@@ -70,10 +81,14 @@ Page<ProfileEditState, ProfileEditMethods>({
   },
 
   async syncProfile() {
-    const [session, profile] = await Promise.all([getUserAuthSession(), getCurrentProfile()])
+    const [session, profile, runtimeLocation] = await Promise.all([
+      getUserAuthSession(),
+      getCurrentProfile(),
+      requestRuntimeLocation().catch(() => getStoredRuntimeLocation()),
+    ])
     this.setData({
       avatarUrl: profile.avatarUrl || avatarAsset(1),
-      city: profile.city,
+      city: runtimeLocation?.label || runtimeLocation?.city || profile.city || '自动获取中',
       hasWechatProfile: Boolean(profile.wechatOpenId || wechatDraftProfile),
       identityTag: profile.identityTag,
       loggedIn: session.loggedIn && Boolean(session.profile?.wechatOpenId),
@@ -85,37 +100,50 @@ Page<ProfileEditState, ProfileEditMethods>({
   },
 
   handleFieldInput(event) {
-    const { field } = event.currentTarget.dataset as { field: 'city' | 'identityTag' | 'name' | 'signature' }
+    const { field } = event.currentTarget.dataset as { field: 'identityTag' | 'signature' }
     const value = event.detail.value || ''
     this.setData({
       [field]: value,
     } as Record<string, string>)
   },
 
+  async requestWechatProfile() {
+    if (wechatDraftProfile && !isPlaceholderName(wechatDraftProfile.name)) {
+      return wechatDraftProfile
+    }
+
+    const result = await new Promise<WechatMiniprogram.GetUserProfileSuccessCallbackResult>((resolve, reject) => {
+      wx.getUserProfile({
+        desc: '用于同步你的微信头像和昵称',
+        success: resolve,
+        fail: reject,
+      })
+    })
+    const userInfo = result.userInfo
+    wechatDraftProfile = {
+      avatarUrl: userInfo.avatarUrl,
+      identityTag: this.data.identityTag.trim(),
+      name: userInfo.nickName || this.data.name.trim(),
+      signature: this.data.signature.trim(),
+    }
+    return wechatDraftProfile
+  },
+
   async handleWechatProfileTap() {
     try {
-      const result = await new Promise<WechatMiniprogram.GetUserProfileSuccessCallbackResult>((resolve, reject) => {
-        wx.getUserProfile({
-          desc: '用于同步你的微信头像和昵称',
-          success: resolve,
-          fail: reject,
-        })
-      })
-      const userInfo = result.userInfo
+      const wechatProfile = await this.requestWechatProfile()
       const loginCode = await requestLoginCode()
       const profile = await loginWithWechat({
         loginCode,
         profile: {
-          avatarUrl: userInfo.avatarUrl,
-          city: this.data.city.trim(),
-          identityTag: this.data.identityTag.trim(),
-          name: userInfo.nickName || this.data.name.trim(),
-          signature: this.data.signature.trim(),
+          avatarUrl: wechatProfile.avatarUrl,
+          identityTag: wechatProfile.identityTag,
+          name: wechatProfile.name,
+          signature: wechatProfile.signature,
         },
       })
       wechatDraftProfile = {
         avatarUrl: profile.avatarUrl,
-        city: profile.city,
         identityTag: profile.identityTag,
         name: profile.name,
         signature: profile.signature,
@@ -126,6 +154,7 @@ Page<ProfileEditState, ProfileEditMethods>({
         loggedIn: Boolean(profile.wechatOpenId),
         name: profile.name,
         phoneMasked: profile.phoneMasked || '',
+        signature: profile.signature,
         wechatOpenId: profile.wechatOpenId || '',
       })
       wx.showToast({
@@ -169,21 +198,20 @@ Page<ProfileEditState, ProfileEditMethods>({
 
     try {
       const wasLoggedIn = this.data.loggedIn
+      const wechatProfile = await this.requestWechatProfile()
       const loginCode = await requestLoginCode()
       const profile = await loginWithWechat({
         loginCode,
         phoneCode: detail.code,
         profile: {
-          avatarUrl: wechatDraftProfile?.avatarUrl || this.data.avatarUrl,
-          city: this.data.city.trim(),
-          identityTag: this.data.identityTag.trim(),
-          name: wechatDraftProfile?.name || this.data.name.trim(),
-          signature: this.data.signature.trim(),
+          avatarUrl: wechatProfile.avatarUrl,
+          identityTag: wechatProfile.identityTag,
+          name: wechatProfile.name,
+          signature: wechatProfile.signature,
         },
       })
       wechatDraftProfile = {
         avatarUrl: profile.avatarUrl,
-        city: profile.city,
         identityTag: profile.identityTag,
         name: profile.name,
         signature: profile.signature,
@@ -194,6 +222,7 @@ Page<ProfileEditState, ProfileEditMethods>({
         loggedIn: Boolean(profile.wechatOpenId),
         name: profile.name,
         phoneMasked: profile.phoneMasked || '',
+        signature: profile.signature,
         wechatOpenId: profile.wechatOpenId || '',
       })
       wx.showToast({
@@ -216,19 +245,10 @@ Page<ProfileEditState, ProfileEditMethods>({
       })
       return
     }
-    if (!this.data.name.trim()) {
-      wx.showToast({
-        title: '昵称不能为空',
-        icon: 'none',
-      })
-      return
-    }
 
     await saveCurrentProfile({
       avatarUrl: this.data.avatarUrl,
-      city: this.data.city.trim(),
       identityTag: this.data.identityTag.trim(),
-      name: this.data.name.trim(),
       signature: this.data.signature.trim(),
     })
 

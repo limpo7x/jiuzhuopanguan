@@ -69,6 +69,7 @@ Page<JoinClaimState, JoinClaimMethods>({
         inviteCode: liveSession.inviteCode,
         isJudge: false,
         playerCount: liveSession.playerCount,
+        playerStats: [],
         selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
           avatarUrl: item.avatarUrl,
           name: item.name,
