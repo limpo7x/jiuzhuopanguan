@@ -1,6 +1,7 @@
 import { homePageMock, type HomePageData } from '../mock/home'
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath, staticAsset } from '../config/assets'
+import { resolveCachedManagedImagePath } from '../utils/image-cache'
 import { getUserAuthHeaders } from '../utils/social'
 import { resolveToolId } from '../utils/toolkit'
 
@@ -41,7 +42,9 @@ interface ToolHistoryResponseItem {
 }
 
 const BACKEND_RETRY_INTERVAL = 30000
+const HOME_CACHE_TTL = 45000
 let backendDownUntil = 0
+let homePageCache: { expiresAt: number; value: HomePageData } | null = null
 
 const QUICK_TOOL_VISUALS: Record<string, { iconClass: string; toneClass: string }> = {
   'image-compress': { iconClass: 'icon-compress', toneClass: 'green' },
@@ -111,29 +114,31 @@ const mergeQuickTools = (quickTools?: HomeConfigResponse['quickTools']) => {
   })
 }
 
-const mapRecentTools = (items?: ToolHistoryResponseItem[]) => {
+const mapRecentTools = async (items?: ToolHistoryResponseItem[]) => {
   if (!items?.length) {
     return homePageMock.recentTools
   }
 
-  return items.slice(0, 3).map((item, index) => {
-    const fallback = homePageMock.recentTools[index] || homePageMock.recentTools[0]
-    const visual = RECENT_TOOL_ASSET_BY_CATEGORY[item.category || ''] || {
-      badgeClass: fallback.badgeClass,
-      badgeText: fallback.badgeText,
-      imageUrl: fallback.imageUrl,
-    }
+  return Promise.all(
+    items.slice(0, 3).map(async (item, index) => {
+      const fallback = homePageMock.recentTools[index] || homePageMock.recentTools[0]
+      const visual = RECENT_TOOL_ASSET_BY_CATEGORY[item.category || ''] || {
+        badgeClass: fallback.badgeClass,
+        badgeText: fallback.badgeText,
+        imageUrl: fallback.imageUrl,
+      }
 
-    return {
-      id: normalizeRecentToolId(item, fallback.id),
-      name: item.name || fallback.name || '工具',
-      usedAt: item.usedAt || fallback.usedAt || '刚刚使用',
-      imageUrl: visual.imageUrl,
-      badgeText: visual.badgeText,
-      badgeClass: visual.badgeClass,
-      route: item.route || fallback.route || '',
-    }
-  })
+      return {
+        id: normalizeRecentToolId(item, fallback.id),
+        name: item.name || fallback.name || '工具',
+        usedAt: item.usedAt || fallback.usedAt || '刚刚使用',
+        imageUrl: await resolveCachedManagedImagePath(visual.imageUrl),
+        badgeText: visual.badgeText,
+        badgeClass: visual.badgeClass,
+        route: item.route || fallback.route || '',
+      }
+    }),
+  )
 }
 
 const request = <T>(path: string): Promise<T> =>
@@ -166,6 +171,10 @@ const request = <T>(path: string): Promise<T> =>
   })
 
 export const getHomePageData = async (): Promise<HomePageData> => {
+  if (homePageCache && homePageCache.expiresAt > Date.now()) {
+    return homePageCache.value
+  }
+
   try {
     const homeConfig = await request<HomeConfigResponse>('/config/home')
     const [compliance, profile, toolHistory] = await Promise.all([
@@ -174,18 +183,27 @@ export const getHomePageData = async (): Promise<HomePageData> => {
       request<ToolHistoryResponseItem[]>('/tools/history').catch<ToolHistoryResponseItem[]>(() => []),
     ])
 
-    return {
+    const next: HomePageData = {
       ...homePageMock,
       points: typeof profile.points === 'number' ? profile.points : homePageMock.points,
       hero: {
         ...homePageMock.hero,
         ...homeConfig.hero,
-        imageUrl: normalizeManagedAssetPath(homeConfig.hero?.imageUrl) || homePageMock.hero.imageUrl,
+        imageUrl:
+          (await resolveCachedManagedImagePath(normalizeManagedAssetPath(homeConfig.hero?.imageUrl))) ||
+          homePageMock.hero.imageUrl,
       },
       quickTools: mergeQuickTools(homeConfig.quickTools),
-      recentTools: mapRecentTools(toolHistory),
+      recentTools: await mapRecentTools(toolHistory),
       complianceCopy: compliance.copy || homePageMock.complianceCopy,
     }
+
+    homePageCache = {
+      expiresAt: Date.now() + HOME_CACHE_TTL,
+      value: next,
+    }
+
+    return next
   } catch {
     return homePageMock
   }

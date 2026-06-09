@@ -7,6 +7,7 @@ interface HomePageState {
   canCheckIn: boolean
   checkedIn: boolean
   home: HomePageData
+  lastLoadedAt: number
   loading: boolean
   userAvatarUrl: string
   userName: string
@@ -37,6 +38,7 @@ Page<HomePageState, HomePageMethods>({
     canCheckIn: false,
     checkedIn: false,
     home: homePageMock,
+    lastLoadedAt: 0,
     loading: true,
     userAvatarUrl: avatarAsset(1),
     userName: '未登录',
@@ -49,7 +51,7 @@ Page<HomePageState, HomePageMethods>({
 
   onShow() {
     void this.syncAuthState()
-    if (!this.data.loading) {
+    if (!this.data.loading && Date.now() - this.data.lastLoadedAt > 45000) {
       void this.loadHomePage()
     }
   },
@@ -73,12 +75,14 @@ Page<HomePageState, HomePageMethods>({
       .then((home) => {
         this.setData({
           home,
+          lastLoadedAt: Date.now(),
           loading: false,
         })
       })
       .catch(() => {
         this.setData({
           home: homePageMock,
+          lastLoadedAt: Date.now(),
           loading: false,
         })
       })

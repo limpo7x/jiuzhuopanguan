@@ -1,5 +1,6 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath } from '../config/assets'
+import { resolveCachedManagedImagePath } from '../utils/image-cache'
 import { getUserAuthHeaders } from '../utils/social'
 
 interface ApiResponse<T> {
@@ -149,24 +150,26 @@ const request = <T>(path: string, method: 'GET' | 'PUT' | 'POST' = 'GET', data?:
     })
   })
 
-const normalizePointsConfig = (config: PointsConfig): PointsConfig => ({
+const normalizePointsConfig = async (config: PointsConfig): Promise<PointsConfig> => ({
   ...config,
-  bannerImageUrl: normalizeManagedAssetPath(config.bannerImageUrl),
+  bannerImageUrl: await resolveCachedManagedImagePath(normalizeManagedAssetPath(config.bannerImageUrl)),
 })
 
-const normalizeTemplateConfig = (config: TemplateConfig): TemplateConfig => ({
+const normalizeTemplateConfig = async (config: TemplateConfig): Promise<TemplateConfig> => ({
   ...config,
-  templates: config.templates.map((item) => ({
-    ...item,
-    imageUrl: normalizeManagedAssetPath(item.imageUrl),
-  })),
+  templates: await Promise.all(
+    config.templates.map(async (item) => ({
+      ...item,
+      imageUrl: await resolveCachedManagedImagePath(normalizeManagedAssetPath(item.imageUrl)),
+    })),
+  ),
 })
 
-const normalizeHomeConfig = (config: HomeAdminConfig): HomeAdminConfig => ({
+const normalizeHomeConfig = async (config: HomeAdminConfig): Promise<HomeAdminConfig> => ({
   ...config,
   hero: {
     ...config.hero,
-    imageUrl: normalizeManagedAssetPath(config.hero.imageUrl),
+    imageUrl: await resolveCachedManagedImagePath(normalizeManagedAssetPath(config.hero.imageUrl)),
   },
 })
 

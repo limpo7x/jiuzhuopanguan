@@ -1,5 +1,6 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath, staticAsset } from '../config/assets'
+import { resolveCachedManagedImagePath } from '../utils/image-cache'
 import { getSessionRuntime, resolveSessionParticipants } from '../utils/session'
 import { getUserAuthHeaders } from '../utils/social'
 import {
@@ -321,6 +322,15 @@ export interface ManagedJudgeStats {
 }
 
 const DEFAULT_AVATAR = staticAsset('avatar-1.png')
+const TOOLS_CATALOG_CACHE_TTL = 60000
+const REPORT_HISTORY_CACHE_TTL = 45000
+const SHARE_CONFIG_CACHE_TTL = 60000
+const MERCHANT_CATALOG_CACHE_TTL = 60000
+
+let toolsCatalogCache: { expiresAt: number; value: ManagedToolCatalog } | null = null
+let reportHistoryCache: { expiresAt: number; value: ManagedReportSummary[] } | null = null
+let shareConfigCache: { expiresAt: number; value: ManagedShareConfig } | null = null
+let merchantCatalogCache: { expiresAt: number; value: ManagedMerchantCatalog } | null = null
 
 const DEFAULT_TOOLS_CATALOG: ManagedToolCatalog = {
   categories: TOOL_CATEGORIES,
@@ -361,9 +371,14 @@ const normalizeSessionPlayer = (player?: RemoteSessionPlayer): ManagedSessionPla
   status: player?.status || '待加入',
 })
 
-const mergeToolDescriptor = (remoteTool: RemoteToolItem): ToolDescriptor => {
+const mergeToolDescriptor = async (remoteTool: RemoteToolItem): Promise<ToolDescriptor> => {
   const toolId = resolveToolId(remoteTool.id || remoteTool.rawId || '')
   const fallback = getToolById(toolId) || TOOL_LIST[0]
+  const imageUrl =
+    (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remoteTool.imageUrl))) || fallback.imageUrl
+  const heroImage =
+    (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remoteTool.heroImage || remoteTool.imageUrl))) ||
+    fallback.heroImage
 
   return {
     ...fallback,
@@ -372,8 +387,8 @@ const mergeToolDescriptor = (remoteTool: RemoteToolItem): ToolDescriptor => {
     categoryId: remoteTool.categoryId || fallback.categoryId,
     iconClass: remoteTool.iconClass || fallback.iconClass,
     toneClass: remoteTool.toneClass || fallback.toneClass,
-    imageUrl: normalizeManagedAssetPath(remoteTool.imageUrl) || fallback.imageUrl,
-    heroImage: normalizeManagedAssetPath(remoteTool.heroImage || remoteTool.imageUrl) || fallback.heroImage,
+    imageUrl,
+    heroImage,
     meta: remoteTool.meta || fallback.meta,
     subtitle: remoteTool.target ? `${remoteTool.target} · ${remoteTool.favoriteRate || '收藏率 0%'}` : fallback.subtitle,
     summary: remoteTool.meta || fallback.summary,
@@ -394,25 +409,38 @@ const buildCategoryCards = (tools: ToolDescriptor[], categories: ToolCategory[])
     })
 
 export const getManagedToolsCatalog = async (): Promise<ManagedToolCatalog> => {
+  if (toolsCatalogCache && toolsCatalogCache.expiresAt > Date.now()) {
+    return toolsCatalogCache.value
+  }
+
   try {
     const remote = await requestJson<RemoteToolsResponse>('/tools/catalog')
     const categories =
       remote.categories?.length
         ? remote.categories.map((item) => ({ id: item.id, name: item.name }))
         : DEFAULT_TOOLS_CATALOG.categories
-    const tools = remote.tools?.length ? remote.tools.map(mergeToolDescriptor) : DEFAULT_TOOLS_CATALOG.tools
+    const tools = remote.tools?.length ? await Promise.all(remote.tools.map(mergeToolDescriptor)) : DEFAULT_TOOLS_CATALOG.tools
 
-    return {
+    const next: ManagedToolCatalog = {
       categories,
       categoryCards: buildCategoryCards(tools, categories),
       hero: {
-        imageUrl: normalizeManagedAssetPath(remote.hero?.imageUrl) || DEFAULT_TOOLS_CATALOG.hero.imageUrl,
+        imageUrl:
+          (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remote.hero?.imageUrl))) ||
+          DEFAULT_TOOLS_CATALOG.hero.imageUrl,
         subtitle: remote.hero?.subtitle || DEFAULT_TOOLS_CATALOG.hero.subtitle,
         title: remote.hero?.title || DEFAULT_TOOLS_CATALOG.hero.title,
       },
-      popularTools: remote.popularTools?.length ? remote.popularTools.map(mergeToolDescriptor) : tools.slice(0, 4),
+      popularTools: remote.popularTools?.length ? await Promise.all(remote.popularTools.map(mergeToolDescriptor)) : tools.slice(0, 4),
       tools,
     }
+
+    toolsCatalogCache = {
+      expiresAt: Date.now() + TOOLS_CATALOG_CACHE_TTL,
+      value: next,
+    }
+
+    return next
   } catch {
     return DEFAULT_TOOLS_CATALOG
   }
@@ -508,36 +536,59 @@ export const getManagedReport = async (reportId: string): Promise<ManagedReportD
   normalizeManagedReport(await requestJson<RemoteManagedReport>(`/reports/${encodeURIComponent(reportId)}`))
 
 export const getManagedReportHistory = async (): Promise<ManagedReportSummary[]> => {
+  if (reportHistoryCache && reportHistoryCache.expiresAt > Date.now()) {
+    return reportHistoryCache.value
+  }
+
   const reports = await requestJson<RemoteManagedReport[]>('/reports/history')
-  return reports.map((item) => ({
-    createdAt: item.createdAt || '',
-    id: item.id || '',
-    imageUrl: normalizeManagedAssetPath(item.imageUrl) || staticAsset('report-poster.png'),
-    meta: item.meta || '',
-    recordType: item.recordType === 'session' ? 'session' : 'report',
-    reportId: item.reportId || (item.recordType === 'report' ? item.id || '' : ''),
-    sessionId: item.sessionId || '',
-    sessionName: item.sessionName || '',
-    shareRate: item.shareRate || '0%',
-    status: item.status || '',
-    title: item.title || item.sessionName || '',
-  }))
+  const next: ManagedReportSummary[] = await Promise.all(
+    reports.map(async (item) => ({
+      createdAt: item.createdAt || '',
+      id: item.id || '',
+      imageUrl:
+        (await resolveCachedManagedImagePath(normalizeManagedAssetPath(item.imageUrl))) ||
+        staticAsset('report-poster.png'),
+      meta: item.meta || '',
+      recordType: item.recordType === 'session' ? ('session' as const) : ('report' as const),
+      reportId: item.reportId || (item.recordType === 'report' ? item.id || '' : ''),
+      sessionId: item.sessionId || '',
+      sessionName: item.sessionName || '',
+      shareRate: item.shareRate || '0%',
+      status: item.status || '',
+      title: item.title || item.sessionName || '',
+    })),
+  )
+
+  reportHistoryCache = {
+    expiresAt: Date.now() + REPORT_HISTORY_CACHE_TTL,
+    value: next,
+  }
+
+  return next
 }
 
 export const getManagedShareConfig = async (): Promise<ManagedShareConfig> => {
+  if (shareConfigCache && shareConfigCache.expiresAt > Date.now()) {
+    return shareConfigCache.value
+  }
+
   const remote = await requestJson<RemoteShareConfig>('/share/config')
-  return {
+  const next: ManagedShareConfig = {
     notice: remote.notice || '',
     performance: {
       bestOpenRate: remote.performance?.bestOpenRate || '0%',
       bestReturnRate: remote.performance?.bestReturnRate || '0%',
     },
     poster: {
-      imageUrl: normalizeManagedAssetPath(remote.poster?.imageUrl) || staticAsset('report-poster.png'),
+      imageUrl:
+        (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remote.poster?.imageUrl))) ||
+        staticAsset('report-poster.png'),
       title: remote.poster?.title || '这局快乐就完事了！',
     },
     preview: {
-      imageUrl: normalizeManagedAssetPath(remote.preview?.imageUrl) || staticAsset('party-hero.png'),
+      imageUrl:
+        (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remote.preview?.imageUrl))) ||
+        staticAsset('party-hero.png'),
       inviteCode: remote.preview?.inviteCode || '',
       title: remote.preview?.title || '快来加入这一局',
     },
@@ -550,6 +601,13 @@ export const getManagedShareConfig = async (): Promise<ManagedShareConfig> => {
         }))
       : [],
   }
+
+  shareConfigCache = {
+    expiresAt: Date.now() + SHARE_CONFIG_CACHE_TTL,
+    value: next,
+  }
+
+  return next
 }
 
 export const getManagedQuestionBank = async (): Promise<ManagedQuestionItem[]> => {
@@ -565,8 +623,12 @@ export const getManagedQuestionBank = async (): Promise<ManagedQuestionItem[]> =
 }
 
 export const getManagedMerchantCatalog = async (): Promise<ManagedMerchantCatalog> => {
+  if (merchantCatalogCache && merchantCatalogCache.expiresAt > Date.now()) {
+    return merchantCatalogCache.value
+  }
+
   const remote = await requestJson<RemoteMerchantCatalog>('/merchants/catalog')
-  return {
+  const next: ManagedMerchantCatalog = {
     categories: Array.isArray(remote.categories)
       ? remote.categories.map((item) => ({
           iconClass: item?.iconClass || 'merchant-icon-briefcase',
@@ -583,15 +645,24 @@ export const getManagedMerchantCatalog = async (): Promise<ManagedMerchantCatalo
         }))
       : [],
     shops: Array.isArray(remote.shops)
-      ? remote.shops.map((item) => ({
+      ? await Promise.all(remote.shops.map(async (item) => ({
           id: item?.id || '',
-          imageUrl: normalizeManagedAssetPath(item?.imageUrl) || staticAsset('party-hero.png'),
+          imageUrl:
+            (await resolveCachedManagedImagePath(normalizeManagedAssetPath(item?.imageUrl))) ||
+            staticAsset('party-hero.png'),
           meta: item?.meta || '',
           name: item?.name || '',
           status: item?.status || '',
-        }))
+        })))
       : [],
   }
+
+  merchantCatalogCache = {
+    expiresAt: Date.now() + MERCHANT_CATALOG_CACHE_TTL,
+    value: next,
+  }
+
+  return next
 }
 
 export const getManagedUsageRecords = async (): Promise<ManagedUsageRecord[]> => {
