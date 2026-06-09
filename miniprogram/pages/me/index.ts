@@ -77,7 +77,6 @@ Page<MePageState, MePageMethods>({
       id: 'me-owner',
       name: '',
       avatarUrl: avatarAsset(1),
-      city: '',
       identityTag: '',
       signature: '',
       phone: '',

@@ -554,7 +554,6 @@ const getMerchantPartnersConfig = () => {
   const categories = [...new Set(merchants.map((item) => item.category).filter(Boolean))]
 
   return {
-    city: getProfile().city || '当前城市',
     categories: categories.slice(0, 4).map((category) => ({
       name: category,
       iconClass: MERCHANT_ICON_MAP[category] || 'merchant-icon-briefcase',

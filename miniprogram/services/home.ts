@@ -29,7 +29,6 @@ interface ComplianceResponse {
 }
 
 interface UserProfileResponse {
-  city?: string
   points?: number
 }
 
@@ -171,13 +170,12 @@ export const getHomePageData = async (): Promise<HomePageData> => {
     const homeConfig = await request<HomeConfigResponse>('/config/home')
     const [compliance, profile, toolHistory] = await Promise.all([
       request<ComplianceResponse>('/config/compliance').catch<ComplianceResponse>(() => ({ copy: '' })),
-      request<UserProfileResponse>('/user/profile').catch<UserProfileResponse>(() => ({ city: '', points: undefined })),
+      request<UserProfileResponse>('/user/profile').catch<UserProfileResponse>(() => ({ points: undefined })),
       request<ToolHistoryResponseItem[]>('/tools/history').catch<ToolHistoryResponseItem[]>(() => []),
     ])
 
     return {
       ...homePageMock,
-      location: profile.city || homePageMock.location,
       points: typeof profile.points === 'number' ? profile.points : homePageMock.points,
       hero: {
         ...homePageMock.hero,

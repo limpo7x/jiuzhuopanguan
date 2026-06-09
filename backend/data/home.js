@@ -3,7 +3,6 @@ const asset = (name) => `/static/${name}`
 const profile = {
   nickname: '酒局发起人',
   avatarUrl: asset('avatar-host.png'),
-  city: '上海',
   points: 168,
 }
 

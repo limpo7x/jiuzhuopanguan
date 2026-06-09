@@ -82,7 +82,7 @@ Page<WinePointsState, WinePointsMethods>({
         tasks: config.tasks?.length ? config.tasks : DEFAULT_TASKS,
       })
     } catch {
-      // keep local defaults when backend is unavailable
+      // 保留本地默认展示
     }
   },
 
@@ -95,7 +95,7 @@ Page<WinePointsState, WinePointsMethods>({
         ownedRewardIds: state.ownedRewardIds || [],
       })
     } catch {
-      // keep current page state
+      // 保留当前状态，避免用假成功覆盖真实失败
     }
   },
 

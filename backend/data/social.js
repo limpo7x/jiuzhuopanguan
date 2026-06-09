@@ -68,7 +68,6 @@ const normalizeProfile = (profile = {}, fallback = {}) => {
     id: String(profile.id || fallback.id || `user-${timestamp}`),
     name,
     avatarUrl: normalizeAvatarUrl(profile.avatarUrl || fallback.avatarUrl, name),
-    city: isBrokenSample(profile.city) ? fallback.city || '上海' : String(profile.city || fallback.city || '上海').trim(),
     signature: isBrokenSample(profile.signature) ? fallback.signature || '今晚这局不见不散。' : String(profile.signature || fallback.signature || '今晚这局不见不散。').trim(),
     identityTag: isBrokenSample(profile.identityTag) ? fallback.identityTag || '酒局常驻玩家' : String(profile.identityTag || fallback.identityTag || '酒局常驻玩家').trim(),
     phone: typeof profile.phone === 'string' ? profile.phone.trim() : typeof fallback.phone === 'string' ? fallback.phone.trim() : '',
@@ -224,7 +223,6 @@ const bindWechatUser = ({
       id: targetProfile?.id || `user-${timestamp}`,
       name: nextName,
       avatarUrl: profile.avatarUrl || targetProfile?.avatarUrl || hashNameToAvatar(profile.name || normalizedPhone || '微信用户'),
-      city: profile.city || targetProfile?.city || '上海',
       signature: profile.signature || targetProfile?.signature || '已使用微信登录',
       identityTag: profile.identityTag || targetProfile?.identityTag || '微信登录用户',
       phone: normalizedPhone || targetProfile?.phone || '',
@@ -422,14 +420,13 @@ const searchProfiles = ({ ownerId, keyword = '' }) => {
   const friendIds = new Set(store.friendships.filter((item) => item.ownerId === ownerId).map((item) => item.friendId))
   return store.profiles
     .filter((item) => item.id !== ownerId)
-    .filter((item) => [item.name, item.city, item.identityTag].join(' ').toLowerCase().includes(trimmed))
+    .filter((item) => [item.name, item.identityTag].join(' ').toLowerCase().includes(trimmed))
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 8)
     .map((item) => ({
       id: item.id,
       name: item.name,
       avatarUrl: item.avatarUrl,
-      city: item.city,
       identityTag: item.identityTag,
       alreadyFriend: friendIds.has(item.id),
     }))

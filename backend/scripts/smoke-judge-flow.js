@@ -73,13 +73,12 @@ const api = async (pathname, { method = 'GET', token = '', body } = {}) => {
   return payload.data
 }
 
-const createMiniSession = ({ openId, name, avatarUrl, city = '上海' }) =>
+const createMiniSession = ({ openId, name, avatarUrl }) =>
   bindWechatUser({
     wechatOpenId: openId,
     profile: {
       name,
       avatarUrl,
-      city,
       signature: '验收链路账号',
       identityTag: '验收账号',
     },
@@ -147,8 +146,6 @@ const main = async () => {
       method: 'POST',
       token: hostSession.token,
       body: {
-        city: '上海',
-        district: '浦东新区',
         sessionName: `验收局-${stamp}`,
         playerCount: 2,
         templateName: '经典喝酒版',

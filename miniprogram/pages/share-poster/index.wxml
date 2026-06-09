@@ -11,9 +11,10 @@
 <view class="poster-page">
   <scroll-view class="poster-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="poster-card">
-      <image class="poster-image" src="{{posterImageUrl}}" mode="aspectFill"></image>
+      <image wx:if="{{posterImageUrl}}" class="poster-image" src="{{posterImageUrl}}" mode="aspectFill"></image>
       <view class="poster-copy">
         <view class="poster-tag">{{sessionName}}</view>
+        <text class="poster-headline">{{shareHeadline}}</text>
         <text class="poster-title">{{posterTitle}}</text>
         <view class="poster-ranks">
           <view wx:for="{{ranks}}" wx:key="title" class="poster-rank-card">
@@ -31,19 +32,14 @@
     </view>
 
     <view class="poster-share-grid">
-      <button
-        wx:for="{{shareItems}}"
-        wx:key="id"
-        class="poster-share-item"
-        open-type="share"
-      >
+      <button wx:for="{{shareItems}}" wx:key="id" class="poster-share-item" open-type="share">
         <view class="poster-share-icon {{item.iconClass}}"></view>
         <text class="poster-share-label">{{item.name}}</text>
       </button>
     </view>
 
     <view class="poster-primary" bindtap="handleSaveTap">
-      <text>保存战报海报</text>
+      <text>保存战报分享图</text>
       <view class="poster-primary-icon"></view>
     </view>
 
@@ -54,7 +50,13 @@
 
     <view class="poster-notice">
       <view class="poster-notice-icon"></view>
-      <text>理性饮酒，适量玩局，未成年人禁止饮酒。</text>
+      <text>分享图仅保留展示数据，不包含按钮与操作入口</text>
     </view>
   </scroll-view>
+
+  <canvas
+    canvas-id="sharePosterCanvas"
+    class="poster-hidden-canvas"
+    style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+  ></canvas>
 </view>

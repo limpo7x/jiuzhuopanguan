@@ -65,7 +65,6 @@ const createDefaultStore = () => ({
   profile: {
     nickname: '酒局发起人',
     avatarUrl: asset('avatar-host.png'),
-    city: '上海',
     points: 168,
   },
   compliance: {
@@ -264,7 +263,6 @@ const normalizeStore = (store = {}) => {
     profile: {
       nickname: isBrokenSample(store?.profile?.nickname) ? defaults.profile.nickname : store?.profile?.nickname || defaults.profile.nickname,
       avatarUrl: store?.profile?.avatarUrl || defaults.profile.avatarUrl,
-      city: isBrokenSample(store?.profile?.city) ? defaults.profile.city : store?.profile?.city || defaults.profile.city,
       points: Number(store?.profile?.points) >= 0 ? Number(store.profile.points) : defaults.profile.points,
     },
     compliance: {

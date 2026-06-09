@@ -63,6 +63,14 @@ page {
   font-weight: 950;
 }
 
+.poster-headline {
+  display: block;
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
 .poster-ranks {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -200,6 +208,14 @@ button.poster-share-item::after {
   width: 12px;
   height: 12px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M10 2.5L15.5 5V9.1C15.5 12.8 13.2 15.6 10 17C6.8 15.6 4.5 12.8 4.5 9.1V5L10 2.5ZM8.9 10.9L12.8 7L11.7 5.9L8.9 8.7L7.8 7.6L6.7 8.7L8.9 10.9Z' fill='%234e8062'/%3E%3C/svg%3E");
+}
+
+.poster-hidden-canvas {
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
+  pointer-events: none;
+  opacity: 0;
 }
 
 .poster-icon-download {

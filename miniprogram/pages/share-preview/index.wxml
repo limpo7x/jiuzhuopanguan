@@ -14,23 +14,25 @@
     </view>
 
     <view wx:if="{{!showJoinStatus}}" class="share-poster-card">
-      <image class="share-poster-image" src="{{previewImageUrl}}" mode="aspectFill"></image>
+      <image wx:if="{{previewImageUrl}}" class="share-poster-image" src="{{previewImageUrl}}" mode="aspectFill"></image>
       <view class="share-poster-copy">
-        <text class="share-poster-title">{{previewTitle}}</text>
-        <text class="share-poster-subtitle">{{sessionName}}</text>
+        <text class="share-poster-title">{{shareHeadline}}</text>
+        <text class="share-poster-subtitle">{{previewTitle}}</text>
+        <text class="share-poster-session">{{sessionName}}</text>
         <view class="share-poster-row">
           <view class="share-avatar-stack">
             <image wx:for="{{avatars}}" wx:key="index" class="share-avatar" src="{{item}}" mode="aspectFill"></image>
           </view>
-          <text class="share-poster-count">{{joinedCount}}/{{playerCount}} 已加入</text>
+          <text class="share-poster-count">{{joinedCount}}/{{playerCount}} 人已加入</text>
         </view>
         <view class="share-code-box">{{inviteCode}}</view>
       </view>
     </view>
+
     <view wx:else class="share-poster-card">
       <view class="share-poster-copy">
-        <text class="share-poster-title">口令加入状态</text>
-        <text class="share-poster-subtitle">邀请码 {{inviteCode}} · 当前 {{joinedCount}}/{{playerCount}} 已加入</text>
+        <text class="share-poster-title">{{shareHeadline}}</text>
+        <text class="share-poster-subtitle">邀请口令 {{inviteCode}}，当前 {{joinedCount}}/{{playerCount}} 人已加入</text>
         <view class="share-status-list">
           <view wx:for="{{joinStatusPlayers}}" wx:key="name" class="share-status-item">
             <view class="share-status-user">
@@ -48,20 +50,21 @@
     </view>
 
     <view class="share-grid">
-      <button
-        wx:for="{{shareItems}}"
-        wx:key="id"
-        class="share-item"
-        open-type="share"
-      >
+      <button wx:for="{{shareItems}}" wx:key="id" class="share-item" open-type="share">
         <view class="share-item-icon {{item.iconClass}}"></view>
         <text class="share-item-label">{{item.name}}</text>
       </button>
     </view>
 
     <view class="share-primary" bindtap="handleSaveTap">
-      <text>保存邀请卡</text>
+      <text>保存分享图</text>
       <view class="share-primary-icon"></view>
     </view>
   </scroll-view>
+
+  <canvas
+    canvas-id="sharePreviewCanvas"
+    class="share-hidden-canvas"
+    style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+  ></canvas>
 </view>

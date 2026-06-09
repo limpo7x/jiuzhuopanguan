@@ -3,7 +3,6 @@ import { avatarAsset } from '../config/assets'
 
 export interface SocialProfile {
   avatarUrl: string
-  city: string
   id: string
   identityTag: string
   lastLoginAt?: string
@@ -27,7 +26,6 @@ export interface WineFriend {
 export interface SearchUserResult {
   alreadyFriend: boolean
   avatarUrl: string
-  city: string
   id: string
   identityTag: string
   name: string
@@ -225,7 +223,6 @@ const createDefaultProfile = (): SocialProfile => ({
   id: `user-${randomId()}`,
   name: '',
   avatarUrl: avatarAsset(1),
-  city: '',
   signature: '',
   identityTag: '',
 })
@@ -244,7 +241,6 @@ const getLocalProfile = (): SocialProfile => {
   if (raw?.id) {
     return {
       avatarUrl: normalizedAvatarUrl || hashNameToAvatar(normalizedName || '未登录'),
-      city: raw.city || '',
       id: raw.id,
       identityTag: raw.identityTag || '',
       name: normalizedName,
@@ -264,7 +260,6 @@ const getLocalProfile = (): SocialProfile => {
       id: profileId,
       name: '',
       avatarUrl: avatarAsset(1),
-      city: '',
       signature: '',
       identityTag: '',
     }
@@ -308,7 +303,6 @@ const getLocalDirectory = (): SocialProfile[] => {
       id: item.id,
       name: item.name || '未命名用户',
       avatarUrl: item.avatarUrl || hashNameToAvatar(item.name || '未命名用户'),
-      city: item.city || '',
       signature: item.signature || '',
       identityTag: item.identityTag || '',
       phone: item.phone || '',
@@ -553,7 +547,6 @@ export const addWineFriend = async (name: string, meta = '最近添加'): Promis
       id: profileId,
       name: trimmed,
       avatarUrl: hashNameToAvatar(trimmed),
-      city: '',
       signature: '',
       identityTag: '',
     }
@@ -697,13 +690,12 @@ export const searchRegisteredUsers = async (keyword: string): Promise<SearchUser
     const friends = getLocalWineFriends()
     return getLocalDirectory()
       .filter((item) => item.id !== profile.id)
-      .filter((item) => [item.name, item.city, item.identityTag].join(' ').toLowerCase().includes(trimmed.toLowerCase()))
+      .filter((item) => [item.name, item.identityTag].join(' ').toLowerCase().includes(trimmed.toLowerCase()))
       .slice(0, 8)
       .map((item) => ({
         id: item.id,
         name: item.name,
         avatarUrl: item.avatarUrl,
-        city: item.city,
         identityTag: item.identityTag,
         alreadyFriend: friends.some((friend) => friend.profileId === item.id),
       }))
@@ -728,7 +720,6 @@ export const sendPokeToFriend = async (friendId: string): Promise<PokeThread | n
       id: friend.profileId,
       name: friend.name,
       avatarUrl: friend.avatarUrl,
-      city: '',
       signature: '',
       identityTag: '',
     }

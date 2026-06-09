@@ -525,7 +525,6 @@ const server = http.createServer((request, response) => {
         profile: {
           name: payload.profile?.name || payload.profile?.nickName || '',
           avatarUrl: payload.profile?.avatarUrl || '',
-          city: payload.profile?.city || '',
           signature: payload.profile?.signature || '',
           identityTag: payload.profile?.identityTag || '',
         },

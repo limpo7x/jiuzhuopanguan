@@ -47,7 +47,7 @@
         <image class="players-list-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
         <view class="players-list-copy">
           <text class="players-list-title">{{item.name}}</text>
-          <text class="players-list-meta">{{item.city}} · {{item.identityTag}}</text>
+          <text class="players-list-meta">{{item.identityTag}}</text>
         </view>
         <view
           class="players-inline-action {{item.alreadyFriend ? 'players-inline-action-disabled' : ''}}"

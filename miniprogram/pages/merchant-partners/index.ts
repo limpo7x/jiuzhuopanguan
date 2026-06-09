@@ -16,7 +16,6 @@ interface MerchantShop {
 
 interface MerchantPartnersState {
   categories: MerchantTile[]
-  city: string
   notice: string
   safeBack: MerchantTile[]
   shops: MerchantShop[]
@@ -27,7 +26,6 @@ interface MerchantPartnersMethods {}
 Page<MerchantPartnersState, MerchantPartnersMethods>({
   data: {
     categories: [],
-    city: '',
     notice: '',
     safeBack: [],
     shops: [],
@@ -38,7 +36,6 @@ Page<MerchantPartnersState, MerchantPartnersMethods>({
       const catalog = await getManagedMerchantCatalog()
       this.setData({
         categories: catalog.categories,
-        city: catalog.city,
         notice: catalog.notice,
         safeBack: catalog.safeBack,
         shops: catalog.shops,

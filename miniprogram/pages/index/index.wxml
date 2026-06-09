@@ -9,10 +9,6 @@
 <view class="page-shell">
   <scroll-view class="screen-body scroll-body with-tabs" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="top-row">
-      <view class="home-chip home-chip-active" bindtap="handleLocationTap">
-        <text>{{home.location || '上海'}}</text>
-        <text class="home-chip-arrow">▼</text>
-      </view>
       <view class="top-row-spacer"></view>
       <view wx:if="{{canCheckIn}}" class="sign-tag" bindtap="handleCheckIn">
         <view class="sign-tag-icon icon-coin"></view>

@@ -30,7 +30,7 @@
         <image class="friend-hub-friend-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
         <view class="friend-hub-friend-copy">
           <text class="friend-hub-friend-name">{{item.name}}</text>
-          <text class="friend-hub-friend-meta">{{item.city}} · {{item.identityTag}}</text>
+          <text class="friend-hub-friend-meta">{{item.identityTag}}</text>
         </view>
         <view
           class="friend-hub-inline-btn {{item.alreadyFriend ? 'friend-hub-inline-btn-disabled' : ''}}"

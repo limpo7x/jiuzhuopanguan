@@ -27,7 +27,6 @@ export interface RecentTool {
 }
 
 export interface HomePageData {
-  location: string
   points: number
   searchPlaceholder: string
   hero: HomeHero
@@ -37,7 +36,6 @@ export interface HomePageData {
 }
 
 export const homePageMock: HomePageData = {
-  location: '上海',
   points: 168,
   searchPlaceholder: '搜索工具或功能',
   hero: {

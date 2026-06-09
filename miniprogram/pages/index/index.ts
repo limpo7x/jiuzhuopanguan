@@ -1,6 +1,5 @@
 import { homePageMock, type HomePageData } from '../../mock/home'
 import { getHomePageData } from '../../services/home'
-import { getStoredRuntimeLocation, requestRuntimeLocation } from '../../utils/location'
 import { ensureUserAuthorized, getCurrentDisplayProfile, getUserAuthSession } from '../../utils/social'
 
 interface HomePageState {
@@ -13,7 +12,6 @@ interface HomePageState {
 interface HomePageMethods {
   announcePreview: (message: string) => void
   handleCheckIn: () => void
-  handleLocationTap: () => Promise<void>
   handlePrimaryTap: () => Promise<void>
   handleQuickToolTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
@@ -21,7 +19,6 @@ interface HomePageMethods {
   loadHomePage: () => Promise<void>
   openPage: (url: string) => void
   syncAuthState: () => Promise<void>
-  syncLocation: (silent?: boolean) => Promise<void>
 }
 
 const TAB_ROUTES: Record<string, string> = {
@@ -79,9 +76,6 @@ Page<HomePageState, HomePageMethods>({
           loading: false,
         })
       })
-      .finally(() => {
-        void this.syncLocation(true)
-      })
   },
 
   announcePreview(message) {
@@ -99,40 +93,6 @@ Page<HomePageState, HomePageMethods>({
     this.setData({
       canCheckIn: Boolean(session.profile?.wechatOpenId || currentProfile?.wechatOpenId),
     })
-  },
-
-  async handleLocationTap() {
-    await this.syncLocation(false)
-  },
-
-  async syncLocation(silent = false) {
-    const applyLabel = (label: string) => {
-      if (!label || label === this.data.home.location) {
-        return
-      }
-
-      this.setData({
-        home: {
-          ...this.data.home,
-          location: label,
-        },
-      })
-    }
-
-    const stored = getStoredRuntimeLocation()
-    if (stored?.label) {
-      applyLabel(stored.label)
-    }
-
-    const current = await requestRuntimeLocation().catch(() => null)
-    if (current?.label) {
-      applyLabel(current.label)
-      return
-    }
-
-    if (!silent) {
-      this.announcePreview('暂未获取到定位')
-    }
   },
 
   async handlePrimaryTap() {

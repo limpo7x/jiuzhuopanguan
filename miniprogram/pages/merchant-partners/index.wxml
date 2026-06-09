@@ -9,8 +9,7 @@
 <view class="merchant-page">
   <scroll-view class="merchant-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="merchant-head-row">
-      <text class="merchant-title">同城合作</text>
-      <view class="merchant-city-chip">{{city || '当前城市'}}</view>
+      <text class="merchant-title">商户合作</text>
     </view>
 
     <view class="merchant-banner">
@@ -55,7 +54,7 @@
 
     <view class="merchant-notice">
       <view class="merchant-notice-icon"></view>
-      <text>{{notice || '当前页仅展示已接入后台的商户权益。'}}</text>
+      <text>{{notice || '当前页面仅展示已接入后台的商户权益。'}}</text>
     </view>
   </scroll-view>
 </view>

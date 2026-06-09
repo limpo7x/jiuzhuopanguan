@@ -1,6 +1,5 @@
 import { staticAsset } from '../../config/assets'
 import { createManagedSession } from '../../services/operations'
-import { getStoredRuntimeLocation } from '../../utils/location'
 import { setSessionRuntime } from '../../utils/session'
 import { ensureUserAuthorized } from '../../utils/social'
 
@@ -105,7 +104,6 @@ Page<CreateSessionState, CreateSessionMethods>({
       return
     }
 
-    const runtimeLocation = getStoredRuntimeLocation()
     const activeTemplate = this.data.templates.find((item) => item.active) || this.data.templates[0]
 
     try {
@@ -115,14 +113,8 @@ Page<CreateSessionState, CreateSessionMethods>({
       })
 
       const created = await createManagedSession({
-        city: runtimeLocation?.city || '',
-        district: runtimeLocation?.district || '',
         hostName: profile.name,
-        latitude: runtimeLocation?.latitude ?? null,
-        location: runtimeLocation?.label || '',
-        longitude: runtimeLocation?.longitude ?? null,
         playerCount: this.data.playerCount,
-        province: runtimeLocation?.province || '',
         sessionName: this.data.sessionName,
         source: '直接创建',
         state: '等待开局',
@@ -130,22 +122,16 @@ Page<CreateSessionState, CreateSessionMethods>({
       })
 
       setSessionRuntime({
-        city: runtimeLocation?.city || '',
         currentUser: {
           avatarUrl: profile.avatarUrl,
           id: profile.id,
           name: profile.name,
         },
-        district: runtimeLocation?.district || '',
         inviteCode: created.inviteCode,
         isJudge: true,
-        latitude: runtimeLocation?.latitude ?? null,
-        locationLabel: runtimeLocation?.label || '',
-        longitude: runtimeLocation?.longitude ?? null,
         playerCount: this.data.playerCount,
         playerReactions: [],
         playerStats: [],
-        province: runtimeLocation?.province || '',
         reportId: '',
         selectedPlayers: created.joinStatusPlayers,
         sessionId: created.id,

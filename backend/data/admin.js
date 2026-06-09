@@ -485,7 +485,6 @@ const buildUserProfileItems = (adminStore = readStore(), contentStore = readCont
     return {
       id: profile.id,
       name: profile.name,
-      city: profile.city,
       identityTag: profile.identityTag,
       phone: profile.phone || '',
       wechatOpenId: profile.wechatOpenId || '',
@@ -905,7 +904,6 @@ const getUserAnalyticsPage = () => {
       title: '用户运营明细',
       columns: [
         { key: 'name', label: '用户' },
-        { key: 'city', label: '城市' },
         { key: 'status', label: '运营状态' },
         { key: 'tagsText', label: '标签' },
         { key: 'note', label: '备注' },
@@ -1171,17 +1169,11 @@ const normalizeLiveSession = (session = {}, index = 0) => {
 
   return {
     ...session,
-    city: String(session.city || '').trim(),
-    district: String(session.district || '').trim(),
     hostAvatarUrl: String(session.hostAvatarUrl || members[0]?.avatarUrl || `/static/avatar-${(index % 4) + 1}.png`).trim(),
     id: String(session.id || createId('session')).trim(),
     inviteCode: String(session.inviteCode || makeInviteCode(session.id || `session-${index + 1}`)).trim() || makeInviteCode(session.id || `session-${index + 1}`),
     joinedCount: Number(session.joinedCount) || members.filter((item) => item.status === '已加入').length,
-    latitude: Number.isFinite(Number(session.latitude)) ? Number(session.latitude) : null,
-    location: String(session.location || '').trim(),
-    longitude: Number.isFinite(Number(session.longitude)) ? Number(session.longitude) : null,
     members,
-    province: String(session.province || '').trim(),
   }
 }
 
@@ -1251,18 +1243,12 @@ const createManagedSession = (payload = {}) => {
   const session = {
     id,
     createdAt: iso(),
-    city: String(payload.city || '').trim(),
-    district: String(payload.district || '').trim(),
     name: String(payload.sessionName || '今晚聚会不醉不归').trim() || '今晚聚会不醉不归',
     players: Math.max(2, Number(payload.playerCount) || 6),
     template: String(payload.templateName || '经典欠酒版').trim() || '经典欠酒版',
     hostName: String(payload.hostName || '当前发起人').trim() || '当前发起人',
     inviteCode: String(payload.inviteCode || makeInviteCode(id)).trim() || makeInviteCode(id),
     hostAvatarUrl: String(payload.hostAvatarUrl || '/static/avatar-1.png').trim() || '/static/avatar-1.png',
-    latitude: Number.isFinite(Number(payload.latitude)) ? Number(payload.latitude) : null,
-    location: String(payload.location || '').trim(),
-    longitude: Number.isFinite(Number(payload.longitude)) ? Number(payload.longitude) : null,
-    province: String(payload.province || '').trim(),
     state: String(payload.state || '等待开局').trim() || '等待开局',
     source: String(payload.source || '直接创建').trim() || '直接创建',
     status: String(payload.status || '正常').trim() || '正常',
@@ -1290,22 +1276,12 @@ const updateManagedSession = (sessionId, payload = {}) => {
     }
     return {
       ...item,
-      city: Object.prototype.hasOwnProperty.call(payload, 'city') ? String(payload.city || '').trim() : item.city,
-      district: Object.prototype.hasOwnProperty.call(payload, 'district') ? String(payload.district || '').trim() : item.district,
       name: payload.sessionName || item.name,
       players: Number(payload.playerCount) || item.players,
       template: payload.templateName || item.template,
       hostName: payload.hostName || item.hostName,
       hostAvatarUrl: payload.hostAvatarUrl || item.hostAvatarUrl,
       inviteCode: payload.inviteCode || item.inviteCode,
-      latitude: Object.prototype.hasOwnProperty.call(payload, 'latitude')
-        ? (Number.isFinite(Number(payload.latitude)) ? Number(payload.latitude) : null)
-        : item.latitude,
-      location: Object.prototype.hasOwnProperty.call(payload, 'location') ? String(payload.location || '').trim() : item.location,
-      longitude: Object.prototype.hasOwnProperty.call(payload, 'longitude')
-        ? (Number.isFinite(Number(payload.longitude)) ? Number(payload.longitude) : null)
-        : item.longitude,
-      province: Object.prototype.hasOwnProperty.call(payload, 'province') ? String(payload.province || '').trim() : item.province,
       state: payload.state || item.state,
       source: payload.source || item.source,
       status: payload.status || item.status,
@@ -1546,7 +1522,6 @@ const POINT_ICON_OPTIONS = [
 ]
 
 const getTemplateTitleOptions = () => uniqueOptions((getTemplateConfig().templates || []).map((item) => item.title))
-const getProfileCityOptions = () => uniqueOptions((listProfiles() || []).map((item) => item.city))
 const getIdentityTagOptions = () => uniqueOptions((listProfiles() || []).map((item) => item.identityTag))
 const getTemplateFilterOptions = () =>
   (getTemplateConfig().filters || []).map((item) => toOption(item.id, `${item.name} (${item.id})`))
@@ -1796,7 +1771,6 @@ const pageMap = {
         itemLabel: '用户',
         fields: [
           { key: 'name', label: '昵称', type: 'text' },
-          { key: 'city', label: '城市', type: 'select', options: getProfileCityOptions() },
           { key: 'identityTag', label: '身份标签', type: 'select', options: getIdentityTagOptions() },
           { key: 'status', label: '运营状态', type: 'select', options: USER_STATUS_OPTIONS },
           { key: 'tagsText', label: '运营标签（顿号分隔）', type: 'text' },
@@ -1804,7 +1778,6 @@ const pageMap = {
         ],
         columns: [
           { key: 'name', label: '用户' },
-          { key: 'city', label: '城市' },
           { key: 'identityTag', label: '身份标签' },
           { key: 'status', label: '状态' },
           { key: 'tagsText', label: '标签' },
@@ -1824,7 +1797,6 @@ const pageMap = {
         key: 'liveSessions',
         itemLabel: '酒局',
         fields: [
-          { key: 'location', label: '定位城市', type: 'text' },
           { key: 'name', label: '酒局名称', type: 'text' },
           { key: 'players', label: '人数', type: 'number' },
           { key: 'template', label: '模板', type: 'select', options: getSessionTemplateOptions() },
@@ -1835,7 +1807,6 @@ const pageMap = {
           { key: 'status', label: '运营状态', type: 'select', options: getSessionStatusOptions() },
         ],
         columns: [
-          { key: 'location', label: '定位城市' },
           { key: 'name', label: '酒局名称' },
           { key: 'players', label: '人数' },
           { key: 'template', label: '模板' },
@@ -2278,7 +2249,6 @@ pageMap['user-profiles'] = () => {
         { key: 'name', label: '昵称', type: 'text' },
         { key: 'phone', label: '手机号（可选绑定）', type: 'text' },
         { key: 'wechatOpenId', label: '微信 OpenID（唯一标识）', type: 'text' },
-        { key: 'city', label: '城市', type: 'select', options: getProfileCityOptions() },
         { key: 'identityTag', label: '身份标签', type: 'select', options: getIdentityTagOptions() },
         { key: 'points', label: '当前积分', type: 'number' },
         { key: 'status', label: '运营状态', type: 'select', options: USER_STATUS_OPTIONS },
@@ -2625,7 +2595,6 @@ const savePageData = (slug, payload = {}) => {
           phone: existed.phone || '',
           wechatOpenId: existed.wechatOpenId || '',
           wechatUnionId: existed.wechatUnionId || '',
-          city: item.city,
           identityTag: item.identityTag,
           signature: existed.signature || '',
           avatarUrl: existed.avatarUrl || '',

@@ -60,19 +60,13 @@ interface RemoteSessionPlayer {
 }
 
 interface RemoteLiveSession {
-  city?: string
-  district?: string
   hostName?: string
   id?: string
   inviteCode?: string
   joinedCount?: number
   joinedPlayers?: RemoteSessionPlayer[]
   joinStatusPlayers?: RemoteSessionPlayer[]
-  latitude?: number
-  location?: string
-  longitude?: number
   playerCount?: number
-  province?: string
   sessionName?: string
   source?: string
   stateText?: string
@@ -146,7 +140,6 @@ interface RemoteMerchantCatalog {
     name?: string
     toneClass?: string
   }>
-  city?: string
   notice?: string
   safeBack?: Array<{
     iconClass?: string
@@ -191,19 +184,13 @@ export interface ManagedSessionPlayer {
 }
 
 export interface ManagedLiveSession {
-  city: string
-  district: string
   hostName: string
   id: string
   inviteCode: string
   joinedCount: number
   joinedPlayers: ManagedSessionPlayer[]
   joinStatusPlayers: ManagedSessionPlayer[]
-  latitude: number | null
-  location: string
-  longitude: number | null
   playerCount: number
-  province: string
   sessionName: string
   source: string
   stateText: string
@@ -214,17 +201,11 @@ export interface ManagedLiveSession {
 }
 
 export interface ManagedSessionMutationPayload {
-  city?: string
-  district?: string
   hostAvatarUrl?: string
   hostName?: string
   hostProfileId?: string
   inviteCode?: string
-  latitude?: number | null
-  location?: string
-  longitude?: number | null
   playerCount?: number
-  province?: string
   selectedPlayers?: ManagedSessionPlayer[]
   sessionName?: string
   source?: string
@@ -321,7 +302,6 @@ export interface ManagedMerchantShop {
 
 export interface ManagedMerchantCatalog {
   categories: ManagedMerchantTile[]
-  city: string
   notice: string
   safeBack: ManagedMerchantTile[]
   shops: ManagedMerchantShop[]
@@ -457,19 +437,13 @@ export const getManagedLiveSession = async (sessionId?: string, inviteCode?: str
   const joinStatusPlayers = remote.joinStatusPlayers?.length ? remote.joinStatusPlayers.map(normalizeSessionPlayer) : joinedPlayers
 
   return {
-    city: remote.city || runtime.city || '',
-    district: remote.district || runtime.district || '',
     hostName: remote.hostName || runtime.currentUser?.name || '',
     id: remote.id || runtime.sessionId || '',
     inviteCode: remote.inviteCode || runtime.inviteCode || '',
     joinedCount: Number(remote.joinedCount) || joinedPlayers.length,
     joinedPlayers,
     joinStatusPlayers,
-    latitude: Number.isFinite(Number(remote.latitude)) ? Number(remote.latitude) : runtime.latitude ?? null,
-    location: remote.location || runtime.locationLabel || '',
-    longitude: Number.isFinite(Number(remote.longitude)) ? Number(remote.longitude) : runtime.longitude ?? null,
     playerCount: Number(remote.playerCount) || runtime.playerCount || Math.max(joinStatusPlayers.length, 2),
-    province: remote.province || runtime.province || '',
     sessionName: remote.sessionName || runtime.sessionName || '',
     source: remote.source || '',
     stateText: remote.stateText || '',
@@ -600,7 +574,6 @@ export const getManagedMerchantCatalog = async (): Promise<ManagedMerchantCatalo
           toneClass: item?.toneClass || '',
         }))
       : [],
-    city: remote.city || '',
     notice: remote.notice || '',
     safeBack: Array.isArray(remote.safeBack)
       ? remote.safeBack.map((item) => ({

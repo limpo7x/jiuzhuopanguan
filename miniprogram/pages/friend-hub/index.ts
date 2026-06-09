@@ -43,7 +43,6 @@ Page<FriendHubState, FriendHubMethods>({
   data: {
     currentProfile: {
       avatarUrl: '',
-      city: '',
       id: '',
       identityTag: '',
       name: '',

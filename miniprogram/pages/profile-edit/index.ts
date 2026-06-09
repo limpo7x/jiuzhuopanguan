@@ -8,11 +8,9 @@ import {
   type SocialProfile,
 } from '../../utils/social'
 import { avatarAsset } from '../../config/assets'
-import { getStoredRuntimeLocation, requestRuntimeLocation } from '../../utils/location'
 
 interface ProfileEditState {
   avatarUrl: string
-  city: string
   hasWechatProfile: boolean
   identityTag: string
   loggedIn: boolean
@@ -54,7 +52,6 @@ interface ProfileEditMethods {
 let wechatDraftProfile: WechatDraftProfile | null = null
 
 const DEFAULT_AVATAR = avatarAsset(1)
-const DEFAULT_CITY = '自动获取中'
 const EMPTY_NAME_HINT = '待授权获取'
 
 const isPlaceholderName = (value: string) => {
@@ -89,7 +86,6 @@ const requestLoginCode = () =>
 Page<ProfileEditState, ProfileEditMethods>({
   data: {
     avatarUrl: DEFAULT_AVATAR,
-    city: DEFAULT_CITY,
     hasWechatProfile: false,
     identityTag: '',
     loggedIn: false,
@@ -112,10 +108,9 @@ Page<ProfileEditState, ProfileEditMethods>({
   },
 
   async syncProfile() {
-    const [session, profile, runtimeLocation] = await Promise.all([
+    const [session, profile] = await Promise.all([
       getUserAuthSession(),
       getCurrentDisplayProfile(),
-      requestRuntimeLocation().catch(() => getStoredRuntimeLocation()),
     ])
 
     const sessionProfile = session.loggedIn && session.profile ? session.profile : null
@@ -127,7 +122,6 @@ Page<ProfileEditState, ProfileEditMethods>({
 
     this.setData({
       avatarUrl: displayAvatar,
-      city: runtimeLocation?.label || runtimeLocation?.city || displayProfile.city || DEFAULT_CITY,
       hasWechatProfile: Boolean(displayProfile.wechatOpenId || (displayName && !isDefaultAvatar(displayAvatar))),
       identityTag: displayProfile.identityTag || '',
       loggedIn,
