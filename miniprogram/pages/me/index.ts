@@ -3,6 +3,11 @@ import { getUserCommerceState } from '../../services/content'
 import { getManagedJudgeStats } from '../../services/operations'
 import { getCurrentProfile, getUserAuthSession, getWineFriends, type SocialProfile } from '../../utils/social'
 
+const isPlaceholderProfileName = (value: string) => {
+  const text = String(value || '').trim()
+  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text) || text === '未登录'
+}
+
 interface StatItem {
   label: string
   value: string
@@ -98,7 +103,12 @@ Page<MePageState, MePageMethods>({
       getManagedJudgeStats().catch(() => null),
       getWineFriends().catch(() => []),
     ])
-    const displayProfile = authSession.loggedIn && authSession.profile ? authSession.profile : currentProfile
+    const displayProfile =
+      authSession.loggedIn &&
+      authSession.profile &&
+      !(isPlaceholderProfileName(authSession.profile.name) && !isPlaceholderProfileName(currentProfile.name))
+        ? authSession.profile
+        : currentProfile
 
     this.setData({
       assetStats: [

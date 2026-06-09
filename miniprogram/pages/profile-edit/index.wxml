@@ -24,14 +24,6 @@
 
     <view class="profile-edit-form-card">
       <view class="profile-edit-field">
-        <text class="profile-edit-label">微信昵称</text>
-        <view class="profile-edit-value">{{name || '登录后自动获取'}}</view>
-      </view>
-      <view class="profile-edit-field">
-        <text class="profile-edit-label">当前地址</text>
-        <view class="profile-edit-value">{{city || '定位中'}}</view>
-      </view>
-      <view class="profile-edit-field">
         <text class="profile-edit-label">个性签名</text>
         <input class="profile-edit-input" value="{{signature}}" data-field="signature" bindinput="handleFieldInput" />
       </view>

@@ -88,6 +88,11 @@ const AVATAR_POOL = [avatarAsset(1), avatarAsset(2), avatarAsset(3), avatarAsset
 const DEFAULT_DIRECTORY: SocialProfile[] = []
 let backendDownUntil = 0
 
+const isPlaceholderSocialName = (value: string) => {
+  const text = String(value || '').trim()
+  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text) || text === '未登录'
+}
+
 const request = <T>(
   path: string,
   method: WechatMiniprogram.RequestOption['method'] = 'GET',
@@ -406,7 +411,33 @@ export const ensureUserAuthorized = async (redirectUrl?: string): Promise<Social
 export const loginWithWechat = async (payload: UserLoginPayload): Promise<SocialProfile> => {
   const result = await request<{ profile: SocialProfile; token: string }>('/user/auth/login', 'POST', payload as WechatMiniprogram.IAnyObject)
   cacheUserToken(result.token)
-  return upsertLocalProfile(result.profile)
+  const requestedName = String(payload.profile?.name || '').trim()
+  const requestedAvatarUrl = String(payload.profile?.avatarUrl || '').trim()
+  const isGeneratedName = (value: string) => {
+    const text = String(value || '').trim()
+    return !text || /^微信用户/i.test(text) || /^酒友/i.test(text) || text === '未登录'
+  }
+  const resolvedName = !isGeneratedName(requestedName)
+    ? requestedName
+    : !isGeneratedName(result.profile?.name || '')
+      ? String(result.profile.name || '').trim()
+      : ''
+  const mergedProfile: SocialProfile = {
+    ...result.profile,
+    name: resolvedName,
+    avatarUrl: requestedAvatarUrl || result.profile.avatarUrl,
+  }
+  const cached = upsertLocalProfile(mergedProfile)
+
+  if (cached.name !== result.profile.name || cached.avatarUrl !== result.profile.avatarUrl) {
+    try {
+      await request<SocialProfile>('/social/profile', 'PUT', cached as WechatMiniprogram.IAnyObject)
+    } catch {
+      void 0
+    }
+  }
+
+  return cached
 }
 
 export const bindCurrentUserPhone = async (phoneCode: string): Promise<SocialProfile> => {

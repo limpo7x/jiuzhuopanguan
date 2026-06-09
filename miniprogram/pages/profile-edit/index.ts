@@ -40,6 +40,14 @@ interface ProfileEditMethods {
 
 let wechatDraftProfile: WechatDraftProfile | null = null
 
+const DEFAULT_CITY = '自动获取中'
+const EMPTY_NAME_HINT = '待授权获取'
+
+const isPlaceholderName = (value: string) => {
+  const text = String(value || '').trim()
+  return !text || /^微信用户/i.test(text) || /^酒友/i.test(text) || text === '未登录' || text === EMPTY_NAME_HINT
+}
+
 const requestLoginCode = () =>
   new Promise<string>((resolve, reject) => {
     wx.login({
@@ -54,19 +62,14 @@ const requestLoginCode = () =>
     })
   })
 
-const isPlaceholderName = (value: string) => {
-  const text = String(value || '').trim()
-  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text) || text === '未登录'
-}
-
 Page<ProfileEditState, ProfileEditMethods>({
   data: {
     avatarUrl: avatarAsset(1),
-    city: '自动获取中',
+    city: DEFAULT_CITY,
     hasWechatProfile: false,
     identityTag: '',
     loggedIn: false,
-    name: '未登录',
+    name: '',
     phoneMasked: '',
     redirectUrl: '',
     signature: '',
@@ -90,15 +93,18 @@ Page<ProfileEditState, ProfileEditMethods>({
       getCurrentProfile(),
       requestRuntimeLocation().catch(() => getStoredRuntimeLocation()),
     ])
-    const displayProfile = session.loggedIn && session.profile ? session.profile : profile
+
+    const sessionProfile = session.loggedIn && session.profile ? session.profile : null
+    const displayProfile =
+      sessionProfile && !(isPlaceholderName(sessionProfile.name) && !isPlaceholderName(profile.name)) ? sessionProfile : profile
 
     this.setData({
       avatarUrl: displayProfile.avatarUrl || avatarAsset(1),
-      city: runtimeLocation?.label || runtimeLocation?.city || profile.city || '自动获取中',
+      city: runtimeLocation?.label || runtimeLocation?.city || displayProfile.city || DEFAULT_CITY,
       hasWechatProfile: Boolean(displayProfile.wechatOpenId || wechatDraftProfile),
       identityTag: displayProfile.identityTag || '',
-      loggedIn: session.loggedIn && Boolean(session.profile?.wechatOpenId),
-      name: profile.name || '未登录',
+      loggedIn: Boolean(sessionProfile?.wechatOpenId),
+      name: isPlaceholderName(displayProfile.name) ? '' : displayProfile.name,
       phoneMasked: displayProfile.phoneMasked || '',
       signature: displayProfile.signature || '',
       wechatOpenId: displayProfile.wechatOpenId || '',
@@ -127,10 +133,12 @@ Page<ProfileEditState, ProfileEditMethods>({
     })
 
     const userInfo = result.userInfo
+    const authorizedName = !isPlaceholderName(userInfo.nickName || '') ? String(userInfo.nickName || '').trim() : ''
+
     wechatDraftProfile = {
       avatarUrl: userInfo.avatarUrl,
       identityTag: this.data.identityTag.trim(),
-      name: userInfo.nickName || this.data.name.trim() || '微信用户',
+      name: authorizedName,
       signature: this.data.signature.trim(),
     }
     return wechatDraftProfile
@@ -153,7 +161,7 @@ Page<ProfileEditState, ProfileEditMethods>({
       wechatDraftProfile = {
         avatarUrl: profile.avatarUrl,
         identityTag: profile.identityTag,
-        name: profile.name,
+        name: isPlaceholderName(profile.name) ? '' : profile.name,
         signature: profile.signature,
       }
 
@@ -161,7 +169,7 @@ Page<ProfileEditState, ProfileEditMethods>({
         avatarUrl: profile.avatarUrl,
         hasWechatProfile: true,
         loggedIn: Boolean(profile.wechatOpenId),
-        name: profile.name,
+        name: isPlaceholderName(profile.name) ? '' : profile.name,
         phoneMasked: profile.phoneMasked || '',
         signature: profile.signature,
         wechatOpenId: profile.wechatOpenId || '',
@@ -234,7 +242,7 @@ Page<ProfileEditState, ProfileEditMethods>({
       wechatDraftProfile = {
         avatarUrl: profile.avatarUrl,
         identityTag: profile.identityTag,
-        name: profile.name,
+        name: isPlaceholderName(profile.name) ? '' : profile.name,
         signature: profile.signature,
       }
 
@@ -242,7 +250,7 @@ Page<ProfileEditState, ProfileEditMethods>({
         avatarUrl: profile.avatarUrl,
         hasWechatProfile: true,
         loggedIn: Boolean(profile.wechatOpenId),
-        name: profile.name,
+        name: isPlaceholderName(profile.name) ? '' : profile.name,
         phoneMasked: profile.phoneMasked || '',
         signature: profile.signature,
         wechatOpenId: profile.wechatOpenId || '',
