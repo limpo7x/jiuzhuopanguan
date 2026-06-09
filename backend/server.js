@@ -31,6 +31,7 @@ const {
 } = require('./data/content')
 const {
   addFriend,
+  bindPhoneToMiniUser,
   bindWechatUser,
   ensureProfile,
   getBootstrap,
@@ -518,6 +519,22 @@ const server = http.createServer((request, response) => {
         },
       })
       sendOk(response, session)
+      return
+    }
+
+    if (request.method === 'POST' && pathname === '/api/v1/user/auth/bind-phone') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const payload = await readJsonBody(request)
+      const phoneCode = String(payload.phoneCode || '').trim()
+      const phoneInfo = await getWechatPhoneNumber(phoneCode)
+      const profile = bindPhoneToMiniUser({
+        profileId: userSession.profile.id,
+        phone: phoneInfo?.phoneNumber || '',
+      })
+      sendOk(response, profile)
       return
     }
 

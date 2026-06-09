@@ -1,4 +1,5 @@
 import {
+  bindCurrentUserPhone,
   getCurrentProfile,
   getUserAuthSession,
   loginWithWechat,
@@ -53,19 +54,22 @@ const requestLoginCode = () =>
     })
   })
 
-const isPlaceholderName = (value: string) => !value.trim() || /^微信用户\d*$/.test(value.trim()) || /^酒友\d{3,}$/.test(value.trim())
+const isPlaceholderName = (value: string) => {
+  const text = String(value || '').trim()
+  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text) || text === '未登录'
+}
 
 Page<ProfileEditState, ProfileEditMethods>({
   data: {
     avatarUrl: avatarAsset(1),
     city: '自动获取中',
     hasWechatProfile: false,
-    identityTag: '酒局发起人 / 气氛组',
+    identityTag: '',
     loggedIn: false,
-    name: '微信用户',
+    name: '未登录',
     phoneMasked: '',
     redirectUrl: '',
-    signature: '今晚这局不见不散。',
+    signature: '',
     wechatOpenId: '',
   },
 
@@ -86,15 +90,16 @@ Page<ProfileEditState, ProfileEditMethods>({
       getCurrentProfile(),
       requestRuntimeLocation().catch(() => getStoredRuntimeLocation()),
     ])
+
     this.setData({
       avatarUrl: profile.avatarUrl || avatarAsset(1),
       city: runtimeLocation?.label || runtimeLocation?.city || profile.city || '自动获取中',
       hasWechatProfile: Boolean(profile.wechatOpenId || wechatDraftProfile),
-      identityTag: profile.identityTag,
+      identityTag: profile.identityTag || '',
       loggedIn: session.loggedIn && Boolean(session.profile?.wechatOpenId),
-      name: profile.name,
+      name: profile.name || '未登录',
       phoneMasked: profile.phoneMasked || '',
-      signature: profile.signature,
+      signature: profile.signature || '',
       wechatOpenId: profile.wechatOpenId || '',
     })
   },
@@ -119,11 +124,12 @@ Page<ProfileEditState, ProfileEditMethods>({
         fail: reject,
       })
     })
+
     const userInfo = result.userInfo
     wechatDraftProfile = {
       avatarUrl: userInfo.avatarUrl,
       identityTag: this.data.identityTag.trim(),
-      name: userInfo.nickName || this.data.name.trim(),
+      name: userInfo.nickName || this.data.name.trim() || '微信用户',
       signature: this.data.signature.trim(),
     }
     return wechatDraftProfile
@@ -142,12 +148,14 @@ Page<ProfileEditState, ProfileEditMethods>({
           signature: wechatProfile.signature,
         },
       })
+
       wechatDraftProfile = {
         avatarUrl: profile.avatarUrl,
         identityTag: profile.identityTag,
         name: profile.name,
         signature: profile.signature,
       }
+
       this.setData({
         avatarUrl: profile.avatarUrl,
         hasWechatProfile: true,
@@ -157,10 +165,12 @@ Page<ProfileEditState, ProfileEditMethods>({
         signature: profile.signature,
         wechatOpenId: profile.wechatOpenId || '',
       })
+
       wx.showToast({
         title: '登录成功',
         icon: 'success',
       })
+
       if (this.data.redirectUrl) {
         setTimeout(() => {
           wx.redirectTo({
@@ -181,6 +191,7 @@ Page<ProfileEditState, ProfileEditMethods>({
 
   async handlePhoneBind(event) {
     const detail = event.detail || {}
+
     if (detail.errMsg && !String(detail.errMsg).includes('ok')) {
       wx.showToast({
         title: '未授权手机号',
@@ -188,6 +199,7 @@ Page<ProfileEditState, ProfileEditMethods>({
       })
       return
     }
+
     if (!detail.code) {
       wx.showToast({
         title: '手机号授权失败',
@@ -196,26 +208,35 @@ Page<ProfileEditState, ProfileEditMethods>({
       return
     }
 
+    const wasLoggedIn = this.data.loggedIn
+
     try {
-      const wasLoggedIn = this.data.loggedIn
-      const wechatProfile = await this.requestWechatProfile()
-      const loginCode = await requestLoginCode()
-      const profile = await loginWithWechat({
-        loginCode,
-        phoneCode: detail.code,
-        profile: {
-          avatarUrl: wechatProfile.avatarUrl,
-          identityTag: wechatProfile.identityTag,
-          name: wechatProfile.name,
-          signature: wechatProfile.signature,
-        },
-      })
+      let profile: SocialProfile
+
+      if (wasLoggedIn) {
+        profile = await bindCurrentUserPhone(detail.code)
+      } else {
+        const wechatProfile = await this.requestWechatProfile()
+        const loginCode = await requestLoginCode()
+        profile = await loginWithWechat({
+          loginCode,
+          phoneCode: detail.code,
+          profile: {
+            avatarUrl: wechatProfile.avatarUrl,
+            identityTag: wechatProfile.identityTag,
+            name: wechatProfile.name,
+            signature: wechatProfile.signature,
+          },
+        })
+      }
+
       wechatDraftProfile = {
         avatarUrl: profile.avatarUrl,
         identityTag: profile.identityTag,
         name: profile.name,
         signature: profile.signature,
       }
+
       this.setData({
         avatarUrl: profile.avatarUrl,
         hasWechatProfile: true,
@@ -225,13 +246,14 @@ Page<ProfileEditState, ProfileEditMethods>({
         signature: profile.signature,
         wechatOpenId: profile.wechatOpenId || '',
       })
+
       wx.showToast({
         title: wasLoggedIn ? '绑定成功' : '登录成功',
         icon: 'success',
       })
     } catch (error) {
       wx.showToast({
-        title: error instanceof Error ? error.message : '登录失败',
+        title: error instanceof Error ? error.message : wasLoggedIn ? '绑定失败' : '登录失败',
         icon: 'none',
       })
     }

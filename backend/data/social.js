@@ -265,6 +265,56 @@ const bindWechatUser = ({
   }
 }
 
+const bindPhoneToMiniUser = ({ profileId, phone }) => {
+  const store = readStore()
+  const normalizedProfileId = String(profileId || '').trim()
+  const normalizedPhone = String(phone || '').trim()
+
+  if (!normalizedProfileId) {
+    throw new Error('missing profileId')
+  }
+  if (!normalizedPhone) {
+    throw new Error('missing phone')
+  }
+
+  const targetProfile = getProfileById(store, normalizedProfileId)
+  if (!targetProfile) {
+    throw new Error('profile not found')
+  }
+
+  const duplicatedPhoneProfile = getProfileByPhone(store, normalizedPhone)
+  if (duplicatedPhoneProfile && duplicatedPhoneProfile.id !== normalizedProfileId) {
+    store.profiles = store.profiles.map((item) =>
+      item.id === duplicatedPhoneProfile.id
+        ? {
+            ...item,
+            phone: '',
+            phoneBoundAt: '',
+            updatedAt: now(),
+          }
+        : item,
+    )
+  }
+
+  const nextProfile = normalizeProfile(
+    {
+      ...targetProfile,
+      phone: normalizedPhone,
+      phoneBoundAt: targetProfile.phoneBoundAt || isoNow(),
+      updatedAt: now(),
+    },
+    targetProfile,
+  )
+
+  store.profiles = store.profiles.map((item) => (item.id === normalizedProfileId ? { ...item, ...nextProfile, createdAt: item.createdAt } : item))
+  writeStore(store)
+
+  return {
+    ...nextProfile,
+    phoneMasked: maskPhone(nextProfile.phone),
+  }
+}
+
 const getMiniUserSession = (token) => {
   if (!token) {
     return null
@@ -588,6 +638,7 @@ const getBootstrap = (profileId) => {
 
 module.exports = {
   addFriend,
+  bindPhoneToMiniUser,
   bindWechatUser,
   ensureProfile,
   getBootstrap,

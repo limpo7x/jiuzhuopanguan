@@ -404,6 +404,13 @@ export const loginWithWechat = async (payload: UserLoginPayload): Promise<Social
   return upsertLocalProfile(result.profile)
 }
 
+export const bindCurrentUserPhone = async (phoneCode: string): Promise<SocialProfile> => {
+  const profile = await request<SocialProfile>('/user/auth/bind-phone', 'POST', {
+    phoneCode,
+  })
+  return upsertLocalProfile(profile)
+}
+
 export const saveCurrentProfile = async (patch: Partial<SocialProfile>): Promise<SocialProfile> => {
   const current = getLocalProfile()
   const nextProfile = {
