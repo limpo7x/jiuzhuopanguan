@@ -1,5 +1,6 @@
 import { trackAnalyticsEvent } from '../../services/analytics'
 import { getManagedLiveSession, getManagedShareConfig } from '../../services/operations'
+import { staticAsset } from '../../config/assets'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 
 interface SharePreviewItem {
@@ -51,6 +52,7 @@ const SHARE_HEADLINE = '查看谁是今晚欠酒王？'
 const CANVAS_WIDTH = 900
 const CARD_WIDTH = 820
 const MINIAPP_QR_ASSET = '/assets/home/share-miniapp-qr.png'
+const MINIAPP_QR_REMOTE_ASSET = staticAsset('share-miniapp-qr.png')
 
 const getImageInfo = (src: string) =>
   new Promise<WechatMiniprogram.GetImageInfoSuccessCallbackResult>((resolve, reject) => {
@@ -167,6 +169,16 @@ const drawQrPanel = (
 
   if (qrPath) {
     ctx.drawImage(qrPath, x + 14, y + 14, size, size)
+  } else {
+    fillRoundRect(ctx, x + 14, y + 14, size, size, 18, '#fff1df')
+    ctx.setStrokeStyle('#ffb88a')
+    ctx.setLineWidth(2)
+    ctx.strokeRect(x + 24, y + 24, size - 20, size - 20)
+    ctx.setFillStyle('#a14f36')
+    ctx.setFontSize(20)
+    ctx.setTextAlign('center')
+    ctx.fillText('小程序', x + 14 + size / 2, y + 14 + size / 2 + 8)
+    ctx.setTextAlign('left')
   }
 
   ctx.setFillStyle('#7b3926')
@@ -174,6 +186,90 @@ const drawQrPanel = (
   ctx.setTextAlign('center')
   ctx.fillText('扫一扫看看怎么个事', x + panelWidth / 2, y + size + 46)
   ctx.setTextAlign('left')
+}
+
+const resolveMiniappQrPath = async () => {
+  const candidates = [MINIAPP_QR_ASSET, MINIAPP_QR_REMOTE_ASSET]
+  for (const candidate of candidates) {
+    try {
+      const image = await getImageInfo(candidate)
+      return image.path
+    } catch {
+      continue
+    }
+  }
+  return ''
+}
+
+const drawPartyBackdrop = (ctx: WechatMiniprogram.CanvasContext, width: number, height: number) => {
+  const gradient = ctx.createLinearGradient(0, 0, width, height)
+  gradient.addColorStop(0, '#53130d')
+  gradient.addColorStop(0.42, '#8f2418')
+  gradient.addColorStop(1, '#ff9152')
+  ctx.setFillStyle(gradient)
+  ctx.fillRect(0, 0, width, height)
+
+  ctx.setFillStyle('rgba(255, 219, 138, 0.14)')
+  ctx.beginPath()
+  ctx.arc(120, 150, 150, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(width - 136, 180, 186, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.setStrokeStyle('rgba(255, 218, 146, 0.16)')
+  ctx.setLineWidth(4)
+  for (let index = 0; index < 11; index += 1) {
+    const endX = 152 + index * 62
+    ctx.beginPath()
+    ctx.moveTo(width / 2, 36)
+    ctx.lineTo(endX, 262)
+    ctx.stroke()
+  }
+
+  const confettiColors = ['#ffd76d', '#fff5d0', '#ffb56b', '#ff7057']
+  for (let index = 0; index < 30; index += 1) {
+    const color = confettiColors[index % confettiColors.length]
+    const x = 42 + (index * 67) % (width - 84)
+    const y = 56 + ((index * 101) % Math.min(height - 120, 460))
+    const w = 10 + (index % 3) * 6
+    const h = 6 + (index % 2) * 4
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate(((index % 8) - 3) * 0.28)
+    ctx.setFillStyle(color)
+    ctx.fillRect(-w / 2, -h / 2, w, h)
+    ctx.restore()
+  }
+
+  const drawGlass = (centerX: number, centerY: number, scale: number, rotateDeg: number) => {
+    ctx.save()
+    ctx.translate(centerX, centerY)
+    ctx.rotate((rotateDeg * Math.PI) / 180)
+    ctx.setFillStyle('rgba(255, 249, 236, 0.22)')
+    ctx.beginPath()
+    ctx.moveTo(-22 * scale, -26 * scale)
+    ctx.lineTo(22 * scale, -26 * scale)
+    ctx.lineTo(12 * scale, 10 * scale)
+    ctx.lineTo(-12 * scale, 10 * scale)
+    ctx.closePath()
+    ctx.fill()
+    ctx.setStrokeStyle('rgba(255, 249, 236, 0.46)')
+    ctx.setLineWidth(3)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(0, 10 * scale)
+    ctx.lineTo(0, 44 * scale)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(-18 * scale, 44 * scale)
+    ctx.lineTo(18 * scale, 44 * scale)
+    ctx.stroke()
+    ctx.restore()
+  }
+
+  drawGlass(width - 142, 104, 1, -16)
+  drawGlass(width - 96, 124, 0.9, 18)
 }
 
 Page<SharePreviewState, SharePreviewMethods>({
@@ -364,13 +460,7 @@ Page<SharePreviewState, SharePreviewMethods>({
   },
 
   async buildShareImage() {
-    let qrPath = ''
-    try {
-      const qrImage = await getImageInfo(MINIAPP_QR_ASSET)
-      qrPath = qrImage.path
-    } catch {
-      qrPath = ''
-    }
+    const qrPath = await resolveMiniappQrPath()
 
     if (this.data.showJoinStatus) {
       const itemHeight = 104
@@ -388,12 +478,26 @@ Page<SharePreviewState, SharePreviewMethods>({
       )
 
       return this.drawCanvasToFile(CANVAS_WIDTH, canvasHeight, (ctx) => {
-        ctx.setFillStyle('#fff8ee')
-        ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
+        drawPartyBackdrop(ctx, CANVAS_WIDTH, canvasHeight)
 
-        fillRoundRect(ctx, 40, 40, CARD_WIDTH, canvasHeight - 80, 30, '#ff6847')
-        ctx.setFillStyle('rgba(255,255,255,0.18)')
-        ctx.fillRect(40, 40, CARD_WIDTH, 180)
+        const cardGradient = ctx.createLinearGradient(40, 40, 40, canvasHeight - 40)
+        cardGradient.addColorStop(0, '#ff6b48')
+        cardGradient.addColorStop(0.6, '#db4428')
+        cardGradient.addColorStop(1, '#8a241a')
+        fillRoundRect(ctx, 40, 40, CARD_WIDTH, canvasHeight - 80, 30, cardGradient)
+
+        const headerGradient = ctx.createLinearGradient(40, 40, 40, 250)
+        headerGradient.addColorStop(0, 'rgba(255,255,255,0.24)')
+        headerGradient.addColorStop(1, 'rgba(255,255,255,0.05)')
+        fillRoundRect(ctx, 40, 40, CARD_WIDTH, 196, 30, headerGradient)
+
+        ctx.setFillStyle('rgba(255, 238, 189, 0.16)')
+        ctx.beginPath()
+        ctx.arc(132, 108, 88, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.beginPath()
+        ctx.arc(740, 116, 76, 0, Math.PI * 2)
+        ctx.fill()
 
         ctx.setFillStyle('#ffffff')
         ctx.setFontSize(46)
@@ -404,7 +508,7 @@ Page<SharePreviewState, SharePreviewMethods>({
 
         let y = 270
         this.data.joinStatusPlayers.forEach((player, index) => {
-          fillRoundRect(ctx, 90, y, 720, 84, 20, 'rgba(255,255,255,0.16)')
+          fillRoundRect(ctx, 90, y, 720, 84, 20, 'rgba(255,255,255,0.14)')
           drawAvatar(ctx, avatarPaths[index] || '', 116, y + 16, 52)
           ctx.setFillStyle('#ffffff')
           ctx.setFontSize(28)
@@ -431,12 +535,26 @@ Page<SharePreviewState, SharePreviewMethods>({
     )
 
     return this.drawCanvasToFile(CANVAS_WIDTH, 1180, (ctx) => {
-      ctx.setFillStyle('#fff8ee')
-      ctx.fillRect(0, 0, CANVAS_WIDTH, 1180)
+      drawPartyBackdrop(ctx, CANVAS_WIDTH, 1180)
 
-      fillRoundRect(ctx, 40, 40, CARD_WIDTH, 1100, 30, '#ff6847')
-      ctx.setFillStyle('rgba(255,255,255,0.14)')
-      ctx.fillRect(40, 40, CARD_WIDTH, 320)
+      const cardGradient = ctx.createLinearGradient(40, 40, 40, 1140)
+      cardGradient.addColorStop(0, '#ff6b48')
+      cardGradient.addColorStop(0.58, '#d94328')
+      cardGradient.addColorStop(1, '#8a241a')
+      fillRoundRect(ctx, 40, 40, CARD_WIDTH, 1100, 30, cardGradient)
+
+      const headerGradient = ctx.createLinearGradient(40, 40, 40, 364)
+      headerGradient.addColorStop(0, 'rgba(255,255,255,0.26)')
+      headerGradient.addColorStop(1, 'rgba(255,255,255,0.05)')
+      fillRoundRect(ctx, 40, 40, CARD_WIDTH, 320, 30, headerGradient)
+
+      ctx.setFillStyle('rgba(255, 240, 205, 0.18)')
+      ctx.beginPath()
+      ctx.arc(130, 120, 94, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.arc(760, 120, 84, 0, Math.PI * 2)
+      ctx.fill()
 
       ctx.setFillStyle('#ffffff')
       ctx.setFontSize(50)

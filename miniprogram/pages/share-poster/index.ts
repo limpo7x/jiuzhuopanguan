@@ -1,5 +1,6 @@
 import { trackAnalyticsEvent } from '../../services/analytics'
 import { getManagedReport, getManagedShareConfig } from '../../services/operations'
+import { staticAsset } from '../../config/assets'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 
 interface PosterRank {
@@ -50,6 +51,7 @@ const SHARE_HEADLINE = '查看谁是今晚欠酒王？'
 const CANVAS_WIDTH = 900
 const CARD_WIDTH = 820
 const MINIAPP_QR_ASSET = '/assets/home/share-miniapp-qr.png'
+const MINIAPP_QR_REMOTE_ASSET = staticAsset('share-miniapp-qr.png')
 
 const getImageInfo = (src: string) =>
   new Promise<WechatMiniprogram.GetImageInfoSuccessCallbackResult>((resolve, reject) => {
@@ -142,6 +144,16 @@ const drawQrPanel = (
 
   if (qrPath) {
     ctx.drawImage(qrPath, x + 14, y + 14, size, size)
+  } else {
+    fillRoundRect(ctx, x + 14, y + 14, size, size, 18, '#fff1df')
+    ctx.setStrokeStyle('#ffb88a')
+    ctx.setLineWidth(2)
+    ctx.strokeRect(x + 24, y + 24, size - 20, size - 20)
+    ctx.setFillStyle('#a14f36')
+    ctx.setFontSize(20)
+    ctx.setTextAlign('center')
+    ctx.fillText('小程序', x + 14 + size / 2, y + 14 + size / 2 + 8)
+    ctx.setTextAlign('left')
   }
 
   ctx.setFillStyle('#7b3926')
@@ -149,6 +161,90 @@ const drawQrPanel = (
   ctx.setTextAlign('center')
   ctx.fillText('扫一扫看看怎么个事', x + panelWidth / 2, y + size + 46)
   ctx.setTextAlign('left')
+}
+
+const resolveMiniappQrPath = async () => {
+  const candidates = [MINIAPP_QR_ASSET, MINIAPP_QR_REMOTE_ASSET]
+  for (const candidate of candidates) {
+    try {
+      const image = await getImageInfo(candidate)
+      return image.path
+    } catch {
+      continue
+    }
+  }
+  return ''
+}
+
+const drawPartyBackdrop = (ctx: WechatMiniprogram.CanvasContext, width: number, height: number) => {
+  const gradient = ctx.createLinearGradient(0, 0, width, height)
+  gradient.addColorStop(0, '#4f120d')
+  gradient.addColorStop(0.45, '#8d2418')
+  gradient.addColorStop(1, '#ff8b4d')
+  ctx.setFillStyle(gradient)
+  ctx.fillRect(0, 0, width, height)
+
+  ctx.setFillStyle('rgba(255, 225, 158, 0.14)')
+  ctx.beginPath()
+  ctx.arc(120, 140, 150, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(width - 140, 180, 180, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.setStrokeStyle('rgba(255, 215, 138, 0.18)')
+  ctx.setLineWidth(4)
+  for (let index = 0; index < 10; index += 1) {
+    const startX = 180 + index * 58
+    ctx.beginPath()
+    ctx.moveTo(width / 2, 40)
+    ctx.lineTo(startX, 250)
+    ctx.stroke()
+  }
+
+  const confettiColors = ['#ffd76d', '#fff4d1', '#ffab63', '#ff6e56']
+  for (let index = 0; index < 28; index += 1) {
+    const color = confettiColors[index % confettiColors.length]
+    const x = 36 + (index * 61) % (width - 72)
+    const y = 54 + ((index * 97) % Math.min(height - 108, 420))
+    const w = 10 + (index % 3) * 5
+    const h = 6 + (index % 2) * 4
+    ctx.save()
+    ctx.translate(x, y)
+    ctx.rotate(((index % 7) - 3) * 0.34)
+    ctx.setFillStyle(color)
+    ctx.fillRect(-w / 2, -h / 2, w, h)
+    ctx.restore()
+  }
+
+  const drawGlass = (centerX: number, centerY: number, scale: number, rotateDeg: number) => {
+    ctx.save()
+    ctx.translate(centerX, centerY)
+    ctx.rotate((rotateDeg * Math.PI) / 180)
+    ctx.setFillStyle('rgba(255, 249, 236, 0.22)')
+    ctx.beginPath()
+    ctx.moveTo(-22 * scale, -26 * scale)
+    ctx.lineTo(22 * scale, -26 * scale)
+    ctx.lineTo(12 * scale, 10 * scale)
+    ctx.lineTo(-12 * scale, 10 * scale)
+    ctx.closePath()
+    ctx.fill()
+    ctx.setStrokeStyle('rgba(255, 249, 236, 0.46)')
+    ctx.setLineWidth(3)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(0, 10 * scale)
+    ctx.lineTo(0, 44 * scale)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(-18 * scale, 44 * scale)
+    ctx.lineTo(18 * scale, 44 * scale)
+    ctx.stroke()
+    ctx.restore()
+  }
+
+  drawGlass(width - 142, 104, 1, -16)
+  drawGlass(width - 96, 124, 0.9, 18)
 }
 
 Page<SharePosterState, SharePosterMethods>({
@@ -314,13 +410,7 @@ Page<SharePosterState, SharePosterMethods>({
     const rankPool = this.data.featuredRank
       ? [this.data.featuredRank, ...this.data.secondaryRanks]
       : this.data.secondaryRanks
-    let qrPath = ''
-    try {
-      const qrImage = await getImageInfo(MINIAPP_QR_ASSET)
-      qrPath = qrImage.path
-    } catch {
-      qrPath = ''
-    }
+    const qrPath = await resolveMiniappQrPath()
     const avatarPaths = await Promise.all(
       rankPool.map(async (item) => {
         try {
@@ -337,12 +427,24 @@ Page<SharePosterState, SharePosterMethods>({
     const canvasHeight = 510 + (this.data.featuredRank ? 250 : 0) + secondaryRows * 210 + 220
 
     return this.drawCanvasToFile(CANVAS_WIDTH, canvasHeight, (ctx) => {
-      ctx.setFillStyle('#fff8ee')
-      ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
+      drawPartyBackdrop(ctx, CANVAS_WIDTH, canvasHeight)
 
       fillRoundRect(ctx, 40, 40, CARD_WIDTH, canvasHeight - 80, 34, '#fff3e8')
-      ctx.setFillStyle('#ff7645')
-      ctx.fillRect(40, 40, CARD_WIDTH, 240)
+      const headerGradient = ctx.createLinearGradient(40, 40, 40, 280)
+      headerGradient.addColorStop(0, '#ff7e4d')
+      headerGradient.addColorStop(0.58, '#d83e28')
+      headerGradient.addColorStop(1, '#7d1f16')
+      ctx.setFillStyle(headerGradient)
+      fillRoundRect(ctx, 40, 40, CARD_WIDTH, 240, 34, '#ff7645')
+      ctx.setFillStyle(headerGradient)
+      ctx.fillRect(40, 140, CARD_WIDTH, 140)
+      ctx.setFillStyle('rgba(255,255,255,0.12)')
+      ctx.beginPath()
+      ctx.arc(168, 98, 72, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.beginPath()
+      ctx.arc(742, 118, 84, 0, Math.PI * 2)
+      ctx.fill()
 
       ctx.setFillStyle('#ffffff')
       ctx.setFontSize(48)
@@ -353,6 +455,15 @@ Page<SharePosterState, SharePosterMethods>({
 
       fillRoundRect(ctx, 620, 116, 190, 72, 20, 'rgba(255,255,255,0.16)')
       drawCenteredText(ctx, this.data.inviteCode || '已结算', 620, 160, 190, 28, '#ffffff')
+
+      ctx.setStrokeStyle('rgba(255, 236, 200, 0.18)')
+      ctx.setLineWidth(4)
+      for (let index = 0; index < 6; index += 1) {
+        ctx.beginPath()
+        ctx.moveTo(86 + index * 98, 248)
+        ctx.lineTo(132 + index * 98, 286)
+        ctx.stroke()
+      }
 
       let avatarOffset = 0
       let currentY = 318
@@ -396,11 +507,11 @@ Page<SharePosterState, SharePosterMethods>({
         ctx.fillText(rank.value || '-', x + 106, y + 150)
       })
 
+      drawQrPanel(ctx, qrPath, 652, canvasHeight - 212, 106)
+
       ctx.setFillStyle('#8f7f6d')
       ctx.setFontSize(22)
-      ctx.fillText('分享图仅保留展示数据，不包含按钮与操作入口', 90, canvasHeight - 104)
-
-      drawQrPanel(ctx, qrPath, 652, canvasHeight - 212, 106)
+      ctx.fillText('分享图仅保留展示数据，不包含按钮与操作入口', 90, canvasHeight - 128, 500)
     })
   },
 

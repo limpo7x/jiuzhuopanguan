@@ -10,6 +10,7 @@ const STATIC_ASSET_FILE_BY_LOCAL_PATH: Record<string, string> = {
   '/assets/home/party-hero.png': 'party-hero.png',
   '/assets/home/points-gift.png': 'points-gift.png',
   '/assets/home/report-poster.png': 'report-poster.png',
+  '/assets/home/share-miniapp-qr.png': 'share-miniapp-qr.png',
   '/assets/home/toolbox-hero.png': 'toolbox-hero.png',
 }
 
