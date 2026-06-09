@@ -13,14 +13,14 @@
         <image class="me-avatar" src="{{currentProfile.avatarUrl}}" mode="aspectFill"></image>
         <view class="me-user-copy">
           <view class="me-name-row">
-            <text class="me-name">{{currentProfile.name}}</text>
+            <text class="me-name">{{currentProfile.name || '点击微信登录'}}</text>
             <view class="me-vip-tag">V1</view>
           </view>
-          <text class="me-id">{{currentProfile.wechatOpenId ? '微信已登录' : '未登录微信'}}</text>
+          <text class="me-id">{{loggedIn ? '微信已登录' : '未登录微信'}}</text>
           <text class="me-id">手机号 {{currentProfile.phoneMasked || '未绑定（可选）'}}</text>
         </view>
       </view>
-      <view class="me-edit-btn" bindtap="handleEditTap">{{currentProfile.wechatOpenId ? '查看资料' : '微信登录'}}</view>
+      <view class="me-edit-btn" bindtap="handleEditTap">{{loggedIn ? '查看资料' : '微信登录'}}</view>
     </view>
 
     <view class="me-member-card">

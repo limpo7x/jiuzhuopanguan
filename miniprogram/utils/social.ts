@@ -84,6 +84,7 @@ const LOCAL_POKE_THREADS_KEY = 'social-local-poke-threads'
 const LOCAL_WINE_FRIENDS_KEY = 'social-local-wine-friends'
 const PROFILE_ID_KEY = 'social-current-profile-id'
 const USER_TOKEN_KEY = 'jzp-user-token'
+const AUTHORIZED_WECHAT_PROFILE_KEY = 'social-authorized-wechat-profile'
 const AVATAR_POOL = [avatarAsset(1), avatarAsset(2), avatarAsset(3), avatarAsset(4)]
 const DEFAULT_DIRECTORY: SocialProfile[] = []
 let backendDownUntil = 0
@@ -91,6 +92,11 @@ let backendDownUntil = 0
 const isPlaceholderSocialName = (value: string) => {
   const text = String(value || '').trim()
   return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text) || text === '未登录'
+}
+
+const sanitizeSocialName = (value: string) => {
+  const text = String(value || '').trim()
+  return isPlaceholderSocialName(text) ? '' : text
 }
 
 const request = <T>(
@@ -143,6 +149,36 @@ const cacheUserToken = (token: string) => {
   }
 }
 
+export interface AuthorizedWechatProfile {
+  avatarUrl: string
+  name: string
+}
+
+const normalizeAuthorizedWechatProfile = (value: Partial<AuthorizedWechatProfile> | null | undefined): AuthorizedWechatProfile | null => {
+  const name = String(value?.name || '').trim()
+  const avatarUrl = String(value?.avatarUrl || '').trim()
+  if (!name && !avatarUrl) {
+    return null
+  }
+  return {
+    name: sanitizeSocialName(name),
+    avatarUrl,
+  }
+}
+
+export const getAuthorizedWechatProfile = (): AuthorizedWechatProfile | null =>
+  normalizeAuthorizedWechatProfile(wx.getStorageSync(AUTHORIZED_WECHAT_PROFILE_KEY) as Partial<AuthorizedWechatProfile> | undefined)
+
+export const cacheAuthorizedWechatProfile = (value: Partial<AuthorizedWechatProfile> | null | undefined): AuthorizedWechatProfile | null => {
+  const normalized = normalizeAuthorizedWechatProfile(value)
+  if (normalized) {
+    wx.setStorageSync(AUTHORIZED_WECHAT_PROFILE_KEY, normalized)
+  } else {
+    wx.removeStorageSync(AUTHORIZED_WECHAT_PROFILE_KEY)
+  }
+  return normalized
+}
+
 const resolveCurrentPageUrl = () => {
   const pages = getCurrentPages()
   const current = pages[pages.length - 1]
@@ -176,8 +212,8 @@ const randomId = () => `${Date.now()}-${Math.floor(Math.random() * 100000)}`
 
 const createDefaultProfile = (): SocialProfile => ({
   id: `user-${randomId()}`,
-  name: '未登录',
-  avatarUrl: hashNameToAvatar('未登录'),
+  name: '',
+  avatarUrl: avatarAsset(1),
   city: '',
   signature: '',
   identityTag: '',
@@ -186,14 +222,16 @@ const createDefaultProfile = (): SocialProfile => ({
 const getLocalProfile = (): SocialProfile => {
   const raw = wx.getStorageSync(CURRENT_PROFILE_KEY) as Partial<SocialProfile> | undefined
   const profileId = wx.getStorageSync(PROFILE_ID_KEY) as string | undefined
+  const normalizedName = sanitizeSocialName(raw?.name || '')
+  const normalizedAvatarUrl = String(raw?.avatarUrl || '').trim()
 
   if (raw?.id) {
     return {
-      avatarUrl: raw.avatarUrl || hashNameToAvatar(raw.name || '未登录'),
+      avatarUrl: normalizedAvatarUrl || hashNameToAvatar(normalizedName || '未登录'),
       city: raw.city || '',
       id: raw.id,
       identityTag: raw.identityTag || '',
-      name: raw.name || '未登录',
+      name: normalizedName,
       signature: raw.signature || '',
       phone: raw.phone || '',
       phoneMasked: raw.phoneMasked || '',
@@ -204,8 +242,8 @@ const getLocalProfile = (): SocialProfile => {
   if (profileId) {
     return {
       id: profileId,
-      name: '未登录',
-      avatarUrl: hashNameToAvatar('未登录'),
+      name: '',
+      avatarUrl: avatarAsset(1),
       city: '',
       signature: '',
       identityTag: '',
@@ -214,6 +252,21 @@ const getLocalProfile = (): SocialProfile => {
 
   return createDefaultProfile()
 }
+
+export const resolveDisplayProfile = (profile: SocialProfile | null | undefined): SocialProfile => {
+  const currentProfile = profile || createDefaultProfile()
+  const authorizedWechatProfile = getAuthorizedWechatProfile()
+  const displayName = sanitizeSocialName(authorizedWechatProfile?.name || currentProfile.name || '')
+  const displayAvatar = String(authorizedWechatProfile?.avatarUrl || currentProfile.avatarUrl || '').trim()
+
+  return {
+    ...currentProfile,
+    avatarUrl: displayAvatar || avatarAsset(1),
+    name: displayName,
+  }
+}
+
+export const getCurrentDisplayProfile = async (): Promise<SocialProfile> => resolveDisplayProfile(await ensureCurrentProfile())
 
 const cacheProfile = (profile: SocialProfile) => {
   wx.setStorageSync(CURRENT_PROFILE_KEY, profile)
@@ -413,21 +466,17 @@ export const loginWithWechat = async (payload: UserLoginPayload): Promise<Social
   cacheUserToken(result.token)
   const requestedName = String(payload.profile?.name || '').trim()
   const requestedAvatarUrl = String(payload.profile?.avatarUrl || '').trim()
-  const isGeneratedName = (value: string) => {
-    const text = String(value || '').trim()
-    return !text || /^微信用户/i.test(text) || /^酒友/i.test(text) || text === '未登录'
-  }
-  const resolvedName = !isGeneratedName(requestedName)
-    ? requestedName
-    : !isGeneratedName(result.profile?.name || '')
-      ? String(result.profile.name || '').trim()
-      : ''
+  const resolvedName = sanitizeSocialName(requestedName) || sanitizeSocialName(result.profile?.name || '')
   const mergedProfile: SocialProfile = {
     ...result.profile,
     name: resolvedName,
     avatarUrl: requestedAvatarUrl || result.profile.avatarUrl,
   }
   const cached = upsertLocalProfile(mergedProfile)
+  cacheAuthorizedWechatProfile({
+    name: resolvedName,
+    avatarUrl: requestedAvatarUrl || result.profile.avatarUrl,
+  })
 
   if (cached.name !== result.profile.name || cached.avatarUrl !== result.profile.avatarUrl) {
     try {

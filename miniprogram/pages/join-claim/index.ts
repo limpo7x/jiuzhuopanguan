@@ -1,6 +1,6 @@
 import { getManagedLiveSession, joinManagedSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
-import { ensureUserAuthorized, getCurrentProfile } from '../../utils/social'
+import { ensureUserAuthorized, getCurrentDisplayProfile } from '../../utils/social'
 
 interface JoinClaimState {
   inviteCode: string
@@ -56,7 +56,7 @@ Page<JoinClaimState, JoinClaimMethods>({
   async handleJoinTap() {
     try {
       const [profile, liveSession] = await Promise.all([
-        getCurrentProfile(),
+        getCurrentDisplayProfile(),
         joinManagedSession(this.data.inviteCode),
       ])
 

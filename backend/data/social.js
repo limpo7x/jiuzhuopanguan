@@ -22,10 +22,14 @@ const isPlaceholderName = (value = '') => {
   const text = String(value || '').trim()
   return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text)
 }
+const sanitizeProfileName = (value = '') => {
+  const text = String(value || '').trim()
+  return isPlaceholderName(text) ? '' : text
+}
 const normalizeAvatarUrl = (value = '', fallbackName = '') => {
   const raw = String(value || '').trim()
   if (!raw) {
-    return hashNameToAvatar(fallbackName || '酒友')
+    return hashNameToAvatar(fallbackName || '微信用户')
   }
   if (raw.startsWith('/assets/avatars/')) {
     return `/static/${raw.split('/').pop()}`
@@ -51,9 +55,9 @@ const isBrokenSample = (value) =>
 
 const normalizeProfile = (profile = {}, fallback = {}) => {
   const timestamp = now()
-  const name = isBrokenSample(profile.name)
-    ? fallback.name || `酒友${String(profile.id || '').slice(-4) || '0000'}`
-    : String(profile.name || fallback.name || `酒友${String(profile.id || '').slice(-4) || '0000'}`).trim()
+  const requestedName = isBrokenSample(profile.name) ? '' : String(profile.name || '').trim()
+  const fallbackName = isBrokenSample(fallback.name) ? '' : String(fallback.name || '').trim()
+  const name = sanitizeProfileName(requestedName) || sanitizeProfileName(fallbackName)
 
   return {
     id: String(profile.id || fallback.id || `user-${timestamp}`),
@@ -206,11 +210,7 @@ const bindWechatUser = ({
 
   const timestamp = now()
   const loginAt = isoNow()
-  const nextName = !isPlaceholderName(profile.name)
-    ? String(profile.name).trim()
-    : !isPlaceholderName(targetProfile?.name)
-      ? String(targetProfile?.name).trim()
-      : `微信用户${String(normalizedPhone || timestamp).slice(-4)}`
+  const nextName = sanitizeProfileName(profile.name) || sanitizeProfileName(targetProfile?.name)
   const nextProfile = normalizeProfile(
     {
       ...(targetProfile || {}),

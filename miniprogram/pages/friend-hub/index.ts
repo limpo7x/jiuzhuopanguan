@@ -1,7 +1,7 @@
 import {
   addWineFriend,
   addWineFriendByProfile,
-  getCurrentProfile,
+  getCurrentDisplayProfile,
   getWineFriends,
   removeWineFriend,
   searchRegisteredUsers,
@@ -65,7 +65,7 @@ Page<FriendHubState, FriendHubMethods>({
   },
 
   async loadSocialData() {
-    const [currentProfile, wineFriends] = await Promise.all([getCurrentProfile(), getWineFriends()])
+    const [currentProfile, wineFriends] = await Promise.all([getCurrentDisplayProfile(), getWineFriends()])
     this.setData({
       currentProfile,
       wineFriends: wineFriends.map((item) => ({

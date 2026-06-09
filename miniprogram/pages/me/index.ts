@@ -1,7 +1,7 @@
 import { avatarAsset } from '../../config/assets'
 import { getUserCommerceState } from '../../services/content'
 import { getManagedJudgeStats } from '../../services/operations'
-import { getCurrentProfile, getUserAuthSession, getWineFriends, type SocialProfile } from '../../utils/social'
+import { getCurrentDisplayProfile, getUserAuthSession, getWineFriends, type SocialProfile } from '../../utils/social'
 
 const isPlaceholderProfileName = (value: string) => {
   const text = String(value || '').trim()
@@ -23,6 +23,7 @@ interface MePageState {
   assetStats: StatItem[]
   currentProfile: SocialProfile
   features: FeatureItem[]
+  loggedIn: boolean
   wineStats: StatItem[]
 }
 
@@ -74,16 +75,17 @@ Page<MePageState, MePageMethods>({
     assetStats: DEFAULT_ASSET_STATS,
     currentProfile: {
       id: 'me-owner',
-      name: '微信用户',
+      name: '',
       avatarUrl: avatarAsset(1),
-      city: '上海',
-      identityTag: '酒局常驻玩家',
-      signature: '今晚这局不见不散。',
+      city: '',
+      identityTag: '',
+      signature: '',
       phone: '',
       phoneMasked: '',
       wechatOpenId: '',
     },
     features: DEFAULT_FEATURES,
+    loggedIn: false,
     wineStats: DEFAULT_WINE_STATS,
   },
 
@@ -98,7 +100,7 @@ Page<MePageState, MePageMethods>({
   async loadSocialData() {
     const [authSession, currentProfile, commerceState, judgeStats, wineFriends] = await Promise.all([
       getUserAuthSession().catch(() => ({ loggedIn: false, profile: null })),
-      getCurrentProfile(),
+      getCurrentDisplayProfile(),
       getUserCommerceState().catch(() => null),
       getManagedJudgeStats().catch(() => null),
       getWineFriends().catch(() => []),
@@ -107,7 +109,12 @@ Page<MePageState, MePageMethods>({
       authSession.loggedIn &&
       authSession.profile &&
       !(isPlaceholderProfileName(authSession.profile.name) && !isPlaceholderProfileName(currentProfile.name))
-        ? authSession.profile
+        ? {
+            ...currentProfile,
+            ...authSession.profile,
+            avatarUrl: currentProfile.avatarUrl || authSession.profile.avatarUrl || avatarAsset(1),
+            name: currentProfile.name || authSession.profile.name || '',
+          }
         : currentProfile
 
     this.setData({
@@ -117,6 +124,7 @@ Page<MePageState, MePageMethods>({
         { value: String(commerceState?.unlockedTemplateIds?.length ?? 0), label: '已解锁模板' },
       ],
       currentProfile: displayProfile,
+      loggedIn: Boolean(authSession.profile?.wechatOpenId || displayProfile.wechatOpenId),
       wineStats: [
         { value: String(judgeStats?.hostedCount ?? 0), label: '发起酒局' },
         { value: String(judgeStats?.joinedCount ?? 0), label: '参与场次' },

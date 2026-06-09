@@ -1,7 +1,7 @@
 import { homePageMock, type HomePageData } from '../../mock/home'
 import { getHomePageData } from '../../services/home'
 import { getStoredRuntimeLocation, requestRuntimeLocation } from '../../utils/location'
-import { ensureUserAuthorized, getUserAuthSession } from '../../utils/social'
+import { ensureUserAuthorized, getCurrentDisplayProfile, getUserAuthSession } from '../../utils/social'
 
 interface HomePageState {
   canCheckIn: boolean
@@ -92,9 +92,12 @@ Page<HomePageState, HomePageMethods>({
   },
 
   async syncAuthState() {
-    const session = await getUserAuthSession()
+    const [session, currentProfile] = await Promise.all([
+      getUserAuthSession().catch(() => ({ loggedIn: false, profile: null })),
+      getCurrentDisplayProfile().catch(() => null),
+    ])
     this.setData({
-      canCheckIn: Boolean(session.loggedIn && session.profile?.wechatOpenId),
+      canCheckIn: Boolean(session.profile?.wechatOpenId || currentProfile?.wechatOpenId),
     })
   },
 

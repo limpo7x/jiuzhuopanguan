@@ -1,6 +1,7 @@
 import {
   bindCurrentUserPhone,
-  getCurrentProfile,
+  cacheAuthorizedWechatProfile,
+  getCurrentDisplayProfile,
   getUserAuthSession,
   loginWithWechat,
   saveCurrentProfile,
@@ -90,24 +91,27 @@ Page<ProfileEditState, ProfileEditMethods>({
   async syncProfile() {
     const [session, profile, runtimeLocation] = await Promise.all([
       getUserAuthSession(),
-      getCurrentProfile(),
+      getCurrentDisplayProfile(),
       requestRuntimeLocation().catch(() => getStoredRuntimeLocation()),
     ])
 
     const sessionProfile = session.loggedIn && session.profile ? session.profile : null
     const displayProfile =
       sessionProfile && !(isPlaceholderName(sessionProfile.name) && !isPlaceholderName(profile.name)) ? sessionProfile : profile
+    const displayName = isPlaceholderName(displayProfile.name) ? '' : displayProfile.name
+    const displayAvatar = displayProfile.avatarUrl || avatarAsset(1)
+    const loggedIn = Boolean(sessionProfile?.wechatOpenId || displayProfile.wechatOpenId)
 
     this.setData({
-      avatarUrl: displayProfile.avatarUrl || avatarAsset(1),
+      avatarUrl: displayAvatar,
       city: runtimeLocation?.label || runtimeLocation?.city || displayProfile.city || DEFAULT_CITY,
-      hasWechatProfile: Boolean(displayProfile.wechatOpenId || wechatDraftProfile),
+      hasWechatProfile: Boolean(displayProfile.wechatOpenId || wechatDraftProfile || displayName || displayAvatar),
       identityTag: displayProfile.identityTag || '',
-      loggedIn: Boolean(sessionProfile?.wechatOpenId),
-      name: isPlaceholderName(displayProfile.name) ? '' : displayProfile.name,
+      loggedIn,
+      name: displayName,
       phoneMasked: displayProfile.phoneMasked || '',
       signature: displayProfile.signature || '',
-      wechatOpenId: displayProfile.wechatOpenId || '',
+      wechatOpenId: displayProfile.wechatOpenId || (loggedIn ? '__authorized__' : ''),
     })
   },
 
@@ -141,6 +145,15 @@ Page<ProfileEditState, ProfileEditMethods>({
       name: authorizedName,
       signature: this.data.signature.trim(),
     }
+    cacheAuthorizedWechatProfile({
+      name: authorizedName,
+      avatarUrl: userInfo.avatarUrl,
+    })
+    this.setData({
+      avatarUrl: userInfo.avatarUrl || avatarAsset(1),
+      hasWechatProfile: true,
+      name: authorizedName,
+    })
     return wechatDraftProfile
   },
 
@@ -164,12 +177,18 @@ Page<ProfileEditState, ProfileEditMethods>({
         name: isPlaceholderName(profile.name) ? '' : profile.name,
         signature: profile.signature,
       }
+      cacheAuthorizedWechatProfile({
+        name: wechatDraftProfile.name,
+        avatarUrl: profile.avatarUrl,
+      })
+      const resolvedDisplayName = wechatDraftProfile.name || (isPlaceholderName(profile.name) ? '' : profile.name)
+      const resolvedAvatarUrl = profile.avatarUrl || wechatDraftProfile.avatarUrl || avatarAsset(1)
 
       this.setData({
-        avatarUrl: profile.avatarUrl,
+        avatarUrl: resolvedAvatarUrl,
         hasWechatProfile: true,
         loggedIn: Boolean(profile.wechatOpenId),
-        name: isPlaceholderName(profile.name) ? '' : profile.name,
+        name: resolvedDisplayName,
         phoneMasked: profile.phoneMasked || '',
         signature: profile.signature,
         wechatOpenId: profile.wechatOpenId || '',
@@ -245,12 +264,18 @@ Page<ProfileEditState, ProfileEditMethods>({
         name: isPlaceholderName(profile.name) ? '' : profile.name,
         signature: profile.signature,
       }
+      cacheAuthorizedWechatProfile({
+        name: wechatDraftProfile.name,
+        avatarUrl: profile.avatarUrl,
+      })
+      const resolvedDisplayName = wechatDraftProfile.name || (isPlaceholderName(profile.name) ? '' : profile.name)
+      const resolvedAvatarUrl = profile.avatarUrl || wechatDraftProfile.avatarUrl || avatarAsset(1)
 
       this.setData({
-        avatarUrl: profile.avatarUrl,
+        avatarUrl: resolvedAvatarUrl,
         hasWechatProfile: true,
         loggedIn: Boolean(profile.wechatOpenId),
-        name: isPlaceholderName(profile.name) ? '' : profile.name,
+        name: resolvedDisplayName,
         phoneMasked: profile.phoneMasked || '',
         signature: profile.signature,
         wechatOpenId: profile.wechatOpenId || '',
