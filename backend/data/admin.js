@@ -33,6 +33,21 @@ const hashPassword = (password) => crypto.createHash('sha256').update(password).
 const createId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
 const now = () => Date.now()
 const iso = (value = Date.now()) => new Date(value).toISOString()
+const numberFromText = (value) => {
+  const matched = String(value || '')
+    .replace(/,/g, '')
+    .match(/-?\d+(?:\.\d+)?/)
+  return matched ? Number(matched[0]) : 0
+}
+const formatPercent = (value, digits = 1) =>
+  `${Number(value || 0).toFixed(digits).replace(/\.0$/, '').replace(/(\.\d*[1-9])0+$/, '$1')}%`
+const ratioPercent = (numerator, denominator, digits = 1) =>
+  formatPercent(denominator ? (Number(numerator || 0) / Number(denominator || 0)) * 100 : 0, digits)
+const seedCountFromRate = (rateText, denominator, fallbackBase = 1000) => {
+  const rateValue = Math.max(0, numberFromText(rateText))
+  const base = Math.max(1, Number(denominator) || fallbackBase)
+  return Math.max(0, Math.round((rateValue / 100) * base))
+}
 
 const DEFAULT_TOOLS_CATALOG = [
   { id: 'tool-qr', name: '二维码生成', category: '分享生成', target: '邀局裂变', imageUrl: '/static/report-poster.png', usageCount: 5622, favoriteRate: '16.8%', status: '启用', sortOrder: 10, isHot: '是', placement: 'both' },
@@ -52,7 +67,14 @@ const normalizeToolItem = (item = {}, index = 0) => ({
   target: String(item.target || '').trim(),
   imageUrl: String(item.imageUrl || '/static/toolbox-hero.png').trim(),
   usageCount: Number(item.usageCount) || 0,
-  favoriteRate: String(item.favoriteRate || '0%').trim(),
+  favoriteCount: Math.max(
+    0,
+    Number(item.favoriteCount) || seedCountFromRate(item.favoriteRate, item.usageCount, Math.max(1, Number(item.usageCount) || 1)),
+  ),
+  favoriteRate: ratioPercent(
+    Math.max(0, Number(item.favoriteCount) || seedCountFromRate(item.favoriteRate, item.usageCount, Math.max(1, Number(item.usageCount) || 1))),
+    Math.max(1, Number(item.usageCount) || 1),
+  ),
   status: String(item.status || '启用').trim(),
   sortOrder: Number(item.sortOrder) || (index + 1) * 10,
   isHot: String(item.isHot || '否').trim(),
@@ -118,6 +140,7 @@ const createDefaultStore = () => ({
   ],
   sessions: [],
   operationLogs: [],
+  analyticsEvents: [],
   userOps: [
     { id: 'user-1001', status: '高活跃', tags: ['模板偏好', '战报分享'], note: '最近 7 天连续开局' },
     { id: 'user-1002', status: '普通', tags: ['工具用户'], note: '二维码与图片工具使用较高' },
@@ -186,6 +209,118 @@ const createDefaultStore = () => ({
   ],
 })
 
+const normalizeShareAsset = (item = {}, index = 0) => {
+  const exposureCount = Math.max(1, Number(item.exposureCount) || 1000)
+  const openCount = Math.max(0, Number(item.openCount) || seedCountFromRate(item.openRate, exposureCount, exposureCount))
+  const returnCount = Math.max(0, Number(item.returnCount) || seedCountFromRate(item.returnRate, openCount || exposureCount, openCount || exposureCount))
+  return {
+    ...item,
+    id: String(item.id || `share-${index + 1}`).trim(),
+    name: String(item.name || `素材 ${index + 1}`).trim(),
+    assetType: String(item.assetType || '战报海报').trim(),
+    scene: String(item.scene || '战报分享').trim(),
+    imageUrl: String(item.imageUrl || '/static/report-poster.png').trim(),
+    exposureCount,
+    openCount,
+    returnCount,
+    openRate: ratioPercent(openCount, exposureCount),
+    returnRate: ratioPercent(returnCount, openCount || exposureCount),
+    status: String(item.status || '上线中').trim(),
+  }
+}
+
+const normalizeReportItem = (item = {}, index = 0) => {
+  const viewCount = Math.max(1, Number(item.viewCount) || 1000)
+  const shareCount = Math.max(0, Number(item.shareCount) || seedCountFromRate(item.shareRate, viewCount, viewCount))
+  const replayCount = Math.max(0, Number(item.replayCount) || seedCountFromRate(item.replayRate, viewCount, viewCount))
+  return {
+    ...item,
+    id: String(item.id || `report-${index + 1}`).trim(),
+    name: String(item.name || `战报 ${index + 1}`).trim(),
+    template: String(item.template || '').trim(),
+    title: String(item.title || '').trim(),
+    scene: String(item.scene || '常规局').trim(),
+    highlight1: String(item.highlight1 || '').trim(),
+    highlight2: String(item.highlight2 || '').trim(),
+    highlight3: String(item.highlight3 || '').trim(),
+    viewCount,
+    shareCount,
+    replayCount,
+    shareRate: ratioPercent(shareCount, viewCount),
+    replayRate: ratioPercent(replayCount, viewCount),
+    status: String(item.status || '正常').trim(),
+  }
+}
+
+const normalizeMembershipPlan = (item = {}, index = 0) => {
+  const exposureCount = Math.max(1, Number(item.exposureCount) || 1000)
+  const purchaseCount = Math.max(0, Number(item.purchaseCount) || seedCountFromRate(item.conversionRate, exposureCount, exposureCount))
+  const renewalCount = Math.max(0, Number(item.renewalCount) || seedCountFromRate(item.renewRate, purchaseCount || exposureCount, purchaseCount || exposureCount))
+  return {
+    ...item,
+    id: String(item.id || `member-${index + 1}`).trim(),
+    name: String(item.name || `会员套餐 ${index + 1}`).trim(),
+    price: String(item.price || '').trim(),
+    duration: String(item.duration || '').trim(),
+    exposureCount,
+    purchaseCount,
+    renewalCount,
+    conversionRate: ratioPercent(purchaseCount, exposureCount),
+    renewRate: ratioPercent(renewalCount, purchaseCount || exposureCount),
+    status: String(item.status || '上线中').trim(),
+  }
+}
+
+const normalizeAdSlot = (item = {}, index = 0) => {
+  const impressions = Math.max(1, Number(item.impressions) || 1000)
+  const completions = Math.max(0, Number(item.completions) || seedCountFromRate(item.completionRate, impressions, impressions))
+  const revenueValue = Number(item.revenueValue) || numberFromText(item.revenue)
+  return {
+    ...item,
+    id: String(item.id || `ad-${index + 1}`).trim(),
+    name: String(item.name || `广告位 ${index + 1}`).trim(),
+    page: String(item.page || '').trim(),
+    adType: String(item.adType || '激励视频').trim(),
+    impressions,
+    completions,
+    revenueValue,
+    completionRate: ratioPercent(completions, impressions),
+    revenue: `¥${Math.round(revenueValue).toLocaleString('en-US')}`,
+    status: String(item.status || '启用').trim(),
+  }
+}
+
+const normalizeMerchant = (item = {}, index = 0) => {
+  const claimCount = Math.max(0, Number(item.claimCount) || numberFromText(item.claimCount))
+  const verifiedCount = Math.max(0, Number(item.verifiedCount) || seedCountFromRate(item.verifyRate, claimCount || 1000, claimCount || 1000))
+  return {
+    ...item,
+    id: String(item.id || `merchant-${index + 1}`).trim(),
+    name: String(item.name || `商户 ${index + 1}`).trim(),
+    category: String(item.category || '代驾').trim(),
+    inventory: String(item.inventory || '').trim(),
+    claimCount: String(claimCount),
+    verifiedCount,
+    verifyRate: ratioPercent(verifiedCount, claimCount || 1),
+    status: String(item.status || '上线中').trim(),
+  }
+}
+
+const normalizeCampaign = (item = {}, index = 0) => {
+  const participants = Math.max(0, Number(item.participants) || numberFromText(item.participants))
+  const returnCount = Math.max(0, Number(item.returnCount) || seedCountFromRate(item.returnRate, participants || 1000, participants || 1000))
+  return {
+    ...item,
+    id: String(item.id || `campaign-${index + 1}`).trim(),
+    name: String(item.name || `活动 ${index + 1}`).trim(),
+    reward: String(item.reward || '').trim(),
+    participants: String(participants),
+    returnCount,
+    returnRate: ratioPercent(returnCount, participants || 1),
+    status: String(item.status || '进行中').trim(),
+  }
+}
+
 const normalizeStore = (store = {}) => {
   const next = {
     ...createDefaultStore(),
@@ -196,6 +331,18 @@ const normalizeStore = (store = {}) => {
     ? store.liveSessions.map((item, index) => normalizeLiveSession(item, index))
     : createDefaultStore().liveSessions.map((item, index) => normalizeLiveSession(item, index))
   next.toolsCatalog = normalizeToolsCatalog(store.toolsCatalog || next.toolsCatalog)
+  next.shareAssets = (Array.isArray(store.shareAssets) ? store.shareAssets : next.shareAssets).map((item, index) =>
+    normalizeShareAsset(item, index),
+  )
+  next.reports = (Array.isArray(store.reports) ? store.reports : next.reports).map((item, index) => normalizeReportItem(item, index))
+  next.membershipPlans = (Array.isArray(store.membershipPlans) ? store.membershipPlans : next.membershipPlans).map((item, index) =>
+    normalizeMembershipPlan(item, index),
+  )
+  next.adSlots = (Array.isArray(store.adSlots) ? store.adSlots : next.adSlots).map((item, index) => normalizeAdSlot(item, index))
+  next.merchants = (Array.isArray(store.merchants) ? store.merchants : next.merchants).map((item, index) => normalizeMerchant(item, index))
+  next.campaigns = (Array.isArray(store.campaigns) ? store.campaigns : next.campaigns).map((item, index) => normalizeCampaign(item, index))
+  next.operationLogs = Array.isArray(store.operationLogs) ? store.operationLogs : []
+  next.analyticsEvents = Array.isArray(store.analyticsEvents) ? store.analyticsEvents : []
   return next
 }
 
@@ -272,30 +419,69 @@ const logoutAdmin = (token) => {
   writeStore(store)
 }
 
-const numberFromText = (value) => {
-  const matched = String(value || '')
-    .replace(/,/g, '')
-    .match(/-?\d+(?:\.\d+)?/)
-  return matched ? Number(matched[0]) : 0
-}
-
 const average = (values = []) => (values.length ? values.reduce((sum, item) => sum + Number(item || 0), 0) / values.length : 0)
 const sumBy = (list = [], selector) => list.reduce((sum, item, index) => sum + Number(selector(item, index) || 0), 0)
 const avgBy = (list = [], selector) => average(list.map((item, index) => selector(item, index)))
 const countBy = (list = [], predicate) => list.filter(predicate).length
-const formatPercent = (value, digits = 1) => `${Number(value || 0).toFixed(digits).replace(/\.0$/, '').replace(/(\.\d*[1-9])0+$/, '$1')}%`
 const formatCurrency = (value) => `¥${Math.round(Number(value || 0)).toLocaleString('en-US')}`
 const formatNumber = (value) => Math.round(Number(value || 0)).toLocaleString('en-US')
-const ratioPercent = (numerator, denominator, digits = 1) => formatPercent(denominator ? (Number(numerator || 0) / Number(denominator || 0)) * 100 : 0, digits)
 const byNumericDesc = (selector) => (left, right) => Number(selector(right) || 0) - Number(selector(left) || 0)
 
 const getUserCommerceMap = (contentStore = readContentStore()) =>
   contentStore.userCommerce && typeof contentStore.userCommerce === 'object' ? contentStore.userCommerce : {}
 
+const pushAnalyticsEvent = (store, event) => {
+  store.analyticsEvents = Array.isArray(store.analyticsEvents) ? store.analyticsEvents : []
+  store.analyticsEvents.unshift({
+    id: createId('event'),
+    createdAt: iso(),
+    ...event,
+  })
+  store.analyticsEvents = store.analyticsEvents.slice(0, 5000)
+}
+
+const getMatchedThreadRowsByProfile = (socialStore = readSocialStore()) => {
+  const profileMap = new Map((socialStore.profiles || []).map((item) => [item.id, item]))
+  const result = {}
+  ;(socialStore.pokes || [])
+    .filter((item) => item.status === 'matched')
+    .forEach((thread) => {
+      const sender = profileMap.get(thread.senderId)
+      const receiver = profileMap.get(thread.receiverId)
+      const rows = [
+        {
+          profileId: thread.senderId,
+          counterpartId: thread.receiverId,
+          counterpartName: receiver?.name || thread.receiverId,
+          counterpartPhone: receiver?.phone || '',
+          updatedAt: new Date(Number(thread.updatedAt) || now()).toISOString(),
+          threadId: thread.id,
+        },
+        {
+          profileId: thread.receiverId,
+          counterpartId: thread.senderId,
+          counterpartName: sender?.name || thread.senderId,
+          counterpartPhone: sender?.phone || '',
+          updatedAt: new Date(Number(thread.updatedAt) || now()).toISOString(),
+          threadId: thread.id,
+        },
+      ]
+      rows.forEach((row) => {
+        if (!result[row.profileId]) {
+          result[row.profileId] = []
+        }
+        result[row.profileId].push(row)
+      })
+    })
+  Object.values(result).forEach((rows) => rows.sort((left, right) => String(right.updatedAt).localeCompare(String(left.updatedAt))))
+  return result
+}
+
 const buildUserProfileItems = (adminStore = readStore(), contentStore = readContentStore(), socialStore = readSocialStore()) =>
   socialStore.profiles.map((profile) => {
     const meta = adminStore.userOps.find((item) => item.id === profile.id) || { status: '', tags: [], note: '' }
     const commerce = getUserCommerceMap(contentStore)[profile.id] || {}
+    const matchedThreads = getMatchedThreadRowsByProfile(socialStore)[profile.id] || []
     return {
       id: profile.id,
       name: profile.name,
@@ -309,6 +495,9 @@ const buildUserProfileItems = (adminStore = readStore(), contentStore = readCont
       tagsText: Array.isArray(meta.tags) ? meta.tags.join('、') : '',
       note: meta.note || '',
       points: Number(commerce.points) || 0,
+      matchedThreadCount: matchedThreads.length,
+      matchedThreadsText: matchedThreads.length ? `${matchedThreads.length} 条已配对` : '暂无配对',
+      matchedThreadsRows: matchedThreads,
     }
   })
 
@@ -375,6 +564,93 @@ const buildAdminOperationLogRows = (adminStore = readStore()) =>
       createdAt: entry.createdAt || '',
     }))
     .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+
+const trackAnalyticsEvent = ({ type, profileId = '', reportId = '', assetId = '', planId = '', toolId = '', slotId = '', merchantId = '', campaignId = '', meta = {} }) => {
+  const store = readStore()
+  const normalizedReportId =
+    String(reportId || '').trim() ||
+    (meta && typeof meta === 'object' && meta.sessionId
+      ? String(
+          (store.reports || []).find((item) => String(item.sessionId || '') === String(meta.sessionId))?.id || '',
+        ).trim()
+      : '')
+  pushAnalyticsEvent(store, {
+    type: String(type || '').trim(),
+    profileId: String(profileId || '').trim(),
+    reportId: normalizedReportId,
+    assetId: String(assetId || '').trim(),
+    planId: String(planId || '').trim(),
+    toolId: String(toolId || '').trim(),
+    slotId: String(slotId || '').trim(),
+    merchantId: String(merchantId || '').trim(),
+    campaignId: String(campaignId || '').trim(),
+    meta: meta && typeof meta === 'object' ? meta : {},
+  })
+
+  if (normalizedReportId && type === 'report_view') {
+    store.reports = (store.reports || []).map((item) =>
+      item.id === normalizedReportId ? normalizeReportItem({ ...item, viewCount: Number(item.viewCount) + 1, shareCount: item.shareCount, replayCount: item.replayCount }) : item,
+    )
+  }
+  if (normalizedReportId && type === 'report_share') {
+    store.reports = (store.reports || []).map((item) =>
+      item.id === normalizedReportId ? normalizeReportItem({ ...item, shareCount: Number(item.shareCount) + 1, viewCount: item.viewCount, replayCount: item.replayCount }) : item,
+    )
+  }
+  if (normalizedReportId && type === 'report_replay') {
+    store.reports = (store.reports || []).map((item) =>
+      item.id === normalizedReportId ? normalizeReportItem({ ...item, replayCount: Number(item.replayCount) + 1, viewCount: item.viewCount, shareCount: item.shareCount }) : item,
+    )
+  }
+  if (assetId && type === 'share_asset_exposure') {
+    store.shareAssets = (store.shareAssets || []).map((item) =>
+      item.id === assetId ? normalizeShareAsset({ ...item, exposureCount: Number(item.exposureCount) + 1, openCount: item.openCount, returnCount: item.returnCount }) : item,
+    )
+  }
+  if (assetId && type === 'share_asset_open') {
+    store.shareAssets = (store.shareAssets || []).map((item) =>
+      item.id === assetId ? normalizeShareAsset({ ...item, openCount: Number(item.openCount) + 1, exposureCount: item.exposureCount, returnCount: item.returnCount }) : item,
+    )
+  }
+  if (assetId && type === 'share_asset_return') {
+    store.shareAssets = (store.shareAssets || []).map((item) =>
+      item.id === assetId ? normalizeShareAsset({ ...item, returnCount: Number(item.returnCount) + 1, exposureCount: item.exposureCount, openCount: item.openCount }) : item,
+    )
+  }
+  if (toolId && type === 'tool_favorite') {
+    store.toolsCatalog = (store.toolsCatalog || []).map((item) =>
+      item.id === toolId ? normalizeToolItem({ ...item, favoriteCount: Number(item.favoriteCount) + 1, usageCount: item.usageCount }, 0) : item,
+    )
+  }
+  if (campaignId && type === 'campaign_return') {
+    store.campaigns = (store.campaigns || []).map((item) =>
+      item.id === campaignId ? normalizeCampaign({ ...item, returnCount: Number(item.returnCount) + 1, participants: item.participants }, 0) : item,
+    )
+  }
+  if (merchantId && type === 'merchant_verify') {
+    store.merchants = (store.merchants || []).map((item) =>
+      item.id === merchantId ? normalizeMerchant({ ...item, verifiedCount: Number(item.verifiedCount) + 1, claimCount: item.claimCount }, 0) : item,
+    )
+  }
+  if (slotId && type === 'ad_complete') {
+    store.adSlots = (store.adSlots || []).map((item) =>
+      item.id === slotId ? normalizeAdSlot({ ...item, impressions: Number(item.impressions) + 1, completions: Number(item.completions) + 1, revenueValue: item.revenueValue }, 0) : item,
+    )
+  }
+  if (slotId && type === 'ad_impression') {
+    store.adSlots = (store.adSlots || []).map((item) =>
+      item.id === slotId ? normalizeAdSlot({ ...item, impressions: Number(item.impressions) + 1, completions: item.completions, revenueValue: item.revenueValue }, 0) : item,
+    )
+  }
+  if (planId && type === 'membership_renewal') {
+    store.membershipPlans = (store.membershipPlans || []).map((item) =>
+      item.id === planId ? normalizeMembershipPlan({ ...item, renewalCount: Number(item.renewalCount) + 1, purchaseCount: item.purchaseCount, exposureCount: item.exposureCount }, 0) : item,
+    )
+  }
+
+  writeStore(store)
+  return true
+}
 
 const buildOverviewTable = (adminStore = readStore(), contentStore = readContentStore()) => {
   const templates = contentStore.templateConfig.templates || []
@@ -950,6 +1226,15 @@ const joinManagedSession = ({ inviteCode, profile }) => {
       : item,
   )
   target.joinedCount = target.members.filter((item) => item.status === '已加入').length
+  pushAnalyticsEvent(store, {
+    type: 'session_joined',
+    profileId,
+    meta: {
+      sessionId: target.id,
+      inviteCode: normalizedInviteCode,
+      joinedCount: target.joinedCount,
+    },
+  })
   writeStore(store)
   return target
 }
@@ -971,6 +1256,15 @@ const createManagedSession = (payload = {}) => {
     members: buildSessionMembers(payload, []),
   }
   store.liveSessions = [session, ...store.liveSessions.filter((item) => item.id !== id)].slice(0, 50)
+  pushAnalyticsEvent(store, {
+    type: 'session_created',
+    profileId: String(payload.hostProfileId || '').trim(),
+    meta: {
+      sessionId: id,
+      playerCount: session.players,
+      template: session.template,
+    },
+  })
   writeStore(store)
   return session
 }
@@ -1027,6 +1321,7 @@ const finishManagedSession = (payload = {}) => {
   const events = Array.isArray(payload.events) ? payload.events.filter((item) => item && item.text).slice(0, 5) : []
   const report = {
     id: createId('report'),
+    sessionId,
     name: `${sessionName}战报`,
     template: templateName,
     title: String(payload.title || '这局快乐就完事了！').trim() || '这局快乐就完事了！',
@@ -1034,12 +1329,23 @@ const finishManagedSession = (payload = {}) => {
     highlight1: events[0]?.text || `${sessionName} 本局已结束，自动生成战报`,
     highlight2: events[1]?.text || `${playerCount} 位玩家参与了本局`,
     highlight3: events[2]?.text || '可继续分享战报或直接再开一局',
-    shareRate: String(payload.shareRate || `${Math.min(68, 32 + playerCount * 3)}%`).trim(),
-    replayRate: String(payload.replayRate || `${Math.min(34, 10 + playerCount * 2)}%`).trim(),
+    viewCount: Math.max(Number(payload.viewCount) || 0, playerCount),
+    shareCount: Math.max(0, Number(payload.shareCount) || 0),
+    replayCount: Math.max(0, Number(payload.replayCount) || 0),
     status: String(payload.status || '正常').trim() || '正常',
   }
 
-  store.reports = [report, ...store.reports].slice(0, 50)
+  const normalizedReport = normalizeReportItem(report, 0)
+  pushAnalyticsEvent(store, {
+    type: 'report_generated',
+    reportId: normalizedReport.id,
+    meta: {
+      sessionId,
+      playerCount,
+      templateName,
+    },
+  })
+  store.reports = [normalizedReport, ...store.reports].slice(0, 50)
   if (sessionId) {
     store.liveSessions = store.liveSessions.map((item) =>
       item.id === sessionId
@@ -1052,7 +1358,7 @@ const finishManagedSession = (payload = {}) => {
     )
   }
   writeStore(store)
-  return report
+  return normalizedReport
 }
 
 const toOption = (value, label = value) => ({
@@ -1833,6 +2139,23 @@ pageMap['user-profiles'] = () => {
         { key: 'points', label: '积分' },
         { key: 'status', label: '状态' },
       ],
+      customActions: [
+        {
+          key: 'viewMatchedThreads',
+          label: '查看配对',
+          labelKey: 'matchedThreadsText',
+          mode: 'table',
+          title: '配对成功列表',
+          rowsKey: 'matchedThreadsRows',
+          emptyText: '当前用户暂无配对成功的线程',
+          columns: [
+            { key: 'counterpartName', label: '配对对象' },
+            { key: 'counterpartPhone', label: '手机号' },
+            { key: 'updatedAt', label: '配对时间' },
+            { key: 'threadId', label: '线程ID' },
+          ],
+        },
+      ],
       items: profiles,
     },
   }
@@ -2069,15 +2392,18 @@ const getPageData = (slug) => {
   return factory()
 }
 
-const saveCollectionArray = (items = [], fields = []) =>
-  items.map((item, index) => {
-    const next = { id: item.id || createId(`item${index + 1}`) }
+const saveCollectionArray = (items = [], fields = [], existingItems = []) => {
+  const existingMap = new Map((existingItems || []).filter((item) => item && item.id).map((item) => [String(item.id), item]))
+  return items.map((item, index) => {
+    const baseId = item.id || createId(`item${index + 1}`)
+    const next = { ...(existingMap.get(String(baseId)) || {}), id: baseId }
     fields.forEach((field) => {
       const value = item[field.key]
       next[field.key] = field.type === 'number' ? Number(value) || 0 : typeof value === 'string' ? value.trim() : value || ''
     })
     return next
   })
+}
 
 const savePageData = (slug, payload = {}) => {
   const adminStore = readStore()
@@ -2111,19 +2437,19 @@ const savePageData = (slug, payload = {}) => {
   }
 
   if (slug === 'content-question-bank') {
-    adminStore.questionBank = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    adminStore.questionBank = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.questionBank)
     writeStore(adminStore)
     return getPageData(slug)
   }
 
   if (slug === 'content-share-assets') {
-    adminStore.shareAssets = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    adminStore.shareAssets = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.shareAssets)
     writeStore(adminStore)
     return getPageData(slug)
   }
 
   if (slug === 'content-tools-ops') {
-    adminStore.toolsCatalog = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    adminStore.toolsCatalog = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.toolsCatalog)
     writeStore(adminStore)
     return getPageData(slug)
   }
@@ -2171,13 +2497,13 @@ const savePageData = (slug, payload = {}) => {
   }
 
   if (slug === 'sessions') {
-    adminStore.liveSessions = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    adminStore.liveSessions = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.liveSessions)
     writeStore(adminStore)
     return getPageData(slug)
   }
 
   if (slug === 'reports') {
-    adminStore.reports = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    adminStore.reports = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.reports)
     writeStore(adminStore)
     return getPageData(slug)
   }
@@ -2194,26 +2520,26 @@ const savePageData = (slug, payload = {}) => {
   }
 
   if (slug === 'commerce-membership') {
-    adminStore.membershipPlans = saveCollectionArray(payload.collections.membershipPlans, pageMap[slug]().collections[0].fields)
-    adminStore.membershipBenefits = saveCollectionArray(payload.collections.membershipBenefits, pageMap[slug]().collections[1].fields)
+    adminStore.membershipPlans = saveCollectionArray(payload.collections.membershipPlans, pageMap[slug]().collections[0].fields, adminStore.membershipPlans)
+    adminStore.membershipBenefits = saveCollectionArray(payload.collections.membershipBenefits, pageMap[slug]().collections[1].fields, adminStore.membershipBenefits)
     writeStore(adminStore)
     return getPageData(slug)
   }
 
   if (slug === 'commerce-ads') {
-    adminStore.adSlots = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    adminStore.adSlots = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.adSlots)
     writeStore(adminStore)
     return getPageData(slug)
   }
 
   if (slug === 'commerce-merchants') {
-    adminStore.merchants = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    adminStore.merchants = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.merchants)
     writeStore(adminStore)
     return getPageData(slug)
   }
 
   if (slug === 'commerce-campaigns') {
-    adminStore.campaigns = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    adminStore.campaigns = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.campaigns)
     writeStore(adminStore)
     return getPageData(slug)
   }
@@ -2247,7 +2573,7 @@ const savePageData = (slug, payload = {}) => {
   }
 
   if (slug === 'system-config') {
-    adminStore.baseConfigs = saveCollectionArray(payload.items, pageMap[slug]().collection.fields)
+    adminStore.baseConfigs = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.baseConfigs)
     writeStore(adminStore)
     return getPageData(slug)
   }
@@ -2256,8 +2582,8 @@ const savePageData = (slug, payload = {}) => {
     updateCompliance({
       copy: payload.meta.complianceCopy,
     })
-    adminStore.sensitiveWords = saveCollectionArray(payload.collections.sensitiveWords, pageMap[slug]().collections[0].fields)
-    adminStore.auditQueue = saveCollectionArray(payload.collections.auditQueue, pageMap[slug]().collections[1].fields)
+    adminStore.sensitiveWords = saveCollectionArray(payload.collections.sensitiveWords, pageMap[slug]().collections[0].fields, adminStore.sensitiveWords)
+    adminStore.auditQueue = saveCollectionArray(payload.collections.auditQueue, pageMap[slug]().collections[1].fields, adminStore.auditQueue)
     writeStore(adminStore)
     return getPageData(slug)
   }
@@ -2278,6 +2604,7 @@ module.exports = {
   loginAdmin,
   logoutAdmin,
   savePageData,
+  trackAnalyticsEvent,
   updateManagedSession,
   writeAdminStore: writeStore,
 }

@@ -55,6 +55,7 @@ const {
   loginAdmin,
   logoutAdmin,
   savePageData,
+  trackAnalyticsEvent,
   updateManagedSession,
 } = require('./data/admin')
 
@@ -640,6 +641,20 @@ const server = http.createServer((request, response) => {
 
     if (request.method === 'GET' && pathname === '/api/v1/reports/featured') {
       sendOk(response, getFeaturedReport())
+      return
+    }
+
+    if (request.method === 'POST' && pathname === '/api/v1/analytics/events') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const payload = await readJsonBody(request)
+      trackAnalyticsEvent({
+        ...payload,
+        profileId: userSession.profile.id,
+      })
+      sendOk(response, { tracked: true })
       return
     }
 

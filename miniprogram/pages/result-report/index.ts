@@ -1,5 +1,6 @@
 import { getSessionReport, getSessionRuntime } from '../../utils/session'
 import { avatarAsset } from '../../config/assets'
+import { trackAnalyticsEvent } from '../../services/analytics'
 
 interface ReportRank {
   avatarUrl: string
@@ -45,6 +46,13 @@ Page<ResultReportState, ResultReportMethods>({
   onLoad() {
     const report = getSessionReport()
     const runtime = getSessionRuntime()
+    trackAnalyticsEvent({
+      type: 'report_view',
+      meta: {
+        sessionId: runtime.sessionId || '',
+        source: 'result-report',
+      },
+    })
 
     if (!report) {
       this.setData({
@@ -63,6 +71,13 @@ Page<ResultReportState, ResultReportMethods>({
   },
 
   handleRestartTap() {
+    trackAnalyticsEvent({
+      type: 'report_replay',
+      meta: {
+        sessionId: getSessionRuntime().sessionId || '',
+        source: 'result-report',
+      },
+    })
     this.openPage('/pages/restart-state/index')
   },
 

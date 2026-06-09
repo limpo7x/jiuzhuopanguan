@@ -1,5 +1,6 @@
 import { getManagedLiveSession } from '../../services/operations'
 import { getSessionRuntime } from '../../utils/session'
+import { trackAnalyticsEvent } from '../../services/analytics'
 
 interface SharePreviewItem {
   iconClass: string
@@ -74,6 +75,14 @@ Page<SharePreviewState, SharePreviewMethods>({
       inviteCode: runtime.inviteCode || 'AB7K9Q',
       sessionId,
     })
+    trackAnalyticsEvent({
+      type: 'share_asset_exposure',
+      assetId: 'share-2',
+      meta: {
+        sessionId,
+        scene: 'invite-preview',
+      },
+    })
     await this.loadSession()
   },
 
@@ -85,6 +94,14 @@ Page<SharePreviewState, SharePreviewMethods>({
   },
 
   onShareAppMessage() {
+    trackAnalyticsEvent({
+      type: 'share_asset_open',
+      assetId: 'share-2',
+      meta: {
+        sessionId: this.data.sessionId,
+        channel: 'share-preview',
+      },
+    })
     return {
       title: `${this.data.sessionName} 邀你入局`,
       path: `/pages/join-claim/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,

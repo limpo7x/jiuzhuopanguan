@@ -1,4 +1,5 @@
 import { getSessionReport, getSessionRuntime } from '../../utils/session'
+import { trackAnalyticsEvent } from '../../services/analytics'
 
 interface PosterRank {
   avatarUrl: string
@@ -78,6 +79,14 @@ Page<SharePosterState, SharePosterMethods>({
   },
 
   onShareAppMessage() {
+    trackAnalyticsEvent({
+      type: 'report_share',
+      assetId: 'share-1',
+      meta: {
+        sessionId: this.data.sessionId,
+        channel: 'share-poster',
+      },
+    })
     return {
       title: `${this.data.sessionName} 战报出炉了`,
       path: `/pages/join-claim/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,
@@ -89,6 +98,14 @@ Page<SharePosterState, SharePosterMethods>({
     try {
       const tempFilePath = await downloadFile('https://api.pomer.cn/static/report-poster.png')
       await saveImage(tempFilePath)
+      trackAnalyticsEvent({
+        type: 'share_asset_open',
+        assetId: 'share-1',
+        meta: {
+          sessionId: this.data.sessionId,
+          action: 'save-poster',
+        },
+      })
       this.showPreviewToast('战报海报已保存')
     } catch {
       this.showPreviewToast('保存失败，请检查相册权限')

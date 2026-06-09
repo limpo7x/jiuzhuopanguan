@@ -76,6 +76,17 @@ const icon = (id, cls = 'ui-icon') => `<svg class="${cls}" aria-hidden="true"><u
 const clone = (value) => JSON.parse(JSON.stringify(value))
 const navStateKey = 'heatwave-ops-nav-open-v2'
 const imageUploadEndpoint = '/api/v1/admin/uploads/image'
+const AUTO_COMPUTED_FIELD_KEYS = new Set([
+  'shareRate',
+  'replayRate',
+  'openRate',
+  'returnRate',
+  'favoriteRate',
+  'conversionRate',
+  'renewRate',
+  'completionRate',
+  'verifyRate',
+])
 const escapeHtml = (value = '') =>
   String(value)
     .replace(/&/g, '&amp;')
@@ -531,6 +542,9 @@ const renderField = (field, value, collectionKey, itemId) => {
   if (isAssetField(field)) {
     return renderAssetInput(field, value, collectionKey, itemId)
   }
+  if (AUTO_COMPUTED_FIELD_KEYS.has(field.key)) {
+    return `<div class="readonly-value readonly-rich">${getDisplayValue(field, value)}</div>`
+  }
   if (field.type === 'select') {
     return renderSelectField(field, value, common)
   }
@@ -584,6 +598,7 @@ const buildBlankItem = (collection) => {
 const renderCollectionEditor = (collection, options = {}) => {
   const items = getCollectionState(collection)
   const readOnly = Boolean(options.readOnly)
+  const customActions = Array.isArray(collection.customActions) ? collection.customActions : []
   return `
     <section class="collection-card">
       <div class="collection-head">
@@ -613,6 +628,11 @@ const renderCollectionEditor = (collection, options = {}) => {
                               ? ''
                               : `<td>
                                   <div class="table-actions">
+                                    ${customActions
+                                      .map(
+                                        (action) => `<button class="mini-btn" type="button" data-action="custom-item-action" data-collection="${collection.key}" data-item-id="${item.id}" data-custom-action="${action.key}">${item[action.labelKey] || action.label}</button>`,
+                                      )
+                                      .join('')}
                                     <button class="mini-btn" type="button" data-action="edit-item" data-collection="${collection.key}" data-item-id="${item.id}">编辑</button>
                                     <button class="danger-inline" type="button" data-action="remove-item" data-collection="${collection.key}" data-item-id="${item.id}">删除</button>
                                   </div>
@@ -740,6 +760,9 @@ const getEditorContext = () => {
       canDelete: true,
     }
   }
+  if (state.editor.mode === 'custom-view') {
+    return state.editor.context || null
+  }
   return null
 }
 
@@ -760,18 +783,28 @@ const renderEditorOverlay = () => {
           ${getEditorCloseButton()}
         </div>
         <div class="editor-dialog-body">
-          <div class="field-grid editor-dialog-grid">
-            ${context.fields
-              .map(
-                (field) => `
-              <div class="field">
-                <label>${field.label}</label>
-                ${renderField(field, context.values?.[field.key], context.collectionKey, context.itemId)}
-                ${isAssetField(field) ? '' : renderFieldMeta(field)}
-              </div>`,
-              )
-              .join('')}
-          </div>
+          ${
+            context.view === 'table'
+              ? renderTable(
+                  {
+                    title: '',
+                    columns: context.columns || [],
+                  },
+                  context.rows || [],
+                )
+              : `<div class="field-grid editor-dialog-grid">
+                  ${context.fields
+                    .map(
+                      (field) => `
+                    <div class="field">
+                      <label>${field.label}</label>
+                      ${renderField(field, context.values?.[field.key], context.collectionKey, context.itemId)}
+                      ${isAssetField(field) || AUTO_COMPUTED_FIELD_KEYS.has(field.key) ? '' : renderFieldMeta(field)}
+                    </div>`,
+                    )
+                    .join('')}
+                </div>`
+          }
         </div>
         ${
           context.canDelete
@@ -983,6 +1016,29 @@ const bindEvents = () => {
   document.querySelectorAll('[data-action="edit-item"]').forEach((node) => {
     node.addEventListener('click', () => {
       openCollectionItemEditor(node.dataset.collection, node.dataset.itemId)
+    })
+  })
+
+  document.querySelectorAll('[data-action="custom-item-action"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      const collection = getCollectionDefinition(node.dataset.collection)
+      const item = (state.collections[node.dataset.collection] || []).find((entry) => entry.id === node.dataset.itemId)
+      const action = (collection?.customActions || []).find((entry) => entry.key === node.dataset.customAction)
+      if (!collection || !item || !action) {
+        return
+      }
+      state.editor = {
+        mode: 'custom-view',
+        context: {
+          title: action.title || action.label,
+          copy: '该列表为后台真实绑定数据，仅用于查看。',
+          view: action.mode,
+          rows: Array.isArray(item[action.rowsKey]) ? item[action.rowsKey] : [],
+          columns: action.columns || [],
+          canDelete: false,
+        },
+      }
+      render()
     })
   })
 
