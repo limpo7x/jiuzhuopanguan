@@ -31,11 +31,17 @@ export interface SessionReport {
 }
 
 export interface SessionRuntime {
+  city?: string
   currentUser: SessionUser | null
+  district?: string
   inviteCode?: string
   isJudge: boolean
+  latitude?: number | null
+  locationLabel?: string
+  longitude?: number | null
   playerCount: number
   playerReactions: SessionPlayerReaction[]
+  province?: string
   selectedPlayers: SessionParticipant[]
   sessionId?: string
   sessionName: string
@@ -47,11 +53,17 @@ export const SESSION_RUNTIME_KEY = 'session-runtime'
 export const SESSION_REPORT_KEY = 'session-report'
 
 const DEFAULT_SESSION_RUNTIME: SessionRuntime = {
+  city: '',
   currentUser: null,
+  district: '',
   inviteCode: '',
   isJudge: true,
+  latitude: null,
+  locationLabel: '',
+  longitude: null,
   playerCount: 6,
   playerReactions: [],
+  province: '',
   selectedPlayers: [],
   sessionId: '',
   sessionName: '今晚聚会不醉不归',

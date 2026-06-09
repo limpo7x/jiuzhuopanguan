@@ -74,6 +74,8 @@ MYSQL_USER=root
 MYSQL_PASSWORD=你的密码
 MYSQL_DATABASE=jiuzhuopanguan
 MYSQL_STORE_TABLE=app_store
+WECHAT_APP_ID=你的小程序AppID
+WECHAT_APP_SECRET=你的小程序AppSecret
 ```
 
 可先做连通性检查：

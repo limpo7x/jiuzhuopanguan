@@ -271,10 +271,16 @@ Page<AddPlayersState, AddPlayersMethods>({
     const runtime = getSessionRuntime()
     if (runtime.sessionId) {
       await updateManagedSession(runtime.sessionId, {
+        city: runtime.city || '',
+        district: runtime.district || '',
         hostAvatarUrl: runtime.currentUser?.avatarUrl,
         hostName: runtime.currentUser?.name,
         hostProfileId: runtime.currentUser?.id,
+        latitude: runtime.latitude ?? null,
+        location: runtime.locationLabel || '',
+        longitude: runtime.longitude ?? null,
         playerCount: this.data.playerLimit,
+        province: runtime.province || '',
         selectedPlayers,
         sessionName: runtime.sessionName,
         templateName: runtime.templateName,

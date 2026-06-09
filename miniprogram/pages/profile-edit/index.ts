@@ -1,7 +1,7 @@
 import {
   getCurrentProfile,
   getUserAuthSession,
-  loginWithWechatPhone,
+  loginWithWechat,
   saveCurrentProfile,
   type SocialProfile,
 } from '../../utils/social'
@@ -76,7 +76,7 @@ Page<ProfileEditState, ProfileEditMethods>({
       city: profile.city,
       hasWechatProfile: Boolean(profile.wechatOpenId || wechatDraftProfile),
       identityTag: profile.identityTag,
-      loggedIn: session.loggedIn && Boolean(session.profile?.phone),
+      loggedIn: session.loggedIn && Boolean(session.profile?.wechatOpenId),
       name: profile.name,
       phoneMasked: profile.phoneMasked || '',
       signature: profile.signature,
@@ -102,20 +102,34 @@ Page<ProfileEditState, ProfileEditMethods>({
         })
       })
       const userInfo = result.userInfo
+      const loginCode = await requestLoginCode()
+      const profile = await loginWithWechat({
+        loginCode,
+        profile: {
+          avatarUrl: userInfo.avatarUrl,
+          city: this.data.city.trim(),
+          identityTag: this.data.identityTag.trim(),
+          name: userInfo.nickName || this.data.name.trim(),
+          signature: this.data.signature.trim(),
+        },
+      })
       wechatDraftProfile = {
-        avatarUrl: userInfo.avatarUrl,
-        city: this.data.city,
-        identityTag: this.data.identityTag,
-        name: userInfo.nickName || this.data.name,
-        signature: this.data.signature,
+        avatarUrl: profile.avatarUrl,
+        city: profile.city,
+        identityTag: profile.identityTag,
+        name: profile.name,
+        signature: profile.signature,
       }
       this.setData({
-        avatarUrl: userInfo.avatarUrl,
+        avatarUrl: profile.avatarUrl,
         hasWechatProfile: true,
-        name: userInfo.nickName || this.data.name,
+        loggedIn: Boolean(profile.wechatOpenId),
+        name: profile.name,
+        phoneMasked: profile.phoneMasked || '',
+        wechatOpenId: profile.wechatOpenId || '',
       })
       wx.showToast({
-        title: '已获取微信资料',
+        title: '登录成功',
         icon: 'success',
       })
       if (this.data.redirectUrl) {
@@ -128,9 +142,9 @@ Page<ProfileEditState, ProfileEditMethods>({
           })
         }, 300)
       }
-    } catch {
+    } catch (error) {
       wx.showToast({
-        title: '未授权微信资料',
+        title: error instanceof Error ? error.message : '微信登录失败',
         icon: 'none',
       })
     }
@@ -154,8 +168,9 @@ Page<ProfileEditState, ProfileEditMethods>({
     }
 
     try {
+      const wasLoggedIn = this.data.loggedIn
       const loginCode = await requestLoginCode()
-      const profile = await loginWithWechatPhone({
+      const profile = await loginWithWechat({
         loginCode,
         phoneCode: detail.code,
         profile: {
@@ -176,13 +191,13 @@ Page<ProfileEditState, ProfileEditMethods>({
       this.setData({
         avatarUrl: profile.avatarUrl,
         hasWechatProfile: true,
-        loggedIn: Boolean(profile.phone),
+        loggedIn: Boolean(profile.wechatOpenId),
         name: profile.name,
         phoneMasked: profile.phoneMasked || '',
         wechatOpenId: profile.wechatOpenId || '',
       })
       wx.showToast({
-        title: '登录成功',
+        title: wasLoggedIn ? '绑定成功' : '登录成功',
         icon: 'success',
       })
     } catch (error) {

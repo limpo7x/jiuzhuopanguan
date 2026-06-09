@@ -1,4 +1,4 @@
-const navGroups = [
+﻿const navGroups = [
   {
     key: 'overview',
     title: '概览台',
@@ -21,7 +21,6 @@ const navGroups = [
     items: [
       { slug: 'user-profiles', title: '用户中心', icon: 'icon-user' },
       { slug: 'user-login-logs', title: '用户登录记录', icon: 'icon-user' },
-      { slug: 'social-friends', title: '酒友社交', icon: 'icon-friends' },
       { slug: 'sessions', title: '酒局管理', icon: 'icon-session' },
       { slug: 'reports', title: '战报中心', icon: 'icon-report' },
     ],
@@ -211,10 +210,10 @@ const getFieldCondition = (field) => {
     return '仅对已启用内容生效；未命中的投放位不会在前台显示。'
   }
   if (key.includes('phone')) {
-    return '手机号作为用户唯一识别信息使用，修改后会影响用户绑定与后台检索。'
+    return '手机号为可选绑定信息，不作为唯一识别标识；修改前请先核对用户授权状态。'
   }
   if (key.includes('openid') || key.includes('wechat')) {
-    return '仅用于微信用户强绑定和审计追踪，非排障场景不要手动改写。'
+    return 'OpenID 是小程序用户唯一身份标识，仅用于排障或核对，非必要不要手动更改。'
   }
   if (key.includes('invitecode')) {
     return '仅对当前酒局生效；重复邀请码可能导致用户入局错误。'
@@ -258,10 +257,10 @@ const getFieldUsageNote = (field) => {
     return '推荐使用 both、home、tools 等约定值，不要临时自造投放位字符串。'
   }
   if (key.includes('phone')) {
-    return '展示时建议使用脱敏手机号；仅在确需修正绑定关系时修改原始手机号。'
+    return '建议默认展示脱敏手机号；未绑定用户允许为空，不影响登录和积分归属。'
   }
   if (key.includes('openid') || key.includes('wechat')) {
-    return '如需排障，优先复制后核对，不建议直接手填，避免破坏用户与微信身份映射。'
+    return 'OpenID 由微信授权后自动写入，建议只读查用，用于用户唯一身份和问题追踪。'
   }
   if (key.includes('invitecode')) {
     return '推荐使用 6 位大写字母数字组合，便于口头传播和线下手输。'
@@ -1136,3 +1135,5 @@ const init = async () => {
 }
 
 init()
+
+

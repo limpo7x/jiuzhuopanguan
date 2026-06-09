@@ -11,7 +11,6 @@ const slugs = [
   'content-share-assets',
   'content-tools-ops',
   'user-profiles',
-  'social-friends',
   'sessions',
   'reports',
   'commerce-points',

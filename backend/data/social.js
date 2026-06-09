@@ -187,6 +187,9 @@ const bindWechatUser = ({
   const store = readStore()
   const normalizedPhone = String(phone || '').trim()
   const normalizedOpenId = String(wechatOpenId || '').trim()
+  if (!normalizedOpenId) {
+    throw new Error('missing wechat openid')
+  }
   const phoneProfile = normalizedPhone ? getProfileByPhone(store, normalizedPhone) : null
   const openIdProfile = normalizedOpenId ? getProfileByOpenId(store, normalizedOpenId) : null
   let targetProfile = phoneProfile || openIdProfile
@@ -207,11 +210,11 @@ const bindWechatUser = ({
       avatarUrl: profile.avatarUrl || targetProfile?.avatarUrl || hashNameToAvatar(profile.name || normalizedPhone || '微信用户'),
       city: profile.city || targetProfile?.city || '上海',
       signature: profile.signature || targetProfile?.signature || '已使用微信登录',
-      identityTag: profile.identityTag || targetProfile?.identityTag || '微信已绑定用户',
-      phone: normalizedPhone,
+      identityTag: profile.identityTag || targetProfile?.identityTag || '微信登录用户',
+      phone: normalizedPhone || targetProfile?.phone || '',
       wechatOpenId: normalizedOpenId,
       wechatUnionId: wechatUnionId || targetProfile?.wechatUnionId || '',
-      phoneBoundAt: targetProfile?.phoneBoundAt || loginAt,
+      phoneBoundAt: normalizedPhone ? targetProfile?.phoneBoundAt || loginAt : targetProfile?.phoneBoundAt || '',
       lastLoginAt: loginAt,
       loginCount: Math.max(0, Number(targetProfile?.loginCount) || 0) + 1,
       createdAt: targetProfile?.createdAt || timestamp,

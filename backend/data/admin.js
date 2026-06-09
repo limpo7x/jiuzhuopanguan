@@ -1,4 +1,4 @@
-const crypto = require('crypto')
+﻿const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const { createStoreAccessor } = require('./store-accessor')
@@ -503,7 +503,6 @@ const buildUserProfileItems = (adminStore = readStore(), contentStore = readCont
 
 const buildUserPointsItems = (contentStore = readContentStore(), socialStore = readSocialStore()) =>
   socialStore.profiles
-    .filter((profile) => profile.phone)
     .map((profile) => {
       const state = getUserCommerceMap(contentStore)[profile.id] || {}
       return {
@@ -529,6 +528,7 @@ const buildPointsLedgerRows = (contentStore = readContentStore(), socialStore = 
         profileId,
         userName: profileMap.get(profileId)?.name || profileId,
         phone: profileMap.get(profileId)?.phone || '',
+        wechatOpenId: profileMap.get(profileId)?.wechatOpenId || '',
         title: entry.title || '',
         delta: Number(entry.delta) || 0,
         kind: entry.kind || '',
@@ -560,6 +560,7 @@ const buildAdminOperationLogRows = (adminStore = readStore()) =>
       action: entry.action || '',
       targetName: entry.targetName || '',
       targetPhone: entry.targetPhone || '',
+      targetOpenId: entry.targetOpenId || '',
       detail: entry.detail || '',
       createdAt: entry.createdAt || '',
     }))
@@ -839,7 +840,7 @@ const getManagedPointsMetrics = () => {
   const totalPoints = sumBy(userPoints, (item) => item.points)
   const totalLedger = sumBy(userPoints, (item) => item.ledgerCount)
   return [
-    { label: '已绑手机号用户', value: formatNumber(userPoints.length), trend: `积分用户 ${formatNumber(userPoints.length)} 个`, tone: 'up' },
+    { label: '积分用户', value: formatNumber(userPoints.length), trend: `OpenID 用户 ${formatNumber(countBy(userPoints, (item) => Boolean(item.wechatOpenId)))} 个`, tone: 'up' },
     { label: '任务数', value: String(pointsConfig.tasks.length), trend: `合计发放 ${formatNumber(sumBy(pointsConfig.tasks, (item) => item.value))} 积分`, tone: 'up' },
     { label: '用户积分总额', value: formatNumber(totalPoints), trend: `商品池 ${formatNumber(pointsConfig.rewards.length)} 个`, tone: 'up' },
     { label: '积分流水总数', value: formatNumber(totalLedger), trend: `人均 ${formatNumber(userPoints.length ? totalLedger / userPoints.length : 0)} 条`, tone: 'up' },
@@ -1171,11 +1172,17 @@ const normalizeLiveSession = (session = {}, index = 0) => {
 
   return {
     ...session,
+    city: String(session.city || '').trim(),
+    district: String(session.district || '').trim(),
     hostAvatarUrl: String(session.hostAvatarUrl || members[0]?.avatarUrl || `/static/avatar-${(index % 4) + 1}.png`).trim(),
     id: String(session.id || createId('session')).trim(),
     inviteCode: String(session.inviteCode || makeInviteCode(session.id || `session-${index + 1}`)).trim() || makeInviteCode(session.id || `session-${index + 1}`),
     joinedCount: Number(session.joinedCount) || members.filter((item) => item.status === '已加入').length,
+    latitude: Number.isFinite(Number(session.latitude)) ? Number(session.latitude) : null,
+    location: String(session.location || '').trim(),
+    longitude: Number.isFinite(Number(session.longitude)) ? Number(session.longitude) : null,
     members,
+    province: String(session.province || '').trim(),
   }
 }
 
@@ -1244,12 +1251,18 @@ const createManagedSession = (payload = {}) => {
   const id = createId('session')
   const session = {
     id,
+    city: String(payload.city || '').trim(),
+    district: String(payload.district || '').trim(),
     name: String(payload.sessionName || '今晚聚会不醉不归').trim() || '今晚聚会不醉不归',
     players: Math.max(2, Number(payload.playerCount) || 6),
     template: String(payload.templateName || '经典欠酒版').trim() || '经典欠酒版',
     hostName: String(payload.hostName || '当前发起人').trim() || '当前发起人',
     inviteCode: String(payload.inviteCode || makeInviteCode(id)).trim() || makeInviteCode(id),
     hostAvatarUrl: String(payload.hostAvatarUrl || '/static/avatar-1.png').trim() || '/static/avatar-1.png',
+    latitude: Number.isFinite(Number(payload.latitude)) ? Number(payload.latitude) : null,
+    location: String(payload.location || '').trim(),
+    longitude: Number.isFinite(Number(payload.longitude)) ? Number(payload.longitude) : null,
+    province: String(payload.province || '').trim(),
     state: String(payload.state || '等待开局').trim() || '等待开局',
     source: String(payload.source || '直接创建').trim() || '直接创建',
     status: String(payload.status || '正常').trim() || '正常',
@@ -1277,12 +1290,22 @@ const updateManagedSession = (sessionId, payload = {}) => {
     }
     return {
       ...item,
+      city: Object.prototype.hasOwnProperty.call(payload, 'city') ? String(payload.city || '').trim() : item.city,
+      district: Object.prototype.hasOwnProperty.call(payload, 'district') ? String(payload.district || '').trim() : item.district,
       name: payload.sessionName || item.name,
       players: Number(payload.playerCount) || item.players,
       template: payload.templateName || item.template,
       hostName: payload.hostName || item.hostName,
       hostAvatarUrl: payload.hostAvatarUrl || item.hostAvatarUrl,
       inviteCode: payload.inviteCode || item.inviteCode,
+      latitude: Object.prototype.hasOwnProperty.call(payload, 'latitude')
+        ? (Number.isFinite(Number(payload.latitude)) ? Number(payload.latitude) : null)
+        : item.latitude,
+      location: Object.prototype.hasOwnProperty.call(payload, 'location') ? String(payload.location || '').trim() : item.location,
+      longitude: Object.prototype.hasOwnProperty.call(payload, 'longitude')
+        ? (Number.isFinite(Number(payload.longitude)) ? Number(payload.longitude) : null)
+        : item.longitude,
+      province: Object.prototype.hasOwnProperty.call(payload, 'province') ? String(payload.province || '').trim() : item.province,
       state: payload.state || item.state,
       source: payload.source || item.source,
       status: payload.status || item.status,
@@ -1656,33 +1679,6 @@ const pageMap = {
       },
     }
   },
-  'social-friends': () => ({
-    slug: 'social-friends',
-    title: '酒友社交',
-    view: 'readonly',
-    metrics: getSocialMetrics(),
-    tables: [
-      {
-        title: '酒友关系列表',
-        columns: [
-          { key: 'name', label: '酒友' },
-          { key: 'meta', label: '备注' },
-          { key: 'updatedAt', label: '更新时间' },
-        ],
-        rows: listFriendships(),
-      },
-      {
-        title: '拍一拍线程',
-        columns: [
-          { key: 'counterpartName', label: '对象' },
-          { key: 'status', label: '状态' },
-          { key: 'actionState', label: '动作状态' },
-          { key: 'updatedAt', label: '更新时间' },
-        ],
-        rows: listAllPokes(),
-      },
-    ],
-  }),
   'sessions': () => {
     const store = readStore()
     return {
@@ -1694,6 +1690,7 @@ const pageMap = {
         key: 'liveSessions',
         itemLabel: '酒局',
         fields: [
+          { key: 'location', label: '定位城市', type: 'text' },
           { key: 'name', label: '酒局名称', type: 'text' },
           { key: 'players', label: '人数', type: 'number' },
           { key: 'template', label: '模板', type: 'select', options: getSessionTemplateOptions() },
@@ -1704,6 +1701,7 @@ const pageMap = {
           { key: 'status', label: '运营状态', type: 'select', options: getSessionStatusOptions() },
         ],
         columns: [
+          { key: 'location', label: '定位城市' },
           { key: 'name', label: '酒局名称' },
           { key: 'players', label: '人数' },
           { key: 'template', label: '模板' },
@@ -2113,7 +2111,7 @@ pageMap['user-profiles'] = () => {
     title: '用户中心',
     view: 'collection',
     metrics: [
-      { label: '用户总数', value: String(profiles.length), trend: `已绑手机 ${countBy(profiles, (item) => Boolean(item.phone))} 人`, tone: 'up' },
+      { label: '用户总数', value: String(profiles.length), trend: `已获 OpenID ${countBy(profiles, (item) => Boolean(item.wechatOpenId))} 人`, tone: 'up' },
       { label: '高价值用户', value: String(countBy(profiles, (item) => String(item.status || '').includes('高价值'))), trend: `占比 ${ratioPercent(countBy(profiles, (item) => String(item.status || '').includes('高价值')), profiles.length)}`, tone: 'up' },
       { label: '高活跃用户', value: String(countBy(profiles, (item) => String(item.status || '').includes('高活跃'))), trend: `占比 ${ratioPercent(countBy(profiles, (item) => String(item.status || '').includes('高活跃')), profiles.length)}`, tone: 'up' },
       { label: '积分用户', value: String(countBy(profiles, (item) => Number(item.points) > 0)), trend: `酒友关系 ${listFriendships().length} 条`, tone: 'up' },
@@ -2123,8 +2121,8 @@ pageMap['user-profiles'] = () => {
       itemLabel: '用户',
       fields: [
         { key: 'name', label: '昵称', type: 'text' },
-        { key: 'phone', label: '手机号', type: 'text' },
-        { key: 'wechatOpenId', label: '微信 OpenID', type: 'text' },
+        { key: 'phone', label: '手机号（可选绑定）', type: 'text' },
+        { key: 'wechatOpenId', label: '微信 OpenID（唯一标识）', type: 'text' },
         { key: 'city', label: '城市', type: 'select', options: getProfileCityOptions() },
         { key: 'identityTag', label: '身份标签', type: 'select', options: getIdentityTagOptions() },
         { key: 'points', label: '当前积分', type: 'number' },
@@ -2132,13 +2130,13 @@ pageMap['user-profiles'] = () => {
         { key: 'tagsText', label: '运营标签（顿号分隔）', type: 'text' },
         { key: 'note', label: '运营备注', type: 'textarea' },
       ],
-      columns: [
-        { key: 'name', label: '用户' },
-        { key: 'phone', label: '手机号' },
-        { key: 'wechatOpenId', label: 'OpenID' },
-        { key: 'points', label: '积分' },
-        { key: 'status', label: '状态' },
-      ],
+        columns: [
+          { key: 'name', label: '用户' },
+          { key: 'wechatOpenId', label: 'OpenID' },
+          { key: 'phone', label: '手机号' },
+          { key: 'points', label: '积分' },
+          { key: 'status', label: '状态' },
+        ],
       customActions: [
         {
           key: 'viewMatchedThreads',
@@ -2150,7 +2148,7 @@ pageMap['user-profiles'] = () => {
           emptyText: '当前用户暂无配对成功的线程',
           columns: [
             { key: 'counterpartName', label: '配对对象' },
-            { key: 'counterpartPhone', label: '手机号' },
+            { key: 'counterpartPhone', label: '绑定手机号' },
             { key: 'updatedAt', label: '配对时间' },
             { key: 'threadId', label: '线程ID' },
           ],
@@ -2219,8 +2217,8 @@ pageMap['commerce-points'] = () => {
         itemLabel: '用户积分',
         fields: [
           { key: 'name', label: '昵称', type: 'text' },
-          { key: 'phone', label: '手机号（唯一标识）', type: 'text' },
-          { key: 'wechatOpenId', label: '微信 OpenID', type: 'text' },
+          { key: 'phone', label: '手机号（可选绑定）', type: 'text' },
+          { key: 'wechatOpenId', label: '微信 OpenID（唯一标识）', type: 'text' },
           { key: 'points', label: '当前积分', type: 'number' },
           { key: 'claimedTaskCount', label: '已领任务数', type: 'number' },
           { key: 'ledgerCount', label: '流水条数', type: 'number' },
@@ -2229,6 +2227,7 @@ pageMap['commerce-points'] = () => {
         ],
         columns: [
           { key: 'name', label: '用户' },
+          { key: 'wechatOpenId', label: 'OpenID' },
           { key: 'phone', label: '手机号' },
           { key: 'points', label: '当前积分' },
           { key: 'claimedTaskCount', label: '任务数' },
@@ -2257,6 +2256,7 @@ pageMap['commerce-point-ledger'] = () => {
         title: '用户积分流水',
         columns: [
           { key: 'userName', label: '用户' },
+          { key: 'wechatOpenId', label: 'OpenID' },
           { key: 'phone', label: '手机号' },
           { key: 'title', label: '变动原因' },
           { key: 'delta', label: '积分变化' },
@@ -2276,10 +2276,10 @@ pageMap['user-login-logs'] = () => {
     title: '用户登录记录',
     view: 'readonly',
     metrics: [
-      { label: '登录记录数', value: formatNumber(rows.length), trend: `绑定用户 ${formatNumber(new Set(rows.map((item) => item.phone).filter(Boolean)).size)} 人`, tone: 'up' },
+      { label: '登录记录数', value: formatNumber(rows.length), trend: `独立 OpenID ${formatNumber(new Set(rows.map((item) => item.wechatOpenId).filter(Boolean)).size)} 个`, tone: 'up' },
       { label: '微信登录', value: formatNumber(countBy(rows, (item) => item.source === 'wechat-miniapp')), trend: `最近 ${rows[0]?.loginAt || '--'}`, tone: 'up' },
       { label: '含手机号记录', value: formatNumber(countBy(rows, (item) => Boolean(item.phone))), trend: `缺手机号 ${formatNumber(countBy(rows, (item) => !item.phone))} 条`, tone: 'up' },
-      { label: '独立 OpenID', value: formatNumber(new Set(rows.map((item) => item.wechatOpenId).filter(Boolean)).size), trend: '用于用户强绑定', tone: 'up' },
+      { label: '独立 OpenID', value: formatNumber(new Set(rows.map((item) => item.wechatOpenId).filter(Boolean)).size), trend: '作为用户唯一身份标识', tone: 'up' },
     ],
     tables: [
       {
@@ -2306,7 +2306,7 @@ pageMap['system-operation-logs'] = () => {
     metrics: [
       { label: '操作日志数', value: formatNumber(rows.length), trend: `最近 ${rows[0]?.createdAt || '--'}`, tone: 'up' },
       { label: '加分操作', value: formatNumber(countBy(rows, (item) => String(item.action).includes('增加'))), trend: `减分 ${formatNumber(countBy(rows, (item) => String(item.action).includes('减少')))} 次`, tone: 'up' },
-      { label: '操作用户数', value: formatNumber(new Set(rows.map((item) => item.targetPhone || item.targetName).filter(Boolean)).size), trend: '积分管理可追溯', tone: 'up' },
+      { label: '操作用户数', value: formatNumber(new Set(rows.map((item) => item.targetOpenId || item.targetName).filter(Boolean)).size), trend: '积分管理可追溯', tone: 'up' },
       { label: '操作人', value: formatNumber(new Set(rows.map((item) => item.operator).filter(Boolean)).size), trend: '当前默认 admin-console', tone: 'up' },
     ],
     tables: [
@@ -2316,6 +2316,7 @@ pageMap['system-operation-logs'] = () => {
           { key: 'operator', label: '操作人' },
           { key: 'action', label: '动作' },
           { key: 'targetName', label: '目标用户' },
+          { key: 'targetOpenId', label: 'OpenID' },
           { key: 'targetPhone', label: '手机号' },
           { key: 'detail', label: '详情' },
           { key: 'createdAt', label: '时间' },
@@ -2372,6 +2373,7 @@ const saveUserPointsCollection = (items = []) => {
         targetId: profileId,
         targetName: profile?.name || profileId,
         targetPhone: profile?.phone || '',
+        targetOpenId: profile?.wechatOpenId || '',
         detail: `${actualDelta > 0 ? '+' : ''}${actualDelta} 分${item.adjustReason ? `，原因：${item.adjustReason}` : ''}`,
         createdAt: iso(),
       })
@@ -2608,3 +2610,5 @@ module.exports = {
   updateManagedSession,
   writeAdminStore: writeStore,
 }
+
+

@@ -59,13 +59,19 @@ interface RemoteSessionPlayer {
 }
 
 interface RemoteLiveSession {
+  city?: string
+  district?: string
   hostName?: string
   id?: string
   inviteCode?: string
   joinedCount?: number
   joinedPlayers?: RemoteSessionPlayer[]
   joinStatusPlayers?: RemoteSessionPlayer[]
+  latitude?: number
+  location?: string
+  longitude?: number
   playerCount?: number
+  province?: string
   sessionName?: string
   source?: string
   stateText?: string
@@ -91,13 +97,19 @@ export interface ManagedSessionPlayer {
 }
 
 export interface ManagedLiveSession {
+  city: string
+  district: string
   hostName: string
   id: string
   inviteCode: string
   joinedCount: number
   joinedPlayers: ManagedSessionPlayer[]
   joinStatusPlayers: ManagedSessionPlayer[]
+  latitude: number | null
+  location: string
+  longitude: number | null
   playerCount: number
+  province: string
   sessionName: string
   source: string
   stateText: string
@@ -108,11 +120,17 @@ export interface ManagedLiveSession {
 }
 
 export interface ManagedSessionMutationPayload {
+  city?: string
+  district?: string
   hostAvatarUrl?: string
   hostName?: string
   hostProfileId?: string
   inviteCode?: string
+  latitude?: number | null
+  location?: string
+  longitude?: number | null
   playerCount?: number
+  province?: string
   selectedPlayers?: ManagedSessionPlayer[]
   sessionName?: string
   source?: string
@@ -134,6 +152,8 @@ const DEFAULT_TOOLS_CATALOG: ManagedToolCatalog = {
 }
 
 const DEFAULT_LIVE_SESSION: ManagedLiveSession = {
+  city: '',
+  district: '',
   hostName: '当前发起人',
   id: 'session-local',
   inviteCode: 'AB7K9Q',
@@ -150,7 +170,11 @@ const DEFAULT_LIVE_SESSION: ManagedLiveSession = {
     { name: 'Mika', avatarUrl: 'https://api.pomer.cn/static/avatar-3.png', status: '待确认' },
     { name: '可可', avatarUrl: 'https://api.pomer.cn/static/avatar-4.png', status: '已加入' },
   ],
+  latitude: null,
+  location: '',
+  longitude: null,
   playerCount: 6,
+  province: '',
   sessionName: '今晚聚会不醉不归',
   source: '直接创建',
   stateText: '等待开局',
@@ -260,13 +284,19 @@ export const getManagedLiveSession = async (sessionId?: string, inviteCode?: str
 
     return {
       ...DEFAULT_LIVE_SESSION,
+      city: remote.city || DEFAULT_LIVE_SESSION.city,
+      district: remote.district || DEFAULT_LIVE_SESSION.district,
       hostName: remote.hostName || DEFAULT_LIVE_SESSION.hostName,
       id: remote.id || DEFAULT_LIVE_SESSION.id,
       inviteCode: remote.inviteCode || DEFAULT_LIVE_SESSION.inviteCode,
       joinedCount: Number(remote.joinedCount) || joinedPlayers.length || DEFAULT_LIVE_SESSION.joinedCount,
       joinedPlayers,
       joinStatusPlayers,
+      latitude: Number.isFinite(Number(remote.latitude)) ? Number(remote.latitude) : DEFAULT_LIVE_SESSION.latitude,
+      location: remote.location || DEFAULT_LIVE_SESSION.location,
+      longitude: Number.isFinite(Number(remote.longitude)) ? Number(remote.longitude) : DEFAULT_LIVE_SESSION.longitude,
       playerCount: Number(remote.playerCount) || DEFAULT_LIVE_SESSION.playerCount,
+      province: remote.province || DEFAULT_LIVE_SESSION.province,
       sessionName: remote.sessionName || DEFAULT_LIVE_SESSION.sessionName,
       source: remote.source || DEFAULT_LIVE_SESSION.source,
       stateText: remote.stateText || DEFAULT_LIVE_SESSION.stateText,
@@ -299,13 +329,19 @@ export const createManagedSession = async (payload: ManagedSessionMutationPayloa
 
     return {
       ...DEFAULT_LIVE_SESSION,
+      city: created.city || payload.city || DEFAULT_LIVE_SESSION.city,
+      district: created.district || payload.district || DEFAULT_LIVE_SESSION.district,
       hostName: created.hostName || payload.hostName || DEFAULT_LIVE_SESSION.hostName,
       id: created.id || DEFAULT_LIVE_SESSION.id,
       inviteCode: created.inviteCode || payload.inviteCode || DEFAULT_LIVE_SESSION.inviteCode,
       joinedCount: Number(created.joinedCount) || joinedPlayers.length || DEFAULT_LIVE_SESSION.joinedCount,
       joinedPlayers,
       joinStatusPlayers,
+      latitude: Number.isFinite(Number(created.latitude)) ? Number(created.latitude) : payload.latitude ?? DEFAULT_LIVE_SESSION.latitude,
+      location: created.location || payload.location || DEFAULT_LIVE_SESSION.location,
+      longitude: Number.isFinite(Number(created.longitude)) ? Number(created.longitude) : payload.longitude ?? DEFAULT_LIVE_SESSION.longitude,
       playerCount: Number(created.playerCount) || payload.playerCount || DEFAULT_LIVE_SESSION.playerCount,
+      province: created.province || payload.province || DEFAULT_LIVE_SESSION.province,
       sessionName: created.sessionName || payload.sessionName || DEFAULT_LIVE_SESSION.sessionName,
       source: created.source || payload.source || DEFAULT_LIVE_SESSION.source,
       stateText: created.stateText || payload.state || DEFAULT_LIVE_SESSION.stateText,
@@ -317,9 +353,15 @@ export const createManagedSession = async (payload: ManagedSessionMutationPayloa
   } catch {
     return {
       ...DEFAULT_LIVE_SESSION,
+      city: payload.city || DEFAULT_LIVE_SESSION.city,
+      district: payload.district || DEFAULT_LIVE_SESSION.district,
       hostName: payload.hostName || DEFAULT_LIVE_SESSION.hostName,
       inviteCode: payload.inviteCode || DEFAULT_LIVE_SESSION.inviteCode,
+      latitude: payload.latitude ?? DEFAULT_LIVE_SESSION.latitude,
+      location: payload.location || DEFAULT_LIVE_SESSION.location,
+      longitude: payload.longitude ?? DEFAULT_LIVE_SESSION.longitude,
       playerCount: payload.playerCount || DEFAULT_LIVE_SESSION.playerCount,
+      province: payload.province || DEFAULT_LIVE_SESSION.province,
       sessionName: payload.sessionName || DEFAULT_LIVE_SESSION.sessionName,
       source: payload.source || DEFAULT_LIVE_SESSION.source,
       stateText: payload.state || DEFAULT_LIVE_SESSION.stateText,

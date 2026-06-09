@@ -68,7 +68,7 @@ export interface UserAuthSession {
 
 export interface UserLoginPayload {
   loginCode: string
-  phoneCode: string
+  phoneCode?: string
   profile: Pick<SocialProfile, 'avatarUrl' | 'city' | 'identityTag' | 'name' | 'signature'>
 }
 
@@ -428,14 +428,14 @@ export const getUserAuthSession = async (): Promise<UserAuthSession> => {
 
 export const ensureUserAuthorized = async (redirectUrl?: string): Promise<SocialProfile | null> => {
   const session = await getUserAuthSession()
-  if (session.loggedIn && session.profile?.phone) {
+  if (session.loggedIn && session.profile?.wechatOpenId) {
     return session.profile
   }
   openLoginPage(redirectUrl)
   return null
 }
 
-export const loginWithWechatPhone = async (payload: UserLoginPayload): Promise<SocialProfile> => {
+export const loginWithWechat = async (payload: UserLoginPayload): Promise<SocialProfile> => {
   const result = await request<{ profile: SocialProfile; token: string }>('/user/auth/login', 'POST', payload as WechatMiniprogram.IAnyObject)
   cacheUserToken(result.token)
   return upsertLocalProfile(result.profile)

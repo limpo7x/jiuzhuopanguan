@@ -31,7 +31,7 @@
 
     <view class="join-notice">
       <view class="join-notice-icon"></view>
-      <text>首次进入会先校验微信授权和手机号，确认你在本局名单内后再放行。</text>
+      <text>首次进入会先校验微信授权，确认你在本局名单内后再放行。</text>
     </view>
   </scroll-view>
 </view>

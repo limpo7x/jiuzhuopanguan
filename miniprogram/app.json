@@ -41,6 +41,11 @@
     "navigationBarTextStyle": "black",
     "navigationStyle": "custom"
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于自动获取当前城市并透传到酒局流程"
+    }
+  },
   "style": "v2",
   "rendererOptions": {
     "skyline": {

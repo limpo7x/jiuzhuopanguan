@@ -2,6 +2,7 @@
 node_modules/
 
 project.private.config.json
+backend/.env
 backend/data/content-store.json
 backend/data/social-store.json
 backend/data/admin-store.json

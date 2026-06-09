@@ -87,8 +87,14 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     })
 
     setSessionRuntime({
+      city: liveSession.city || runtime.city || '',
       inviteCode: liveSession.inviteCode,
+      district: liveSession.district || runtime.district || '',
       playerCount: liveSession.playerCount,
+      latitude: liveSession.latitude ?? runtime.latitude ?? null,
+      locationLabel: liveSession.location || runtime.locationLabel || '',
+      longitude: liveSession.longitude ?? runtime.longitude ?? null,
+      province: liveSession.province || runtime.province || '',
       selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
         avatarUrl: item.avatarUrl,
         name: item.name,

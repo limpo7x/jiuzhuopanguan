@@ -1,5 +1,6 @@
-import { createManagedSession } from '../../services/operations'
 import { staticAsset } from '../../config/assets'
+import { createManagedSession } from '../../services/operations'
+import { getStoredRuntimeLocation } from '../../utils/location'
 import { setSessionRuntime } from '../../utils/session'
 import { ensureUserAuthorized } from '../../utils/social'
 
@@ -34,12 +35,7 @@ Page<CreateSessionState, CreateSessionMethods>({
   data: {
     playerCount: 6,
     sessionName: '今晚聚会不醉不归',
-    sessionNamePresets: [
-      { name: '推荐', active: true },
-      { name: '今晚什么局' },
-      { name: '周五快乐局' },
-      { name: '生日局' },
-    ],
+    sessionNamePresets: [{ name: '推荐', active: true }, { name: '今晚什么局' }, { name: '周五快乐局' }, { name: '生日局' }],
     templates: [
       { id: 'classic', name: '经典喝酒版', imageUrl: staticAsset('party-hero.png'), active: true },
       { id: 'report', name: '战报分享版', imageUrl: staticAsset('report-poster.png') },
@@ -52,8 +48,8 @@ Page<CreateSessionState, CreateSessionMethods>({
     if (!profile) {
       return
     }
-    const templateName = query?.template
 
+    const templateName = query?.template
     if (!templateName) {
       return
     }
@@ -108,13 +104,22 @@ Page<CreateSessionState, CreateSessionMethods>({
     if (!profile) {
       return
     }
+
+    const runtimeLocation = getStoredRuntimeLocation()
     const activeTemplate = this.data.templates.find((item) => item.active) || this.data.templates[0]
     let sessionId = ''
     let inviteCode = ''
+
     try {
       const created = await createManagedSession({
+        city: runtimeLocation?.city || '',
+        district: runtimeLocation?.district || '',
         hostName: profile.name,
+        latitude: runtimeLocation?.latitude ?? null,
+        location: runtimeLocation?.label || '',
+        longitude: runtimeLocation?.longitude ?? null,
         playerCount: this.data.playerCount,
+        province: runtimeLocation?.province || '',
         sessionName: this.data.sessionName,
         source: '直接创建',
         state: '等待开局',
@@ -127,14 +132,20 @@ Page<CreateSessionState, CreateSessionMethods>({
     }
 
     setSessionRuntime({
+      city: runtimeLocation?.city || '',
       currentUser: {
+        avatarUrl: profile.avatarUrl,
         id: profile.id,
         name: profile.name,
-        avatarUrl: profile.avatarUrl,
       },
+      district: runtimeLocation?.district || '',
       inviteCode,
       isJudge: true,
+      latitude: runtimeLocation?.latitude ?? null,
+      locationLabel: runtimeLocation?.label || '',
+      longitude: runtimeLocation?.longitude ?? null,
       playerCount: this.data.playerCount,
+      province: runtimeLocation?.province || '',
       selectedPlayers: [],
       sessionId,
       sessionName: this.data.sessionName,

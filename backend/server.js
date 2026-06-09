@@ -503,9 +503,10 @@ const server = http.createServer((request, response) => {
     if (request.method === 'POST' && pathname === '/api/v1/user/auth/login') {
       const payload = await readJsonBody(request)
       const wechatSession = await getWechatSessionByCode(String(payload.loginCode || '').trim())
-      const phoneInfo = await getWechatPhoneNumber(String(payload.phoneCode || '').trim())
+      const phoneCode = String(payload.phoneCode || '').trim()
+      const phoneInfo = phoneCode ? await getWechatPhoneNumber(phoneCode) : null
       const session = bindWechatUser({
-        phone: phoneInfo.phoneNumber,
+        phone: phoneInfo?.phoneNumber || '',
         wechatOpenId: wechatSession.openid,
         wechatUnionId: wechatSession.unionid || '',
         profile: {
