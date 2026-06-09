@@ -171,12 +171,14 @@ const sendBinary = (response, buffer, contentType, statusCode = 200) => {
   response.end(buffer)
 }
 
+const buildEtag = (stats) => `W/"${stats.size}-${Number(stats.mtimeMs || 0).toString(16)}"`
+
 const sendRedirect = (response, location) => {
   response.writeHead(302, { Location: location })
   response.end()
 }
 
-const sendFile = (response, filePath) => {
+const sendFile = (request, response, filePath, options = {}) => {
   if (!filePath || !fs.existsSync(filePath)) {
     sendError(response, 404, 'not found')
     return
@@ -184,9 +186,27 @@ const sendFile = (response, filePath) => {
 
   const ext = path.extname(filePath).toLowerCase()
   const contentType = MIME_MAP[ext] || 'application/octet-stream'
+  const stats = fs.statSync(filePath)
+  const etag = buildEtag(stats)
+  const lastModified = stats.mtime.toUTCString()
+  const requestEtag = request.headers['if-none-match']
+  const requestModifiedSince = request.headers['if-modified-since']
+
+  if (requestEtag === etag || (requestModifiedSince && new Date(requestModifiedSince).getTime() >= stats.mtime.getTime())) {
+    response.writeHead(304, {
+      ETag: etag,
+      'Last-Modified': lastModified,
+      'Cache-Control': options.cacheControl || 'no-store',
+    })
+    response.end()
+    return
+  }
+
   response.writeHead(200, {
     'Content-Type': contentType,
-    'Cache-Control': 'no-store',
+    'Cache-Control': options.cacheControl || 'no-store',
+    ETag: etag,
+    'Last-Modified': lastModified,
   })
   response.end(fs.readFileSync(filePath))
 }
@@ -381,7 +401,9 @@ const server = http.createServer((request, response) => {
     const { pathname, query } = url.parse(request.url, true)
 
     if (request.method === 'GET' && pathname && staticAssetMap[pathname]) {
-      sendFile(response, staticAssetMap[pathname])
+      sendFile(request, response, staticAssetMap[pathname], {
+        cacheControl: 'public, max-age=86400, stale-while-revalidate=604800',
+      })
       return
     }
 
@@ -389,11 +411,15 @@ const server = http.createServer((request, response) => {
       const relativePath = pathname.replace('/static/', '')
       const staticFilePath = sanitizePathWithin(publicStaticDir, relativePath)
       if (staticFilePath && fs.existsSync(staticFilePath)) {
-        sendFile(response, staticFilePath)
+        sendFile(request, response, staticFilePath, {
+          cacheControl: 'public, max-age=86400, stale-while-revalidate=604800',
+        })
         return
       }
       if (staticAssetMap[pathname]) {
-        sendFile(response, staticAssetMap[pathname])
+        sendFile(request, response, staticAssetMap[pathname], {
+          cacheControl: 'public, max-age=86400, stale-while-revalidate=604800',
+        })
         return
       }
       sendError(response, 404, 'not found')
@@ -407,7 +433,7 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/admin/login') {
-      sendFile(response, path.join(heatwaveDir, 'login.html'))
+      sendFile(request, response, path.join(heatwaveDir, 'login.html'))
       return
     }
 
@@ -419,7 +445,7 @@ const server = http.createServer((request, response) => {
     if (request.method === 'GET' && pathname && pathname.startsWith('/admin/pages/')) {
       const slug = pathname.replace('/admin/pages/', '').trim()
       const filePath = path.join(heatwaveDir, `${slug}.html`)
-      sendFile(response, filePath)
+      sendFile(request, response, filePath)
       return
     }
 
@@ -431,7 +457,9 @@ const server = http.createServer((request, response) => {
         sendError(response, 403, 'forbidden')
         return
       }
-      sendFile(response, filePath)
+      sendFile(request, response, filePath, {
+        cacheControl: 'public, max-age=3600, stale-while-revalidate=86400',
+      })
       return
     }
 
@@ -442,7 +470,9 @@ const server = http.createServer((request, response) => {
         sendError(response, 403, 'forbidden')
         return
       }
-      sendFile(response, filePath)
+      sendFile(request, response, filePath, {
+        cacheControl: 'public, max-age=2592000, immutable',
+      })
       return
     }
 
