@@ -1,48 +1,72 @@
 <navigation-bar
   title="判官转盘"
   back="{{true}}"
-  color="#24160f"
-  background="rgba(255,253,248,0.96)"
+  color="#fff6df"
+  background="rgba(44,9,6,0.96)"
   ext-class="wheel-nav"
 ></navigation-bar>
 
 <view class="wheel-page">
+  <view class="wheel-glow wheel-glow-left"></view>
+  <view class="wheel-glow wheel-glow-right"></view>
   <scroll-view class="wheel-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="wheel-board">
+    <view class="wheel-hero">
+      <text class="wheel-kicker">判官主控转盘</text>
+      <text class="wheel-title">转一下，今晚谁来接这杯</text>
+      <text class="wheel-subtitle">题目直接读取后台已上线题库，确认后写回当前酒局记录，不再走空壳演示。</text>
+    </view>
+
+    <scroll-view class="wheel-type-row" scroll-x enhanced show-scrollbar="{{false}}">
+      <view
+        wx:for="{{typeTabs}}"
+        wx:key="label"
+        class="wheel-type-tab {{item.active ? 'wheel-type-tab-active' : ''}} {{item.disabled ? 'wheel-type-tab-disabled' : ''}}"
+        data-type="{{item.label}}"
+        bindtap="handleTypeTap"
+      >
+        {{item.label}}
+      </view>
+    </scroll-view>
+
+    <view class="wheel-count">{{questionCountText}}</view>
+
+    <view class="wheel-stage">
       <view class="wheel-pointer"></view>
       <view
         class="wheel-disc"
-        style="transform: rotate({{rotationDeg}}deg); transition: transform {{rotationDuration}}ms cubic-bezier(0.16, 1, 0.3, 1);"
+        style="background: {{wheelBackground}}; transform: rotate({{rotationDeg}}deg); transition: transform {{rotationDuration}}ms cubic-bezier(0.16, 1, 0.3, 1);"
       >
-        <view wx:for="{{wheelQuestions}}" wx:key="text" class="wheel-name" style="{{item.labelStyle}}">
+        <view wx:for="{{wheelQuestions}}" wx:key="id" class="wheel-name" style="{{item.labelStyle}}">
           <text>{{item.shortLabel}}</text>
         </view>
       </view>
       <view class="wheel-center {{isSpinning ? 'wheel-center-spinning' : ''}}" bindtap="handleSpinTap">
-        <text>{{isSpinning ? '转动中' : '转一转'}}</text>
+        <text class="wheel-center-main">{{isSpinning ? '转动中' : '开转'}}</text>
+        <text class="wheel-center-sub">{{currentTaskType}}</text>
       </view>
     </view>
 
-    <view class="wheel-card wheel-form-card">
-      <view class="wheel-row-top">
-        <image class="wheel-avatar" src="{{currentPlayerAvatar}}" mode="aspectFill"></image>
-        <view class="wheel-copy">
-          <text class="wheel-picked-name">{{currentPlayerName}}</text>
-          <text class="wheel-picked-meta">当前欠酒 {{currentDebtCount}} 杯 · 已消 {{currentClearedCount}} / {{maxClearPerPlayer}}</text>
-          <text class="wheel-picked-task">“{{currentTask}}”</text>
-        </view>
-      </view>
-      <view class="wheel-action-row">
-        <view class="wheel-primary" bindtap="handleAcceptTap">完成消 1 杯</view>
+    <view class="wheel-result-card {{hasSpun ? 'wheel-result-card-active' : ''}}">
+      <text class="wheel-result-tag">{{hasSpun ? currentTaskType : '等待开转'}}</text>
+      <text class="wheel-result-text">{{currentTask}}</text>
+      <text wx:if="{{currentTaskTag}}" class="wheel-result-meta">{{currentTaskTag}}</text>
+    </view>
+
+    <view class="wheel-player-card">
+      <image class="wheel-avatar" src="{{currentPlayerAvatar}}" mode="aspectFill"></image>
+      <view class="wheel-player-copy">
+        <text class="wheel-player-name">{{currentPlayerName}}</text>
+        <text class="wheel-player-meta">当前欠酒 {{currentDebtCount}} 杯 · 已消 {{currentClearedCount}} / {{maxClearPerPlayer}}</text>
       </view>
     </view>
 
-    <view class="wheel-section-head">
-      <text class="wheel-section-title">本轮消杯说明</text>
-    </view>
+    <view class="wheel-primary" bindtap="handleAcceptTap">确认本轮消 1 杯</view>
 
-    <view class="wheel-pill-row">
-      <view wx:for="{{history}}" wx:key="text" class="wheel-pill {{item.active ? 'wheel-pill-active' : ''}}">{{item.text}}</view>
+    <view wx:if="{{history.length}}" class="wheel-history-card">
+      <text class="wheel-history-title">本轮消杯说明</text>
+      <view wx:for="{{history}}" wx:key="text" class="wheel-history-item {{item.active ? 'wheel-history-item-active' : ''}}">
+        {{item.text}}
+      </view>
     </view>
   </scroll-view>
 </view>

@@ -1,4 +1,5 @@
 import { getSessionRuntime } from '../../utils/session'
+import { getPublicHomeConfig } from '../../services/content'
 import {
   ensureUserAuthorized,
   getCurrentProfile,
@@ -31,6 +32,9 @@ interface JudgePokeCard {
 }
 
 interface JudgePageState {
+  heroImageUrl: string
+  heroSubtitle: string
+  heroTitle: string
   pokeCards: JudgePokeCard[]
   quickEntries: JudgeEntry[]
   sessionMeta: string
@@ -58,6 +62,9 @@ const TAB_ROUTES: Record<string, string> = {
 
 Page<JudgePageState, JudgePageMethods>({
   data: {
+    heroImageUrl: 'https://api.pomer.cn/static/party-hero.png',
+    heroSubtitle: '远一点也能看清，开局、记分、出战报都更直接。',
+    heroTitle: '酒桌判官',
     pokeCards: [],
     quickEntries: [
       { id: 'intro', name: '玩法介绍', iconClass: 'judge-icon-list', toneClass: '' },
@@ -92,8 +99,12 @@ Page<JudgePageState, JudgePageMethods>({
 
   async loadJudgeData() {
     const runtime = getSessionRuntime()
-    const currentProfile = await getCurrentProfile()
-    const pokeCards = (await getVisiblePokeThreads()).map((item) => {
+    const [currentProfile, pokeThreads, homeConfig] = await Promise.all([
+      getCurrentProfile(),
+      getVisiblePokeThreads(),
+      getPublicHomeConfig().catch(() => null),
+    ])
+    const pokeCards = pokeThreads.map((item) => {
       const isIncoming = item.receiverId === currentProfile.id
       const counterpart = isIncoming
         ? { name: item.senderName, avatarUrl: item.senderAvatarUrl }
@@ -133,6 +144,9 @@ Page<JudgePageState, JudgePageMethods>({
     const joinedCount = Math.min(runtime.selectedPlayers.length || 0, runtime.playerCount || 0)
 
     this.setData({
+      heroImageUrl: homeConfig?.judge?.imageUrl || 'https://api.pomer.cn/static/party-hero.png',
+      heroSubtitle: homeConfig?.judge?.subtitle || '远一点也能看清，开局、记分、出战报都更直接。',
+      heroTitle: homeConfig?.judge?.title || '酒桌判官',
       pokeCards,
       sessionMeta: runtime.sessionName || '今晚组局，不醉不归',
       sessionName: runtime.startedAt ? '进行中 #1' : '待开局 #1',

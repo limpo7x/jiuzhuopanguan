@@ -6,6 +6,7 @@ import {
   type SessionParticipant,
   type SessionPlayerStat,
 } from '../../utils/session'
+import { updateManagedSession } from '../../services/operations'
 
 interface LivePlayer {
   avatarUrl: string
@@ -41,12 +42,13 @@ interface LiveRecordState {
 interface LiveRecordMethods {
   applyWheelResult: () => void
   handleAddPlayerTap: () => void
-  handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleNextRoundTap: () => void
   handleTimerTick: () => void
   openPage: (url: string) => void
-  handleSaveTap: () => void
-  handleWheelTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleSaveTap: () => Promise<void>
+  handleWheelTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
+  persistRecordsToManagedSession: (records: LiveRecordItem[]) => Promise<boolean>
   showPreviewToast: (message: string) => void
   syncRecordsToRuntime: (records: LiveRecordItem[]) => void
 }
@@ -179,6 +181,43 @@ Page<LiveRecordState, LiveRecordMethods>({
     })
   },
 
+  async persistRecordsToManagedSession(records) {
+    const runtime = getSessionRuntime()
+    if (!runtime.sessionId) {
+      return false
+    }
+
+    const selectedPlayers = resolveSessionParticipants(runtime).map((item) => {
+      const record = records.find((current) => (current.profileId || current.name) === (item.profileId || item.name))
+      return {
+        avatarUrl: item.avatarUrl,
+        clearedCount: record?.clearedCount || 0,
+        debtCount: record?.debtCount || 0,
+        drinkCount: record?.drinkCount || 0,
+        meta: record?.meta || item.status || '',
+        name: item.name,
+        profileId: item.profileId,
+        status: item.status || '待加入',
+      }
+    })
+
+    try {
+      await updateManagedSession(runtime.sessionId, {
+        hostAvatarUrl: runtime.currentUser?.avatarUrl,
+        hostName: runtime.currentUser?.name,
+        hostProfileId: runtime.currentUser?.id,
+        playerCount: runtime.playerCount,
+        selectedPlayers,
+        sessionName: runtime.sessionName,
+        templateName: runtime.templateName,
+      })
+      return true
+    } catch (error) {
+      this.showPreviewToast(error instanceof Error ? error.message : '酒局记录保存失败')
+      return false
+    }
+  },
+
   applyWheelResult() {
     const result = wx.getStorageSync(JUDGE_WHEEL_RESULT_KEY) as
       | {
@@ -218,7 +257,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     })
   },
 
-  handleAdjustTap(event) {
+  async handleAdjustTap(event) {
     if (!this.data.isJudge) {
       return
     }
@@ -241,8 +280,14 @@ Page<LiveRecordState, LiveRecordMethods>({
       }
     })
 
+    const prevRecords = this.data.records
     this.syncRecordsToRuntime(records)
     this.setData({ records })
+    const persisted = await this.persistRecordsToManagedSession(records)
+    if (!persisted) {
+      this.syncRecordsToRuntime(prevRecords)
+      this.setData({ records: prevRecords })
+    }
   },
 
   handleAddPlayerTap() {
@@ -255,12 +300,15 @@ Page<LiveRecordState, LiveRecordMethods>({
     this.openPage(`/pages/invite-group/index${sessionId}`)
   },
 
-  handleSaveTap() {
+  async handleSaveTap() {
     this.syncRecordsToRuntime(this.data.records)
+    if (!(await this.persistRecordsToManagedSession(this.data.records))) {
+      return
+    }
     this.openPage('/pages/table-mode/index')
   },
 
-  handleWheelTap(event) {
+  async handleWheelTap(event) {
     if (!this.data.isJudge) {
       return
     }
@@ -282,8 +330,12 @@ Page<LiveRecordState, LiveRecordMethods>({
       return
     }
 
+    if (!(await this.persistRecordsToManagedSession(this.data.records))) {
+      return
+    }
+
     this.openPage(
-      `/pages/judge-wheel/index?playerId=${encodeURIComponent(target.id)}&playerName=${encodeURIComponent(target.name)}&avatarUrl=${encodeURIComponent(target.avatarUrl)}&debt=${target.debtCount}&cleared=${target.clearedCount}`,
+      `/pages/judge-wheel/index?playerId=${encodeURIComponent(target.id)}&playerName=${encodeURIComponent(target.name)}&avatarUrl=${encodeURIComponent(target.avatarUrl)}&debt=${target.debtCount}&cleared=${target.clearedCount}&sessionId=${encodeURIComponent(getSessionRuntime().sessionId || '')}`,
     )
   },
 

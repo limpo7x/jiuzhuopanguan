@@ -1070,6 +1070,9 @@ const makeHomeFormData = () => {
     heroTitle: config.hero.title,
     heroSubtitle: config.hero.subtitle,
     heroImageUrl: config.hero.imageUrl,
+    judgeHeroTitle: config.judge?.title || '酒桌判官',
+    judgeHeroSubtitle: config.judge?.subtitle || '远一点也能看清，开局、记分、出战报都更直接。',
+    judgeHeroImageUrl: config.judge?.imageUrl || '/static/party-hero.png',
     bannerTitle: config.banner.title,
     bannerImageUrl: config.banner.imageUrl,
     quickToolsText: config.quickTools.map((item) => `${item.id}|${item.name}`).join('\n'),
@@ -1098,13 +1101,27 @@ const makeInviteCode = (seed = '') => {
   return `${normalized.slice(-2).padStart(2, 'A')}7K9Q`
 }
 
+const normalizeWheelHistoryItem = (item = {}) => ({
+  createdAt: String(item.createdAt || '').trim(),
+  label: String(item.label || '').trim(),
+  text: String(item.text || '').trim(),
+  type: String(item.type || '').trim(),
+})
+
 const normalizeSessionMember = (member = {}, index = 0) => ({
   avatarUrl: String(member.avatarUrl || `/static/avatar-${(index % 4) + 1}.png`).trim(),
+  clearedCount: Math.max(0, Number(member.clearedCount) || 0),
+  debtCount: Math.max(0, Number(member.debtCount) || 0),
+  drinkCount: Math.max(0, Number(member.drinkCount) || 0),
   isHost: Boolean(member.isHost),
+  meta: String(member.meta || '').trim(),
   name: String(member.name || `玩家${index + 1}`).trim(),
   phone: String(member.phone || '').trim(),
   profileId: String(member.profileId || '').trim(),
   status: String(member.status || (member.isHost ? '已加入' : '待加入')).trim(),
+  wheelHistory: Array.isArray(member.wheelHistory)
+    ? member.wheelHistory.map((item) => normalizeWheelHistoryItem(item)).filter((item) => item.text)
+    : [],
 })
 
 const buildSessionMembers = (payload = {}, existingMembers = []) => {
@@ -1113,6 +1130,9 @@ const buildSessionMembers = (payload = {}, existingMembers = []) => {
   const hostAvatarUrl = String(payload.hostAvatarUrl || existingMembers.find((item) => item.isHost)?.avatarUrl || '/static/avatar-1.png').trim()
   const hostPhone = String(payload.hostPhone || '').trim()
   const selectedPlayers = Array.isArray(payload.selectedPlayers) ? payload.selectedPlayers : []
+  const hostPayloadMember =
+    (hostProfileId ? selectedPlayers.find((item) => String(item?.profileId || '').trim() === hostProfileId) : null) ||
+    selectedPlayers.find((item) => item?.isHost)
   const existingByProfileId = new Map(
     existingMembers
       .filter((item) => item?.profileId)
@@ -1122,6 +1142,7 @@ const buildSessionMembers = (payload = {}, existingMembers = []) => {
     normalizeSessionMember(
       {
         ...existingMembers.find((item) => item.isHost),
+        ...hostPayloadMember,
         avatarUrl: hostAvatarUrl,
         isHost: true,
         name: hostName,
@@ -1135,11 +1156,15 @@ const buildSessionMembers = (payload = {}, existingMembers = []) => {
 
   selectedPlayers.forEach((item, index) => {
     const profileId = String(item.profileId || '').trim()
+    if (hostProfileId && profileId === hostProfileId) {
+      return
+    }
     const existed = profileId ? existingByProfileId.get(profileId) : null
     members.push(
       normalizeSessionMember(
         {
           ...existed,
+          ...item,
           avatarUrl: item.avatarUrl || existed?.avatarUrl,
           isHost: false,
           name: item.name || existed?.name,
@@ -1583,6 +1608,14 @@ const pageMap = {
           { key: 'heroTitle', label: '主标题', type: 'text' },
           { key: 'heroSubtitle', label: '副标题', type: 'textarea' },
           { key: 'heroImageUrl', label: '主图地址', type: 'image' },
+        ],
+      },
+      {
+        title: '酒桌判官页主图',
+        fields: [
+          { key: 'judgeHeroTitle', label: '页面标题', type: 'text' },
+          { key: 'judgeHeroSubtitle', label: '页面副标题', type: 'textarea' },
+          { key: 'judgeHeroImageUrl', label: '页面主图', type: 'image' },
         ],
       },
       {
@@ -2541,6 +2574,11 @@ const savePageData = (slug, payload = {}) => {
         title: payload.data.heroTitle,
         subtitle: payload.data.heroSubtitle,
         imageUrl: payload.data.heroImageUrl,
+      },
+      judge: {
+        title: payload.data.judgeHeroTitle,
+        subtitle: payload.data.judgeHeroSubtitle,
+        imageUrl: payload.data.judgeHeroImageUrl,
       },
       banner: {
         title: payload.data.bannerTitle,

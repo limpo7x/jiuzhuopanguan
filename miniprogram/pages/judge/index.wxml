@@ -9,12 +9,12 @@
 <view class="judge-page">
   <scroll-view class="judge-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="judge-hero">
-      <image class="judge-hero-image" src="https://api.pomer.cn/static/party-hero.png" mode="aspectFill"></image>
+      <image class="judge-hero-image" src="{{heroImageUrl}}" mode="aspectFill"></image>
       <view class="judge-hero-mask"></view>
       <view class="judge-hero-content">
         <view class="judge-hero-badge">酒桌主模式</view>
-        <text class="judge-hero-title">酒桌判官</text>
-        <text class="judge-hero-subtitle">远一点也能看清，开局、记分、出战报都更直接。</text>
+        <text class="judge-hero-title">{{heroTitle}}</text>
+        <text class="judge-hero-subtitle">{{heroSubtitle}}</text>
         <view class="judge-hero-meta-row">
           <view class="judge-hero-chip">{{sessionName}}</view>
           <view class="judge-hero-chip judge-hero-chip-accent">{{sessionTag}}</view>

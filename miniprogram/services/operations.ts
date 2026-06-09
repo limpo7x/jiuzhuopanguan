@@ -55,9 +55,19 @@ interface RemoteToolsResponse {
 
 interface RemoteSessionPlayer {
   avatarUrl?: string
+  clearedCount?: number
+  debtCount?: number
+  drinkCount?: number
+  meta?: string
   name?: string
   profileId?: string
   status?: string
+  wheelHistory?: Array<{
+    createdAt?: string
+    label?: string
+    text?: string
+    type?: string
+  }>
 }
 
 interface RemoteLiveSession {
@@ -128,10 +138,13 @@ interface RemoteShareConfig {
 
 interface RemoteQuestionCatalog {
   questions?: Array<{
+    difficulty?: string
     id?: string
+    riskLevel?: string
     tag?: string
     template?: string
     text?: string
+    type?: string
   }>
 }
 
@@ -179,9 +192,21 @@ export interface ManagedToolCatalog {
 
 export interface ManagedSessionPlayer {
   avatarUrl: string
+  clearedCount?: number
+  debtCount?: number
+  drinkCount?: number
+  meta?: string
   name: string
   profileId?: string
   status: string
+  wheelHistory?: ManagedWheelHistoryItem[]
+}
+
+export interface ManagedWheelHistoryItem {
+  createdAt: string
+  label: string
+  text: string
+  type: string
 }
 
 export interface ManagedLiveSession {
@@ -281,10 +306,13 @@ export interface ManagedShareConfig {
 }
 
 export interface ManagedQuestionItem {
+  difficulty: string
   id: string
+  riskLevel: string
   tag: string
   template: string
   text: string
+  type: string
 }
 
 export interface ManagedMerchantTile {
@@ -366,9 +394,23 @@ const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' = 'GET', da
 
 const normalizeSessionPlayer = (player?: RemoteSessionPlayer): ManagedSessionPlayer => ({
   avatarUrl: normalizeManagedAssetPath(player?.avatarUrl) || DEFAULT_AVATAR,
+  clearedCount: Math.max(0, Number(player?.clearedCount) || 0),
+  debtCount: Math.max(0, Number(player?.debtCount) || 0),
+  drinkCount: Math.max(0, Number(player?.drinkCount) || 0),
+  meta: player?.meta || '',
   name: player?.name || '未命名玩家',
   profileId: player?.profileId || '',
   status: player?.status || '待加入',
+  wheelHistory: Array.isArray(player?.wheelHistory)
+    ? player.wheelHistory
+        .map((item) => ({
+          createdAt: item?.createdAt || '',
+          label: item?.label || '',
+          text: item?.text || '',
+          type: item?.type || '',
+        }))
+        .filter((item) => item.text)
+    : [],
 })
 
 const mergeToolDescriptor = async (remoteTool: RemoteToolItem): Promise<ToolDescriptor> => {
@@ -610,14 +652,18 @@ export const getManagedShareConfig = async (): Promise<ManagedShareConfig> => {
   return next
 }
 
-export const getManagedQuestionBank = async (): Promise<ManagedQuestionItem[]> => {
-  const remote = await requestJson<RemoteQuestionCatalog>('/questions/catalog')
+export const getManagedQuestionBank = async (type = ''): Promise<ManagedQuestionItem[]> => {
+  const query = type ? `?type=${encodeURIComponent(type)}` : ''
+  const remote = await requestJson<RemoteQuestionCatalog>(`/questions/catalog${query}`)
   return Array.isArray(remote.questions)
     ? remote.questions.map((item, index) => ({
+        difficulty: item?.difficulty || '',
         id: item?.id || `question-${index + 1}`,
+        riskLevel: item?.riskLevel || '',
         tag: item?.tag || '',
         template: item?.template || '',
         text: item?.text || '',
+        type: item?.type || '',
       }))
     : []
 }

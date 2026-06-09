@@ -639,7 +639,7 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/questions/catalog') {
-      sendOk(response, getQuestionBankConfig())
+      sendOk(response, getQuestionBankConfig(query.type))
       return
     }
 

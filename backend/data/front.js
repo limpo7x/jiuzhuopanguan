@@ -170,15 +170,34 @@ const buildMembersFromSession = (session, playerCount) => {
   if (!members.length) {
     return buildSessionPlayers(playerCount).map((item, index) => ({
       ...item,
+      clearedCount: 0,
+      debtCount: 0,
+      drinkCount: 0,
+      meta: '',
       profileId: '',
       status: index < getJoinedCount(session, playerCount) ? '已加入' : '待加入',
+      wheelHistory: [],
     }))
   }
   return members.map((item, index) => ({
     avatarUrl: item.avatarUrl || SESSION_AVATARS[index % SESSION_AVATARS.length],
+    clearedCount: Math.max(0, Number(item.clearedCount) || 0),
+    debtCount: Math.max(0, Number(item.debtCount) || 0),
+    drinkCount: Math.max(0, Number(item.drinkCount) || 0),
+    meta: item.meta || '',
     name: item.name || SESSION_PLAYER_NAMES[index % SESSION_PLAYER_NAMES.length],
     profileId: item.profileId || '',
     status: item.status || (item.isHost ? '已加入' : '待加入'),
+    wheelHistory: Array.isArray(item.wheelHistory)
+      ? item.wheelHistory
+          .map((historyItem) => ({
+            createdAt: historyItem?.createdAt || '',
+            label: historyItem?.label || '',
+            text: historyItem?.text || '',
+            type: historyItem?.type || '',
+          }))
+          .filter((historyItem) => historyItem.text)
+      : [],
   }))
 }
 
@@ -535,15 +554,21 @@ const getShareConfig = () => {
   }
 }
 
-const getQuestionBankConfig = () => {
+const getQuestionBankConfig = (type = '') => {
   const store = getAdminStore()
-  const onlineQuestions = (store.questionBank || []).filter((item) => String(item.status || '').includes('上线'))
+  const normalizedType = String(type || '').trim()
+  const onlineQuestions = (store.questionBank || []).filter(
+    (item) => String(item.status || '').includes('上线') && (!normalizedType || String(item.type || '').trim() === normalizedType),
+  )
   return {
     questions: onlineQuestions.map((item, index) => ({
+      difficulty: item.difficulty || '',
       id: item.id || `question-${index + 1}`,
+      riskLevel: item.riskLevel || '',
       text: item.content || '',
       tag: [item.type, item.difficulty, item.riskLevel].filter(Boolean).join(' · '),
       template: item.template || '',
+      type: item.type || '',
     })),
   }
 }

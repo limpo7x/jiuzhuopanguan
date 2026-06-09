@@ -6,6 +6,7 @@ interface QuestionItem {
   tag: string
   template: string
   text: string
+  type?: string
 }
 
 interface QuestionBankState {
@@ -59,7 +60,8 @@ Page<QuestionBankState, QuestionBankMethods>({
       return
     }
 
-    const url = `/pages/judge-wheel/index?task=${encodeURIComponent(current.text)}`
+    const type = current.type ? `&type=${encodeURIComponent(current.type)}` : ''
+    const url = `/pages/judge-wheel/index?task=${encodeURIComponent(current.text)}${type}`
 
     wx.redirectTo({ url })
   },

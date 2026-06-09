@@ -93,6 +93,11 @@ const createDefaultStore = () => ({
       title: '签到拿积分',
       imageUrl: asset('points-gift.png'),
     },
+    judge: {
+      title: '酒桌判官',
+      subtitle: '远一点也能看清，开局、记分、出战报都更直接。',
+      imageUrl: asset('party-hero.png'),
+    },
   },
   pointsConfig: {
     balance: 3286,
@@ -151,6 +156,11 @@ const normalizeHomeConfig = (homeConfig = {}, defaults) => ({
   banner: {
     title: isBrokenSample(homeConfig?.banner?.title) ? defaults.banner.title : homeConfig?.banner?.title || defaults.banner.title,
     imageUrl: homeConfig?.banner?.imageUrl || defaults.banner.imageUrl,
+  },
+  judge: {
+    title: isBrokenSample(homeConfig?.judge?.title) ? defaults.judge.title : homeConfig?.judge?.title || defaults.judge.title,
+    subtitle: isBrokenSample(homeConfig?.judge?.subtitle) ? defaults.judge.subtitle : homeConfig?.judge?.subtitle || defaults.judge.subtitle,
+    imageUrl: homeConfig?.judge?.imageUrl || defaults.judge.imageUrl,
   },
 })
 
@@ -334,6 +344,10 @@ const updateHomeConfig = (payload = {}) => {
       banner: {
         ...store.homeConfig.banner,
         ...(payload.banner || {}),
+      },
+      judge: {
+        ...store.homeConfig.judge,
+        ...(payload.judge || {}),
       },
     },
     createDefaultStore().homeConfig,

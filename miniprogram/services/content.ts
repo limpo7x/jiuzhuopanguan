@@ -64,6 +64,11 @@ export interface HomeAdminConfig {
     subtitle: string
     title: string
   }
+  judge: {
+    imageUrl: string
+    subtitle: string
+    title: string
+  }
   quickTools: Array<{
     id: string
     name: string
@@ -171,7 +176,14 @@ const normalizeHomeConfig = async (config: HomeAdminConfig): Promise<HomeAdminCo
     ...config.hero,
     imageUrl: await resolveCachedManagedImagePath(normalizeManagedAssetPath(config.hero.imageUrl)),
   },
+  judge: {
+    ...config.judge,
+    imageUrl: await resolveCachedManagedImagePath(normalizeManagedAssetPath(config.judge.imageUrl)),
+  },
 })
+
+export const getPublicHomeConfig = async () =>
+  normalizeHomeConfig(await request<HomeAdminConfig>('/config/home'))
 
 export const getPointsConfig = async () => normalizePointsConfig(await request<PointsConfig>('/config/points'))
 
