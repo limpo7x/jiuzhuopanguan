@@ -51,7 +51,8 @@ interface SharePreviewMethods {
 const SHARE_HEADLINE = '查看谁是今晚欠酒王？'
 const CANVAS_WIDTH = 900
 const CARD_WIDTH = 820
-const MINIAPP_QR_ASSET = '/assets/home/share-miniapp-qr.png'
+const MINIAPP_QR_ASSET = '../../assets/home/share-miniapp-qr.png'
+const MINIAPP_QR_ASSET_ABSOLUTE = '/assets/home/share-miniapp-qr.png'
 const MINIAPP_QR_REMOTE_ASSET = staticAsset('share-miniapp-qr.png')
 
 const getImageInfo = (src: string) =>
@@ -189,7 +190,7 @@ const drawQrPanel = (
 }
 
 const resolveMiniappQrPath = async () => {
-  const candidates = [MINIAPP_QR_ASSET, MINIAPP_QR_REMOTE_ASSET]
+  const candidates = [MINIAPP_QR_ASSET, MINIAPP_QR_ASSET_ABSOLUTE, MINIAPP_QR_REMOTE_ASSET]
   for (const candidate of candidates) {
     try {
       const image = await getImageInfo(candidate)
