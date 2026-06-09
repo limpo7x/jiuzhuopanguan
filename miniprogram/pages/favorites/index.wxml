@@ -2,13 +2,11 @@
 
 <view class="favorites-page">
   <scroll-view class="favorites-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view wx:for="{{items}}" wx:key="name" class="favorites-item" data-route="{{item.route}}" bindtap="handleItemTap">
-      <image class="favorites-thumb" src="{{item.imageUrl}}" mode="aspectFill"></image>
+    <view wx:for="{{notes}}" wx:key="title" class="favorites-item">
       <view class="favorites-copy">
-        <text class="favorites-title">{{item.name}}</text>
-        <text class="favorites-meta">{{item.meta}}</text>
+        <text class="favorites-title">{{item.title}}</text>
+        <text class="favorites-meta">{{item.desc}}</text>
       </view>
-      <text class="favorites-arrow">›</text>
     </view>
   </scroll-view>
 </view>

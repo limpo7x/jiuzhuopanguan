@@ -1,8 +1,8 @@
+import { createManagedReport } from '../../services/operations'
 import {
   formatElapsed,
   getSessionRuntime,
   resolveSessionParticipants,
-  setSessionReport,
   setSessionRuntime,
   type SessionPlayerReaction,
   type SessionPlayerStat,
@@ -11,8 +11,8 @@ import {
 
 interface ScoreRow {
   avatarUrl: string
-  cleared: number
   canReact: boolean
+  cleared: number
   debt: number
   drink: number
   likeCount: number
@@ -32,7 +32,7 @@ interface TableModeState {
 
 interface TableModeMethods {
   handleBackTap: () => void
-  handleFinishTap: () => void
+  handleFinishTap: () => Promise<void>
   handleReactionTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTimerTick: () => void
   openPage: (url: string) => void
@@ -230,7 +230,8 @@ Page<TableModeState, TableModeMethods>({
     })
   },
 
-  handleFinishTap() {
+  async handleFinishTap() {
+    const runtime = getSessionRuntime()
     const rowsByDebt = [...this.data.rows].sort((a, b) => b.debt - a.debt)
     const rowsByDrink = [...this.data.rows].sort((a, b) => b.drink - a.drink)
     const rowsByCleared = [...this.data.rows].sort((a, b) => b.cleared - a.cleared)
@@ -238,56 +239,78 @@ Page<TableModeState, TableModeMethods>({
     const rowsByWeak = [...this.data.rows].sort((a, b) => b.weakCount - a.weakCount)
     const topLikeRow = rowsByLikes[0]?.likeCount ? rowsByLikes[0] : null
     const topWeakRow = rowsByWeak[0]?.weakCount ? rowsByWeak[0] : null
+    const ranks = [
+      {
+        title: '欠酒大王',
+        name: rowsByDebt[0]?.name || '暂无',
+        avatarUrl: rowsByDebt[0]?.avatarUrl || '',
+        value: `欠了 ${rowsByDebt[0]?.debt || 0} 杯`,
+      },
+      {
+        title: '干杯王',
+        name: rowsByDrink[0]?.name || '暂无',
+        avatarUrl: rowsByDrink[0]?.avatarUrl || '',
+        value: `已喝 ${rowsByDrink[0]?.drink || 0} 杯`,
+      },
+      {
+        title: '消杯王',
+        name: rowsByCleared[0]?.name || '暂无',
+        avatarUrl: rowsByCleared[0]?.avatarUrl || '',
+        value: `消了 ${rowsByCleared[0]?.cleared || 0} 杯`,
+      },
+      {
+        title: '最受欢迎',
+        name: topLikeRow?.name || '暂无',
+        avatarUrl: topLikeRow?.avatarUrl || '',
+        value: topLikeRow ? `收到了 ${topLikeRow.likeCount} 次点赞` : '本局暂无点赞记录',
+      },
+      {
+        title: '全场记忆点',
+        name: topWeakRow?.name || '暂无',
+        avatarUrl: topWeakRow?.avatarUrl || '',
+        value: topWeakRow ? `被点了 ${topWeakRow.weakCount} 次小拇指` : '本局暂无互评记录',
+      },
+    ]
+    const events = buildReportEvents(this.data.sessionName, this.data.rows)
 
-    setSessionReport({
-      sessionName: this.data.sessionName,
-      playerCount: this.data.rows.length,
-      finishedAt: Date.now(),
-      ranks: [
-        {
-          title: '欠酒大王',
-          name: rowsByDebt[0]?.name || '暂无',
-          avatarUrl: rowsByDebt[0]?.avatarUrl || '',
-          value: `欠了 ${rowsByDebt[0]?.debt || 0} 杯`,
-        },
-        {
-          title: '干杯王',
-          name: rowsByDrink[0]?.name || '暂无',
-          avatarUrl: rowsByDrink[0]?.avatarUrl || '',
-          value: `已喝 ${rowsByDrink[0]?.drink || 0} 杯`,
-        },
-        {
-          title: '消杯王',
-          name: rowsByCleared[0]?.name || '暂无',
-          avatarUrl: rowsByCleared[0]?.avatarUrl || '',
-          value: `消了 ${rowsByCleared[0]?.cleared || 0} 杯`,
-        },
-        {
-          title: '最受欢迎',
-          name: topLikeRow?.name || '暂无',
-          avatarUrl: topLikeRow?.avatarUrl || '',
-          value: topLikeRow ? `收到了 ${topLikeRow.likeCount} 次点赞` : '本局暂无点赞记录',
-        },
-        {
-          title: '全场记忆点',
-          name: topWeakRow?.name || '暂无',
-          avatarUrl: topWeakRow?.avatarUrl || '',
-          value: topWeakRow ? `被点了 ${topWeakRow.weakCount} 次小拇指` : '本局暂无互评记录',
-        },
-      ],
-      events: buildReportEvents(this.data.sessionName, this.data.rows),
-    })
+    try {
+      wx.showLoading({
+        title: '生成战报中',
+        mask: true,
+      })
 
-    setSessionRuntime({
-      currentUser: null,
-      playerReactions: [],
-      playerStats: [],
-      startedAt: 0,
-    })
+      const report = await createManagedReport({
+        sessionId: runtime.sessionId || '',
+        sessionName: this.data.sessionName,
+        templateName: runtime.templateName || '',
+        playerCount: this.data.rows.length,
+        status: '正常',
+        sessionState: '已结束',
+        sessionStatus: '正常',
+        ranks,
+        events,
+      })
 
-    wx.redirectTo({
-      url: '/pages/result-report/index',
-    })
+      setSessionRuntime({
+        playerReactions: [],
+        reportId: report.id,
+        sessionId: report.sessionId || runtime.sessionId || '',
+        sessionName: report.sessionName || this.data.sessionName,
+        startedAt: 0,
+        templateName: report.templateName || runtime.templateName || '',
+      })
+
+      wx.redirectTo({
+        url: `/pages/result-report/index?reportId=${encodeURIComponent(report.id)}`,
+      })
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : '战报生成失败',
+        icon: 'none',
+      })
+    } finally {
+      wx.hideLoading()
+    }
   },
 
   openPage(url) {

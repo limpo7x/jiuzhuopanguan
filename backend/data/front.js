@@ -1,5 +1,5 @@
 const { getAdminStore, getManagedSessionById, getManagedSessionByInviteCode } = require('./admin')
-const { getCompliance, getToolHistory } = require('./content')
+const { getCompliance, getProfile, getToolHistory } = require('./content')
 
 const asset = (name) => `/static/${name}`
 
@@ -110,6 +110,24 @@ const SHARE_ICON_MAP = {
   分享码: 'share-icon-download',
   战报海报: 'share-icon-wechat',
   邀局卡: 'share-icon-group',
+}
+
+const MERCHANT_ICON_MAP = {
+  代驾: 'merchant-icon-taxi',
+  夜宵: 'merchant-icon-food',
+  娱乐: 'merchant-icon-mic',
+}
+
+const MERCHANT_TONE_MAP = {
+  代驾: 'merchant-tile-blue',
+  夜宵: 'merchant-tile-green',
+  娱乐: '',
+}
+
+const MERCHANT_IMAGE_MAP = {
+  代驾: asset('party-hero.png'),
+  夜宵: asset('toolbox-hero.png'),
+  娱乐: asset('report-poster.png'),
 }
 
 const SESSION_AVATARS = [
@@ -328,6 +346,7 @@ const getFeaturedReport = () => {
     events: buildReportEvents(report, sessionName),
     metaText: `${sessionName} · ${playerCount}人局 · ${report?.scene || '常规局'}`,
     notice: compliance.copy || '理性饮酒，适量饮酒，未成年人禁止饮酒',
+    reportId: report?.id || '',
     ranks: buildReportRanks(playerCount),
     replayRate: report?.replayRate || '0%',
     sessionName,
@@ -403,7 +422,7 @@ const listUsageRecords = () => {
       name: report.sessionName,
       meta: `战报中心 · 分享率 ${report.shareRate || '--'}`,
       tag: '酒局',
-      route: '/pages/result-report/index',
+      route: report.reportId ? `/pages/result-report/index?reportId=${encodeURIComponent(report.reportId)}` : '/pages/wine-history/index',
     })
   }
 
@@ -442,6 +461,7 @@ const getShareConfig = () => {
     },
     preview: {
       inviteCode: liveSession.inviteCode || 'AB7K9Q',
+      imageUrl: inviteAction?.imageUrl || asset('party-hero.png'),
       title: `${liveSession.sessionName || '这局快乐就完事了！'}，快来加入`,
     },
     shareItems: [
@@ -515,9 +535,55 @@ const getShareConfig = () => {
   }
 }
 
+const getQuestionBankConfig = () => {
+  const store = getAdminStore()
+  const onlineQuestions = (store.questionBank || []).filter((item) => String(item.status || '').includes('上线'))
+  return {
+    questions: onlineQuestions.map((item, index) => ({
+      id: item.id || `question-${index + 1}`,
+      text: item.content || '',
+      tag: [item.type, item.difficulty, item.riskLevel].filter(Boolean).join(' · '),
+      template: item.template || '',
+    })),
+  }
+}
+
+const getMerchantPartnersConfig = () => {
+  const store = getAdminStore()
+  const merchants = (store.merchants || []).filter((item) => !String(item.status || '').includes('停用'))
+  const categories = [...new Set(merchants.map((item) => item.category).filter(Boolean))]
+
+  return {
+    city: getProfile().city || '当前城市',
+    categories: categories.slice(0, 4).map((category) => ({
+      name: category,
+      iconClass: MERCHANT_ICON_MAP[category] || 'merchant-icon-briefcase',
+      toneClass: MERCHANT_TONE_MAP[category] || '',
+    })),
+    shops: merchants.map((item) => ({
+      id: item.id,
+      imageUrl: MERCHANT_IMAGE_MAP[item.category] || asset('party-hero.png'),
+      meta: `${item.category || '商户'} · 已领取 ${item.claimCount || '0'} · 核销率 ${item.verifyRate || '0%'} · ${item.status || '上线中'}`,
+      name: item.name,
+      status: item.status || '上线中',
+    })),
+    safeBack: merchants
+      .filter((item) => String(item.category || '').includes('代驾') || String(item.name || '').includes('券'))
+      .slice(0, 3)
+      .map((item) => ({
+        name: item.name,
+        iconClass: MERCHANT_ICON_MAP[item.category] || 'merchant-icon-coupon',
+        toneClass: MERCHANT_TONE_MAP[item.category] || '',
+      })),
+    notice: '商户数据来自后台商户合作页，仅展示当前已上线或灰度中的真实权益。',
+  }
+}
+
 module.exports = {
   getFeaturedReport,
   getLiveSessionConfig,
+  getMerchantPartnersConfig,
+  getQuestionBankConfig,
   getShareConfig,
   listFrontendTools,
   listUsageRecords,

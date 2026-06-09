@@ -1,7 +1,7 @@
 ﻿const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
-const { createStoreAccessor } = require('./store-accessor')
+const { createStoreAccessor, isMySQLEnabled } = require('./store-accessor')
 const {
   createDefaultUserCommerceState,
   getCompliance,
@@ -711,14 +711,12 @@ const buildOverviewTable = (adminStore = readStore(), contentStore = readContent
 }
 
 const buildOverviewNotes = (adminStore = readStore()) => {
-  const pendingAudit = countBy(adminStore.auditQueue, (item) => String(item.status || '').includes('待审核'))
   const waitingSessions = countBy(adminStore.liveSessions, (item) => String(item.state || '').includes('等待'))
-  const pendingConfigs = countBy(adminStore.baseConfigs, (item) => String(item.status || '').includes('待发布'))
   const grayMerchants = countBy(adminStore.merchants, (item) => String(item.status || '').includes('灰'))
   return [
-    pendingAudit ? `待审核内容 ${pendingAudit} 条，合规队列需要优先处理。` : '当前没有待审核内容堆积。',
+    '合规页当前只有“合规提示文案”真实联动前台，敏感词与审核队列仅作后台留档。',
     waitingSessions ? `等待开局酒局 ${waitingSessions} 个，建议关注是否存在拉人卡点。` : '当前没有长时间等待开局的酒局。',
-    pendingConfigs ? `待发布配置 ${pendingConfigs} 项，发布窗口前需再次核对。` : '当前基础配置没有待发布项。',
+    isMySQLEnabled() ? '核心用户资产、酒局、战报与埋点已走 MySQL 持久化。' : '当前未启用 MySQL，核心数据仅保存在本地文件。',
     grayMerchants ? `灰度商户 ${grayMerchants} 个，建议继续观察核销与回流表现。` : '商户合作当前没有灰度试运行项。',
   ]
 }
@@ -728,15 +726,14 @@ const overviewMetrics = () => {
   const contentStore = readContentStore()
   const socialStore = readSocialStore()
   const activeSessions = countBy(adminStore.liveSessions, (item) => String(item.state || '').includes('进行中'))
-  const pendingAudit = countBy(adminStore.auditQueue, (item) => String(item.status || '').includes('待审核'))
-  const interceptedAudit = countBy(adminStore.auditQueue, (item) => String(item.status || '').includes('拦截'))
+  const complianceCopyLength = String(getCompliance().copy || '').length
   return [
     { label: '酒局总数', value: String(adminStore.liveSessions.length), trend: `进行中 ${activeSessions}`, tone: 'up' },
     { label: '战报分享率', value: formatPercent(avgBy(adminStore.reports, (item) => numberFromText(item.shareRate))), trend: `战报 ${adminStore.reports.length} 份`, tone: 'up' },
     { label: '积分资产池', value: formatNumber(sumBy(contentStore.pointsConfig.rewards, (item) => item.cost)), trend: `任务 ${contentStore.pointsConfig.tasks.length} 个`, tone: 'up' },
     { label: '广告完成率', value: formatPercent(avgBy(adminStore.adSlots, (item) => numberFromText(item.completionRate))), trend: `广告位 ${adminStore.adSlots.length} 个`, tone: 'up' },
     { label: '用户总数', value: String(socialStore.profiles.length), trend: `酒友关系 ${listFriendships().length} 条`, tone: 'up' },
-    { label: '待审核', value: String(pendingAudit), trend: `已拦截 ${interceptedAudit} 条`, tone: pendingAudit ? 'down' : 'up' },
+    { label: '合规前台联动', value: '1 项', trend: `提示文案 ${complianceCopyLength} 字，审核队列暂未联动`, tone: 'up' },
   ]
 }
 
@@ -1047,12 +1044,14 @@ const getSystemPermissionMetrics = () => {
 }
 
 const getSystemConfigMetrics = () => {
-  const store = readStore()
+  const mysqlEnabled = isMySQLEnabled()
+  const fileMirrorEnabled = process.env.STORE_FILE_MIRROR !== '0'
+  const wechatConfigured = Number(Boolean(process.env.WECHAT_APP_ID)) + Number(Boolean(process.env.WECHAT_APP_SECRET))
   return [
-    { label: '配置项', value: String(store.baseConfigs.length), trend: `已生效 ${countBy(store.baseConfigs, (item) => String(item.status || '').includes('生效'))} 项`, tone: 'up' },
-    { label: '待发布', value: String(countBy(store.baseConfigs, (item) => String(item.status || '').includes('待发布'))), trend: '发布前需复核', tone: 'down' },
-    { label: '灰度配置', value: String(countBy(store.baseConfigs, (item) => String(item.scope || '').includes('灰度'))), trend: '灰度作用域实时可见', tone: 'up' },
-    { label: '生产配置', value: String(countBy(store.baseConfigs, (item) => String(item.scope || '').includes('生产'))), trend: '当前线上配置数量', tone: 'up' },
+    { label: 'MySQL 存储', value: mysqlEnabled ? '已启用' : '未启用', trend: mysqlEnabled ? '用户资产与酒局主链路写入数据库' : '当前仅文件存储', tone: mysqlEnabled ? 'up' : 'down' },
+    { label: '文件镜像', value: fileMirrorEnabled ? '开启' : '关闭', trend: fileMirrorEnabled ? '同时写入本地镜像文件' : '仅保留数据库副本', tone: fileMirrorEnabled ? 'up' : 'down' },
+    { label: '微信登录配置', value: `${wechatConfigured}/2`, trend: wechatConfigured === 2 ? 'AppID 与 AppSecret 已注入' : '仍缺少小程序密钥', tone: wechatConfigured === 2 ? 'up' : 'down' },
+    { label: '真实运行项', value: '4', trend: '仅保留前后台已实际生效配置', tone: 'up' },
   ]
 }
 
@@ -1061,9 +1060,9 @@ const getComplianceMetrics = () => {
   const complianceCopy = getCompliance().copy || ''
   return [
     { label: '合规文案字数', value: String(String(complianceCopy).length), trend: '当前前台使用文案', tone: 'up' },
-    { label: '敏感词数', value: String(store.sensitiveWords.length), trend: `高等级 ${countBy(store.sensitiveWords, (item) => String(item.level || '').includes('高'))} 个`, tone: 'up' },
-    { label: '待审队列', value: String(countBy(store.auditQueue, (item) => String(item.status || '').includes('待审核'))), trend: '需及时清理', tone: 'down' },
-    { label: '已拦截条数', value: String(countBy(store.auditQueue, (item) => String(item.status || '').includes('拦截'))), trend: '当前累计已记录', tone: 'up' },
+    { label: '前台生效项', value: '1', trend: '仅合规提示文案已联动前台', tone: 'up' },
+    { label: '未联动敏感词', value: String(store.sensitiveWords.length), trend: `高等级 ${countBy(store.sensitiveWords, (item) => String(item.level || '').includes('高'))} 个，仅后台展示`, tone: 'down' },
+    { label: '未联动审核队列', value: String(store.auditQueue.length), trend: `待审核 ${countBy(store.auditQueue, (item) => String(item.status || '').includes('待审核'))} 条，仅后台展示`, tone: 'down' },
   ]
 }
 
@@ -1251,6 +1250,7 @@ const createManagedSession = (payload = {}) => {
   const id = createId('session')
   const session = {
     id,
+    createdAt: iso(),
     city: String(payload.city || '').trim(),
     district: String(payload.district || '').trim(),
     name: String(payload.sessionName || '今晚聚会不醉不归').trim() || '今晚聚会不醉不归',
@@ -1355,6 +1355,10 @@ const finishManagedSession = (payload = {}) => {
     viewCount: Math.max(Number(payload.viewCount) || 0, playerCount),
     shareCount: Math.max(0, Number(payload.shareCount) || 0),
     replayCount: Math.max(0, Number(payload.replayCount) || 0),
+    createdAt: iso(),
+    playerCount,
+    ranks: Array.isArray(payload.ranks) ? payload.ranks.slice(0, 5) : [],
+    events,
     status: String(payload.status || '正常').trim() || '正常',
   }
 
@@ -1382,6 +1386,136 @@ const finishManagedSession = (payload = {}) => {
   }
   writeStore(store)
   return normalizedReport
+}
+
+const buildManagedReportDetail = (report) => {
+  if (!report) {
+    return null
+  }
+
+  const store = readStore()
+  const relatedSession = report.sessionId ? store.liveSessions.find((item) => item.id === report.sessionId) : null
+  const sessionName = String(report.name || report.title || '本局战报').replace(/战报$/, '')
+
+  return {
+    id: report.id,
+    sessionId: report.sessionId || '',
+    sessionName,
+    title: report.title || '本局战报',
+    templateName: report.template || '',
+    scene: report.scene || '常规局',
+    status: report.status || '正常',
+    createdAt: report.createdAt || '',
+    playerCount: Number(report.playerCount) || Number(relatedSession?.players) || 0,
+    inviteCode: relatedSession?.inviteCode || '',
+    shareRate: report.shareRate || '0%',
+    replayRate: report.replayRate || '0%',
+    ranks: Array.isArray(report.ranks) ? report.ranks : [],
+    events:
+      Array.isArray(report.events) && report.events.length
+        ? report.events
+        : [report.highlight1, report.highlight2, report.highlight3]
+            .filter(Boolean)
+            .map((text) => ({ text })),
+  }
+}
+
+const resolveHistoryStatus = (session, report) => {
+  const sessionState = String(session?.state || '').trim()
+  const sessionStatus = String(session?.status || report?.status || '').trim()
+
+  if (sessionStatus.includes('失效') || sessionStatus.includes('停用') || sessionState.includes('失效')) {
+    return '已失效'
+  }
+
+  if (sessionState.includes('进行中') || sessionState.includes('等待')) {
+    return '进行中'
+  }
+
+  if (sessionState.includes('结束') || report) {
+    return '已结束'
+  }
+
+  return '进行中'
+}
+
+const getManagedReportById = (reportId) => {
+  const normalizedReportId = String(reportId || '').trim()
+  if (!normalizedReportId) {
+    return null
+  }
+  const store = readStore()
+  const report = (store.reports || []).find((item) => item.id === normalizedReportId)
+  return buildManagedReportDetail(report)
+}
+
+const listManagedReports = (profileId = '') => {
+  const normalizedProfileId = String(profileId || '').trim()
+  const store = readStore()
+  const sessions = (store.liveSessions || []).filter((session) => {
+    if (!normalizedProfileId) {
+      return true
+    }
+    const members = Array.isArray(session?.members) ? session.members : []
+    return members.some((item) => String(item.profileId || '').trim() === normalizedProfileId)
+  })
+
+  const reportBySessionId = new Map(
+    (store.reports || [])
+      .filter((report) => report?.sessionId)
+      .map((report) => [String(report.sessionId), report]),
+  )
+
+  const rows = sessions.map((session) => {
+    const report = reportBySessionId.get(String(session.id || ''))
+    const status = resolveHistoryStatus(session, report)
+    const createdAt = report?.createdAt || session?.createdAt || ''
+    return {
+      id: report?.id || `session:${session.id}`,
+      recordType: report ? 'report' : 'session',
+      reportId: report?.id || '',
+      sessionId: String(session.id || ''),
+      sessionName: report ? String(report.name || report.title || '本局战报').replace(/战报$/, '') : String(session.name || '本局酒局'),
+      title: report?.title || String(session.name || '本局酒局'),
+      imageUrl: report ? '/static/report-poster.png' : '/static/party-hero.png',
+      status,
+      meta: `${Number(report?.playerCount) || Number(session?.players) || 0}人 · ${report?.template || session?.template || '常规局'} · ${createdAt}`.replace(/\s+/g, ' ').trim(),
+      createdAt,
+      shareRate: report?.shareRate || '0%',
+    }
+  })
+
+  return rows.sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')))
+}
+
+const getUserJudgeStats = (profileId = '') => {
+  const normalizedProfileId = String(profileId || '').trim()
+  if (!normalizedProfileId) {
+    return {
+      hostedCount: 0,
+      joinedCount: 0,
+      reportShareCount: 0,
+    }
+  }
+
+  const store = readStore()
+  const relatedSessions = (store.liveSessions || []).filter((session) =>
+    Array.isArray(session?.members)
+      ? session.members.some((member) => String(member.profileId || '').trim() === normalizedProfileId)
+      : false,
+  )
+
+  return {
+    hostedCount: relatedSessions.filter((session) =>
+      Array.isArray(session?.members)
+        ? session.members.some((member) => member.isHost && String(member.profileId || '').trim() === normalizedProfileId)
+        : false,
+    ).length,
+    joinedCount: relatedSessions.length,
+    reportShareCount: (store.analyticsEvents || []).filter(
+      (item) => item?.type === 'report_share' && String(item.profileId || '').trim() === normalizedProfileId,
+    ).length,
+  }
 }
 
 const toOption = (value, label = value) => ({
@@ -2017,31 +2151,50 @@ const pageMap = {
     }
   },
   'system-config': () => {
-    const store = readStore()
+    const mysqlEnabled = isMySQLEnabled()
+    const fileMirrorEnabled = process.env.STORE_FILE_MIRROR !== '0'
+    const runtimeRows = [
+      {
+        id: 'runtime-storage',
+        item: '数据主存储',
+        value: mysqlEnabled ? `MySQL / ${process.env.MYSQL_STORE_TABLE || 'app_store'}` : '本地文件',
+        effect: mysqlEnabled ? '用户资产、酒局、战报、埋点主链路实时写入数据库' : '当前未启用 MySQL，仅文件存储生效',
+      },
+      {
+        id: 'runtime-mirror',
+        item: '文件镜像',
+        value: fileMirrorEnabled ? '开启' : '关闭',
+        effect: fileMirrorEnabled ? '数据库写入同时落本地镜像，便于排查与备份' : '仅数据库保留数据副本',
+      },
+      {
+        id: 'runtime-wechat',
+        item: '微信登录',
+        value: process.env.WECHAT_APP_ID && process.env.WECHAT_APP_SECRET ? '已配置' : '未完整配置',
+        effect: process.env.WECHAT_APP_ID && process.env.WECHAT_APP_SECRET ? '小程序登录、OpenID 获取与手机号绑定可用' : '登录能力会直接失败，不再假成功',
+      },
+      {
+        id: 'runtime-upload',
+        item: '后台图片上传',
+        value: '/api/v1/admin/uploads/image',
+        effect: '分享素材、首页图、模板图等后台上传后立即走前台真实地址',
+      },
+    ]
     return {
       slug: 'system-config',
       title: '基础配置',
-      view: 'collection',
+      view: 'readonly',
       metrics: getSystemConfigMetrics(),
-      collection: {
-        key: 'baseConfigs',
-        itemLabel: '配置项',
-        fields: [
-          { key: 'key', label: '配置键', type: 'select', options: getAdminConfigKeyOptions() },
-          { key: 'value', label: '配置值', type: 'textarea' },
-          { key: 'scope', label: '环境 / 作用域', type: 'select', options: getAdminScopeOptions() },
-          { key: 'updatedAt', label: '更新时间文案', type: 'text' },
-          { key: 'status', label: '状态', type: 'select', options: getBaseConfigStatusOptions() },
-        ],
-        columns: [
-          { key: 'key', label: '配置键' },
-          { key: 'value', label: '配置值' },
-          { key: 'scope', label: '作用域' },
-          { key: 'updatedAt', label: '更新时间' },
-          { key: 'status', label: '状态' },
-        ],
-        items: store.baseConfigs,
-      },
+      tables: [
+        {
+          title: '当前真实生效的系统运行项',
+          columns: [
+            { key: 'item', label: '运行项' },
+            { key: 'value', label: '当前值' },
+            { key: 'effect', label: '生效范围' },
+          ],
+          rows: runtimeRows,
+        },
+      ],
     }
   },
   'system-compliance': () => {
@@ -2060,8 +2213,9 @@ const pageMap = {
       collections: [
         {
           key: 'sensitiveWords',
-          title: '敏感词策略',
+          title: '敏感词策略（仅后台展示，暂未联动前台拦截）',
           itemLabel: '敏感词',
+          readOnly: true,
           fields: [
             { key: 'word', label: '敏感词', type: 'text' },
             { key: 'level', label: '等级', type: 'select', options: RISK_LEVEL_OPTIONS },
@@ -2078,8 +2232,9 @@ const pageMap = {
         },
         {
           key: 'auditQueue',
-          title: '审核队列',
+          title: '审核队列（仅后台展示，暂未联动前台审核流）',
           itemLabel: '审核项',
+          readOnly: true,
           fields: [
             { key: 'target', label: '审核对象', type: 'textarea' },
             { key: 'source', label: '来源', type: 'select', options: getAuditSourceOptions() },
@@ -2574,19 +2729,10 @@ const savePageData = (slug, payload = {}) => {
     return getPageData(slug)
   }
 
-  if (slug === 'system-config') {
-    adminStore.baseConfigs = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.baseConfigs)
-    writeStore(adminStore)
-    return getPageData(slug)
-  }
-
   if (slug === 'system-compliance') {
     updateCompliance({
       copy: payload.meta.complianceCopy,
     })
-    adminStore.sensitiveWords = saveCollectionArray(payload.collections.sensitiveWords, pageMap[slug]().collections[0].fields, adminStore.sensitiveWords)
-    adminStore.auditQueue = saveCollectionArray(payload.collections.auditQueue, pageMap[slug]().collections[1].fields, adminStore.auditQueue)
-    writeStore(adminStore)
     return getPageData(slug)
   }
 
@@ -2597,6 +2743,9 @@ module.exports = {
   createManagedSession,
   finishManagedSession,
   getAdminStore: readStore,
+  getManagedReportById,
+  listManagedReports,
+  getUserJudgeStats,
   getManagedSessionById,
   getManagedSessionByInviteCode,
   initAdminStore: storeAccessor.init,

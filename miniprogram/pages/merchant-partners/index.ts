@@ -1,4 +1,4 @@
-import { staticAsset } from '../../config/assets'
+import { getManagedMerchantCatalog } from '../../services/operations'
 
 interface MerchantTile {
   iconClass: string
@@ -7,13 +7,17 @@ interface MerchantTile {
 }
 
 interface MerchantShop {
+  id: string
   imageUrl: string
   meta: string
   name: string
+  status: string
 }
 
 interface MerchantPartnersState {
   categories: MerchantTile[]
+  city: string
+  notice: string
   safeBack: MerchantTile[]
   shops: MerchantShop[]
 }
@@ -22,23 +26,29 @@ interface MerchantPartnersMethods {}
 
 Page<MerchantPartnersState, MerchantPartnersMethods>({
   data: {
-    categories: [
-      { name: '酒吧夜店', iconClass: 'merchant-icon-goblet', toneClass: '' },
-      { name: 'KTV', iconClass: 'merchant-icon-mic', toneClass: 'merchant-tile-blue' },
-      { name: '餐饮美食', iconClass: 'merchant-icon-food', toneClass: '' },
-      { name: '桌游轰趴', iconClass: 'merchant-icon-briefcase', toneClass: '' },
-    ],
-    shops: [
-      { name: '夜色 Livehouse', meta: '酒水 95 折 / 限量 8 折 · 1.2km', imageUrl: staticAsset('party-hero.png') },
-      { name: '胡桃里音乐酒馆', meta: '全单 88 折 · 1.8km', imageUrl: staticAsset('toolbox-hero.png') },
-      { name: '星聚会 KTV', meta: '小包 69 元起 · 2.1km', imageUrl: staticAsset('report-poster.png') },
-      { name: '桌面玩家 · 桌游馆', meta: '人均立减 20 元 · 2.3km', imageUrl: staticAsset('image-process-hero.png') },
-    ],
-    safeBack: [
-      { name: '代驾优惠券', iconClass: 'merchant-icon-taxi', toneClass: 'merchant-tile-blue' },
-      { name: '满减出行券', iconClass: 'merchant-icon-coupon', toneClass: 'merchant-tile-green' },
-      { name: '公交地铁指南', iconClass: 'merchant-icon-map', toneClass: '' },
-    ],
+    categories: [],
+    city: '',
+    notice: '',
+    safeBack: [],
+    shops: [],
+  },
+
+  async onLoad() {
+    try {
+      const catalog = await getManagedMerchantCatalog()
+      this.setData({
+        categories: catalog.categories,
+        city: catalog.city,
+        notice: catalog.notice,
+        safeBack: catalog.safeBack,
+        shops: catalog.shops,
+      })
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : '商户数据加载失败',
+        icon: 'none',
+      })
+    }
   },
 })
 

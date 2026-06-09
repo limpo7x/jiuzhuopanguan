@@ -16,7 +16,15 @@ const {
   redeemPointsReward,
   unlockTemplateByAd,
 } = require('./data/commerce')
-const { getFeaturedReport, getLiveSessionConfig, getShareConfig, listFrontendTools, listUsageRecords } = require('./data/front')
+const {
+  getFeaturedReport,
+  getLiveSessionConfig,
+  getMerchantPartnersConfig,
+  getQuestionBankConfig,
+  getShareConfig,
+  listFrontendTools,
+  listUsageRecords,
+} = require('./data/front')
 const {
   getCompliance,
   getHomeConfig,
@@ -48,6 +56,10 @@ const {
 const {
   createManagedSession,
   finishManagedSession,
+  getManagedReportById,
+  getManagedSessionById,
+  getUserJudgeStats,
+  listManagedReports,
   getPageData,
   getManagedSessionByInviteCode,
   initAdminStore,
@@ -576,6 +588,15 @@ const server = http.createServer((request, response) => {
       return
     }
 
+    if (request.method === 'GET' && pathname === '/api/v1/user/judge-stats') {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
+      sendOk(response, getUserJudgeStats(session.profile.id))
+      return
+    }
+
     if (request.method === 'GET' && pathname === '/api/v1/tools/history') {
       sendOk(response, getToolHistory())
       return
@@ -588,6 +609,16 @@ const server = http.createServer((request, response) => {
 
     if (request.method === 'GET' && pathname === '/api/v1/tools/usage-records') {
       sendOk(response, listUsageRecords())
+      return
+    }
+
+    if (request.method === 'GET' && pathname === '/api/v1/questions/catalog') {
+      sendOk(response, getQuestionBankConfig())
+      return
+    }
+
+    if (request.method === 'GET' && pathname === '/api/v1/merchants/catalog') {
+      sendOk(response, getMerchantPartnersConfig())
       return
     }
 
@@ -653,6 +684,14 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/sessions/live') {
+      if (query.sessionId && !getManagedSessionById(String(query.sessionId || '').trim())) {
+        sendError(response, 404, 'session not found')
+        return
+      }
+      if (query.inviteCode && !getManagedSessionByInviteCode(String(query.inviteCode || '').trim())) {
+        sendError(response, 404, 'session not found')
+        return
+      }
       sendOk(response, getLiveSessionConfig(query.sessionId, query.inviteCode))
       return
     }
@@ -660,6 +699,28 @@ const server = http.createServer((request, response) => {
     if (request.method === 'GET' && pathname === '/api/v1/reports/featured') {
       sendOk(response, getFeaturedReport())
       return
+    }
+
+    if (request.method === 'GET' && pathname === '/api/v1/reports/history') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      sendOk(response, listManagedReports(userSession.profile.id))
+      return
+    }
+
+    if (request.method === 'GET' && pathname && pathname.startsWith('/api/v1/reports/')) {
+      const reportId = pathname.replace('/api/v1/reports/', '').trim()
+      if (reportId && reportId !== 'featured' && reportId !== 'history') {
+        const report = getManagedReportById(reportId)
+        if (!report) {
+          sendError(response, 404, 'report not found')
+          return
+        }
+        sendOk(response, report)
+        return
+      }
     }
 
     if (request.method === 'POST' && pathname === '/api/v1/analytics/events') {
@@ -682,15 +743,16 @@ const server = http.createServer((request, response) => {
         return
       }
       const payload = await readJsonBody(request)
+      const created = createManagedSession({
+        ...payload,
+        hostAvatarUrl: userSession.profile.avatarUrl,
+        hostName: userSession.profile.name,
+        hostPhone: userSession.profile.phone || '',
+        hostProfileId: userSession.profile.id,
+      })
       sendOk(
         response,
-        createManagedSession({
-          ...payload,
-          hostAvatarUrl: userSession.profile.avatarUrl,
-          hostName: userSession.profile.name,
-          hostPhone: userSession.profile.phone || '',
-          hostProfileId: userSession.profile.id,
-        }),
+        getLiveSessionConfig(created.id, created.inviteCode),
         201,
       )
       return
@@ -748,8 +810,19 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'POST' && pathname === '/api/v1/reports') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
       const payload = await readJsonBody(request)
-      sendOk(response, finishManagedSession(payload), 201)
+      sendOk(
+        response,
+        finishManagedSession({
+          ...payload,
+          profileId: userSession.profile.id,
+        }),
+        201,
+      )
       return
     }
 

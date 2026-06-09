@@ -14,8 +14,9 @@
     </view>
 
     <view wx:if="{{!showJoinStatus}}" class="share-poster-card">
+      <image class="share-poster-image" src="{{previewImageUrl}}" mode="aspectFill"></image>
       <view class="share-poster-copy">
-        <text class="share-poster-title">这局快乐就完事了！</text>
+        <text class="share-poster-title">{{previewTitle}}</text>
         <text class="share-poster-subtitle">{{sessionName}}</text>
         <view class="share-poster-row">
           <view class="share-avatar-stack">

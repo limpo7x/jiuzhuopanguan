@@ -1,6 +1,6 @@
-import { getManagedLiveSession } from '../../services/operations'
-import { getSessionRuntime } from '../../utils/session'
 import { trackAnalyticsEvent } from '../../services/analytics'
+import { getManagedLiveSession, getManagedShareConfig } from '../../services/operations'
+import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 
 interface SharePreviewItem {
   iconClass: string
@@ -14,6 +14,8 @@ interface SharePreviewState {
   joinedCount: number
   joinStatusPlayers: Array<{ avatarUrl: string; name: string; status: string }>
   playerCount: number
+  previewImageUrl: string
+  previewTitle: string
   sessionId: string
   sessionName: string
   shareItems: SharePreviewItem[]
@@ -54,27 +56,27 @@ const saveImage = (filePath: string) =>
 Page<SharePreviewState, SharePreviewMethods>({
   data: {
     avatars: [],
-    inviteCode: 'AB7K9Q',
+    inviteCode: '',
     joinedCount: 0,
     joinStatusPlayers: [],
     playerCount: 6,
+    previewImageUrl: 'https://api.pomer.cn/static/party-hero.png',
+    previewTitle: '快来加入这一局',
     sessionId: '',
     sessionName: '今晚聚会不醉不归',
-    shareItems: [
-      { id: 'friend', name: '分享给好友', iconClass: 'share-icon-wechat' },
-      { id: 'group', name: '分享到群', iconClass: 'share-icon-group' },
-      { id: 'more', name: '更多', iconClass: 'share-icon-more' },
-    ],
+    shareItems: [],
     showJoinStatus: false,
   },
 
   async onLoad(query) {
     const runtime = getSessionRuntime()
     const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
+
     this.setData({
-      inviteCode: runtime.inviteCode || 'AB7K9Q',
+      inviteCode: runtime.inviteCode || '',
       sessionId,
     })
+
     trackAnalyticsEvent({
       type: 'share_asset_exposure',
       assetId: 'share-2',
@@ -83,14 +85,24 @@ Page<SharePreviewState, SharePreviewMethods>({
         scene: 'invite-preview',
       },
     })
-    await this.loadSession()
+
+    try {
+      await this.loadSession()
+    } catch (error) {
+      this.showPreviewToast(error instanceof Error ? error.message : '邀请页加载失败')
+    }
   },
 
   async onShow() {
     if (!this.data.sessionId && !getSessionRuntime().sessionId) {
       return
     }
-    await this.loadSession()
+
+    try {
+      await this.loadSession()
+    } catch (error) {
+      this.showPreviewToast(error instanceof Error ? error.message : '邀请页加载失败')
+    }
   },
 
   onShareAppMessage() {
@@ -103,23 +115,41 @@ Page<SharePreviewState, SharePreviewMethods>({
       },
     })
     return {
-      title: `${this.data.sessionName} 邀你入局`,
+      title: this.data.previewTitle,
       path: `/pages/join-claim/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,
-      imageUrl: 'https://api.pomer.cn/static/party-hero.png',
+      imageUrl: this.data.previewImageUrl,
     }
   },
 
   async loadSession() {
     const runtime = getSessionRuntime()
-    const liveSession = await getManagedLiveSession(this.data.sessionId || runtime.sessionId, this.data.inviteCode || runtime.inviteCode)
+    const [liveSession, shareConfig] = await Promise.all([
+      getManagedLiveSession(this.data.sessionId || runtime.sessionId, this.data.inviteCode || runtime.inviteCode),
+      getManagedShareConfig(),
+    ])
+
+    setSessionRuntime({
+      inviteCode: liveSession.inviteCode,
+      sessionId: liveSession.id,
+      sessionName: liveSession.sessionName,
+      templateName: liveSession.templateName,
+    })
+
     this.setData({
       avatars: liveSession.joinedPlayers.map((item) => item.avatarUrl).slice(0, liveSession.playerCount),
       inviteCode: liveSession.inviteCode,
       joinedCount: liveSession.joinedCount,
       joinStatusPlayers: liveSession.joinStatusPlayers,
       playerCount: liveSession.playerCount,
+      previewImageUrl: shareConfig.preview.imageUrl,
+      previewTitle: shareConfig.preview.title,
       sessionId: liveSession.id,
       sessionName: liveSession.sessionName,
+      shareItems: shareConfig.shareItems.filter((item) => item.id && item.id !== 'save').map((item) => ({
+        id: item.id,
+        name: item.name,
+        iconClass: item.iconClass,
+      })),
     })
   },
 
@@ -133,7 +163,7 @@ Page<SharePreviewState, SharePreviewMethods>({
 
   async handleSaveTap() {
     try {
-      const tempFilePath = await downloadFile('https://api.pomer.cn/static/party-hero.png')
+      const tempFilePath = await downloadFile(this.data.previewImageUrl)
       await saveImage(tempFilePath)
       this.showPreviewToast('邀请卡已保存到相册')
     } catch {

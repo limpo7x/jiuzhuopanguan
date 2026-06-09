@@ -10,19 +10,26 @@
   <scroll-view class="question-bank-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="question-bank-hero">
       <text class="question-bank-title">挑一题更合适的</text>
-      <text class="question-bank-subtitle">保留这轮玩家，换一条更合适的任务或惩罚。</text>
+      <text class="question-bank-subtitle">这里只展示后台题库里已上线的题目，保存后台后前台会同步更新。</text>
     </view>
 
-    <view class="question-bank-list">
+    <view wx:if="{{questions.length}}" class="question-bank-list">
       <view
         wx:for="{{questions}}"
-        wx:key="text"
+        wx:key="id"
         class="question-bank-item {{item.active ? 'question-bank-item-active' : ''}}"
-        data-text="{{item.text}}"
+        data-id="{{item.id}}"
         bindtap="handleSelectTap"
       >
         <view class="question-bank-tag">{{item.tag}}</view>
         <text class="question-bank-text">{{item.text}}</text>
+      </view>
+    </view>
+
+    <view wx:else class="question-bank-list">
+      <view class="question-bank-item">
+        <view class="question-bank-tag">未接入</view>
+        <text class="question-bank-text">后台当前没有“上线中”的题目，请先在后台题库页上架题目。</text>
       </view>
     </view>
 

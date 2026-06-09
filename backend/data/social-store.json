@@ -1,84 +1,164 @@
 {
   "profiles": [
     {
+      "id": "user-1780987863661",
+      "name": "验收成员3660",
+      "avatarUrl": "/static/avatar-2.png",
+      "city": "上海",
+      "signature": "验收链路账号",
+      "identityTag": "验收账号",
+      "phone": "",
+      "wechatOpenId": "smoke-player-1780987863660",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "2026-06-09T06:51:03.661Z",
+      "loginCount": 1,
+      "createdAt": 1780987863661,
+      "updatedAt": 1780987918865
+    },
+    {
+      "id": "user-1780987863660",
+      "name": "验收主理人3660",
+      "avatarUrl": "/static/avatar-1.png",
+      "city": "上海",
+      "signature": "验收链路账号",
+      "identityTag": "验收账号",
+      "phone": "",
+      "wechatOpenId": "smoke-host-1780987863660",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "2026-06-09T06:51:03.660Z",
+      "loginCount": 1,
+      "createdAt": 1780987863660,
+      "updatedAt": 1780987918865
+    },
+    {
       "id": "user-search-b",
       "name": "SearchB",
-      "avatarUrl": "/assets/avatars/avatar-2.png",
-      "city": "??",
+      "avatarUrl": "/static/avatar-2.png",
+      "city": "上海",
       "signature": "B",
-      "identityTag": "???",
+      "identityTag": "气氛组长",
+      "phone": "",
+      "wechatOpenId": "",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "",
+      "loginCount": 0,
       "createdAt": 1780891821936,
-      "updatedAt": 1780891848911
+      "updatedAt": 1780987918865
     },
     {
       "id": "user-search-a",
       "name": "SearchA",
-      "avatarUrl": "/assets/avatars/avatar-1.png",
-      "city": "??",
+      "avatarUrl": "/static/avatar-1.png",
+      "city": "上海",
       "signature": "A",
-      "identityTag": "???",
+      "identityTag": "热场王者",
+      "phone": "",
+      "wechatOpenId": "",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "",
+      "loginCount": 0,
       "createdAt": 1780891821902,
-      "updatedAt": 1780891848879
+      "updatedAt": 1780987918865
     },
     {
       "id": "user-test-b",
-      "name": "???",
-      "avatarUrl": "/assets/avatars/avatar-2.png",
-      "city": "??",
+      "name": "Mika",
+      "avatarUrl": "/static/avatar-2.png",
+      "city": "杭州",
       "signature": "B",
-      "identityTag": "??",
+      "identityTag": "判官常驻",
+      "phone": "",
+      "wechatOpenId": "",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "",
+      "loginCount": 0,
       "createdAt": 1780890453382,
-      "updatedAt": 1780890453382
+      "updatedAt": 1780987918865
     },
     {
       "id": "user-test-a",
-      "name": "???",
-      "avatarUrl": "/assets/avatars/avatar-1.png",
-      "city": "??",
+      "name": "可可",
+      "avatarUrl": "/static/avatar-1.png",
+      "city": "深圳",
       "signature": "A",
-      "identityTag": "???",
+      "identityTag": "酒局观察员",
+      "phone": "",
+      "wechatOpenId": "",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "",
+      "loginCount": 0,
       "createdAt": 1780890453341,
-      "updatedAt": 1780890453341
+      "updatedAt": 1780987918865
     },
     {
       "id": "user-1001",
       "name": "阿浩",
-      "avatarUrl": "/assets/avatars/avatar-1.png",
+      "avatarUrl": "/static/avatar-1.png",
       "city": "上海",
       "signature": "今晚这局不见不散。",
       "identityTag": "气氛组",
+      "phone": "",
+      "wechatOpenId": "",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "",
+      "loginCount": 0,
       "createdAt": 1,
-      "updatedAt": 1
+      "updatedAt": 1780987918865
     },
     {
       "id": "user-1002",
       "name": "小熊",
-      "avatarUrl": "/assets/avatars/avatar-2.png",
+      "avatarUrl": "/static/avatar-2.png",
       "city": "上海",
       "signature": "喝归喝，整活不能少。",
       "identityTag": "热场王",
+      "phone": "",
+      "wechatOpenId": "",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "",
+      "loginCount": 0,
       "createdAt": 2,
-      "updatedAt": 2
+      "updatedAt": 1780987918865
     },
     {
       "id": "user-1003",
       "name": "Mika",
-      "avatarUrl": "/assets/avatars/avatar-3.png",
+      "avatarUrl": "/static/avatar-3.png",
       "city": "杭州",
       "signature": "负责点题，也负责拱火。",
       "identityTag": "判官常驻",
+      "phone": "",
+      "wechatOpenId": "",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "",
+      "loginCount": 0,
       "createdAt": 3,
-      "updatedAt": 3
+      "updatedAt": 1780987918865
     },
     {
       "id": "user-1004",
       "name": "可可",
-      "avatarUrl": "/assets/avatars/avatar-4.png",
+      "avatarUrl": "/static/avatar-4.png",
       "city": "深圳",
       "signature": "我只负责起哄。",
       "identityTag": "酒局观察员",
+      "phone": "",
+      "wechatOpenId": "",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "",
+      "loginCount": 0,
       "createdAt": 4,
-      "updatedAt": 4
+      "updatedAt": 1780987918865
     }
   ],
   "friendships": [
@@ -87,7 +167,7 @@
       "ownerId": "user-search-a",
       "friendId": "user-search-b",
       "alias": "SearchB",
-      "meta": "??",
+      "meta": "最近联系",
       "updatedAt": 1780891848912
     },
     {
@@ -95,8 +175,26 @@
       "ownerId": "user-test-a",
       "friendId": "user-test-b",
       "alias": "???",
-      "meta": "????",
+      "meta": "最近联系",
       "updatedAt": 1780890453384
+    }
+  ],
+  "loginLogs": [
+    {
+      "id": "login-log-1780987863661",
+      "profileId": "user-1780987863661",
+      "phone": "",
+      "wechatOpenId": "smoke-player-1780987863660",
+      "loginAt": "2026-06-09T06:51:03.661Z",
+      "source": "wechat-miniapp"
+    },
+    {
+      "id": "login-log-1780987863660",
+      "profileId": "user-1780987863660",
+      "phone": "",
+      "wechatOpenId": "smoke-host-1780987863660",
+      "loginAt": "2026-06-09T06:51:03.660Z",
+      "source": "wechat-miniapp"
     }
   ],
   "pokes": [
@@ -107,6 +205,20 @@
       "status": "matched",
       "createdAt": 1780890453389,
       "updatedAt": 1780890453396
+    }
+  ],
+  "userSessions": [
+    {
+      "token": "765ad7b799f34be037e8157f2f48248891b815b97c2a9515",
+      "profileId": "user-1780987863661",
+      "createdAt": 1780987863661,
+      "expiresAt": 1783579863661
+    },
+    {
+      "token": "6b04e1a4c5aa3b40dbfc70dc96cbdc284f27483ce2b02729",
+      "profileId": "user-1780987863660",
+      "createdAt": 1780987863660,
+      "expiresAt": 1783579863660
     }
   ]
 }

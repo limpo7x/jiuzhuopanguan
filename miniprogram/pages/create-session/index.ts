@@ -5,15 +5,15 @@ import { setSessionRuntime } from '../../utils/session'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface NamePreset {
-  name: string
   active?: boolean
+  name: string
 }
 
 interface TemplateItem {
-  id: string
-  name: string
-  imageUrl: string
   active?: boolean
+  id: string
+  imageUrl: string
+  name: string
 }
 
 interface CreateSessionState {
@@ -61,7 +61,7 @@ Page<CreateSessionState, CreateSessionMethods>({
     }))
 
     this.setData({
-      sessionName: `${decodedName}开局啦`,
+      sessionName: `${decodedName}开局`,
       templates,
     })
   },
@@ -107,10 +107,13 @@ Page<CreateSessionState, CreateSessionMethods>({
 
     const runtimeLocation = getStoredRuntimeLocation()
     const activeTemplate = this.data.templates.find((item) => item.active) || this.data.templates[0]
-    let sessionId = ''
-    let inviteCode = ''
 
     try {
+      wx.showLoading({
+        title: '正在创建',
+        mask: true,
+      })
+
       const created = await createManagedSession({
         city: runtimeLocation?.city || '',
         district: runtimeLocation?.district || '',
@@ -125,38 +128,43 @@ Page<CreateSessionState, CreateSessionMethods>({
         state: '等待开局',
         templateName: activeTemplate?.name || '经典喝酒版',
       })
-      sessionId = created.id
-      inviteCode = created.inviteCode
-    } catch {
-      // Fall back to local runtime creation when backend is unavailable.
+
+      setSessionRuntime({
+        city: runtimeLocation?.city || '',
+        currentUser: {
+          avatarUrl: profile.avatarUrl,
+          id: profile.id,
+          name: profile.name,
+        },
+        district: runtimeLocation?.district || '',
+        inviteCode: created.inviteCode,
+        isJudge: true,
+        latitude: runtimeLocation?.latitude ?? null,
+        locationLabel: runtimeLocation?.label || '',
+        longitude: runtimeLocation?.longitude ?? null,
+        playerCount: this.data.playerCount,
+        playerReactions: [],
+        playerStats: [],
+        province: runtimeLocation?.province || '',
+        reportId: '',
+        selectedPlayers: created.joinStatusPlayers,
+        sessionId: created.id,
+        sessionName: created.sessionName,
+        startedAt: 0,
+        templateName: activeTemplate?.name || '',
+      })
+
+      wx.navigateTo({
+        url: '/pages/session-rules/index',
+      })
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : '创建酒局失败',
+        icon: 'none',
+      })
+    } finally {
+      wx.hideLoading()
     }
-
-    setSessionRuntime({
-      city: runtimeLocation?.city || '',
-      currentUser: {
-        avatarUrl: profile.avatarUrl,
-        id: profile.id,
-        name: profile.name,
-      },
-      district: runtimeLocation?.district || '',
-      inviteCode,
-      isJudge: true,
-      latitude: runtimeLocation?.latitude ?? null,
-      locationLabel: runtimeLocation?.label || '',
-      longitude: runtimeLocation?.longitude ?? null,
-      playerCount: this.data.playerCount,
-      playerStats: [],
-      province: runtimeLocation?.province || '',
-      selectedPlayers: [],
-      sessionId,
-      sessionName: this.data.sessionName,
-      startedAt: 0,
-      templateName: activeTemplate?.name || '',
-    })
-
-    wx.navigateTo({
-      url: '/pages/session-rules/index',
-    })
   },
 
   handleMoreTemplatesTap() {

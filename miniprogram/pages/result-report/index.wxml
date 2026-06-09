@@ -42,7 +42,7 @@
 
     <view class="report-notice">
       <view class="report-notice-icon"></view>
-      <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+      <text>理性饮酒，适量玩局，未成年人禁止饮酒。</text>
     </view>
   </scroll-view>
 </view>

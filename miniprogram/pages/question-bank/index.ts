@@ -1,6 +1,10 @@
+import { getManagedQuestionBank } from '../../services/operations'
+
 interface QuestionItem {
   active?: boolean
+  id: string
   tag: string
+  template: string
   text: string
 }
 
@@ -15,19 +19,31 @@ interface QuestionBankMethods {
 
 Page<QuestionBankState, QuestionBankMethods>({
   data: {
-    questions: [
-      { tag: '轻松', text: '说出通讯录里最久没联系的人是谁', active: true },
-      { tag: '热场', text: '模仿群里最会发语音的那个人 10 秒' },
-      { tag: '整活', text: '把最近一张自拍给大家打分并解释理由' },
-      { tag: '搞笑', text: '用播音腔朗读最近一条外卖备注' },
-    ],
+    questions: [],
+  },
+
+  async onLoad() {
+    try {
+      const questions = await getManagedQuestionBank()
+      this.setData({
+        questions: questions.map((item, index) => ({
+          ...item,
+          active: index === 0,
+        })),
+      })
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : '题库加载失败',
+        icon: 'none',
+      })
+    }
   },
 
   handleSelectTap(event) {
-    const { text } = event.currentTarget.dataset as { text: string }
+    const { id } = event.currentTarget.dataset as { id: string }
     const questions = this.data.questions.map((item) => ({
       ...item,
-      active: item.text === text,
+      active: item.id === id,
     }))
 
     this.setData({ questions })
@@ -35,6 +51,14 @@ Page<QuestionBankState, QuestionBankMethods>({
 
   handleUseTap() {
     const current = this.data.questions.find((item) => item.active) || this.data.questions[0]
+    if (!current?.text) {
+      wx.showToast({
+        title: '当前没有可用题目',
+        icon: 'none',
+      })
+      return
+    }
+
     const url = `/pages/judge-wheel/index?task=${encodeURIComponent(current.text)}`
 
     wx.redirectTo({ url })

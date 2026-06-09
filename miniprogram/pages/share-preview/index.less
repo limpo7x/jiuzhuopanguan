@@ -51,13 +51,25 @@ page {
 }
 
 .share-poster-card {
+  position: relative;
+  overflow: hidden;
   margin-top: 10px;
   border-radius: 16px;
   background: #ff664a;
   color: #fff;
 }
 
+.share-poster-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.28;
+}
+
 .share-poster-copy {
+  position: relative;
+  z-index: 1;
   padding: 16px;
 }
 

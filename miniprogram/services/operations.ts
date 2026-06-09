@@ -82,6 +82,99 @@ interface RemoteLiveSession {
   title?: string
 }
 
+interface RemoteManagedReport {
+  createdAt?: string
+  events?: Array<{ text?: string }>
+  id?: string
+  imageUrl?: string
+  inviteCode?: string
+  meta?: string
+  playerCount?: number
+  recordType?: 'report' | 'session'
+  reportId?: string
+  ranks?: Array<{
+    avatarUrl?: string
+    name?: string
+    title?: string
+    value?: string
+  }>
+  replayRate?: string
+  scene?: string
+  sessionId?: string
+  sessionName?: string
+  shareRate?: string
+  status?: string
+  templateName?: string
+  title?: string
+}
+
+interface RemoteShareConfig {
+  notice?: string
+  performance?: {
+    bestOpenRate?: string
+    bestReturnRate?: string
+  }
+  poster?: {
+    imageUrl?: string
+    title?: string
+  }
+  preview?: {
+    imageUrl?: string
+    inviteCode?: string
+    title?: string
+  }
+  shareItems?: Array<{
+    iconClass?: string
+    id?: string
+    name?: string
+    scene?: string
+  }>
+}
+
+interface RemoteQuestionCatalog {
+  questions?: Array<{
+    id?: string
+    tag?: string
+    template?: string
+    text?: string
+  }>
+}
+
+interface RemoteMerchantCatalog {
+  categories?: Array<{
+    iconClass?: string
+    name?: string
+    toneClass?: string
+  }>
+  city?: string
+  notice?: string
+  safeBack?: Array<{
+    iconClass?: string
+    name?: string
+    toneClass?: string
+  }>
+  shops?: Array<{
+    id?: string
+    imageUrl?: string
+    meta?: string
+    name?: string
+    status?: string
+  }>
+}
+
+interface RemoteUsageRecord {
+  meta?: string
+  name?: string
+  route?: string
+  tag?: string
+}
+
+interface RemoteJudgeStats {
+  hostedCount?: number
+  joinedCount?: number
+  reportShareCount?: number
+}
+
 export interface ManagedToolCatalog {
   categories: ToolCategory[]
   categoryCards: ToolCategoryCard[]
@@ -140,6 +233,113 @@ export interface ManagedSessionMutationPayload {
   templateName?: string
 }
 
+export interface ManagedReportRank {
+  avatarUrl: string
+  name: string
+  title: string
+  value: string
+}
+
+export interface ManagedReportEvent {
+  text: string
+}
+
+export interface ManagedReportDetail {
+  createdAt: string
+  events: ManagedReportEvent[]
+  id: string
+  inviteCode: string
+  playerCount: number
+  ranks: ManagedReportRank[]
+  replayRate: string
+  scene: string
+  sessionId: string
+  sessionName: string
+  shareRate: string
+  status: string
+  templateName: string
+  title: string
+}
+
+export interface ManagedReportSummary {
+  createdAt: string
+  id: string
+  imageUrl: string
+  meta: string
+  recordType: 'report' | 'session'
+  reportId: string
+  sessionId: string
+  sessionName: string
+  shareRate: string
+  status: string
+  title: string
+}
+
+export interface ManagedShareConfig {
+  notice: string
+  performance: {
+    bestOpenRate: string
+    bestReturnRate: string
+  }
+  poster: {
+    imageUrl: string
+    title: string
+  }
+  preview: {
+    imageUrl: string
+    inviteCode: string
+    title: string
+  }
+  shareItems: Array<{
+    iconClass: string
+    id: string
+    name: string
+    scene: string
+  }>
+}
+
+export interface ManagedQuestionItem {
+  id: string
+  tag: string
+  template: string
+  text: string
+}
+
+export interface ManagedMerchantTile {
+  iconClass: string
+  name: string
+  toneClass: string
+}
+
+export interface ManagedMerchantShop {
+  id: string
+  imageUrl: string
+  meta: string
+  name: string
+  status: string
+}
+
+export interface ManagedMerchantCatalog {
+  categories: ManagedMerchantTile[]
+  city: string
+  notice: string
+  safeBack: ManagedMerchantTile[]
+  shops: ManagedMerchantShop[]
+}
+
+export interface ManagedUsageRecord {
+  meta: string
+  name: string
+  route: string
+  tag: string
+}
+
+export interface ManagedJudgeStats {
+  hostedCount: number
+  joinedCount: number
+  reportShareCount: number
+}
+
 const DEFAULT_AVATAR = staticAsset('avatar-1.png')
 
 const DEFAULT_TOOLS_CATALOG: ManagedToolCatalog = {
@@ -180,48 +380,6 @@ const normalizeSessionPlayer = (player?: RemoteSessionPlayer): ManagedSessionPla
   profileId: player?.profileId || '',
   status: player?.status || '待加入',
 })
-
-const buildFallbackPlayers = (): ManagedSessionPlayer[] => {
-  const runtime = getSessionRuntime()
-  return resolveSessionParticipants(runtime).map((item) => ({
-    avatarUrl: normalizeManagedAssetPath(item.avatarUrl) || DEFAULT_AVATAR,
-    name: item.name,
-    profileId: item.profileId || '',
-    status: item.status || '已加入',
-  }))
-}
-
-const buildFallbackLiveSession = (): ManagedLiveSession => {
-  const runtime = getSessionRuntime()
-  const joinedPlayers = buildFallbackPlayers()
-  const playerCount = runtime.playerCount || Math.max(joinedPlayers.length, 2) || 6
-
-  return {
-    city: runtime.city || '',
-    district: runtime.district || '',
-    hostName: runtime.currentUser?.name || '当前发起人',
-    id: runtime.sessionId || 'session-local',
-    inviteCode: runtime.inviteCode || '',
-    joinedCount: joinedPlayers.length,
-    joinedPlayers,
-    joinStatusPlayers: joinedPlayers.map((item) => ({
-      ...item,
-      status: item.status || '已加入',
-    })),
-    latitude: runtime.latitude ?? null,
-    location: runtime.locationLabel || '',
-    longitude: runtime.longitude ?? null,
-    playerCount,
-    province: runtime.province || '',
-    sessionName: runtime.sessionName || '酒桌判官酒局',
-    source: '直接创建',
-    stateText: runtime.startedAt ? '进行中' : '等待开局',
-    status: '正常',
-    subtitle: joinedPlayers.length ? `当前已加入 ${joinedPlayers.length}/${playerCount} 人` : '等待真实玩家加入后开始',
-    templateName: runtime.templateName || '',
-    title: joinedPlayers.length ? '组局中，等待玩家加入' : '等待创建酒局',
-  }
-}
 
 const mergeToolDescriptor = (remoteTool: RemoteToolItem): ToolDescriptor => {
   const toolId = resolveToolId(remoteTool.id || remoteTool.rawId || '')
@@ -281,44 +439,44 @@ export const getManagedToolsCatalog = async (): Promise<ManagedToolCatalog> => {
 }
 
 export const getManagedLiveSession = async (sessionId?: string, inviteCode?: string): Promise<ManagedLiveSession> => {
-  const fallback = buildFallbackLiveSession()
+  const query = [
+    sessionId ? `sessionId=${encodeURIComponent(sessionId)}` : '',
+    inviteCode ? `inviteCode=${encodeURIComponent(inviteCode)}` : '',
+  ]
+    .filter(Boolean)
+    .join('&')
+  const remote = await requestJson<RemoteLiveSession>(`/sessions/live${query ? `?${query}` : ''}`)
+  const runtime = getSessionRuntime()
+  const runtimePlayers = resolveSessionParticipants(runtime).map((item) => ({
+    avatarUrl: normalizeManagedAssetPath(item.avatarUrl) || DEFAULT_AVATAR,
+    name: item.name,
+    profileId: item.profileId || '',
+    status: item.status || '待加入',
+  }))
+  const joinedPlayers = remote.joinedPlayers?.length ? remote.joinedPlayers.map(normalizeSessionPlayer) : runtimePlayers
+  const joinStatusPlayers = remote.joinStatusPlayers?.length ? remote.joinStatusPlayers.map(normalizeSessionPlayer) : joinedPlayers
 
-  try {
-    const query = [
-      sessionId ? `sessionId=${encodeURIComponent(sessionId)}` : '',
-      inviteCode ? `inviteCode=${encodeURIComponent(inviteCode)}` : '',
-    ]
-      .filter(Boolean)
-      .join('&')
-    const remote = await requestJson<RemoteLiveSession>(`/sessions/live${query ? `?${query}` : ''}`)
-    const joinedPlayers = remote.joinedPlayers?.length ? remote.joinedPlayers.map(normalizeSessionPlayer) : fallback.joinedPlayers
-    const joinStatusPlayers = remote.joinStatusPlayers?.length ? remote.joinStatusPlayers.map(normalizeSessionPlayer) : joinedPlayers
-
-    return {
-      ...fallback,
-      city: remote.city || fallback.city,
-      district: remote.district || fallback.district,
-      hostName: remote.hostName || fallback.hostName,
-      id: remote.id || fallback.id,
-      inviteCode: remote.inviteCode || fallback.inviteCode,
-      joinedCount: Number(remote.joinedCount) || joinedPlayers.length || fallback.joinedCount,
-      joinedPlayers,
-      joinStatusPlayers,
-      latitude: Number.isFinite(Number(remote.latitude)) ? Number(remote.latitude) : fallback.latitude,
-      location: remote.location || fallback.location,
-      longitude: Number.isFinite(Number(remote.longitude)) ? Number(remote.longitude) : fallback.longitude,
-      playerCount: Number(remote.playerCount) || fallback.playerCount,
-      province: remote.province || fallback.province,
-      sessionName: remote.sessionName || fallback.sessionName,
-      source: remote.source || fallback.source,
-      stateText: remote.stateText || fallback.stateText,
-      status: remote.status || fallback.status,
-      subtitle: remote.subtitle || fallback.subtitle,
-      templateName: remote.templateName || fallback.templateName,
-      title: remote.title || fallback.title,
-    }
-  } catch {
-    return fallback
+  return {
+    city: remote.city || runtime.city || '',
+    district: remote.district || runtime.district || '',
+    hostName: remote.hostName || runtime.currentUser?.name || '',
+    id: remote.id || runtime.sessionId || '',
+    inviteCode: remote.inviteCode || runtime.inviteCode || '',
+    joinedCount: Number(remote.joinedCount) || joinedPlayers.length,
+    joinedPlayers,
+    joinStatusPlayers,
+    latitude: Number.isFinite(Number(remote.latitude)) ? Number(remote.latitude) : runtime.latitude ?? null,
+    location: remote.location || runtime.locationLabel || '',
+    longitude: Number.isFinite(Number(remote.longitude)) ? Number(remote.longitude) : runtime.longitude ?? null,
+    playerCount: Number(remote.playerCount) || runtime.playerCount || Math.max(joinStatusPlayers.length, 2),
+    province: remote.province || runtime.province || '',
+    sessionName: remote.sessionName || runtime.sessionName || '',
+    source: remote.source || '',
+    stateText: remote.stateText || '',
+    status: remote.status || '',
+    subtitle: remote.subtitle || '',
+    templateName: remote.templateName || runtime.templateName || '',
+    title: remote.title || '',
   }
 }
 
@@ -332,55 +490,9 @@ export const joinManagedSession = async (inviteCode: string): Promise<ManagedLiv
 }
 
 export const createManagedSession = async (payload: ManagedSessionMutationPayload): Promise<ManagedLiveSession> => {
-  const fallback = buildFallbackLiveSession()
-
-  try {
-    const created = await requestJson<RemoteLiveSession>('/sessions', 'POST', payload as Record<string, unknown>)
-    const joinedPlayers = created.joinedPlayers?.length ? created.joinedPlayers.map(normalizeSessionPlayer) : fallback.joinedPlayers
-    const joinStatusPlayers = created.joinStatusPlayers?.length ? created.joinStatusPlayers.map(normalizeSessionPlayer) : joinedPlayers
-
-    return {
-      ...fallback,
-      city: created.city || payload.city || fallback.city,
-      district: created.district || payload.district || fallback.district,
-      hostName: created.hostName || payload.hostName || fallback.hostName,
-      id: created.id || fallback.id,
-      inviteCode: created.inviteCode || payload.inviteCode || fallback.inviteCode,
-      joinedCount: Number(created.joinedCount) || joinedPlayers.length || fallback.joinedCount,
-      joinedPlayers,
-      joinStatusPlayers,
-      latitude: Number.isFinite(Number(created.latitude)) ? Number(created.latitude) : payload.latitude ?? fallback.latitude,
-      location: created.location || payload.location || fallback.location,
-      longitude: Number.isFinite(Number(created.longitude)) ? Number(created.longitude) : payload.longitude ?? fallback.longitude,
-      playerCount: Number(created.playerCount) || payload.playerCount || fallback.playerCount,
-      province: created.province || payload.province || fallback.province,
-      sessionName: created.sessionName || payload.sessionName || fallback.sessionName,
-      source: created.source || payload.source || fallback.source,
-      stateText: created.stateText || payload.state || fallback.stateText,
-      status: created.status || payload.status || fallback.status,
-      subtitle: created.subtitle || fallback.subtitle,
-      templateName: created.templateName || payload.templateName || fallback.templateName,
-      title: created.title || fallback.title,
-    }
-  } catch {
-    return {
-      ...fallback,
-      city: payload.city || fallback.city,
-      district: payload.district || fallback.district,
-      hostName: payload.hostName || fallback.hostName,
-      inviteCode: payload.inviteCode || fallback.inviteCode,
-      latitude: payload.latitude ?? fallback.latitude,
-      location: payload.location || fallback.location,
-      longitude: payload.longitude ?? fallback.longitude,
-      playerCount: payload.playerCount || fallback.playerCount,
-      province: payload.province || fallback.province,
-      sessionName: payload.sessionName || fallback.sessionName,
-      source: payload.source || fallback.source,
-      stateText: payload.state || fallback.stateText,
-      status: payload.status || fallback.status,
-      templateName: payload.templateName || fallback.templateName,
-    }
-  }
+  return getManagedLiveSession(
+    (await requestJson<RemoteLiveSession>('/sessions', 'POST', payload as Record<string, unknown>)).id,
+  )
 }
 
 export const updateManagedSession = async (sessionId: string, payload: ManagedSessionMutationPayload): Promise<void> => {
@@ -388,5 +500,142 @@ export const updateManagedSession = async (sessionId: string, payload: ManagedSe
     return
   }
 
-  await requestJson(`/sessions/${encodeURIComponent(sessionId)}`, 'PUT', payload as Record<string, unknown>).catch(() => null)
+  await requestJson(`/sessions/${encodeURIComponent(sessionId)}`, 'PUT', payload as Record<string, unknown>)
+}
+
+const normalizeManagedReport = (report?: RemoteManagedReport): ManagedReportDetail => ({
+  createdAt: report?.createdAt || '',
+  events: Array.isArray(report?.events) ? report.events.map((item) => ({ text: item?.text || '' })).filter((item) => item.text) : [],
+  id: report?.id || '',
+  inviteCode: report?.inviteCode || '',
+  playerCount: Number(report?.playerCount) || 0,
+  ranks: Array.isArray(report?.ranks)
+    ? report.ranks.map((item) => ({
+        avatarUrl: normalizeManagedAssetPath(item?.avatarUrl) || DEFAULT_AVATAR,
+        name: item?.name || '',
+        title: item?.title || '',
+        value: item?.value || '',
+      }))
+    : [],
+  replayRate: report?.replayRate || '0%',
+  scene: report?.scene || '',
+  sessionId: report?.sessionId || '',
+  sessionName: report?.sessionName || '',
+  shareRate: report?.shareRate || '0%',
+  status: report?.status || '',
+  templateName: report?.templateName || '',
+  title: report?.title || '',
+})
+
+export const createManagedReport = async (payload: Record<string, unknown>): Promise<ManagedReportDetail> =>
+  normalizeManagedReport(await requestJson<RemoteManagedReport>('/reports', 'POST', payload))
+
+export const getManagedReport = async (reportId: string): Promise<ManagedReportDetail> =>
+  normalizeManagedReport(await requestJson<RemoteManagedReport>(`/reports/${encodeURIComponent(reportId)}`))
+
+export const getManagedReportHistory = async (): Promise<ManagedReportSummary[]> => {
+  const reports = await requestJson<RemoteManagedReport[]>('/reports/history')
+  return reports.map((item) => ({
+    createdAt: item.createdAt || '',
+    id: item.id || '',
+    imageUrl: normalizeManagedAssetPath(item.imageUrl) || staticAsset('report-poster.png'),
+    meta: item.meta || '',
+    recordType: item.recordType === 'session' ? 'session' : 'report',
+    reportId: item.reportId || (item.recordType === 'report' ? item.id || '' : ''),
+    sessionId: item.sessionId || '',
+    sessionName: item.sessionName || '',
+    shareRate: item.shareRate || '0%',
+    status: item.status || '',
+    title: item.title || item.sessionName || '',
+  }))
+}
+
+export const getManagedShareConfig = async (): Promise<ManagedShareConfig> => {
+  const remote = await requestJson<RemoteShareConfig>('/share/config')
+  return {
+    notice: remote.notice || '',
+    performance: {
+      bestOpenRate: remote.performance?.bestOpenRate || '0%',
+      bestReturnRate: remote.performance?.bestReturnRate || '0%',
+    },
+    poster: {
+      imageUrl: normalizeManagedAssetPath(remote.poster?.imageUrl) || staticAsset('report-poster.png'),
+      title: remote.poster?.title || '这局快乐就完事了！',
+    },
+    preview: {
+      imageUrl: normalizeManagedAssetPath(remote.preview?.imageUrl) || staticAsset('party-hero.png'),
+      inviteCode: remote.preview?.inviteCode || '',
+      title: remote.preview?.title || '快来加入这一局',
+    },
+    shareItems: Array.isArray(remote.shareItems)
+      ? remote.shareItems.map((item) => ({
+          iconClass: item?.iconClass || 'share-icon-more',
+          id: item?.id || '',
+          name: item?.name || '更多',
+          scene: item?.scene || '',
+        }))
+      : [],
+  }
+}
+
+export const getManagedQuestionBank = async (): Promise<ManagedQuestionItem[]> => {
+  const remote = await requestJson<RemoteQuestionCatalog>('/questions/catalog')
+  return Array.isArray(remote.questions)
+    ? remote.questions.map((item, index) => ({
+        id: item?.id || `question-${index + 1}`,
+        tag: item?.tag || '',
+        template: item?.template || '',
+        text: item?.text || '',
+      }))
+    : []
+}
+
+export const getManagedMerchantCatalog = async (): Promise<ManagedMerchantCatalog> => {
+  const remote = await requestJson<RemoteMerchantCatalog>('/merchants/catalog')
+  return {
+    categories: Array.isArray(remote.categories)
+      ? remote.categories.map((item) => ({
+          iconClass: item?.iconClass || 'merchant-icon-briefcase',
+          name: item?.name || '',
+          toneClass: item?.toneClass || '',
+        }))
+      : [],
+    city: remote.city || '',
+    notice: remote.notice || '',
+    safeBack: Array.isArray(remote.safeBack)
+      ? remote.safeBack.map((item) => ({
+          iconClass: item?.iconClass || 'merchant-icon-coupon',
+          name: item?.name || '',
+          toneClass: item?.toneClass || '',
+        }))
+      : [],
+    shops: Array.isArray(remote.shops)
+      ? remote.shops.map((item) => ({
+          id: item?.id || '',
+          imageUrl: normalizeManagedAssetPath(item?.imageUrl) || staticAsset('party-hero.png'),
+          meta: item?.meta || '',
+          name: item?.name || '',
+          status: item?.status || '',
+        }))
+      : [],
+  }
+}
+
+export const getManagedUsageRecords = async (): Promise<ManagedUsageRecord[]> => {
+  const remote = await requestJson<RemoteUsageRecord[]>('/tools/usage-records')
+  return remote.map((item) => ({
+    meta: item?.meta || '',
+    name: item?.name || '',
+    route: item?.route || '',
+    tag: item?.tag || '',
+  }))
+}
+
+export const getManagedJudgeStats = async (): Promise<ManagedJudgeStats> => {
+  const remote = await requestJson<RemoteJudgeStats>('/user/judge-stats')
+  return {
+    hostedCount: Number(remote.hostedCount) || 0,
+    joinedCount: Number(remote.joinedCount) || 0,
+    reportShareCount: Number(remote.reportShareCount) || 0,
+  }
 }

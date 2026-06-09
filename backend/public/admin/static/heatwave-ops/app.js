@@ -670,7 +670,7 @@ const renderMultiCollection = () => {
         : ''
     }
     <div class="section-stack">
-      ${(state.page.collections || []).map((collection) => renderCollectionEditor(collection)).join('')}
+      ${(state.page.collections || []).map((collection) => renderCollectionEditor(collection, { readOnly: Boolean(collection.readOnly) })).join('')}
     </div>`
 }
 

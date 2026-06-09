@@ -1,5 +1,5 @@
 <navigation-bar
-  title="同城合作"
+  title="合作商户"
   back="{{true}}"
   color="#24160f"
   background="rgba(255,253,248,0.96)"
@@ -10,12 +10,12 @@
   <scroll-view class="merchant-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="merchant-head-row">
       <text class="merchant-title">同城合作</text>
-      <view class="merchant-city-chip">杭州市</view>
+      <view class="merchant-city-chip">{{city || '当前城市'}}</view>
     </view>
 
     <view class="merchant-banner">
       <text class="merchant-banner-title">聚会好去处 · 专属优惠</text>
-      <text class="merchant-banner-meta">酒桌判官用户专享权益</text>
+      <text class="merchant-banner-meta">后台商户合作页修改后，这里会直接同步真实权益。</text>
     </view>
 
     <view class="merchant-grid">
@@ -30,7 +30,7 @@
     </view>
 
     <view class="merchant-list">
-      <view wx:for="{{shops}}" wx:key="name" class="merchant-item">
+      <view wx:for="{{shops}}" wx:key="id" class="merchant-item">
         <view class="merchant-thumb">
           <image src="{{item.imageUrl}}" mode="aspectFill"></image>
         </view>
@@ -38,7 +38,7 @@
           <text class="merchant-item-title">{{item.name}}</text>
           <text class="merchant-item-meta">{{item.meta}}</text>
         </view>
-        <view class="merchant-tag">领券</view>
+        <view class="merchant-tag">{{item.status}}</view>
       </view>
     </view>
 
@@ -55,7 +55,7 @@
 
     <view class="merchant-notice">
       <view class="merchant-notice-icon"></view>
-      <text>喝酒不开车，安全你我他</text>
+      <text>{{notice || '当前页仅展示已接入后台的商户权益。'}}</text>
     </view>
   </scroll-view>
 </view>

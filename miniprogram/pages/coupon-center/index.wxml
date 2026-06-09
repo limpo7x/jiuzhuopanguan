@@ -1,4 +1,4 @@
-<navigation-bar title="优惠券" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
+<navigation-bar title="我的权益" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
 
 <view class="coupon-page">
   <scroll-view class="coupon-scroll" scroll-y enhanced show-scrollbar="{{false}}">
@@ -10,7 +10,7 @@
         <text class="coupon-title">{{item.name}}</text>
         <text class="coupon-desc">{{item.desc}}</text>
       </view>
-      <view class="coupon-action">去使用</view>
+      <view class="coupon-action">去查看</view>
     </view>
   </scroll-view>
 </view>

@@ -11,10 +11,10 @@
 <view class="poster-page">
   <scroll-view class="poster-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="poster-card">
-      <image class="poster-image" src="https://api.pomer.cn/static/report-poster.png" mode="aspectFill"></image>
+      <image class="poster-image" src="{{posterImageUrl}}" mode="aspectFill"></image>
       <view class="poster-copy">
         <view class="poster-tag">{{sessionName}}</view>
-        <text class="poster-title">这局快乐就完事了！</text>
+        <text class="poster-title">{{posterTitle}}</text>
         <view class="poster-ranks">
           <view wx:for="{{ranks}}" wx:key="title" class="poster-rank-card">
             <view class="poster-rank-tag">{{item.title}}</view>
@@ -27,7 +27,7 @@
     </view>
 
     <view class="poster-section-head">
-      <text class="poster-section-title">分享</text>
+      <text class="poster-section-title">分享到</text>
     </view>
 
     <view class="poster-share-grid">

@@ -1,5 +1,6 @@
-import { getSessionReport, getSessionRuntime } from '../../utils/session'
 import { trackAnalyticsEvent } from '../../services/analytics'
+import { getManagedReport } from '../../services/operations'
+import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 
 interface ReportRank {
   avatarUrl: string
@@ -16,6 +17,7 @@ interface ResultReportState {
   events: ReportEvent[]
   metaText: string
   ranks: ReportRank[]
+  reportId: string
   sessionName: string
 }
 
@@ -30,46 +32,75 @@ Page<ResultReportState, ResultReportMethods>({
   data: {
     metaText: '',
     ranks: [],
+    reportId: '',
     sessionName: '本局战报',
     events: [],
   },
 
-  onLoad() {
-    const report = getSessionReport()
+  async onLoad(query) {
     const runtime = getSessionRuntime()
+    const reportId = typeof query?.reportId === 'string' ? decodeURIComponent(query.reportId) : runtime.reportId || ''
 
-    trackAnalyticsEvent({
-      type: 'report_view',
-      meta: {
-        sessionId: runtime.sessionId || '',
-        source: 'result-report',
-      },
-    })
-
-    if (!report) {
-      this.setData({
-        sessionName: runtime.sessionName || '本局战报',
-        metaText: `${runtime.sessionName || '本局战报'} · ${runtime.playerCount || 0} 人局`,
-        events: runtime.playerStats.length
-          ? runtime.playerStats.map((item) => ({
-              text: `${item.name} 欠酒 ${item.debtCount} 杯，已喝 ${item.drinkCount} 杯，消杯 ${item.clearedCount} 次。`,
-            }))
-          : [{ text: '本局暂未生成完整战报。' }],
+    if (!reportId) {
+      wx.showToast({
+        title: '未找到战报',
+        icon: 'none',
       })
       return
     }
 
-    this.setData({
-      events: report.events,
-      metaText: `${report.sessionName} · ${report.playerCount} 人局`,
-      ranks: report.ranks,
-      sessionName: report.sessionName,
-    })
+    try {
+      wx.showLoading({
+        title: '加载战报中',
+        mask: true,
+      })
+
+      const report = await getManagedReport(reportId)
+
+      setSessionRuntime({
+        reportId: report.id,
+        sessionId: report.sessionId || runtime.sessionId || '',
+        sessionName: report.sessionName || runtime.sessionName,
+        templateName: report.templateName || runtime.templateName || '',
+      })
+
+      this.setData({
+        events: report.events.length ? report.events : [{ text: '本局暂无可展示的战报事件。' }],
+        metaText: `${report.sessionName} · ${report.playerCount} 人局`,
+        ranks: report.ranks,
+        reportId: report.id,
+        sessionName: report.sessionName || '本局战报',
+      })
+
+      trackAnalyticsEvent({
+        type: 'report_view',
+        reportId: report.id,
+        meta: {
+          sessionId: report.sessionId || runtime.sessionId || '',
+          source: 'result-report',
+        },
+      })
+    } catch (error) {
+      this.setData({
+        events: [{ text: error instanceof Error ? error.message : '战报加载失败，请稍后重试。' }],
+        metaText: '战报加载失败',
+        ranks: [],
+        reportId: '',
+        sessionName: '本局战报',
+      })
+      wx.showToast({
+        title: error instanceof Error ? error.message : '战报加载失败',
+        icon: 'none',
+      })
+    } finally {
+      wx.hideLoading()
+    }
   },
 
   handleRestartTap() {
     trackAnalyticsEvent({
       type: 'report_replay',
+      reportId: this.data.reportId,
       meta: {
         sessionId: getSessionRuntime().sessionId || '',
         source: 'result-report',
@@ -85,7 +116,14 @@ Page<ResultReportState, ResultReportMethods>({
   },
 
   handleShareTap() {
-    this.openPage('/pages/share-poster/index')
+    if (!this.data.reportId) {
+      wx.showToast({
+        title: '战报未加载完成',
+        icon: 'none',
+      })
+      return
+    }
+    this.openPage(`/pages/share-poster/index?reportId=${encodeURIComponent(this.data.reportId)}`)
   },
 
   openPage(url) {

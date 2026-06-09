@@ -4,7 +4,7 @@
   <scroll-view class="member-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="member-hero">
       <text class="member-hero-title">开通会员，解锁完整酒局体验</text>
-      <text class="member-hero-subtitle">模板权益、战报权益、分享权益一并打开</text>
+      <text class="member-hero-subtitle">权益、战报、分享素材统一读取后台会员配置。</text>
     </view>
 
     <view class="member-card">
@@ -16,13 +16,13 @@
     </view>
 
     <view class="member-card">
-      <text class="member-section-title">选择方案</text>
+      <text class="member-section-title">可选方案</text>
       <view wx:for="{{packages}}" wx:key="name" class="member-package {{item.active ? 'member-package-active' : ''}}">
         <text class="member-package-name">{{item.name}}</text>
         <text class="member-package-price">{{item.price}}</text>
       </view>
     </view>
 
-    <view class="member-primary" bindtap="handleOpenTap">领券后开通更划算</view>
+    <view class="member-primary" bindtap="handleOpenTap">{{ctaText}}</view>
   </scroll-view>
 </view>

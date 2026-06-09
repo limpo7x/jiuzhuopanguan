@@ -2,15 +2,27 @@
 
 <view class="usage-page">
   <scroll-view class="usage-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view wx:for="{{records}}" wx:key="name" class="usage-item" data-route="{{item.route}}" bindtap="handleRecordTap">
+    <view wx:if="{{records.length}}">
+      <view wx:for="{{records}}" wx:key="name" class="usage-item" data-route="{{item.route}}" bindtap="handleRecordTap">
+        <view class="usage-copy">
+          <view class="usage-title-row">
+            <text class="usage-title">{{item.name}}</text>
+            <view class="usage-tag">{{item.tag}}</view>
+          </view>
+          <text class="usage-meta">{{item.meta}}</text>
+        </view>
+        <text class="usage-arrow">›</text>
+      </view>
+    </view>
+
+    <view wx:else class="usage-item">
       <view class="usage-copy">
         <view class="usage-title-row">
-          <text class="usage-title">{{item.name}}</text>
-          <view class="usage-tag">{{item.tag}}</view>
+          <text class="usage-title">暂无真实使用记录</text>
+          <view class="usage-tag">未接入</view>
         </view>
-        <text class="usage-meta">{{item.meta}}</text>
+        <text class="usage-meta">当用户真实使用工具或查看战报后，这里会展示后台记录。</text>
       </view>
-      <text class="usage-arrow">›</text>
     </view>
   </scroll-view>
 </view>

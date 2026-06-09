@@ -1,33 +1,14 @@
-import { staticAsset } from '../../config/assets'
-
-interface FavoriteItem {
-  imageUrl: string
-  meta: string
-  name: string
-  route: string
-}
-
-interface FavoritesState {
-  items: FavoriteItem[]
-}
-
-interface FavoritesMethods {
-  handleItemTap: (event: WechatMiniprogram.BaseEvent) => void
-}
-
-Page<FavoritesState, FavoritesMethods>({
+Page({
   data: {
-    items: [
-      { name: '整活大挑战模板', meta: '收藏于 昨天 20:10', imageUrl: staticAsset('report-poster.png'), route: '/pages/premium-templates/index' },
-      { name: '二维码生成', meta: '收藏于 前天 18:42', imageUrl: staticAsset('toolbox-hero.png'), route: '/pages/tool-detail/index?id=qr-code&name=%E4%BA%8C%E7%BB%B4%E7%A0%81' },
-      { name: '周五热场局战报', meta: '收藏于 05.20 23:16', imageUrl: staticAsset('party-hero.png'), route: '/pages/result-report/index' },
+    notes: [
+      {
+        title: '收藏功能暂未接入真实数据',
+        desc: '当前版本没有独立的收藏数据模型，为避免展示假收藏，这里先下线为说明页。',
+      },
+      {
+        title: '建议使用“使用记录”和“历史酒局”',
+        desc: '工具使用、战报查看、酒局历史都已改为真实读取，可直接从这些页面回看最近行为。',
+      },
     ],
   },
-
-  handleItemTap(event) {
-    const { route } = event.currentTarget.dataset as { route: string }
-    wx.navigateTo({ url: route })
-  },
 })
-
-export {}

@@ -58,14 +58,32 @@ Page<WaitingRoomState, WaitingRoomMethods>({
       isJudge,
       sessionId,
     })
-    await this.refreshSession()
+
+    try {
+      await this.refreshSession()
+    } catch (error) {
+      this.setData({ loading: false })
+      wx.showToast({
+        title: error instanceof Error ? error.message : '酒局加载失败',
+        icon: 'none',
+      })
+    }
   },
 
   async onShow() {
     if (!this.data.sessionId && !getSessionRuntime().sessionId) {
       return
     }
-    await this.refreshSession()
+
+    try {
+      await this.refreshSession()
+    } catch (error) {
+      this.setData({ loading: false })
+      wx.showToast({
+        title: error instanceof Error ? error.message : '酒局加载失败',
+        icon: 'none',
+      })
+    }
   },
 
   async refreshSession(showToast = false) {
@@ -130,7 +148,14 @@ Page<WaitingRoomState, WaitingRoomMethods>({
   },
 
   async handleRefreshTap() {
-    await this.refreshSession(true)
+    try {
+      await this.refreshSession(true)
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : '刷新失败',
+        icon: 'none',
+      })
+    }
   },
 
   async handleStartTap() {
@@ -151,19 +176,33 @@ Page<WaitingRoomState, WaitingRoomMethods>({
       }
     }
 
-    if (this.data.sessionId) {
-      await updateManagedSession(this.data.sessionId, {
-        state: '进行中',
-        status: '正常',
-      }).catch(() => null)
+    try {
+      wx.showLoading({
+        title: '正在开局',
+        mask: true,
+      })
+
+      if (this.data.sessionId) {
+        await updateManagedSession(this.data.sessionId, {
+          state: '进行中',
+          status: '正常',
+        })
+      }
+
+      const runtime = setSessionRuntime({
+        isJudge: this.data.isJudge,
+        startedAt: getSessionRuntime().startedAt || Date.now(),
+      })
+
+      this.openPage(`/pages/live-record/index?role=${this.data.isJudge ? 'judge' : 'viewer'}&sessionName=${encodeURIComponent(runtime.sessionName)}`)
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : '开局失败',
+        icon: 'none',
+      })
+    } finally {
+      wx.hideLoading()
     }
-
-    const runtime = setSessionRuntime({
-      isJudge: this.data.isJudge,
-      startedAt: getSessionRuntime().startedAt || Date.now(),
-    })
-
-    this.openPage(`/pages/live-record/index?role=${this.data.isJudge ? 'judge' : 'viewer'}&sessionName=${encodeURIComponent(runtime.sessionName)}`)
   },
 
   openPage(url) {

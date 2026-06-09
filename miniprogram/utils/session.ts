@@ -53,6 +53,7 @@ export interface SessionRuntime {
   playerReactions: SessionPlayerReaction[]
   playerStats: SessionPlayerStat[]
   province?: string
+  reportId?: string
   selectedPlayers: SessionParticipant[]
   sessionId?: string
   sessionName: string
@@ -76,6 +77,7 @@ const DEFAULT_SESSION_RUNTIME: SessionRuntime = {
   playerReactions: [],
   playerStats: [],
   province: '',
+  reportId: '',
   selectedPlayers: [],
   sessionId: '',
   sessionName: '今晚聚会不醉不归',

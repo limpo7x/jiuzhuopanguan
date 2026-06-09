@@ -1,24 +1,10 @@
-interface SettingItem {
-  desc: string
-  name: string
-  value: string
-}
-
-interface SettingsState {
-  items: SettingItem[]
-}
-
-interface SettingsMethods {}
-
-Page<SettingsState, SettingsMethods>({
+Page({
   data: {
     items: [
-      { name: '消息提醒', desc: '酒局进度、成员加入、战报生成提醒', value: '已开启' },
-      { name: '隐私设置', desc: '控制昵称、头像和战报公开范围', value: '好友可见' },
-      { name: '内容偏好', desc: '屏蔽过于激进的惩罚和话题模板', value: '标准模式' },
-      { name: '版本信息', desc: '当前预览版本 0.1.0', value: '检查更新' },
+      { name: '消息提醒', desc: '暂未接入真实开关，后续接通后台配置后再开放。', value: '功能建设中' },
+      { name: '隐私范围', desc: '当前用户昵称、头像、地址由微信授权与接口返回，不支持在此页手动改。', value: '自动获取' },
+      { name: '内容偏好', desc: '题库与模板的过滤暂由后台上线状态控制，前台偏好开关暂未开放。', value: '后台控制' },
+      { name: '版本信息', desc: '当前页为说明页，避免继续展示未生效的假设置项。', value: '说明模式' },
     ],
   },
 })
-
-export {}

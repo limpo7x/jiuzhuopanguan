@@ -1,3 +1,5 @@
+import { getMembershipCatalog } from '../../services/content'
+
 interface MemberBenefit {
   label: string
   value: string
@@ -11,6 +13,7 @@ interface MemberPackage {
 
 interface MemberCenterState {
   benefits: MemberBenefit[]
+  ctaText: string
   packages: MemberPackage[]
 }
 
@@ -20,16 +23,32 @@ interface MemberCenterMethods {
 
 Page<MemberCenterState, MemberCenterMethods>({
   data: {
-    benefits: [
-      { label: '模板权益', value: 'PRO 模板无限看' },
-      { label: '广告权益', value: '战报导出免广告' },
-      { label: '资产权益', value: '专属头像框和徽章' },
-    ],
-    packages: [
-      { name: '连续包月', price: '¥18/月', active: true },
-      { name: '季度卡', price: '¥48/季' },
-      { name: '年度卡', price: '¥168/年' },
-    ],
+    benefits: [],
+    ctaText: '查看我的权益',
+    packages: [],
+  },
+
+  async onLoad() {
+    try {
+      const catalog = await getMembershipCatalog()
+      this.setData({
+        benefits: catalog.benefits.map((item) => ({
+          label: item.scope,
+          value: `${item.name} · ${item.note}`,
+        })),
+        ctaText: catalog.membership.active ? '查看我的已开通权益' : '前往开通或领取权益',
+        packages: catalog.plans.map((item) => ({
+          active: Boolean(item.active),
+          name: item.name,
+          price: `${item.price} · ${item.duration}`,
+        })),
+      })
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : '会员数据加载失败',
+        icon: 'none',
+      })
+    }
   },
 
   handleOpenTap() {

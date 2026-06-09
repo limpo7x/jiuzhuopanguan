@@ -2,129 +2,13 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <meta http-equiv="refresh" content="0; url=/admin/login" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>酒桌判官后台</title>
-    <link rel="stylesheet" href="/admin/static/app.css" />
   </head>
   <body>
-    <div class="shell">
-      <aside class="sidebar">
-        <h1>酒桌判官后台</h1>
-        <p>直接维护首页 Banner、积分商城、模板包。</p>
-        <nav class="nav">
-          <button class="nav-item nav-item-active" data-section="home">首页 Banner</button>
-          <button class="nav-item" data-section="points">积分商城</button>
-          <button class="nav-item" data-section="templates">模板包</button>
-        </nav>
-      </aside>
-
-      <main class="main">
-        <div class="toolbar">
-          <div>
-            <strong>接口地址：</strong>
-            <span>/api/v1</span>
-          </div>
-          <div id="status" class="status">等待加载</div>
-        </div>
-
-        <section id="section-home" class="panel">
-          <div class="panel-head">
-            <h2>首页 Banner</h2>
-            <button id="save-home" class="primary-btn">保存 Banner</button>
-          </div>
-          <div class="form-grid">
-            <label class="field">
-              <span>主标题</span>
-              <input id="home-title" type="text" />
-            </label>
-            <label class="field">
-              <span>副标题</span>
-              <input id="home-subtitle" type="text" />
-            </label>
-            <label class="field field-full">
-              <span>图片地址</span>
-              <input id="home-image" type="text" />
-            </label>
-          </div>
-          <div class="preview-card">
-            <img id="home-image-preview" alt="banner preview" />
-          </div>
-        </section>
-
-        <section id="section-points" class="panel panel-hidden">
-          <div class="panel-head">
-            <h2>积分商城</h2>
-            <button id="save-points" class="primary-btn">保存积分配置</button>
-          </div>
-          <div class="form-grid">
-            <label class="field">
-              <span>展示积分余额</span>
-              <input id="points-balance" type="number" min="0" />
-            </label>
-            <label class="field field-full">
-              <span>横幅图片地址</span>
-              <input id="points-banner-image" type="text" />
-            </label>
-          </div>
-
-          <div class="block">
-            <div class="block-head">
-              <h3>每日任务</h3>
-              <button id="add-task" class="ghost-btn">新增任务</button>
-            </div>
-            <div id="points-tasks"></div>
-          </div>
-
-          <div class="block">
-            <div class="block-head">
-              <h3>积分商品</h3>
-              <button id="add-reward" class="ghost-btn">新增商品</button>
-            </div>
-            <div id="points-rewards"></div>
-          </div>
-        </section>
-
-        <section id="section-templates" class="panel panel-hidden">
-          <div class="panel-head">
-            <h2>模板包</h2>
-            <button id="save-templates" class="primary-btn">保存模板配置</button>
-          </div>
-
-          <div class="block">
-            <div class="block-head">
-              <h3>模板分类</h3>
-              <button id="add-filter" class="ghost-btn">新增分类</button>
-            </div>
-            <div id="template-filters"></div>
-          </div>
-
-          <div class="block">
-            <div class="block-head">
-              <h3>模板列表</h3>
-              <button id="add-template" class="ghost-btn">新增模板</button>
-            </div>
-            <div id="template-items"></div>
-          </div>
-
-          <div class="block">
-            <div class="block-head">
-              <h3>解锁卡片</h3>
-            </div>
-            <div class="form-grid">
-              <label class="field field-full">
-                <span>标题</span>
-                <input id="unlock-title" type="text" />
-              </label>
-              <label class="field">
-                <span>进度文案</span>
-                <input id="unlock-progress" type="text" />
-              </label>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <script src="/admin/static/app.js"></script>
+    <script>
+      window.location.replace('/admin/login')
+    </script>
   </body>
 </html>
