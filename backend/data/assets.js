@@ -1,11 +1,15 @@
 const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
+const sharp = require('sharp')
 const { createStoreAccessor } = require('./store-accessor')
 
 const manifestPath = path.join(__dirname, 'asset-manifest.json')
 const uploadRoot = path.join(__dirname, '..', 'public', 'uploads', 'admin')
 const MAX_IMAGE_BYTES = 6 * 1024 * 1024
+const MAX_IMAGE_WIDTH = 1600
+const MAX_IMAGE_HEIGHT = 1600
+const WEBP_QUALITY = 82
 
 const MIME_EXTENSION_MAP = {
   'image/gif': 'gif',
@@ -74,24 +78,60 @@ const parseDataUrl = (value) => {
   return { mimeType, extension, buffer }
 }
 
-const saveAdminImage = ({ category, dataUrl, fileName }) => {
-  const { buffer, extension, mimeType } = parseDataUrl(dataUrl)
+const compressAdminImage = async ({ buffer, mimeType }) => {
+  if (mimeType === 'image/gif') {
+    return {
+      buffer,
+      extension: 'gif',
+      mimeType,
+      originalSize: buffer.length,
+      storedSize: buffer.length,
+    }
+  }
+
+  const compressedBuffer = await sharp(buffer)
+    .rotate()
+    .resize({
+      width: MAX_IMAGE_WIDTH,
+      height: MAX_IMAGE_HEIGHT,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    .webp({
+      quality: WEBP_QUALITY,
+      effort: 5,
+    })
+    .toBuffer()
+
+  return {
+    buffer: compressedBuffer,
+    extension: 'webp',
+    mimeType: 'image/webp',
+    originalSize: buffer.length,
+    storedSize: compressedBuffer.length,
+  }
+}
+
+const saveAdminImage = async ({ category, dataUrl, fileName }) => {
+  const { buffer, mimeType } = parseDataUrl(dataUrl)
+  const compressed = await compressAdminImage({ buffer, mimeType })
   const folder = normalizeCategory(category)
   const safeBaseName = slugify(path.parse(String(fileName || '')).name) || 'asset'
-  const storedName = `${Date.now()}-${safeBaseName}-${crypto.randomBytes(3).toString('hex')}.${extension}`
+  const storedName = `${Date.now()}-${safeBaseName}-${crypto.randomBytes(3).toString('hex')}.${compressed.extension}`
   const targetDir = path.join(uploadRoot, folder)
   const targetPath = path.join(targetDir, storedName)
 
   ensureUploadRoot()
   fs.mkdirSync(targetDir, { recursive: true })
-  fs.writeFileSync(targetPath, buffer)
+  fs.writeFileSync(targetPath, compressed.buffer)
 
   const entry = {
     id: `asset-${Date.now()}-${crypto.randomBytes(2).toString('hex')}`,
     name: fileName || storedName,
     category: folder,
-    mimeType,
-    size: buffer.length,
+    mimeType: compressed.mimeType,
+    originalSize: compressed.originalSize,
+    size: compressed.storedSize,
     url: `/uploads/admin/${folder}/${storedName}`,
     createdAt: new Date().toISOString(),
     source: 'upload',

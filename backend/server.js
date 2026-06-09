@@ -884,7 +884,7 @@ const server = http.createServer((request, response) => {
         return
       }
       const payload = await readJsonBody(request)
-      const asset = saveAdminImage({
+      const asset = await saveAdminImage({
         category: payload.category || 'home',
         dataUrl: payload.dataUrl,
         fileName: payload.fileName || 'home-hero.png',
@@ -903,7 +903,7 @@ const server = http.createServer((request, response) => {
         return
       }
       const payload = await readJsonBody(request)
-      const asset = saveAdminImage(payload)
+      const asset = await saveAdminImage(payload)
       sendOk(response, {
         uploaded: true,
         asset,
