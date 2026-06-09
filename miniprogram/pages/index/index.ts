@@ -1,17 +1,21 @@
 import { homePageMock, type HomePageData } from '../../mock/home'
 import { getHomePageData } from '../../services/home'
 import { ensureUserAuthorized, getCurrentDisplayProfile, getUserAuthSession } from '../../utils/social'
+import { avatarAsset } from '../../config/assets'
 
 interface HomePageState {
   canCheckIn: boolean
   checkedIn: boolean
   home: HomePageData
   loading: boolean
+  userAvatarUrl: string
+  userName: string
 }
 
 interface HomePageMethods {
   announcePreview: (message: string) => void
   handleCheckIn: () => void
+  handleProfileTap: () => void
   handlePrimaryTap: () => Promise<void>
   handleQuickToolTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
@@ -34,6 +38,8 @@ Page<HomePageState, HomePageMethods>({
     checkedIn: false,
     home: homePageMock,
     loading: true,
+    userAvatarUrl: avatarAsset(1),
+    userName: '未登录',
   },
 
   onLoad() {
@@ -90,8 +96,22 @@ Page<HomePageState, HomePageMethods>({
       getUserAuthSession().catch(() => ({ loggedIn: false, profile: null })),
       getCurrentDisplayProfile().catch(() => null),
     ])
+    const displayProfile = session.profile || currentProfile
     this.setData({
       canCheckIn: Boolean(session.profile?.wechatOpenId || currentProfile?.wechatOpenId),
+      userAvatarUrl: displayProfile?.avatarUrl || avatarAsset(1),
+      userName: displayProfile?.wechatOpenId && displayProfile.name ? displayProfile.name : '未登录',
+    })
+  },
+
+  handleProfileTap() {
+    wx.navigateTo({
+      url: `/pages/profile-edit/index?redirect=${encodeURIComponent('/pages/index/index')}`,
+      fail: () => {
+        wx.redirectTo({
+          url: `/pages/profile-edit/index?redirect=${encodeURIComponent('/pages/index/index')}`,
+        })
+      },
     })
   },
 

@@ -50,6 +50,7 @@ interface SharePreviewMethods {
 const SHARE_HEADLINE = '查看谁是今晚欠酒王？'
 const CANVAS_WIDTH = 900
 const CARD_WIDTH = 820
+const MINIAPP_QR_ASSET = '/assets/home/share-miniapp-qr.png'
 
 const getImageInfo = (src: string) =>
   new Promise<WechatMiniprogram.GetImageInfoSuccessCallbackResult>((resolve, reject) => {
@@ -149,6 +150,29 @@ const drawAvatar = (
   ctx.setFontSize(Math.round(size * 0.34))
   ctx.setTextAlign('center')
   ctx.fillText('友', x + size / 2, y + size * 0.62)
+  ctx.setTextAlign('left')
+}
+
+const drawQrPanel = (
+  ctx: WechatMiniprogram.CanvasContext,
+  qrPath: string,
+  x: number,
+  y: number,
+  size: number,
+) => {
+  const panelWidth = size + 28
+  const panelHeight = size + 64
+  fillRoundRect(ctx, x, y, panelWidth, panelHeight, 24, '#fffaf4')
+  strokeRoundRect(ctx, x, y, panelWidth, panelHeight, 24, '#ffd0ad', 2)
+
+  if (qrPath) {
+    ctx.drawImage(qrPath, x + 14, y + 14, size, size)
+  }
+
+  ctx.setFillStyle('#7b3926')
+  ctx.setFontSize(18)
+  ctx.setTextAlign('center')
+  ctx.fillText('扫一扫看看怎么个事', x + panelWidth / 2, y + size + 46)
   ctx.setTextAlign('left')
 }
 
@@ -340,10 +364,18 @@ Page<SharePreviewState, SharePreviewMethods>({
   },
 
   async buildShareImage() {
+    let qrPath = ''
+    try {
+      const qrImage = await getImageInfo(MINIAPP_QR_ASSET)
+      qrPath = qrImage.path
+    } catch {
+      qrPath = ''
+    }
+
     if (this.data.showJoinStatus) {
       const itemHeight = 104
       const listHeight = Math.max(this.data.joinStatusPlayers.length, 1) * itemHeight
-      const canvasHeight = 360 + listHeight + 140
+      const canvasHeight = 360 + listHeight + 260
       const avatarPaths = await Promise.all(
         this.data.joinStatusPlayers.map(async (item) => {
           try {
@@ -382,6 +414,8 @@ Page<SharePreviewState, SharePreviewMethods>({
           drawCenteredText(ctx, player.status || '待加入', 620, y + 49, 150, 22, '#ffffff')
           y += itemHeight
         })
+
+        drawQrPanel(ctx, qrPath, 652, canvasHeight - 226, 120)
       })
     }
 
@@ -396,11 +430,11 @@ Page<SharePreviewState, SharePreviewMethods>({
       }),
     )
 
-    return this.drawCanvasToFile(CANVAS_WIDTH, 1040, (ctx) => {
+    return this.drawCanvasToFile(CANVAS_WIDTH, 1180, (ctx) => {
       ctx.setFillStyle('#fff8ee')
-      ctx.fillRect(0, 0, CANVAS_WIDTH, 1040)
+      ctx.fillRect(0, 0, CANVAS_WIDTH, 1180)
 
-      fillRoundRect(ctx, 40, 40, CARD_WIDTH, 960, 30, '#ff6847')
+      fillRoundRect(ctx, 40, 40, CARD_WIDTH, 1100, 30, '#ff6847')
       ctx.setFillStyle('rgba(255,255,255,0.14)')
       ctx.fillRect(40, 40, CARD_WIDTH, 320)
 
@@ -442,6 +476,8 @@ Page<SharePreviewState, SharePreviewMethods>({
       ctx.setFillStyle('#8f7f6d')
       ctx.setFontSize(22)
       ctx.fillText('该分享图仅保留展示数据，不包含页面按钮', 120, 836)
+
+      drawQrPanel(ctx, qrPath, 648, 946, 128)
     })
   },
 

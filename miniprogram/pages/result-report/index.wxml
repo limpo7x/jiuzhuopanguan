@@ -13,11 +13,25 @@
     <view class="report-poster-card">
       <view class="report-poster-copy">
         <view class="report-tag">本局战报</view>
-        <text class="report-title">这局快乐就完事了！</text>
+        <text class="report-title">{{reportTitle}}</text>
         <text class="report-meta">{{metaText}}</text>
 
-        <view class="report-ranks">
-          <view wx:for="{{ranks}}" wx:key="title" class="report-rank-card">
+        <view wx:if="{{featuredRank}}" class="report-featured-rank">
+          <view class="report-featured-head">
+            <view class="report-featured-tag">{{featuredRank.title}}</view>
+            <view class="report-featured-badge">全场焦点</view>
+          </view>
+          <view class="report-featured-body">
+            <image class="report-featured-avatar" src="{{featuredRank.avatarUrl}}" mode="aspectFill"></image>
+            <view class="report-featured-copy">
+              <text class="report-featured-name">{{featuredRank.name}}</text>
+              <text class="report-featured-value">{{featuredRank.value}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view wx:if="{{secondaryRanks.length}}" class="report-ranks">
+          <view wx:for="{{secondaryRanks}}" wx:key="title" class="report-rank-card">
             <view class="report-rank-tag">{{item.title}}</view>
             <image class="report-rank-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
             <text class="report-rank-name">{{item.name}}</text>

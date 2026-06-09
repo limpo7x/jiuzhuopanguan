@@ -8,17 +8,17 @@ import {
 } from '../../utils/social'
 
 interface JudgeEntry {
+  iconClass: string
   id: string
   name: string
-  iconClass: string
   toneClass: string
 }
 
 interface JudgeTemplate {
   id: string
+  meta: string
   name: string
   tag: string
-  meta: string
 }
 
 interface JudgePokeCard {
@@ -42,7 +42,7 @@ interface JudgePageState {
 interface JudgePageMethods {
   handleCreateTap: () => void
   handleEntryTap: (event: WechatMiniprogram.BaseEvent) => void
-  handlePokeActionTap: (event: WechatMiniprogram.BaseEvent) => void
+  handlePokeActionTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
   loadJudgeData: () => Promise<void>
   openPage: (url: string) => void
@@ -65,12 +65,12 @@ Page<JudgePageState, JudgePageMethods>({
       { id: 'points', name: '积分活动', iconClass: 'judge-icon-trophy', toneClass: '' },
       { id: 'merchant', name: '合作商户', iconClass: 'judge-icon-store', toneClass: 'judge-tile-green' },
     ],
-    sessionMeta: '今晚局局不醉不归',
+    sessionMeta: '今晚组局，不醉不归',
     sessionName: '进行中 #1',
-    sessionTag: '4/6人',
+    sessionTag: '4/6 人',
     templates: [
-      { id: 'classic', name: '朋友局经典玩法', tag: '推荐', meta: '适合 4-8 人 · 快速热场' },
-      { id: 'birthday', name: '生日局整活模板', tag: '热门', meta: '祝酒、点名、战报一套走完' },
+      { id: 'classic', name: '朋友局经典玩法', tag: '推荐', meta: '适合 4-8 人，开局快，酒桌气氛起得快' },
+      { id: 'birthday', name: '生日局整活模板', tag: '热门', meta: '祝酒、点名、战报一套走完，桌上更热闹' },
     ],
   },
 
@@ -104,9 +104,9 @@ Page<JudgePageState, JudgePageMethods>({
           id: item.id,
           avatarUrl: counterpart.avatarUrl,
           name: counterpart.name,
-          message: `${counterpart.name} 和你已经合拍了，找时间再开一局。`,
+          message: `${counterpart.name} 已和你拍一拍成功，找时间再开一局。`,
           actionState: 'matched' as const,
-          statusLabel: '已合拍',
+          statusLabel: '已匹配',
         }
       }
 
@@ -115,7 +115,7 @@ Page<JudgePageState, JudgePageMethods>({
           id: item.id,
           avatarUrl: counterpart.avatarUrl,
           name: counterpart.name,
-          message: '有人拍了拍你，他可能想和你增进感情了。',
+          message: '有人拍了拍你，可能正在等你一起组局。',
           actionState: 'incoming' as const,
           statusLabel: '',
         }
@@ -127,16 +127,16 @@ Page<JudgePageState, JudgePageMethods>({
         name: counterpart.name,
         message: `你拍了拍 ${counterpart.name}，等 TA 回拍。`,
         actionState: 'outgoing' as const,
-        statusLabel: '已拍过',
+        statusLabel: '已发起',
       }
     })
     const joinedCount = Math.min(runtime.selectedPlayers.length || 0, runtime.playerCount || 0)
 
     this.setData({
       pokeCards,
-      sessionMeta: runtime.sessionName,
+      sessionMeta: runtime.sessionName || '今晚组局，不醉不归',
       sessionName: runtime.startedAt ? '进行中 #1' : '待开局 #1',
-      sessionTag: `${joinedCount}/${runtime.playerCount}人`,
+      sessionTag: `${joinedCount}/${runtime.playerCount} 人`,
     })
   },
 
@@ -153,10 +153,10 @@ Page<JudgePageState, JudgePageMethods>({
   handleEntryTap(event) {
     const { name } = event.currentTarget.dataset as { name: string }
     const routes: Record<string, string> = {
-      '玩法介绍': '/pages/compliance-guide/index',
-      '历史战报': '/pages/wine-history/index',
-      '积分活动': '/pages/wine-points/index',
-      '合作商户': '/pages/merchant-partners/index',
+      玩法介绍: '/pages/compliance-guide/index',
+      历史战报: '/pages/wine-history/index',
+      积分活动: '/pages/wine-points/index',
+      合作商户: '/pages/merchant-partners/index',
     }
     const target = routes[name]
 

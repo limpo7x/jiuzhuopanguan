@@ -35,7 +35,7 @@
         <view wx:if="{{!isJudge}}" class="table-reaction-row">
           <view class="table-reaction-copy">
             <text class="table-reaction-title">{{item.canReact ? '给这位酒友一点态度' : '这是你自己，不能给自己操作'}}</text>
-            <text class="table-reaction-meta">已获 👍 {{item.likeCount}} · 🤏 {{item.weakCount}}</text>
+            <text class="table-reaction-meta">已获 👍 {{item.likeCount}} · 😵 {{item.weakCount}}</text>
           </view>
           <view class="table-reaction-actions">
             <view
@@ -52,7 +52,7 @@
               data-mode="weak"
               bindtap="handleReactionTap"
             >
-              <text class="table-reaction-btn-text">🤏 小拇指</text>
+              <text class="table-reaction-btn-text">😵 小拷打</text>
             </view>
           </view>
         </view>
@@ -68,7 +68,7 @@
 
     <view class="table-notice">
       <view class="table-notice-icon"></view>
-      <text>桌面模式更清晰，大家围坐一起看</text>
+      <text>桌面模式已放大所有信息，方便酒桌上远一点也能看清。</text>
     </view>
 
     <view class="table-action-row">

@@ -12,8 +12,13 @@
       <image class="judge-hero-image" src="https://api.pomer.cn/static/party-hero.png" mode="aspectFill"></image>
       <view class="judge-hero-mask"></view>
       <view class="judge-hero-content">
-        <text class="judge-hero-title">这局，快乐就完事了！</text>
-        <text class="judge-hero-subtitle">欠酒互动才是朋友聚会的灵魂</text>
+        <view class="judge-hero-badge">酒桌主模式</view>
+        <text class="judge-hero-title">酒桌判官</text>
+        <text class="judge-hero-subtitle">远一点也能看清，开局、记分、出战报都更直接。</text>
+        <view class="judge-hero-meta-row">
+          <view class="judge-hero-chip">{{sessionName}}</view>
+          <view class="judge-hero-chip judge-hero-chip-accent">{{sessionTag}}</view>
+        </view>
         <view class="judge-primary" bindtap="handleCreateTap">
           <text>快速开一局</text>
           <view class="judge-primary-icon judge-icon-flash"></view>

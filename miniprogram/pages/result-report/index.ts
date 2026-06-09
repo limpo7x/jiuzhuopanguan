@@ -15,9 +15,11 @@ interface ReportEvent {
 
 interface ResultReportState {
   events: ReportEvent[]
+  featuredRank: ReportRank | null
   metaText: string
-  ranks: ReportRank[]
   reportId: string
+  reportTitle: string
+  secondaryRanks: ReportRank[]
   sessionName: string
 }
 
@@ -30,11 +32,13 @@ interface ResultReportMethods {
 
 Page<ResultReportState, ResultReportMethods>({
   data: {
-    metaText: '',
-    ranks: [],
-    reportId: '',
-    sessionName: '本局战报',
     events: [],
+    featuredRank: null,
+    metaText: '',
+    reportId: '',
+    reportTitle: '这局快乐就完事了！',
+    secondaryRanks: [],
+    sessionName: '本局战报',
   },
 
   async onLoad(query) {
@@ -56,6 +60,8 @@ Page<ResultReportState, ResultReportMethods>({
       })
 
       const report = await getManagedReport(reportId)
+      const ranks = Array.isArray(report.ranks) ? report.ranks : []
+      const [featuredRank, ...secondaryRanks] = ranks
 
       setSessionRuntime({
         reportId: report.id,
@@ -66,9 +72,11 @@ Page<ResultReportState, ResultReportMethods>({
 
       this.setData({
         events: report.events.length ? report.events : [{ text: '本局暂无可展示的战报事件。' }],
+        featuredRank: featuredRank || null,
         metaText: `${report.sessionName} · ${report.playerCount} 人局`,
-        ranks: report.ranks,
         reportId: report.id,
+        reportTitle: report.title || '这局快乐就完事了！',
+        secondaryRanks,
         sessionName: report.sessionName || '本局战报',
       })
 
@@ -83,9 +91,11 @@ Page<ResultReportState, ResultReportMethods>({
     } catch (error) {
       this.setData({
         events: [{ text: error instanceof Error ? error.message : '战报加载失败，请稍后重试。' }],
+        featuredRank: null,
         metaText: '战报加载失败',
-        ranks: [],
         reportId: '',
+        reportTitle: '战报暂不可用',
+        secondaryRanks: [],
         sessionName: '本局战报',
       })
       wx.showToast({

@@ -25,7 +25,7 @@ page {
 
 .table-center {
   display: flex;
-  min-height: 100px;
+  min-height: 132px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -33,15 +33,15 @@ page {
 }
 
 .table-title {
-  font-size: 22px;
+  font-size: 30px;
   line-height: 1.2;
   font-weight: 950;
 }
 
 .table-subtitle {
-  margin-top: 6px;
+  margin-top: 10px;
   color: #8f7f6d;
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1.2;
   font-weight: 800;
 }
@@ -49,8 +49,9 @@ page {
 .table-score-wrap {
   overflow: hidden;
   border: 1px solid #eadfce;
-  border-radius: 10px;
+  border-radius: 14px;
   background: #fffdf8;
+  box-shadow: 0 12px 28px rgba(88, 58, 35, 0.08);
 }
 
 .table-score-head,
@@ -64,7 +65,7 @@ page {
 .table-score-head {
   background: #fff4e6;
   color: #765c46;
-  font-size: 11px;
+  font-size: 15px;
   line-height: 1.2;
   font-weight: 900;
 }
@@ -72,7 +73,7 @@ page {
 .table-head-cell,
 .table-cell {
   min-width: 0;
-  padding: 9px 6px;
+  padding: 14px 8px;
   box-sizing: border-box;
 }
 
@@ -86,7 +87,7 @@ page {
 
 .table-score-row {
   color: #24160f;
-  font-size: 12px;
+  font-size: 17px;
   line-height: 1.2;
   font-weight: 800;
 }
@@ -100,7 +101,7 @@ page {
 .table-col-user {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .table-col-user-name {
@@ -109,11 +110,12 @@ page {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 16px;
 }
 
 .table-col-avatar {
-  width: 22px;
-  height: 22px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: #fff0df;
   flex: 0 0 auto;
@@ -128,8 +130,8 @@ page {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 9px 10px 11px;
+  gap: 12px;
+  padding: 14px 14px 16px;
   background: #fff9f1;
 }
 
@@ -142,14 +144,14 @@ page {
 
 .table-reaction-title {
   color: #24160f;
-  font-size: 11px;
+  font-size: 15px;
   line-height: 1.2;
   font-weight: 900;
 }
 
 .table-reaction-meta {
   color: #8f7f6d;
-  font-size: 10px;
+  font-size: 13px;
   line-height: 1.2;
   font-weight: 700;
 }
@@ -165,9 +167,9 @@ page {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 72px;
-  min-height: 28px;
-  padding: 0 10px;
+  min-width: 104px;
+  min-height: 40px;
+  padding: 0 16px;
   border: 1px solid #eadfce;
   border-radius: 999px;
   background: #fffdf8;
@@ -196,16 +198,16 @@ page {
 }
 
 .table-reaction-btn-text {
-  font-size: 10px;
+  font-size: 14px;
   line-height: 1;
   font-weight: 800;
   white-space: nowrap;
 }
 
 .table-countdown-card {
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: 10px;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: 14px;
   background: #fff1df;
 }
 
@@ -217,14 +219,14 @@ page {
 }
 
 .table-card-title {
-  font-size: 13px;
+  font-size: 17px;
   line-height: 1.2;
   font-weight: 900;
 }
 
 .table-countdown-value {
   color: #ff5b3d;
-  font-size: 20px;
+  font-size: 28px;
   line-height: 1;
   font-weight: 950;
 }
@@ -232,29 +234,29 @@ page {
 .table-notice {
   display: flex;
   align-items: center;
-  gap: 7px;
-  min-height: 30px;
-  margin-top: 14px;
-  padding: 0 10px;
+  gap: 10px;
+  min-height: 44px;
+  margin-top: 16px;
+  padding: 0 14px;
   border-radius: 999px;
   background: rgba(66, 184, 131, 0.1);
   color: #4e8062;
-  font-size: 10px;
-  line-height: 1.2;
+  font-size: 13px;
+  line-height: 1.35;
   font-weight: 800;
 }
 
 .table-notice-icon {
-  width: 12px;
-  height: 12px;
+  width: 16px;
+  height: 16px;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M10 2.5L15.5 5V9.1C15.5 12.8 13.2 15.6 10 17C6.8 15.6 4.5 12.8 4.5 9.1V5L10 2.5ZM8.9 10.9L12.8 7L11.7 5.9L8.9 8.7L7.8 7.6L6.7 8.7L8.9 10.9Z' fill='%234e8062'/%3E%3C/svg%3E") center/contain no-repeat;
 }
 
 .table-action-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 12px;
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .table-ghost,
@@ -263,9 +265,9 @@ page {
   flex: 1;
   align-items: center;
   justify-content: center;
-  min-height: 40px;
+  min-height: 50px;
   border-radius: 999px;
-  font-size: 14px;
+  font-size: 18px;
   line-height: 1;
   font-weight: 900;
 }

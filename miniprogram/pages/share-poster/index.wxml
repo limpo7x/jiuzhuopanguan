@@ -16,8 +16,23 @@
         <view class="poster-tag">{{sessionName}}</view>
         <text class="poster-headline">{{shareHeadline}}</text>
         <text class="poster-title">{{posterTitle}}</text>
-        <view class="poster-ranks">
-          <view wx:for="{{ranks}}" wx:key="title" class="poster-rank-card">
+
+        <view wx:if="{{featuredRank}}" class="poster-featured-rank">
+          <view class="poster-featured-head">
+            <view class="poster-featured-tag">{{featuredRank.title}}</view>
+            <view class="poster-featured-badge">全场焦点</view>
+          </view>
+          <view class="poster-featured-body">
+            <image class="poster-featured-avatar" src="{{featuredRank.avatarUrl}}" mode="aspectFill"></image>
+            <view class="poster-featured-copy">
+              <text class="poster-featured-name">{{featuredRank.name}}</text>
+              <text class="poster-featured-value">{{featuredRank.value}}</text>
+            </view>
+          </view>
+        </view>
+
+        <view wx:if="{{secondaryRanks.length}}" class="poster-ranks">
+          <view wx:for="{{secondaryRanks}}" wx:key="title" class="poster-rank-card">
             <view class="poster-rank-tag">{{item.title}}</view>
             <image class="poster-rank-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
             <text class="poster-rank-name">{{item.name}}</text>

@@ -18,12 +18,13 @@ interface PosterShareItem {
 interface SharePosterState {
   canvasHeight: number
   canvasWidth: number
+  featuredRank: PosterRank | null
   inviteCode: string
   posterImagePath: string
   posterImageUrl: string
   posterTitle: string
-  ranks: PosterRank[]
   reportId: string
+  secondaryRanks: PosterRank[]
   sessionId: string
   sessionName: string
   shareHeadline: string
@@ -48,6 +49,7 @@ interface SharePosterMethods {
 const SHARE_HEADLINE = '查看谁是今晚欠酒王？'
 const CANVAS_WIDTH = 900
 const CARD_WIDTH = 820
+const MINIAPP_QR_ASSET = '/assets/home/share-miniapp-qr.png'
 
 const getImageInfo = (src: string) =>
   new Promise<WechatMiniprogram.GetImageInfoSuccessCallbackResult>((resolve, reject) => {
@@ -127,16 +129,39 @@ const drawAvatar = (
   ctx.setTextAlign('left')
 }
 
+const drawQrPanel = (
+  ctx: WechatMiniprogram.CanvasContext,
+  qrPath: string,
+  x: number,
+  y: number,
+  size: number,
+) => {
+  const panelWidth = size + 28
+  const panelHeight = size + 64
+  fillRoundRect(ctx, x, y, panelWidth, panelHeight, 24, '#fffaf4')
+
+  if (qrPath) {
+    ctx.drawImage(qrPath, x + 14, y + 14, size, size)
+  }
+
+  ctx.setFillStyle('#7b3926')
+  ctx.setFontSize(18)
+  ctx.setTextAlign('center')
+  ctx.fillText('扫一扫看看怎么个事', x + panelWidth / 2, y + size + 46)
+  ctx.setTextAlign('left')
+}
+
 Page<SharePosterState, SharePosterMethods>({
   data: {
-    canvasHeight: 1200,
+    canvasHeight: 1320,
     canvasWidth: CANVAS_WIDTH,
+    featuredRank: null,
     inviteCode: '',
     posterImagePath: '',
     posterImageUrl: '',
     posterTitle: '这局快乐就完事了',
-    ranks: [],
     reportId: '',
+    secondaryRanks: [],
     sessionId: '',
     sessionName: '本局战报',
     shareHeadline: SHARE_HEADLINE,
@@ -159,6 +184,8 @@ Page<SharePosterState, SharePosterMethods>({
       })
 
       const [report, shareConfig] = await Promise.all([getManagedReport(reportId), getManagedShareConfig()])
+      const ranks = Array.isArray(report.ranks) ? report.ranks : []
+      const [featuredRank, ...secondaryRanks] = ranks
 
       setSessionRuntime({
         inviteCode: report.inviteCode || runtime.inviteCode || '',
@@ -171,12 +198,13 @@ Page<SharePosterState, SharePosterMethods>({
       await new Promise<void>((resolve) => {
         this.setData(
           {
+            featuredRank: featuredRank || null,
             inviteCode: report.inviteCode || runtime.inviteCode || shareConfig.preview.inviteCode || '',
             posterImagePath: '',
             posterImageUrl: shareConfig.poster.imageUrl,
             posterTitle: shareConfig.poster.title,
-            ranks: report.ranks,
             reportId: report.id,
+            secondaryRanks,
             sessionId: report.sessionId || runtime.sessionId || '',
             sessionName: report.sessionName || runtime.sessionName || '本局战报',
             shareItems: shareConfig.shareItems
@@ -283,11 +311,18 @@ Page<SharePosterState, SharePosterMethods>({
   },
 
   async buildPosterImage() {
-    const rankCount = Math.max(this.data.ranks.length, 1)
-    const rows = Math.ceil(rankCount / 2)
-    const canvasHeight = 420 + rows * 220 + 180
+    const rankPool = this.data.featuredRank
+      ? [this.data.featuredRank, ...this.data.secondaryRanks]
+      : this.data.secondaryRanks
+    let qrPath = ''
+    try {
+      const qrImage = await getImageInfo(MINIAPP_QR_ASSET)
+      qrPath = qrImage.path
+    } catch {
+      qrPath = ''
+    }
     const avatarPaths = await Promise.all(
-      this.data.ranks.map(async (item) => {
+      rankPool.map(async (item) => {
         try {
           const image = await getImageInfo(item.avatarUrl)
           return image.path
@@ -297,49 +332,75 @@ Page<SharePosterState, SharePosterMethods>({
       }),
     )
 
+    const secondaryCount = Math.max(this.data.secondaryRanks.length, 0)
+    const secondaryRows = Math.ceil(secondaryCount / 2)
+    const canvasHeight = 510 + (this.data.featuredRank ? 250 : 0) + secondaryRows * 210 + 220
+
     return this.drawCanvasToFile(CANVAS_WIDTH, canvasHeight, (ctx) => {
       ctx.setFillStyle('#fff8ee')
       ctx.fillRect(0, 0, CANVAS_WIDTH, canvasHeight)
 
-      fillRoundRect(ctx, 40, 40, CARD_WIDTH, canvasHeight - 80, 32, '#fff1e2')
-      ctx.setFillStyle('#ff6b4d')
-      ctx.fillRect(40, 40, CARD_WIDTH, 230)
+      fillRoundRect(ctx, 40, 40, CARD_WIDTH, canvasHeight - 80, 34, '#fff3e8')
+      ctx.setFillStyle('#ff7645')
+      ctx.fillRect(40, 40, CARD_WIDTH, 240)
 
       ctx.setFillStyle('#ffffff')
-      ctx.setFontSize(46)
-      ctx.fillText(this.data.shareHeadline, 90, 120)
+      ctx.setFontSize(48)
+      ctx.fillText(this.data.shareHeadline, 90, 122)
       ctx.setFontSize(24)
-      ctx.fillText(this.data.sessionName || '本局战报', 90, 168)
-      ctx.fillText(this.data.posterTitle || '这局快乐就完事了', 90, 206)
+      ctx.fillText(this.data.sessionName || '本局战报', 90, 170)
+      ctx.fillText(this.data.posterTitle || '这局快乐就完事了', 90, 208)
 
-      fillRoundRect(ctx, 610, 112, 200, 78, 22, 'rgba(255,255,255,0.18)')
-      drawCenteredText(ctx, this.data.inviteCode || '已结算', 610, 162, 200, 30, '#ffffff')
+      fillRoundRect(ctx, 620, 116, 190, 72, 20, 'rgba(255,255,255,0.16)')
+      drawCenteredText(ctx, this.data.inviteCode || '已结算', 620, 160, 190, 28, '#ffffff')
 
-      const cardWidth = 344
-      const cardHeight = 176
-      let startY = 314
-      this.data.ranks.forEach((rank, index) => {
+      let avatarOffset = 0
+      let currentY = 318
+
+      if (this.data.featuredRank) {
+        const rank = this.data.featuredRank
+        fillRoundRect(ctx, 90, currentY, 720, 206, 28, '#7b1f17')
+        fillRoundRect(ctx, 118, currentY + 24, 180, 44, 22, 'rgba(255, 239, 205, 0.16)')
+        drawCenteredText(ctx, rank.title || '欠酒大王', 118, currentY + 54, 180, 24, '#ffe5b3')
+        fillRoundRect(ctx, 640, currentY + 24, 140, 44, 22, 'rgba(255,255,255,0.14)')
+        drawCenteredText(ctx, '全场焦点', 640, currentY + 54, 140, 22, '#ffffff')
+        drawAvatar(ctx, avatarPaths[avatarOffset] || '', 126, currentY + 94, 84)
+        ctx.setFillStyle('#ffffff')
+        ctx.setFontSize(34)
+        ctx.fillText(rank.name || '未命名玩家', 236, currentY + 136)
+        ctx.setFillStyle('#ffe0d5')
+        ctx.setFontSize(24)
+        ctx.fillText(rank.value || '-', 236, currentY + 176)
+        currentY += 236
+        avatarOffset += 1
+      }
+
+      this.data.secondaryRanks.forEach((rank, index) => {
         const col = index % 2
         const row = Math.floor(index / 2)
-        const x = 90 + col * (cardWidth + 32)
-        const y = startY + row * (cardHeight + 24)
+        const x = 90 + col * 364
+        const y = currentY + row * 210
+        const bg = index % 2 === 0 ? '#fff8f0' : '#f8fbff'
+        const tagBg = index % 2 === 0 ? '#fff0dc' : '#edf4ff'
+        const tagColor = index % 2 === 0 ? '#ff6b42' : '#3b6cff'
 
-        fillRoundRect(ctx, x, y, cardWidth, cardHeight, 24, '#fffaf4')
-        fillRoundRect(ctx, x + 18, y + 18, 116, 36, 18, '#fff1df')
-        drawCenteredText(ctx, rank.title || '战报榜单', x + 18, y + 42, 116, 20, '#ff5b3d')
-
-        drawAvatar(ctx, avatarPaths[index] || '', x + 30, y + 72, 66)
+        fillRoundRect(ctx, x, y, 336, 184, 24, bg)
+        fillRoundRect(ctx, x + 18, y + 18, 118, 38, 19, tagBg)
+        drawCenteredText(ctx, rank.title || `榜单 ${index + 2}`, x + 18, y + 45, 118, 20, tagColor)
+        drawAvatar(ctx, avatarPaths[avatarOffset + index] || '', x + 26, y + 82, 62)
         ctx.setFillStyle('#24160f')
-        ctx.setFontSize(26)
-        ctx.fillText(rank.name || '未命名玩家', x + 118, y + 112)
+        ctx.setFontSize(24)
+        ctx.fillText(rank.name || '未命名玩家', x + 106, y + 116)
         ctx.setFillStyle('#ff5b3d')
-        ctx.setFontSize(28)
-        ctx.fillText(rank.value || '-', x + 118, y + 148)
+        ctx.setFontSize(22)
+        ctx.fillText(rank.value || '-', x + 106, y + 150)
       })
 
       ctx.setFillStyle('#8f7f6d')
       ctx.setFontSize(22)
-      ctx.fillText('分享图仅保留战报展示数据，不包含操作按钮', 90, canvasHeight - 104)
+      ctx.fillText('分享图仅保留展示数据，不包含按钮与操作入口', 90, canvasHeight - 104)
+
+      drawQrPanel(ctx, qrPath, 652, canvasHeight - 212, 106)
     })
   },
 

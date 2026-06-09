@@ -9,6 +9,10 @@
 <view class="page-shell">
   <scroll-view class="screen-body scroll-body with-tabs" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="top-row">
+      <view class="profile-chip" bindtap="handleProfileTap">
+        <image class="profile-chip-avatar" src="{{userAvatarUrl}}" mode="aspectFill"></image>
+        <text class="profile-chip-name">{{userName}}</text>
+      </view>
       <view class="top-row-spacer"></view>
       <view wx:if="{{canCheckIn}}" class="sign-tag" bindtap="handleCheckIn">
         <view class="sign-tag-icon icon-coin"></view>
