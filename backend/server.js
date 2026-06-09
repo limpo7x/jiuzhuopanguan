@@ -589,11 +589,8 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/user/judge-stats') {
-      const session = requireUserSession(request, response)
-      if (!session) {
-        return
-      }
-      sendOk(response, getUserJudgeStats(session.profile.id))
+      const session = resolveUserSession(request)
+      sendOk(response, getUserJudgeStats(session?.profile?.id || ''))
       return
     }
 

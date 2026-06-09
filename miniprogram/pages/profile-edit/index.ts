@@ -90,17 +90,18 @@ Page<ProfileEditState, ProfileEditMethods>({
       getCurrentProfile(),
       requestRuntimeLocation().catch(() => getStoredRuntimeLocation()),
     ])
+    const displayProfile = session.loggedIn && session.profile ? session.profile : profile
 
     this.setData({
-      avatarUrl: profile.avatarUrl || avatarAsset(1),
+      avatarUrl: displayProfile.avatarUrl || avatarAsset(1),
       city: runtimeLocation?.label || runtimeLocation?.city || profile.city || '自动获取中',
-      hasWechatProfile: Boolean(profile.wechatOpenId || wechatDraftProfile),
-      identityTag: profile.identityTag || '',
+      hasWechatProfile: Boolean(displayProfile.wechatOpenId || wechatDraftProfile),
+      identityTag: displayProfile.identityTag || '',
       loggedIn: session.loggedIn && Boolean(session.profile?.wechatOpenId),
       name: profile.name || '未登录',
-      phoneMasked: profile.phoneMasked || '',
-      signature: profile.signature || '',
-      wechatOpenId: profile.wechatOpenId || '',
+      phoneMasked: displayProfile.phoneMasked || '',
+      signature: displayProfile.signature || '',
+      wechatOpenId: displayProfile.wechatOpenId || '',
     })
   },
 

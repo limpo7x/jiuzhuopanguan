@@ -333,6 +333,7 @@ const buildLocalBootstrap = (profile: SocialProfile): SocialBootstrapResponse =>
 }
 
 export const ensureCurrentProfile = async (): Promise<SocialProfile> => {
+  const local = getLocalProfile()
   const token = getUserSessionToken()
   if (token) {
     try {
@@ -340,12 +341,15 @@ export const ensureCurrentProfile = async (): Promise<SocialProfile> => {
       if (session.loggedIn && session.profile) {
         return upsertLocalProfile(session.profile)
       }
+      cacheUserToken('')
+      return upsertLocalProfile(local)
     } catch {
+      if (local.wechatOpenId) {
+        return upsertLocalProfile(local)
+      }
       cacheUserToken('')
     }
   }
-
-  const local = getLocalProfile()
 
   try {
     const profile = await request<SocialProfile>('/social/profile', 'PUT', local)
@@ -376,6 +380,7 @@ export const getUserAuthSession = async (): Promise<UserAuthSession> => {
   if (!token) {
     return { loggedIn: false, profile: null }
   }
+  const local = getLocalProfile()
   try {
     const session = await request<UserAuthSession>('/user/auth/session')
     if (session.loggedIn && session.profile) {
@@ -385,7 +390,7 @@ export const getUserAuthSession = async (): Promise<UserAuthSession> => {
     cacheUserToken('')
     return { loggedIn: false, profile: null }
   } catch {
-    return { loggedIn: false, profile: null }
+    return local.wechatOpenId ? { loggedIn: true, profile: local } : { loggedIn: false, profile: null }
   }
 }
 

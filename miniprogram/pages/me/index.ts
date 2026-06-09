@@ -1,7 +1,7 @@
 import { avatarAsset } from '../../config/assets'
 import { getUserCommerceState } from '../../services/content'
 import { getManagedJudgeStats } from '../../services/operations'
-import { getCurrentProfile, getWineFriends, type SocialProfile } from '../../utils/social'
+import { getCurrentProfile, getUserAuthSession, getWineFriends, type SocialProfile } from '../../utils/social'
 
 interface StatItem {
   label: string
@@ -91,12 +91,14 @@ Page<MePageState, MePageMethods>({
   },
 
   async loadSocialData() {
-    const [currentProfile, commerceState, judgeStats, wineFriends] = await Promise.all([
+    const [authSession, currentProfile, commerceState, judgeStats, wineFriends] = await Promise.all([
+      getUserAuthSession().catch(() => ({ loggedIn: false, profile: null })),
       getCurrentProfile(),
       getUserCommerceState().catch(() => null),
       getManagedJudgeStats().catch(() => null),
       getWineFriends().catch(() => []),
     ])
+    const displayProfile = authSession.loggedIn && authSession.profile ? authSession.profile : currentProfile
 
     this.setData({
       assetStats: [
@@ -104,7 +106,7 @@ Page<MePageState, MePageMethods>({
         { value: String(commerceState?.rewardRedemptions?.length ?? 0), label: '我的权益' },
         { value: String(commerceState?.unlockedTemplateIds?.length ?? 0), label: '已解锁模板' },
       ],
-      currentProfile,
+      currentProfile: displayProfile,
       wineStats: [
         { value: String(judgeStats?.hostedCount ?? 0), label: '发起酒局' },
         { value: String(judgeStats?.joinedCount ?? 0), label: '参与场次' },
