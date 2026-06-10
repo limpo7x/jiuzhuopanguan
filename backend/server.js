@@ -48,6 +48,7 @@ const {
   ignorePoke,
   replyPoke,
   searchProfiles,
+  syncSessionContacts,
   sendPoke,
   touchFriends,
   updateFriend,
@@ -63,6 +64,7 @@ const {
   listManagedReports,
   getPageData,
   getManagedSessionByInviteCode,
+  getSessionContactsByProfile,
   initAdminStore,
   joinManagedSession,
   getSession,
@@ -953,7 +955,23 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/social/bootstrap') {
-      sendOk(response, getBootstrap(String(query.profileId || '')))
+      const profileId = String(query.profileId || '').trim()
+      const sessionContacts = getSessionContactsByProfile(profileId)
+      const allowedFriendIds = new Set(sessionContacts.map((item) => String(item.profileId || item.id || '').trim()).filter(Boolean))
+      if (sessionContacts.length) {
+        try {
+          syncSessionContacts({
+            ownerId: profileId,
+            participants: sessionContacts,
+          })
+        } catch {
+          void 0
+        }
+      }
+
+      const bootstrap = getBootstrap(profileId)
+      bootstrap.wineFriends = bootstrap.wineFriends.filter((item) => allowedFriendIds.has(String(item.profileId || '').trim()))
+      sendOk(response, bootstrap)
       return
     }
 
