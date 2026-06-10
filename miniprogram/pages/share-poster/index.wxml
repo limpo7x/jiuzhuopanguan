@@ -70,6 +70,7 @@
   </scroll-view>
 
   <canvas
+    type="2d"
     canvas-id="sharePosterCanvas"
     class="poster-hidden-canvas"
     style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"

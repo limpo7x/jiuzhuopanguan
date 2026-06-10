@@ -221,6 +221,7 @@
     </view>
   </scroll-view>
   <canvas
+    type="2d"
     canvas-id="toolExportCanvas"
     class="tool-export-canvas"
     style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"

@@ -63,6 +63,7 @@
   </scroll-view>
 
   <canvas
+    type="2d"
     canvas-id="sharePreviewCanvas"
     class="share-hidden-canvas"
     style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
