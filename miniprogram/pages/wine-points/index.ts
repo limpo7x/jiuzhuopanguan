@@ -3,6 +3,7 @@ import {
   getPointsConfig,
   getUserCommerceState,
   redeemPointsReward,
+  type TaskClaimState,
   type PointsReward,
   type PointsTask,
 } from '../../services/content'
@@ -17,18 +18,32 @@ interface WinePointsState {
   activeTab: 'tasks' | 'mall'
   balance: number
   bannerImageUrl: string
+  taskClaimStates: Record<string, TaskClaimState>
   claimedTaskIds: string[]
   ownedRewardIds: string[]
   pendingActionId: string
   rewards: PointsReward[]
   tabs: PointsTab[]
-  tasks: PointsTask[]
+  tasks: Array<
+    PointsTask & {
+      buttonText: string
+      canClaim: boolean
+      statusText: string
+    }
+  >
 }
 
 interface WinePointsMethods {
   handleRewardRedeem: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleTaskClaim: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
+  resolveTaskViews: (tasks: PointsTask[], taskClaimStates?: Record<string, TaskClaimState>, claimedTaskIds?: string[]) => Array<
+    PointsTask & {
+      buttonText: string
+      canClaim: boolean
+      statusText: string
+    }
+  >
   loadCommerceState: () => Promise<void>
   loadRemoteConfig: () => Promise<void>
 }
@@ -41,7 +56,7 @@ const TABS: PointsTab[] = [
 const DEFAULT_TASKS: PointsTask[] = [
   { id: 'task-signin', title: '每日签到', value: 10, iconClass: 'points-icon-coin' },
   { id: 'task-share-report', title: '分享战报', value: 20, iconClass: 'points-icon-share' },
-  { id: 'task-reopen', title: '使用模板再开一局', value: 20, iconClass: 'points-icon-refresh' },
+  { id: 'task-reopen', title: '完整结束一场聚会', value: 20, iconClass: 'points-icon-refresh' },
 ]
 
 const DEFAULT_REWARDS: PointsReward[] = [
@@ -56,11 +71,17 @@ Page<WinePointsState, WinePointsMethods>({
     activeTab: 'tasks',
     balance: 168,
     bannerImageUrl: staticAsset('points-gift.png'),
+    taskClaimStates: {},
     claimedTaskIds: [],
     ownedRewardIds: [],
     pendingActionId: '',
     tabs: TABS,
-    tasks: DEFAULT_TASKS,
+    tasks: DEFAULT_TASKS.map((item) => ({
+      ...item,
+      buttonText: `+ ${item.value}`,
+      canClaim: true,
+      statusText: '完成任务可领取',
+    })),
     rewards: DEFAULT_REWARDS,
   },
 
@@ -76,23 +97,59 @@ Page<WinePointsState, WinePointsMethods>({
   async loadRemoteConfig() {
     try {
       const config = await getPointsConfig()
+      const tasks = config.tasks?.length ? config.tasks : DEFAULT_TASKS
       this.setData({
         bannerImageUrl: config.bannerImageUrl || this.data.bannerImageUrl,
         rewards: config.rewards?.length ? config.rewards : DEFAULT_REWARDS,
-        tasks: config.tasks?.length ? config.tasks : DEFAULT_TASKS,
+        tasks: this.resolveTaskViews(tasks, this.data.taskClaimStates, this.data.claimedTaskIds),
       })
     } catch {
       // 保留本地默认展示
     }
   },
 
+  resolveTaskViews(tasks, taskClaimStates = this.data.taskClaimStates, claimedTaskIds = this.data.claimedTaskIds) {
+    return tasks.map((item) => {
+      const claimState = taskClaimStates[item.id]
+      const isClaimed = claimedTaskIds.includes(item.id)
+      if (!claimState) {
+        return {
+          ...item,
+          canClaim: !isClaimed,
+          buttonText: isClaimed ? '已领取' : `+ ${item.value}`,
+          statusText: isClaimed ? '任务已完成' : '完成任务可领取',
+        }
+      }
+
+      return {
+        ...item,
+        canClaim: claimState.canClaim,
+        buttonText: claimState.buttonText || `+ ${item.value}`,
+        statusText: claimState.statusText || '完成任务可领取',
+      }
+    })
+  },
+
   async loadCommerceState() {
     try {
       const state = await getUserCommerceState()
+      const claimedTaskIds = state.claimedTaskIds || []
+      const taskClaimStates = state.taskClaimStates || {}
       this.setData({
         balance: typeof state.points === 'number' ? state.points : this.data.balance,
-        claimedTaskIds: state.claimedTaskIds || [],
+        claimedTaskIds,
+        taskClaimStates,
         ownedRewardIds: state.ownedRewardIds || [],
+        tasks: this.resolveTaskViews(
+          this.data.tasks.map((item) => ({
+            id: item.id,
+            iconClass: item.iconClass,
+            title: item.title,
+            value: item.value,
+          })),
+          taskClaimStates,
+          claimedTaskIds,
+        ),
       })
     } catch {
       // 保留当前状态，避免用假成功覆盖真实失败
@@ -112,16 +169,37 @@ Page<WinePointsState, WinePointsMethods>({
 
   async handleTaskClaim(event) {
     const { id } = event.currentTarget.dataset as { id?: string }
-    if (!id || this.data.pendingActionId || this.data.claimedTaskIds.includes(id)) {
+    if (!id || this.data.pendingActionId) {
+      return
+    }
+
+    const claimState = this.data.taskClaimStates[id]
+    if (!claimState && this.data.claimedTaskIds.includes(id)) {
+      return
+    }
+    if (claimState && !claimState.canClaim) {
       return
     }
 
     this.setData({ pendingActionId: id })
     try {
       const state = await claimPointsTask(id)
+      const claimedTaskIds = state.claimedTaskIds || this.data.claimedTaskIds
+      const taskClaimStates = state.taskClaimStates || this.data.taskClaimStates
       this.setData({
         balance: state.points,
-        claimedTaskIds: state.claimedTaskIds,
+        claimedTaskIds,
+        taskClaimStates,
+        tasks: this.resolveTaskViews(
+          this.data.tasks.map((item) => ({
+            id: item.id,
+            iconClass: item.iconClass,
+            title: item.title,
+            value: item.value,
+          })),
+          taskClaimStates,
+          claimedTaskIds,
+        ),
         pendingActionId: '',
       })
       wx.showToast({ title: '领取成功', icon: 'success' })

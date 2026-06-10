@@ -11,6 +11,248 @@ const { readSocialStore } = require('./social')
 const isoNow = () => new Date().toISOString()
 const createId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
 const createHttpError = (message, statusCode) => Object.assign(new Error(message), { statusCode })
+const CLAIM_TASK_TIMEZONE = 'Asia/Shanghai'
+
+const getDateYmd = (value = Date.now()) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: CLAIM_TASK_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(value))
+
+const normalizeTaskState = (taskState = {}, taskId = '') => {
+  if (!taskId) {
+    return {}
+  }
+
+  if (taskId === 'task-signin') {
+    return {
+      lastClaimAt: typeof taskState.lastClaimAt === 'string' ? taskState.lastClaimAt : '',
+    }
+  }
+
+  if (taskId === 'task-share-report') {
+    return {
+      claimHistory: Array.isArray(taskState.claimHistory)
+        ? taskState.claimHistory.filter((item) => typeof item === 'string').slice(0, 14)
+        : [],
+    }
+  }
+
+  if (taskId === 'task-reopen') {
+    return {
+      claimedSessionIds: Array.isArray(taskState.claimedSessionIds)
+        ? taskState.claimedSessionIds.map((item) => String(item)).filter(Boolean).slice(0, 80)
+        : [],
+    }
+  }
+
+  return {}
+}
+
+const normalizeTaskStates = (taskStates = {}) => {
+  if (!taskStates || typeof taskStates !== 'object' || Array.isArray(taskStates)) {
+    taskStates = {}
+  }
+
+  return {
+    'task-signin': normalizeTaskState(taskStates['task-signin'], 'task-signin'),
+    'task-share-report': normalizeTaskState(taskStates['task-share-report'], 'task-share-report'),
+    'task-reopen': normalizeTaskState(taskStates['task-reopen'], 'task-reopen'),
+  }
+}
+
+const ensureTaskStates = (state) => {
+  if (!state.taskStates || typeof state.taskStates !== 'object' || Array.isArray(state.taskStates)) {
+    state.taskStates = normalizeTaskStates()
+    return
+  }
+  state.taskStates = normalizeTaskStates(state.taskStates)
+}
+
+const isDateEquals = (left, right) => {
+  if (!left || !right) {
+    return false
+  }
+  return getDateYmd(left) === getDateYmd(right)
+}
+
+const getProfileSessionMember = (session = {}, profileId = '') =>
+  Array.isArray(session.members)
+    ? session.members.find((item) => String(item.profileId || '').trim() === String(profileId))
+    : null
+
+const hasSessionReport = (adminStore, sessionId = '') => {
+  const normalizedSessionId = String(sessionId || '').trim()
+  if (!normalizedSessionId) {
+    return false
+  }
+  return (adminStore.reports || []).some(
+    (report) => String(report?.sessionId || '').trim() === normalizedSessionId,
+  )
+}
+
+const isCompletedSession = (adminStore, session = {}) => {
+  const stateText = String(session.state || '').trim()
+  const sessionId = String(session.id || '').trim()
+  const normalized = stateText.toLowerCase()
+  return (
+    stateText.includes('结束')
+    || stateText.includes('已结束')
+    || stateText.includes('完成')
+    || hasSessionReport(adminStore, sessionId)
+    || normalized.includes('completed')
+    || normalized.includes('ended')
+    || normalized.includes('settled')
+    || normalized.includes('closed')
+  )
+}
+
+const listCompletedSessionIdsForProfile = (adminStore, profileId = '') => {
+  const normalizedProfileId = String(profileId || '').trim()
+  if (!normalizedProfileId) {
+    return []
+  }
+
+  return (adminStore.liveSessions || [])
+    .filter((session) => getProfileSessionMember(session, normalizedProfileId) && isCompletedSession(adminStore, session))
+    .map((session) => String(session.id || '').trim())
+    .filter(Boolean)
+}
+
+const getTodayShareReportCount = (adminStore, profileId = '') => {
+  const normalizedProfileId = String(profileId || '').trim()
+  if (!normalizedProfileId) {
+    return 0
+  }
+  const today = getDateYmd()
+  return (adminStore.analyticsEvents || []).filter((event) => {
+    if (!event || event.type !== 'report_share') {
+      return false
+    }
+    if (String(event.profileId || '').trim() !== normalizedProfileId) {
+      return false
+    }
+    return getDateYmd(event.createdAt) === today
+  }).length
+}
+
+const getTaskClaimState = (profileId, taskId, taskState, adminStore, taskMeta = {}, userState = {}) => {
+  const taskValue = Number(taskMeta.value) || 0
+  const today = getDateYmd()
+
+  if (taskId === 'task-signin') {
+    const claimedDate = taskState.lastClaimAt ? getDateYmd(taskState.lastClaimAt) : ''
+    const hasClaimedToday = claimedDate === today
+    return hasClaimedToday
+      ? {
+          canClaim: false,
+          buttonText: '今日已领',
+          statusText: '次日0点可继续领取',
+          canRetryAt: '次日0点',
+          remaining: 0,
+          max: 1,
+          reward: taskValue,
+        }
+      : {
+          canClaim: true,
+          buttonText: `+ ${taskValue}`,
+          statusText: '签到可领',
+          remaining: 1,
+          max: 1,
+          reward: taskValue,
+        }
+  }
+
+  if (taskId === 'task-share-report') {
+    const shareCountToday = getTodayShareReportCount(adminStore, profileId)
+    const claimHistory = Array.isArray(taskState.claimHistory) ? taskState.claimHistory : []
+    const claimedToday = claimHistory.filter((item) => isDateEquals(item, today)).length
+    const maxDaily = 2
+    const remaining = Math.max(0, Math.min(maxDaily, shareCountToday) - claimedToday)
+
+    if (!shareCountToday) {
+      return {
+        canClaim: false,
+        buttonText: '先分享后领取',
+        statusText: '先分享1次再领',
+        remaining: 0,
+        max: maxDaily,
+        reward: taskValue,
+      }
+    }
+    if (remaining <= 0) {
+      return {
+        canClaim: false,
+        buttonText: '今日已达上限',
+        statusText: `今日已领${claimedToday}/${maxDaily}`,
+        remaining: 0,
+        max: maxDaily,
+        reward: taskValue,
+      }
+    }
+    return {
+      canClaim: true,
+      buttonText: `+ ${taskValue}`,
+      statusText: `剩余${remaining}/${maxDaily}`,
+      remaining,
+      max: maxDaily,
+      reward: taskValue,
+    }
+  }
+
+  if (taskId === 'task-reopen') {
+    const completedSessionIds = listCompletedSessionIdsForProfile(adminStore, profileId)
+    const claimedSessionIds = Array.isArray(taskState.claimedSessionIds) ? taskState.claimedSessionIds : []
+    const claimedSet = new Set(claimedSessionIds)
+    const availableSessionIds = completedSessionIds.filter((sessionId) => !claimedSet.has(sessionId))
+    const remaining = availableSessionIds.length
+
+    if (!remaining) {
+      return {
+        canClaim: false,
+        buttonText: '需完成1场聚会',
+        statusText: '完成一场聚会后可领取',
+        remaining: 0,
+        max: 9999,
+        reward: taskValue,
+      }
+    }
+    return {
+      canClaim: true,
+      buttonText: `+ ${taskValue}`,
+      statusText: `可兑${Math.min(remaining, 5)}场${remaining > 5 ? '（建议先完成更多）' : ''}`,
+      remaining,
+      max: 9999,
+      reward: taskValue,
+      pickSessionIds: availableSessionIds,
+    }
+  }
+
+  const claimed = Array.isArray(userState.claimedTaskIds) ? userState.claimedTaskIds.includes(taskId) : false
+  return {
+    canClaim: !claimed,
+    buttonText: claimed ? '已完成' : `+ ${taskValue}`,
+    statusText: claimed ? '任务已完成' : '可领取',
+    remaining: claimed ? 0 : 1,
+    max: 1,
+    reward: taskValue,
+  }
+}
+
+const buildTaskClaimStates = (profileId, state) => {
+  const tasks = getPointsConfig().tasks || []
+  const adminStore = getAdminStore()
+  return Object.fromEntries(
+    tasks.map((task) => {
+      const taskId = String(task?.id || '').trim()
+      const taskState = (state.taskStates && state.taskStates[taskId]) || {}
+      const claimState = getTaskClaimState(profileId, taskId, taskState, adminStore, task, state)
+      return [taskId, claimState]
+    }),
+  )
+}
 
 const numberFromText = (value) => {
   const matched = String(value || '')
@@ -42,6 +284,7 @@ const ensureUserCommerceState = (store, profileId) => {
       points: Number(store.profile?.points) >= 0 ? Number(store.profile.points) : defaults.points,
     }
   }
+  ensureTaskStates(store.userCommerce[profileId])
   return store.userCommerce[profileId]
 }
 
@@ -59,6 +302,8 @@ const serializeCommerceState = (profileId) => {
     const guest = createDefaultUserCommerceState()
     return {
       claimedTaskIds: guest.claimedTaskIds,
+      taskClaimStates: {},
+      taskStates: guest.taskStates,
       membership: {
         ...guest.membership,
         activePlanName: '',
@@ -79,6 +324,8 @@ const serializeCommerceState = (profileId) => {
   const activePlan = (adminStore.membershipPlans || []).find((item) => item.id === state.membership.planId) || null
   return {
     claimedTaskIds: state.claimedTaskIds,
+    taskStates: state.taskStates,
+    taskClaimStates: buildTaskClaimStates(profileId, state),
     membership: {
       ...state.membership,
       activePlanName: activePlan?.name || '',
@@ -169,12 +416,34 @@ const claimPointsTask = (profileId, taskId) => {
   if (!task) {
     throw createHttpError('task not found', 404)
   }
-  if (state.claimedTaskIds.includes(taskId)) {
-    return serializeCommerceState(profileId)
+
+  const adminStore = getAdminStore()
+  const taskState = normalizeTaskState(state.taskStates[taskId] || {}, taskId)
+  const claimState = getTaskClaimState(profileId, taskId, taskState, adminStore, task)
+  if (!claimState.canClaim) {
+    throw createHttpError(claimState.statusText || '任务条件未满足', 400)
   }
 
+  if (taskId === 'task-share-report') {
+    taskState.claimHistory = [isoNow(), ...taskState.claimHistory].slice(0, 14)
+  } else if (taskId === 'task-reopen') {
+    const completedSessionIds = listCompletedSessionIdsForProfile(adminStore, profileId)
+    const claimedSet = new Set(Array.isArray(taskState.claimedSessionIds) ? taskState.claimedSessionIds : [])
+    const availableSessionId = completedSessionIds.find((sessionId) => !claimedSet.has(sessionId))
+    if (!availableSessionId) {
+      throw createHttpError('请先完成并结束一场聚会', 400)
+    }
+    taskState.claimedSessionIds = [availableSessionId, ...taskState.claimedSessionIds].slice(0, 80)
+  } else if (taskId === 'task-signin') {
+    taskState.lastClaimAt = isoNow()
+  }
+
+  if (!state.claimedTaskIds.includes(taskId)) {
+    state.claimedTaskIds.unshift(taskId)
+  }
+  state.taskStates[taskId] = taskState
+
   state.points = Number(state.points || 0) + Number(task.value || 0)
-  state.claimedTaskIds.unshift(taskId)
   state.pointsLedger.unshift(
     createLedgerEntry({
       delta: Number(task.value || 0),

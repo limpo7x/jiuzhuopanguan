@@ -31,17 +31,17 @@
       </view>
 
       <view class="points-card">
-        <view wx:for="{{tasks}}" wx:key="title" class="points-task-item">
+        <view wx:for="{{tasks}}" wx:key="id" class="points-task-item">
           <view class="points-task-icon {{item.iconClass}}"></view>
           <view class="points-task-copy">
             <text class="points-task-title">{{item.title}}</text>
-            <text class="points-task-meta">完成任务后可领取积分</text>
+            <text class="points-task-meta">{{item.statusText}}</text>
           </view>
           <view
-            class="points-tag {{claimedTaskIds.indexOf(item.id) !== -1 ? 'points-tag-disabled' : 'points-tag-action'}} {{pendingActionId === item.id ? 'points-tag-pending' : ''}}"
+            class="points-tag {{item.canClaim ? 'points-tag-action' : 'points-tag-disabled'}} {{pendingActionId === item.id ? 'points-tag-pending' : ''}}"
             data-id="{{item.id}}"
             bindtap="handleTaskClaim"
-          >{{claimedTaskIds.indexOf(item.id) !== -1 ? '已领取' : (pendingActionId === item.id ? '处理中' : ('+ ' + item.value))}}</view>
+          >{{pendingActionId === item.id ? '处理中' : item.buttonText}}</view>
         </view>
       </view>
     </view>

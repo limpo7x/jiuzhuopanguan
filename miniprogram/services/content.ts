@@ -16,6 +16,15 @@ export interface PointsTask {
   value: number
 }
 
+export interface TaskClaimState {
+  canClaim: boolean
+  buttonText: string
+  statusText: string
+  remaining: number
+  max: number
+  reward: number
+}
+
 export interface PointsReward {
   cost: number
   id: string
@@ -88,6 +97,7 @@ export interface UserCommerceState {
   membership: CommerceMembershipState
   ownedRewardIds: string[]
   points: number
+  taskClaimStates?: Record<string, TaskClaimState>
   pointsLedger: Array<{
     createdAt: string
     delta: number

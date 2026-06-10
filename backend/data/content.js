@@ -41,6 +41,17 @@ const normalizeToolHistoryId = (item = {}, fallback = {}, index = 0) => {
 
 const createDefaultCommerce = () => ({
   claimedTaskIds: [],
+  taskStates: {
+    'task-signin': {
+      lastClaimAt: '',
+    },
+    'task-share-report': {
+      claimHistory: [],
+    },
+    'task-reopen': {
+      claimedSessionIds: [],
+    },
+  },
   membership: {
     active: false,
     activatedAt: '',
@@ -105,7 +116,7 @@ const createDefaultStore = () => ({
     tasks: [
       { id: 'task-signin', title: '每日签到', value: 10, iconClass: 'points-icon-coin' },
       { id: 'task-share-report', title: '分享战报', value: 20, iconClass: 'points-icon-share' },
-      { id: 'task-reopen', title: '使用模板再开一局', value: 20, iconClass: 'points-icon-refresh' },
+      { id: 'task-reopen', title: '完整结束一场聚会', value: 20, iconClass: 'points-icon-refresh' },
     ],
     rewards: [
       { id: 'reward-noads', title: '免广告特权（7天）', subtitle: '解锁工具页和战报页纯净模式', cost: 600, iconClass: 'points-icon-shield' },
@@ -166,7 +177,14 @@ const normalizeHomeConfig = (homeConfig = {}, defaults) => ({
 
 const normalizePointsTask = (item = {}, index = 0, fallback = {}) => ({
   id: String(item.id || fallback.id || `task-${index + 1}`),
-  title: isBrokenSample(item.title) ? fallback.title || `任务 ${index + 1}` : String(item.title || fallback.title || `任务 ${index + 1}`),
+  title:
+    String(item.id || '').trim() === 'task-reopen'
+      ? isBrokenSample(item.title) || String(item.title || '').includes('再开一局')
+        ? fallback.title || `任务 ${index + 1}`
+        : String(item.title || fallback.title || `任务 ${index + 1}`)
+      : isBrokenSample(item.title)
+        ? fallback.title || `任务 ${index + 1}`
+        : String(item.title || fallback.title || `任务 ${index + 1}`),
   value: Number(item.value) > 0 ? Number(item.value) : Number(fallback.value) || 10,
   iconClass: typeof item.iconClass === 'string' && item.iconClass.trim() ? item.iconClass.trim() : fallback.iconClass || 'points-icon-coin',
 })
@@ -193,6 +211,44 @@ const normalizeTemplateItem = (item = {}, index = 0, fallback = {}) => ({
   imageUrl: typeof item.imageUrl === 'string' && item.imageUrl.trim() ? item.imageUrl.trim() : fallback.imageUrl || asset('toolbox-hero.png'),
 })
 
+const normalizeTaskState = (taskState = {}, taskId = '') => {
+  if (taskId === 'task-signin') {
+    return {
+      lastClaimAt: typeof taskState.lastClaimAt === 'string' ? taskState.lastClaimAt : '',
+    }
+  }
+
+  if (taskId === 'task-share-report') {
+    return {
+      claimHistory: Array.isArray(taskState.claimHistory)
+        ? taskState.claimHistory.filter((item) => typeof item === 'string').slice(0, 14)
+        : [],
+    }
+  }
+
+  if (taskId === 'task-reopen') {
+    return {
+      claimedSessionIds: Array.isArray(taskState.claimedSessionIds)
+        ? taskState.claimedSessionIds.map((item) => String(item)).filter(Boolean).slice(0, 80)
+        : [],
+    }
+  }
+
+  return {}
+}
+
+const normalizeTaskStates = (taskStates = {}) => {
+  if (!taskStates || typeof taskStates !== 'object' || Array.isArray(taskStates)) {
+    taskStates = {}
+  }
+
+  return {
+    'task-signin': normalizeTaskState(taskStates['task-signin'], 'task-signin'),
+    'task-share-report': normalizeTaskState(taskStates['task-share-report'], 'task-share-report'),
+    'task-reopen': normalizeTaskState(taskStates['task-reopen'], 'task-reopen'),
+  }
+}
+
 const normalizeCommerce = (commerce = {}) => {
   const defaults = createDefaultCommerce()
   return {
@@ -212,6 +268,10 @@ const normalizeCommerce = (commerce = {}) => {
         }))
       : defaults.membershipOrders,
     ownedRewardIds: Array.isArray(commerce?.ownedRewardIds) ? commerce.ownedRewardIds.map((item) => String(item)) : defaults.ownedRewardIds,
+    taskStates: {
+      ...defaults.taskStates,
+      ...normalizeTaskStates(commerce?.taskStates || {}),
+    },
     pointsLedger: Array.isArray(commerce?.pointsLedger)
       ? commerce.pointsLedger.map((item, index) => ({
           id: String(item?.id || `points-ledger-${index + 1}`),
