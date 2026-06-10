@@ -1,10 +1,4 @@
-import {
-  getTemplateConfig,
-  getUserCommerceState,
-  unlockTemplateByAd,
-  type TemplateFilter,
-  type TemplateItem,
-} from '../../services/content'
+import { getTemplateConfig, getUserCommerceState, getMembershipCatalog, unlockTemplateByAd, type TemplateFilter, type TemplateItem } from '../../services/content'
 import { staticAsset } from '../../config/assets'
 
 interface ProFilter extends TemplateFilter {
@@ -20,6 +14,7 @@ interface PremiumTemplatesState {
   activeFilterId: string
   filters: ProFilter[]
   membershipActive: boolean
+  membershipEnabled: boolean
   pendingTemplateId: string
   templates: TemplateItem[]
   templateUnlockProgress: Record<string, number>
@@ -37,20 +32,21 @@ interface PremiumTemplatesMethods {
   handleUnlockTap: () => void
   loadCommerceState: () => Promise<void>
   loadRemoteConfig: () => Promise<void>
+  loadMembershipConfig: () => Promise<void>
 }
 
 const DEFAULT_FILTERS: ProFilter[] = [
   { id: 'all', name: '全部', active: true },
-  { id: 'friendship', name: '友情互损' },
-  { id: 'classic', name: '经典惩罚' },
-  { id: 'party', name: '聚会整活' },
+  { id: 'friendship', name: '友情题材' },
+  { id: 'classic', name: '经典模板' },
+  { id: 'party', name: '酒局场景' },
 ]
 
 const DEFAULT_TEMPLATES: TemplateItem[] = [
-  { id: 'tpl-friendship', filterId: 'friendship', title: '友情互损', meta: '28 个玩法 · 适合死党局', cost: 800, imageUrl: staticAsset('toolbox-hero.png') },
-  { id: 'tpl-classic', filterId: 'classic', title: '经典惩罚', meta: '26 个玩法 · 轻松不水局', cost: 800, imageUrl: staticAsset('party-hero.png') },
-  { id: 'tpl-party', filterId: 'party', title: '整活大挑战', meta: '32 个玩法 · 气氛拉满', cost: 800, imageUrl: staticAsset('report-poster.png') },
-  { id: 'tpl-birthday', filterId: 'party', title: '生日专属', meta: '18 个玩法 · 定制惊喜', cost: 800, imageUrl: staticAsset('image-process-hero.png') },
+  { id: 'tpl-friendship', filterId: 'friendship', title: '友情题材', meta: '28 个局例 · 2 位主创', cost: 800, imageUrl: staticAsset('toolbox-hero.png') },
+  { id: 'tpl-classic', filterId: 'classic', title: '经典局', meta: '26 个局例 · 适合新手入门', cost: 800, imageUrl: staticAsset('party-hero.png') },
+  { id: 'tpl-party', filterId: 'party', title: '欢快氛围', meta: '32 个局例 · 轻松开场', cost: 800, imageUrl: staticAsset('report-poster.png') },
+  { id: 'tpl-birthday', filterId: 'party', title: '生日聚局', meta: '18 个局例 · 热闹有礼', cost: 800, imageUrl: staticAsset('image-process-hero.png') },
 ]
 
 Page<PremiumTemplatesState, PremiumTemplatesMethods>({
@@ -58,22 +54,23 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
     activeFilterId: 'all',
     filters: DEFAULT_FILTERS,
     membershipActive: false,
+    membershipEnabled: true,
     pendingTemplateId: '',
     templates: DEFAULT_TEMPLATES,
     templateUnlockProgress: {},
     templateUnlockRequiredViews: 3,
     unlockProgressText: '0/3',
-    unlockTitle: '看激励视频解锁 PRO 模板',
+    unlockTitle: '会员 PRO 模板',
     unlockedTemplateIds: [],
     visibleTemplates: DEFAULT_TEMPLATES.map((item) => ({
       ...item,
-      accessText: '0/3 激励解锁',
+      accessText: '0/3 次开局',
       locked: true,
     })),
   },
 
   async onLoad() {
-    await Promise.all([this.loadRemoteConfig(), this.loadCommerceState()])
+    await Promise.all([this.loadRemoteConfig(), this.loadCommerceState(), this.loadMembershipConfig()])
   },
 
   async loadRemoteConfig() {
@@ -90,7 +87,7 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
           filters,
           templates: config.templates?.length ? config.templates : DEFAULT_TEMPLATES,
           unlockProgressText: config.unlockCard?.progressText || '0/3',
-          unlockTitle: config.unlockCard?.title || '看激励视频解锁 PRO 模板',
+          unlockTitle: config.unlockCard?.title || '会员 PRO 模板',
         },
         this.applyVisibleTemplates,
       )
@@ -122,20 +119,31 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
     }
   },
 
+  async loadMembershipConfig() {
+    try {
+      const catalog = await getMembershipCatalog()
+      this.setData({ membershipEnabled: catalog.membershipEnabled !== false }, this.applyVisibleTemplates)
+    } catch {
+      // 默认保持开启
+      this.setData({ membershipEnabled: true }, this.applyVisibleTemplates)
+    }
+  },
+
   applyVisibleTemplates() {
     const activeFilterId = this.data.activeFilterId
     const visibleTemplates =
       activeFilterId === 'all'
         ? this.data.templates
         : this.data.templates.filter((item) => item.filterId === activeFilterId)
+    const effectiveMembershipActive = this.data.membershipEnabled && this.data.membershipActive
 
     this.setData({
       visibleTemplates: visibleTemplates.map((item) => {
-        const unlocked = this.data.membershipActive || this.data.unlockedTemplateIds.includes(item.id)
+        const unlocked = effectiveMembershipActive || this.data.unlockedTemplateIds.includes(item.id)
         const progress = this.data.templateUnlockProgress[item.id] || 0
         return {
           ...item,
-          accessText: unlocked ? '已解锁' : `${progress}/${this.data.templateUnlockRequiredViews} 激励解锁`,
+          accessText: unlocked ? '可用' : `${progress}/${this.data.templateUnlockRequiredViews} 次开局`,
           locked: !unlocked,
         }
       }),
@@ -195,7 +203,7 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
         },
         this.applyVisibleTemplates,
       )
-      wx.showToast({ title: unlocked ? '模板已解锁' : '已完成一次激励', icon: 'success' })
+      wx.showToast({ title: unlocked ? '模板已解锁' : '进度已更新', icon: 'success' })
       if (unlocked) {
         wx.navigateTo({
           url: `/pages/create-session/index?template=${encodeURIComponent(title)}`,
@@ -208,6 +216,13 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
   },
 
   handleUnlockTap() {
+    if (!this.data.membershipEnabled) {
+      wx.showToast({
+        title: '闪享会员入口已关闭',
+        icon: 'none',
+      })
+      return
+    }
     wx.navigateTo({
       url: '/pages/member-center/index',
     })

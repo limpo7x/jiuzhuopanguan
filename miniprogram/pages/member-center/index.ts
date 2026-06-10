@@ -13,6 +13,7 @@ interface MemberPackage {
 
 interface MemberCenterState {
   benefits: MemberBenefit[]
+  membershipEnabled: boolean
   ctaText: string
   packages: MemberPackage[]
 }
@@ -24,6 +25,7 @@ interface MemberCenterMethods {
 Page<MemberCenterState, MemberCenterMethods>({
   data: {
     benefits: [],
+    membershipEnabled: true,
     ctaText: '查看我的权益',
     packages: [],
   },
@@ -31,12 +33,27 @@ Page<MemberCenterState, MemberCenterMethods>({
   async onLoad() {
     try {
       const catalog = await getMembershipCatalog()
+      if (catalog.membershipEnabled === false) {
+        this.setData({ membershipEnabled: false })
+        wx.showToast({
+          title: '闪享会员功能已关闭',
+          icon: 'none',
+        })
+        setTimeout(() => {
+          wx.reLaunch({ url: '/pages/index/index' }).catch(() => {
+            wx.switchTab({ url: '/pages/index/index' })
+          })
+        }, 600)
+        return
+      }
+
       this.setData({
+        membershipEnabled: true,
         benefits: catalog.benefits.map((item) => ({
           label: item.scope,
           value: `${item.name} · ${item.note}`,
         })),
-        ctaText: catalog.membership.active ? '查看我的已开通权益' : '前往开通或领取权益',
+        ctaText: catalog.membership.active ? '查看我的权益' : '前往开通或领取权益',
         packages: catalog.plans.map((item) => ({
           active: Boolean(item.active),
           name: item.name,
@@ -52,9 +69,7 @@ Page<MemberCenterState, MemberCenterMethods>({
   },
 
   handleOpenTap() {
-    wx.navigateTo({
-      url: '/pages/coupon-center/index',
-    })
+    wx.navigateTo({ url: '/pages/coupon-center/index' })
   },
 })
 

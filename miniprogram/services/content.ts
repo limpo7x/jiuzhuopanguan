@@ -138,6 +138,7 @@ export interface MembershipPlan {
 }
 
 export interface MembershipCatalog {
+  membershipEnabled: boolean
   benefits: MembershipBenefit[]
   membership: CommerceMembershipState
   plans: MembershipPlan[]

@@ -23,7 +23,7 @@
       <view class="me-edit-btn" bindtap="handleEditTap">{{loggedIn ? '查看资料' : '微信登录'}}</view>
     </view>
 
-    <view class="me-member-card">
+    <view wx:if="{{membershipEnabled}}" class="me-member-card">
       <view class="me-member-top">
         <text class="me-member-title">闪享会员</text>
         <view class="me-member-btn" bindtap="handleMemberTap">查看权益</view>

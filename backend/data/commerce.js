@@ -537,6 +537,7 @@ const getMembershipCatalog = (profileId) => {
   const adminStore = getAdminStore()
   const commerce = serializeCommerceState(profileId)
   return {
+    membershipEnabled: adminStore.membershipEnabled !== false,
     benefits: adminStore.membershipBenefits || [],
     membership: commerce.membership,
     plans: (adminStore.membershipPlans || []).map((item) => ({
@@ -547,9 +548,13 @@ const getMembershipCatalog = (profileId) => {
 }
 
 const activateMembershipPlan = (profileId, planId) => {
+  const adminStore = getAdminStore()
+  if (adminStore.membershipEnabled === false) {
+    throw createHttpError('会员体系暂未对外开放', 403)
+  }
+
   const contentStore = readContentStore()
   const state = ensureUserCommerceState(contentStore, profileId)
-  const adminStore = getAdminStore()
   const plan = (adminStore.membershipPlans || []).find((item) => item.id === planId)
   if (!plan) {
     throw createHttpError('plan not found', 404)

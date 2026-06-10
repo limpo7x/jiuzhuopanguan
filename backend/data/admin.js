@@ -177,6 +177,7 @@ const createDefaultStore = () => ({
     { id: 'benefit-2', name: '战报导出免广告', scope: '分享战报页', status: '启用', note: '跳过激励视频' },
     { id: 'benefit-3', name: '会员专属海报', scope: '海报模板', status: '启用', note: '品牌角标与高级背景' },
   ],
+  membershipEnabled: true,
   adSlots: [
     { id: 'ad-1', name: '模板解锁视频', page: '高级模板', adType: '激励视频', completionRate: '71.8%', revenue: '¥4,820', status: '启用' },
     { id: 'ad-2', name: '战报导出视频', page: '分享战报', adType: '激励视频', completionRate: '74.2%', revenue: '¥3,912', status: '启用' },
@@ -1139,6 +1140,20 @@ const parseStatus = (value, fallback = '启用') => {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback
 }
 
+const parseBoolean = (value, fallback = false) => {
+  if (typeof value === 'boolean') {
+    return value
+  }
+  const normalized = String(value || '').trim().toLowerCase()
+  if (['1', 'true', 'yes', 'on', '开启', '是', '启用'].includes(normalized)) {
+    return true
+  }
+  if (['0', 'false', 'no', 'off', '关闭', '否', '停用'].includes(normalized)) {
+    return false
+  }
+  return fallback
+}
+
 const makeInviteCode = (seed = '') => {
   const normalized = String(seed).replace(/[^a-z0-9]/gi, '').toUpperCase()
   return `${normalized.slice(-2).padStart(2, 'A')}7K9Q`
@@ -2015,11 +2030,26 @@ const pageMap = {
   },
   'commerce-membership': () => {
     const store = readStore()
+    const membershipEnabled = String(store.membershipEnabled) === 'false' ? 'false' : 'true'
     return {
       slug: 'commerce-membership',
       title: '会员体系',
       view: 'multi-collection',
       metrics: getMembershipMetrics(),
+      meta: {
+        membershipEnabled,
+      },
+      metaFields: [
+        {
+          key: 'membershipEnabled',
+          label: '会员功能总开关',
+          type: 'select',
+          options: [
+            { value: 'true', label: '开启' },
+            { value: 'false', label: '关闭' },
+          ],
+        },
+      ],
       collections: [
         {
           key: 'membershipPlans',
@@ -2757,6 +2787,9 @@ const savePageData = (slug, payload = {}) => {
   }
 
   if (slug === 'commerce-membership') {
+    if (payload?.meta && Object.prototype.hasOwnProperty.call(payload.meta, 'membershipEnabled')) {
+      adminStore.membershipEnabled = parseBoolean(payload.meta.membershipEnabled, adminStore.membershipEnabled ?? true)
+    }
     adminStore.membershipPlans = saveCollectionArray(payload.collections.membershipPlans, pageMap[slug]().collections[0].fields, adminStore.membershipPlans)
     adminStore.membershipBenefits = saveCollectionArray(payload.collections.membershipBenefits, pageMap[slug]().collections[1].fields, adminStore.membershipBenefits)
     writeStore(adminStore)

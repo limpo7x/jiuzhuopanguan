@@ -1,5 +1,5 @@
 import { avatarAsset } from '../../config/assets'
-import { getUserCommerceState } from '../../services/content'
+import { getMembershipCatalog, getUserCommerceState } from '../../services/content'
 import { getManagedJudgeStats } from '../../services/operations'
 import { getCurrentDisplayProfile, getUserAuthSession, getWineFriends, type SocialProfile } from '../../utils/social'
 
@@ -22,6 +22,7 @@ interface FeatureItem {
 interface MePageState {
   assetStats: StatItem[]
   currentProfile: SocialProfile
+  membershipEnabled: boolean
   features: FeatureItem[]
   loggedIn: boolean
   wineStats: StatItem[]
@@ -83,6 +84,7 @@ Page<MePageState, MePageMethods>({
       phoneMasked: '',
       wechatOpenId: '',
     },
+    membershipEnabled: true,
     features: DEFAULT_FEATURES,
     loggedIn: false,
     wineStats: DEFAULT_WINE_STATS,
@@ -97,12 +99,13 @@ Page<MePageState, MePageMethods>({
   },
 
   async loadSocialData() {
-    const [authSession, currentProfile, commerceState, judgeStats, wineFriends] = await Promise.all([
+    const [authSession, currentProfile, commerceState, judgeStats, wineFriends, membershipCatalog] = await Promise.all([
       getUserAuthSession().catch(() => ({ loggedIn: false, profile: null })),
       getCurrentDisplayProfile(),
       getUserCommerceState().catch(() => null),
       getManagedJudgeStats().catch(() => null),
       getWineFriends().catch(() => []),
+      getMembershipCatalog().catch(() => null),
     ])
     const displayProfile =
       authSession.loggedIn &&
@@ -124,6 +127,7 @@ Page<MePageState, MePageMethods>({
       ],
       currentProfile: displayProfile,
       loggedIn: Boolean(authSession.profile?.wechatOpenId || displayProfile.wechatOpenId),
+      membershipEnabled: Boolean(membershipCatalog ? membershipCatalog.membershipEnabled : true),
       wineStats: [
         { value: String(judgeStats?.hostedCount ?? 0), label: '发起酒局' },
         { value: String(judgeStats?.joinedCount ?? 0), label: '参与场次' },
@@ -138,6 +142,13 @@ Page<MePageState, MePageMethods>({
   },
 
   handleMemberTap() {
+    if (!this.data.membershipEnabled) {
+      wx.showToast({
+        title: '会员功能暂未开放，当前入口已隐藏',
+        icon: 'none',
+      })
+      return
+    }
     this.openPage('/pages/member-center/index')
   },
 

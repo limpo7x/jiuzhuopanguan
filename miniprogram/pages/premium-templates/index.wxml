@@ -26,9 +26,9 @@
         <view class="pro-copy">
           <text class="pro-title">{{item.title}}</text>
           <text class="pro-meta">{{item.meta}}</text>
-          <text class="pro-meta">{{pendingTemplateId === item.id ? '解锁处理中' : item.accessText}}</text>
+          <text class="pro-meta">{{pendingTemplateId === item.id ? '处理中…' : item.accessText}}</text>
         </view>
-        <view class="pro-tag">{{item.locked ? '解锁' : (membershipActive ? '会员' : '已开通')}}</view>
+        <view class="pro-tag">{{item.locked ? '已锁定' : (membershipEnabled && membershipActive ? '会员' : '可用')}}</view>
       </view>
     </view>
 
@@ -37,7 +37,9 @@
         <text class="pro-unlock-title">{{unlockTitle}}</text>
         <view class="pro-tag">{{unlockProgressText}}</view>
       </view>
-      <view class="pro-primary" bindtap="handleUnlockTap">{{membershipActive ? '会员已开通' : '开通会员免广告解锁'}}</view>
+      <view class="pro-primary" bindtap="handleUnlockTap">
+        {{membershipEnabled ? (membershipActive ? '会员已解锁' : '开通会员解锁更多权益') : '会员入口已关闭'}}
+      </view>
     </view>
   </scroll-view>
 </view>

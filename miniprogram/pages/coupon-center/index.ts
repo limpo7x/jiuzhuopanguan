@@ -24,6 +24,7 @@ Page<CouponCenterState, CouponCenterMethods>({
     try {
       const [commerce, membership] = await Promise.all([getUserCommerceState(), getMembershipCatalog()])
       const coupons: CouponItem[] = []
+      const membershipEnabled = membership.membershipEnabled !== false
 
       if (commerce.rewardRedemptions.length) {
         commerce.rewardRedemptions.forEach((item) => {
@@ -36,7 +37,7 @@ Page<CouponCenterState, CouponCenterMethods>({
         })
       }
 
-      if (membership.membership.active) {
+      if (membershipEnabled && membership.membership.active) {
         coupons.push({
           name: membership.membership.activePlanName || '会员权益已开通',
           desc: `有效期至 ${membership.membership.expiresAt || '长期有效'}`,
