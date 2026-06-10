@@ -1,6 +1,6 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath, staticAsset } from '../config/assets'
-import { resolveCachedManagedImagePath } from '../utils/imageCache'
+import { resolveCachedManagedImagePath, resolveCachedManagedImagePathQuick } from '../utils/imageCache'
 import { getSessionRuntime, resolveSessionParticipants } from '../utils/session'
 import { getUserAuthHeaders } from '../utils/social'
 import {
@@ -418,11 +418,13 @@ const normalizeSessionPlayer = (player?: RemoteSessionPlayer): ManagedSessionPla
 const mergeToolDescriptor = async (remoteTool: RemoteToolItem): Promise<ToolDescriptor> => {
   const toolId = resolveToolId(remoteTool.id || remoteTool.rawId || '')
   const fallback = getToolById(toolId) || TOOL_LIST[0]
-  const imageUrl =
-    (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remoteTool.imageUrl))) || fallback.imageUrl
-  const heroImage =
-    (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remoteTool.heroImage || remoteTool.imageUrl))) ||
-    fallback.heroImage
+  const imageUrlSource = normalizeManagedAssetPath(remoteTool.imageUrl)
+  const heroImageSource = normalizeManagedAssetPath(remoteTool.heroImage || remoteTool.imageUrl)
+  const resolvedImage = imageUrlSource ? resolveCachedManagedImagePathQuick(imageUrlSource, 1200) : Promise.resolve('')
+  const resolvedHero = heroImageSource
+    ? resolveCachedManagedImagePathQuick(heroImageSource, 1200)
+    : Promise.resolve('')
+  const [imageUrl, heroImage] = await Promise.all([resolvedImage, resolvedHero])
 
   return {
     ...fallback,
@@ -431,8 +433,8 @@ const mergeToolDescriptor = async (remoteTool: RemoteToolItem): Promise<ToolDesc
     categoryId: remoteTool.categoryId || fallback.categoryId,
     iconClass: remoteTool.iconClass || fallback.iconClass,
     toneClass: remoteTool.toneClass || fallback.toneClass,
-    imageUrl,
-    heroImage,
+    imageUrl: imageUrl || imageUrlSource || fallback.imageUrl,
+    heroImage: heroImage || heroImageSource || imageUrl || fallback.heroImage,
     meta: remoteTool.meta || fallback.meta,
     subtitle: remoteTool.target ? `${remoteTool.target} · ${remoteTool.favoriteRate || '收藏率 0%'}` : fallback.subtitle,
     summary: remoteTool.meta || fallback.summary,
@@ -470,7 +472,7 @@ export const getManagedToolsCatalog = async (): Promise<ManagedToolCatalog> => {
       categoryCards: buildCategoryCards(tools, categories),
       hero: {
         imageUrl:
-          (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remote.hero?.imageUrl))) ||
+          (await resolveCachedManagedImagePathQuick(normalizeManagedAssetPath(remote.hero?.imageUrl), 2000)) ||
           DEFAULT_TOOLS_CATALOG.hero.imageUrl,
         subtitle: remote.hero?.subtitle || DEFAULT_TOOLS_CATALOG.hero.subtitle,
         title: remote.hero?.title || DEFAULT_TOOLS_CATALOG.hero.title,

@@ -1,8 +1,12 @@
 import { getApiBase } from '../config/api'
 
 const STORAGE_KEY = 'managed-image-cache-map-v1'
+const FAILED_CACHE_KEY = 'managed-image-cache-failures-v1'
+const DOWNLOAD_FAILURE_TTL_MS = 5 * 60 * 1000
+const MAX_DOWNLOAD_TIMEOUT_MS = 4000
 
 let cacheMap: Record<string, string> | null = null
+let failureMap: Record<string, number> | null = null
 const inflightDownloads = new Map<string, Promise<string>>()
 
 const getApiOrigin = () => {
@@ -18,6 +22,42 @@ const getCacheMap = () => {
   const stored = wx.getStorageSync(STORAGE_KEY)
   cacheMap = stored && typeof stored === 'object' ? (stored as Record<string, string>) : {}
   return cacheMap
+}
+
+const getFailureMap = () => {
+  if (failureMap) {
+    return failureMap
+  }
+
+  const stored = wx.getStorageSync(FAILED_CACHE_KEY)
+  failureMap = stored && typeof stored === 'object' ? (stored as Record<string, number>) : {}
+  return failureMap
+}
+
+const persistFailureMap = () => {
+  wx.setStorageSync(FAILED_CACHE_KEY, getFailureMap())
+}
+
+const canRetryDownload = (source: string) => {
+  const failures = getFailureMap()
+  const expiry = failures[source]
+  if (!expiry) {
+    return true
+  }
+
+  if (Date.now() > expiry) {
+    delete failures[source]
+    persistFailureMap()
+    return true
+  }
+
+  return false
+}
+
+const markDownloadFailure = (source: string) => {
+  const failures = getFailureMap()
+  failures[source] = Date.now() + DOWNLOAD_FAILURE_TTL_MS
+  persistFailureMap()
 }
 
 const persistCacheMap = () => {
@@ -53,9 +93,14 @@ const isCacheableRemoteImage = (source: string) => {
 
 const downloadAndPersist = async (source: string) => {
   const downloaded = await new Promise<WechatMiniprogram.DownloadFileSuccessCallbackResult>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`download timeout: ${source}`))
+    }, MAX_DOWNLOAD_TIMEOUT_MS)
+
     wx.downloadFile({
       url: source,
       success: (result) => {
+        clearTimeout(timer)
         if (result.statusCode >= 200 && result.statusCode < 300 && result.tempFilePath) {
           resolve(result)
           return
@@ -63,7 +108,10 @@ const downloadAndPersist = async (source: string) => {
 
         reject(new Error(`download failed: ${result.statusCode}`))
       },
-      fail: reject,
+      fail: (error) => {
+        clearTimeout(timer)
+        reject(error)
+      },
     })
   })
 
@@ -85,6 +133,10 @@ const downloadAndPersist = async (source: string) => {
 export const resolveCachedManagedImagePath = async (source?: string) => {
   const normalized = String(source || '').trim()
   if (!normalized || !isCacheableRemoteImage(normalized)) {
+    return normalized
+  }
+
+  if (!canRetryDownload(normalized)) {
     return normalized
   }
 
@@ -115,11 +167,32 @@ export const resolveCachedManagedImagePath = async (source?: string) => {
     })
     .catch(() => {
       inflightDownloads.delete(normalized)
+      markDownloadFailure(normalized)
       return normalized
     })
 
   inflightDownloads.set(normalized, task)
   return task
+}
+
+export const resolveCachedManagedImagePathQuick = async (source?: string, timeoutMs = 1400) => {
+  const normalized = String(source || '').trim()
+  if (!normalized || !isCacheableRemoteImage(normalized)) {
+    return normalized
+  }
+
+  if (!canRetryDownload(normalized)) {
+    return normalized
+  }
+
+  return Promise.race([
+    resolveCachedManagedImagePath(normalized),
+    new Promise<string>((resolve) => {
+      setTimeout(() => {
+        resolve(normalized)
+      }, timeoutMs)
+    }),
+  ])
 }
 
 export const resolveCachedManagedImagePaths = async (sources: string[]) =>

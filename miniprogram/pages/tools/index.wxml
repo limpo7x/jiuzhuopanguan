@@ -81,10 +81,10 @@
         class="tools-list-item"
         data-id="{{item.id}}"
         data-name="{{item.name}}"
-        bindtap="handleCategoryTap"
+        bindtap="handleToolTap"
       >
         <view class="tools-list-thumb">
-          <image src="{{item.imageUrl}}" mode="aspectFill"></image>
+          <image lazy-load="true" src="{{item.imageUrl}}" mode="aspectFill"></image>
         </view>
         <view class="tools-list-copy">
           <text class="tools-list-title">{{item.name}}</text>
