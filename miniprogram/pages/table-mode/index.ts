@@ -1,4 +1,4 @@
-import { createManagedReport } from '../../services/operations'
+import { createManagedReport, getManagedLiveSession } from '../../services/operations'
 import {
   formatElapsed,
   getSessionRuntime,
@@ -36,7 +36,9 @@ interface TableModeMethods {
   handleBackTap: () => Promise<void>
   handleExitGuardLeave: () => Promise<void>
   handleFinishTap: () => Promise<void>
+  handleRefreshTap: () => Promise<void>
   handleReactionTap: (event: WechatMiniprogram.BaseEvent) => void
+  showPreviewToast: (message: string) => void
   handleTimerTick: () => void
   navigateBackToSession: () => void
   openPage: (url: string) => void
@@ -214,6 +216,60 @@ Page<TableModeState, TableModeMethods>({
     this.navigateBackToSession()
   },
 
+  async handleRefreshTap() {
+    if (this.data.isJudge) {
+      return
+    }
+
+    const runtime = getSessionRuntime()
+    if (!runtime.sessionId) {
+      this.showPreviewToast('未找到当前局信息')
+      return
+    }
+
+    wx.showLoading({
+      title: '刷新中',
+      mask: true,
+    })
+
+    try {
+      const liveSession = await getManagedLiveSession(runtime.sessionId, runtime.inviteCode)
+      const updatedRuntime = setSessionRuntime({
+        isJudge: this.data.isJudge,
+        playerCount: liveSession.playerCount,
+        playerStats: liveSession.joinStatusPlayers
+          .slice(0, liveSession.playerCount)
+          .map((item) => ({
+            avatarUrl: item.avatarUrl,
+            clearedCount: item.clearedCount || 0,
+            debtCount: item.debtCount || 0,
+            drinkCount: item.drinkCount || 0,
+            meta: item.meta || '',
+            name: item.name,
+            profileId: item.profileId,
+          })),
+        selectedPlayers: liveSession.joinStatusPlayers.map((item) => ({
+          avatarUrl: item.avatarUrl,
+          name: item.name,
+          profileId: item.profileId || '',
+          status: item.status || '已加入',
+        })),
+        sessionId: liveSession.id,
+        sessionName: liveSession.sessionName,
+      })
+
+      this.setData({
+        rows: buildRows(updatedRuntime),
+        sessionName: liveSession.sessionName,
+      })
+      this.showPreviewToast('刷新成功')
+    } catch (error) {
+      this.showPreviewToast(error instanceof Error ? error.message : '刷新失败')
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
   navigateBackToSession() {
     const runtime = getSessionRuntime()
     const fallbackUrl = `/pages/live-record/index?role=${runtime.isJudge ? 'judge' : 'viewer'}&sessionName=${encodeURIComponent(runtime.sessionName || '')}`
@@ -332,6 +388,13 @@ Page<TableModeState, TableModeMethods>({
     } finally {
       wx.hideLoading()
     }
+  },
+
+  showPreviewToast(message) {
+    wx.showToast({
+      title: message,
+      icon: 'none',
+    })
   },
 
   openPage(url) {

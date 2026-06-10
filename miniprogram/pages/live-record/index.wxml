@@ -11,8 +11,14 @@
 <view class="live-page">
   <scroll-view class="live-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="live-top-row">
-      <text class="live-round-title">{{sessionName}}</text>
-      <view class="live-tag">已进行 {{elapsedText}}</view>
+      <view class="live-top-content">
+        <text class="live-round-title">{{sessionName}}</text>
+        <view class="live-tag">{{elapsedText}}</view>
+      </view>
+      <view wx:if="{{!isJudge}}" class="live-refresh-btn" bindtap="handleRefreshTap">
+        <view class="live-refresh-icon">↻</view>
+        <text class="live-refresh-text">刷新</text>
+      </view>
     </view>
 
     <view class="live-avatar-row">

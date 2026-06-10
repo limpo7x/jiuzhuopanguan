@@ -13,6 +13,10 @@
     <view class="table-center">
       <text class="table-title">{{sessionName}}</text>
       <text class="table-subtitle">桌面模式</text>
+      <view wx:if="{{!isJudge}}" class="table-refresh" bindtap="handleRefreshTap">
+        <view class="table-refresh-icon">↻</view>
+        <text class="table-refresh-text">刷新最新数据</text>
+      </view>
     </view>
 
     <view class="table-score-wrap">

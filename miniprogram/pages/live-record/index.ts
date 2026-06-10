@@ -30,6 +30,13 @@ interface LiveEvent {
   text: string
 }
 
+interface LiveSessionEvent {
+  createdAt?: string
+  label?: string
+  text?: string
+  type?: string
+}
+
 interface LiveRecordState {
   elapsedText: string
   exitGuardHandling: boolean
@@ -45,6 +52,7 @@ interface LiveRecordState {
 interface LiveRecordMethods {
   applyWheelResult: () => void
   hydrateManagedSession: (sessionId: string, role?: string) => Promise<void>
+  handleRefreshTap: () => Promise<void>
   handleAddPlayerTap: () => void
   handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleBackTap: () => Promise<void>
@@ -95,6 +103,35 @@ const buildRecords = (players: LivePlayer[], runtime = getSessionRuntime()): Liv
       profileId: player.profileId,
     }
   })
+}
+
+const buildSessionEvents = (
+  sessionName: string,
+  players: LivePlayer[],
+  wheelPlayers: Array<{ name?: string; wheelHistory?: LiveSessionEvent[] }>,
+): LiveEvent[] => {
+  const wheelEvents = wheelPlayers
+    .flatMap((player) => {
+      const name = player.name || '未知玩家'
+      return (player.wheelHistory || [])
+        .filter((item) => !!item?.text)
+        .map((item) => ({
+          createdAt: item.createdAt || '',
+          text: `${name} ${item.label || '转盘'}：${item.text || ''}`,
+        }))
+    })
+    .sort((left, right) => {
+      const leftTs = left.createdAt ? new Date(left.createdAt).getTime() : 0
+      const rightTs = right.createdAt ? new Date(right.createdAt).getTime() : 0
+      return rightTs - leftTs
+    })
+    .slice(0, 4)
+
+  if (wheelEvents.length) {
+    return wheelEvents
+  }
+
+  return buildInitialEvents(sessionName, players)
 }
 
 const buildInitialEvents = (sessionName: string, players: LivePlayer[]): LiveEvent[] => {
@@ -215,8 +252,76 @@ Page<LiveRecordState, LiveRecordMethods>({
       players,
       records,
       sessionName: liveSession.sessionName,
-      events: buildInitialEvents(liveSession.sessionName, players),
+      events: buildSessionEvents(liveSession.sessionName, players, liveSession.joinStatusPlayers),
     })
+  },
+
+  async handleRefreshTap() {
+    if (this.data.isJudge) {
+      return
+    }
+
+    const runtime = getSessionRuntime()
+    if (!runtime.sessionId) {
+      this.showPreviewToast('未找到当前局信息')
+      return
+    }
+
+    wx.showLoading({
+      title: '刷新中',
+      mask: true,
+    })
+
+    try {
+      const liveSession = await getManagedLiveSession(runtime.sessionId, runtime.inviteCode)
+      const players = liveSession.joinStatusPlayers
+        .slice(0, liveSession.playerCount)
+        .map((item) => ({
+          avatarUrl: item.avatarUrl,
+          name: item.name,
+          profileId: item.profileId,
+        }))
+
+      const records = liveSession.joinStatusPlayers.slice(0, liveSession.playerCount).map((item, index) => ({
+        avatarUrl: item.avatarUrl,
+        clearedCount: item.clearedCount || 0,
+        debtCount: item.debtCount || 0,
+        drinkCount: item.drinkCount || 0,
+        id: item.profileId || `player-${index + 1}`,
+        meta: item.meta || buildDefaultMeta(item),
+        name: item.name,
+        profileId: item.profileId,
+      }))
+
+      setSessionRuntime({
+        isJudge: this.data.isJudge,
+        playerCount: liveSession.playerCount,
+        playerStats: toPlayerStats(records),
+        selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
+          avatarUrl: item.avatarUrl,
+          name: item.name,
+          profileId: item.profileId,
+          status: item.status,
+        })),
+        sessionId: liveSession.id,
+        sessionName: liveSession.sessionName,
+      })
+
+      this.syncRecordsToRuntime(records)
+      this.setData({
+        playerCount: liveSession.playerCount,
+        players,
+        records,
+        sessionName: liveSession.sessionName,
+        events: buildSessionEvents(liveSession.sessionName, players, liveSession.joinStatusPlayers),
+      })
+
+      this.showPreviewToast('刷新成功')
+    } catch (error) {
+      this.showPreviewToast(error instanceof Error ? error.message : '刷新失败')
+    } finally {
+      wx.hideLoading()
+    }
   },
 
   onShow() {
