@@ -69,7 +69,8 @@ const downloadAndPersist = async (source: string) => {
 
   try {
     const saved = await new Promise<WechatMiniprogram.SaveFileSuccessCallbackResult>((resolve, reject) => {
-      wx.saveFile({
+      const fs = wx.getFileSystemManager()
+      fs.saveFile({
         tempFilePath: downloaded.tempFilePath,
         success: resolve,
         fail: reject,
