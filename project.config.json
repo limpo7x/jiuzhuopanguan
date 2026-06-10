@@ -15,7 +15,7 @@
     "coverView": false,
     "postcss": false,
     "minified": false,
-    "enhance": true,
+    "enhance": false,
     "showShadowRootInWxmlPanel": false,
     "packNpmRelationList": [],
     "ignoreUploadUnusedFiles": true,
