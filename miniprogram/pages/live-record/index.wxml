@@ -22,7 +22,7 @@
     </view>
 
     <view class="live-avatar-row">
-      <view wx:for="{{players}}" wx:key="name" class="live-avatar-card">
+      <view wx:for="{{players}}" wx:key="index" class="live-avatar-card">
         <image class="live-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
         <text class="live-avatar-name">{{item.name}}</text>
       </view>
@@ -34,7 +34,7 @@
 
     <view class="live-card live-form-card">
       <text class="live-block-title">欠酒记录</text>
-      <view wx:for="{{records}}" wx:key="id" class="live-record-item">
+      <view wx:for="{{records}}" wx:key="index" class="live-record-item">
         <view class="live-row-between live-record-top">
           <view class="live-record-user">
             <image class="live-record-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
@@ -80,7 +80,7 @@
 
     <view class="live-card live-form-card live-spacing-top">
       <text class="live-block-title">整活事件</text>
-      <view wx:for="{{events}}" wx:key="text" class="live-row-between">
+      <view wx:for="{{events}}" wx:key="index" class="live-row-between">
         <text class="live-event-text">{{item.text}}</text>
         <text class="live-event-score">+1</text>
       </view>
