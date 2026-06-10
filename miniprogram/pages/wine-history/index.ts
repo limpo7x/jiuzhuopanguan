@@ -136,7 +136,9 @@ Page<WineHistoryState, WineHistoryMethods>({
     }
 
     if (status === '进行中' && sessionId) {
-      this.openPage(`/pages/live-record/index?sessionId=${encodeURIComponent(sessionId)}`)
+      this.openPage(
+        `/pages/live-record/index?sessionId=${encodeURIComponent(sessionId)}&role=${encodeURIComponent('viewer')}`,
+      )
       return
     }
 

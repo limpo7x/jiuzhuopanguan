@@ -319,9 +319,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       this.showPreviewToast('刷新成功')
     } catch (error) {
       this.showPreviewToast(error instanceof Error ? error.message : '刷新失败')
-    } finally {
-      wx.hideLoading()
-    }
+    wx.hideLoading()
   },
 
   onShow() {
@@ -527,10 +525,20 @@ Page<LiveRecordState, LiveRecordMethods>({
   },
 
   async handleBackTap() {
+    if (!this.data.isJudge) {
+      wx.navigateBack()
+      return
+    }
+
     await confirmAndExitSession()
   },
 
   async handleExitGuardLeave() {
+    if (!this.data.isJudge) {
+      wx.navigateBack()
+      return
+    }
+
     if (this.data.exitGuardHandling) {
       this.setData({ exitGuardVisible: true })
       return
