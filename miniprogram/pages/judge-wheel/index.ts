@@ -41,6 +41,8 @@ interface JudgeWheelState {
   currentPlayerAvatar: string
   currentPlayerId: string
   currentPlayerName: string
+  exitGuardHandling: boolean
+  exitGuardVisible: boolean
   currentTask: string
   currentTaskLabel: string
   currentTaskType: string
@@ -63,6 +65,7 @@ interface JudgeWheelMethods {
   applyQuestionType: (type: QuestionType) => void
   handleAcceptTap: () => Promise<void>
   handleBackTap: () => Promise<void>
+  handleExitGuardLeave: () => Promise<void>
   handleSpinTap: () => void
   handleTypeTap: (event: WechatMiniprogram.BaseEvent) => void
   showPreviewToast: (message: string) => void
@@ -188,6 +191,8 @@ Page<JudgeWheelState, JudgeWheelMethods>({
     currentPlayerAvatar: pickDefaultPlayer().avatarUrl,
     currentPlayerId: pickDefaultPlayer().id,
     currentPlayerName: pickDefaultPlayer().name,
+    exitGuardHandling: false,
+    exitGuardVisible: true,
     currentTask: '',
     currentTaskLabel: '',
     currentTaskTag: '',
@@ -482,6 +487,27 @@ Page<JudgeWheelState, JudgeWheelMethods>({
 
   async handleBackTap() {
     await confirmAndExitSession()
+  },
+
+  async handleExitGuardLeave() {
+    if (this.data.exitGuardHandling) {
+      this.setData({ exitGuardVisible: true })
+      return
+    }
+
+    this.setData({
+      exitGuardHandling: true,
+      exitGuardVisible: true,
+    })
+
+    try {
+      await confirmAndExitSession()
+    } finally {
+      this.setData({
+        exitGuardHandling: false,
+        exitGuardVisible: true,
+      })
+    }
   },
 
   showPreviewToast(message) {

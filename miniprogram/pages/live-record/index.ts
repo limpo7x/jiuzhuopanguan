@@ -6,7 +6,7 @@ import {
   type SessionParticipant,
   type SessionPlayerStat,
 } from '../../utils/session'
-import { updateManagedSession } from '../../services/operations'
+import { getManagedLiveSession, updateManagedSession } from '../../services/operations'
 import { confirmAndExitSession } from '../../utils/session-exit'
 
 interface LivePlayer {
@@ -32,6 +32,8 @@ interface LiveEvent {
 
 interface LiveRecordState {
   elapsedText: string
+  exitGuardHandling: boolean
+  exitGuardVisible: boolean
   events: LiveEvent[]
   isJudge: boolean
   playerCount: number
@@ -42,9 +44,11 @@ interface LiveRecordState {
 
 interface LiveRecordMethods {
   applyWheelResult: () => void
+  hydrateManagedSession: (sessionId: string, role?: string) => Promise<void>
   handleAddPlayerTap: () => void
   handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleBackTap: () => Promise<void>
+  handleExitGuardLeave: () => Promise<void>
   handleNextRoundTap: () => void
   handleTimerTick: () => void
   openPage: (url: string) => void
@@ -115,6 +119,8 @@ const toPlayerStats = (records: LiveRecordItem[]): SessionPlayerStat[] =>
 Page<LiveRecordState, LiveRecordMethods>({
   data: {
     elapsedText: '00:00:00',
+    exitGuardHandling: false,
+    exitGuardVisible: true,
     playerCount: 6,
     players: [],
     isJudge: true,
@@ -123,10 +129,26 @@ Page<LiveRecordState, LiveRecordMethods>({
     events: [],
   },
 
-  onLoad(query) {
+  async onLoad(query) {
     const runtime = getSessionRuntime()
-    const isJudge = query?.role === 'viewer' ? false : runtime.isJudge
+    const sessionId = query?.sessionId ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
+    const role = query?.role ? decodeURIComponent(query.role) : ''
     const sessionName = query?.sessionName ? decodeURIComponent(query.sessionName) : runtime.sessionName
+
+    if (sessionId) {
+      try {
+        await this.hydrateManagedSession(sessionId, role)
+        this.handleTimerTick()
+        return
+      } catch (error) {
+        wx.showToast({
+          title: error instanceof Error ? error.message : '酒局加载失败',
+          icon: 'none',
+        })
+      }
+    }
+
+    const isJudge = role === 'viewer' ? false : runtime.isJudge
     const players = buildPlayers(runtime)
     const records = buildRecords(players, runtime)
 
@@ -141,6 +163,60 @@ Page<LiveRecordState, LiveRecordMethods>({
 
     this.syncRecordsToRuntime(records)
     this.handleTimerTick()
+  },
+
+  async hydrateManagedSession(sessionId, role = '') {
+    const runtime = getSessionRuntime()
+    const liveSession = await getManagedLiveSession(sessionId, runtime.inviteCode)
+    const inferredIsJudge =
+      role === 'viewer'
+        ? false
+        : role === 'judge'
+          ? true
+          : Boolean(liveSession.hostProfileId && runtime.currentUser?.id && liveSession.hostProfileId === runtime.currentUser.id)
+    const players = liveSession.joinStatusPlayers
+      .slice(0, liveSession.playerCount)
+      .map((item) => ({
+        avatarUrl: item.avatarUrl,
+        name: item.name,
+        profileId: item.profileId,
+      }))
+    const records = liveSession.joinStatusPlayers.slice(0, liveSession.playerCount).map((item, index) => ({
+      avatarUrl: item.avatarUrl,
+      clearedCount: item.clearedCount || 0,
+      debtCount: item.debtCount || 0,
+      drinkCount: item.drinkCount || 0,
+      id: item.profileId || `player-${index + 1}`,
+      meta: item.meta || buildDefaultMeta(item),
+      name: item.name,
+      profileId: item.profileId,
+    }))
+
+    setSessionRuntime({
+      inviteCode: liveSession.inviteCode,
+      isJudge: inferredIsJudge,
+      playerCount: liveSession.playerCount,
+      playerStats: toPlayerStats(records),
+      selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
+        avatarUrl: item.avatarUrl,
+        name: item.name,
+        profileId: item.profileId,
+        status: item.status,
+      })),
+      sessionId: liveSession.id,
+      sessionName: liveSession.sessionName,
+      startedAt: runtime.startedAt || Date.now(),
+      templateName: liveSession.templateName,
+    })
+
+    this.setData({
+      isJudge: inferredIsJudge,
+      playerCount: liveSession.playerCount,
+      players,
+      records,
+      sessionName: liveSession.sessionName,
+      events: buildInitialEvents(liveSession.sessionName, players),
+    })
   },
 
   onShow() {
@@ -347,6 +423,27 @@ Page<LiveRecordState, LiveRecordMethods>({
 
   async handleBackTap() {
     await confirmAndExitSession()
+  },
+
+  async handleExitGuardLeave() {
+    if (this.data.exitGuardHandling) {
+      this.setData({ exitGuardVisible: true })
+      return
+    }
+
+    this.setData({
+      exitGuardHandling: true,
+      exitGuardVisible: true,
+    })
+
+    try {
+      await confirmAndExitSession()
+    } finally {
+      this.setData({
+        exitGuardHandling: false,
+        exitGuardVisible: true,
+      })
+    }
   },
 
   showPreviewToast(message) {

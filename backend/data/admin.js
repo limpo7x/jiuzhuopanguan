@@ -209,6 +209,49 @@ const createDefaultStore = () => ({
   ],
 })
 
+const getSessionContactsByProfile = (profileId) => {
+  const store = readStore()
+  const normalizedProfileId = String(profileId || '').trim()
+  if (!normalizedProfileId) {
+    return []
+  }
+
+  const now = Date.now()
+  const contacts = new Map()
+
+  store.liveSessions.forEach((session) => {
+    const members = Array.isArray(session?.members) ? session.members : []
+    const involved = members.some((member) => String(member?.profileId || '').trim() === normalizedProfileId)
+    if (!involved) {
+      return
+    }
+
+    members.forEach((member) => {
+      const friendProfileId = String(member?.profileId || '').trim()
+      if (!friendProfileId || friendProfileId === normalizedProfileId) {
+        return
+      }
+
+      const nextUpdatedAt = Number(member?.updatedAt || member?.joinedAt || member?.createdAt || session?.updatedAt || now)
+      const existed = contacts.get(friendProfileId)
+      if (existed && nextUpdatedAt <= Number(existed.updatedAt || 0)) {
+        return
+      }
+
+      contacts.set(friendProfileId, {
+        id: friendProfileId,
+        profileId: friendProfileId,
+        name: String(member?.name || '').trim() || `用户${friendProfileId.slice(-4)}`,
+        avatarUrl: String(member?.avatarUrl || '').trim(),
+        identityTag: String(member?.identityTag || '').trim(),
+        updatedAt: nextUpdatedAt,
+      })
+    })
+  })
+
+  return Array.from(contacts.values()).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0))
+}
+
 const normalizeShareAsset = (item = {}, index = 0) => {
   const exposureCount = Math.max(1, Number(item.exposureCount) || 1000)
   const openCount = Math.max(0, Number(item.openCount) || seedCountFromRate(item.openRate, exposureCount, exposureCount))
@@ -2792,6 +2835,7 @@ module.exports = {
   getSession,
   loginAdmin,
   logoutAdmin,
+  getSessionContactsByProfile,
   savePageData,
   trackAnalyticsEvent,
   updateManagedSession,

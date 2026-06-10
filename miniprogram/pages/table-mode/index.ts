@@ -1,5 +1,4 @@
 import { createManagedReport } from '../../services/operations'
-import { confirmAndExitSession } from '../../utils/session-exit'
 import {
   formatElapsed,
   getSessionRuntime,
@@ -26,6 +25,8 @@ interface ScoreRow {
 
 interface TableModeState {
   elapsedText: string
+  exitGuardHandling: boolean
+  exitGuardVisible: boolean
   isJudge: boolean
   rows: ScoreRow[]
   sessionName: string
@@ -33,9 +34,11 @@ interface TableModeState {
 
 interface TableModeMethods {
   handleBackTap: () => Promise<void>
+  handleExitGuardLeave: () => Promise<void>
   handleFinishTap: () => Promise<void>
   handleReactionTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTimerTick: () => void
+  navigateBackToSession: () => void
   openPage: (url: string) => void
 }
 
@@ -152,6 +155,8 @@ const buildReportEvents = (sessionName: string, rows: ScoreRow[]): Array<{ text:
 Page<TableModeState, TableModeMethods>({
   data: {
     elapsedText: '00:00:00',
+    exitGuardHandling: false,
+    exitGuardVisible: true,
     isJudge: true,
     rows: [],
     sessionName: '酒桌判官酒局',
@@ -202,7 +207,26 @@ Page<TableModeState, TableModeMethods>({
   },
 
   async handleBackTap() {
-    await confirmAndExitSession()
+    this.navigateBackToSession()
+  },
+
+  async handleExitGuardLeave() {
+    this.navigateBackToSession()
+  },
+
+  navigateBackToSession() {
+    const runtime = getSessionRuntime()
+    const fallbackUrl = `/pages/live-record/index?role=${runtime.isJudge ? 'judge' : 'viewer'}&sessionName=${encodeURIComponent(runtime.sessionName || '')}`
+    wx.navigateBack({
+      fail: () => {
+        wx.redirectTo({
+          url: fallbackUrl,
+          fail: () => {
+            wx.reLaunch({ url: fallbackUrl })
+          },
+        })
+      },
+    })
   },
 
   handleReactionTap(event) {

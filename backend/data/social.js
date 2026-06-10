@@ -377,6 +377,106 @@ const getOrCreatePlaceholderProfile = (store, name) => {
   return profile
 }
 
+const ensureProfileFromSessionContact = (store, participant = {}) => {
+  const profileId = String(participant.id || participant.profileId || '').trim()
+  if (!profileId) {
+    return null
+  }
+
+  const profileName = sanitizeProfileName(participant.name || '')
+  const avatarUrl = normalizeAvatarUrl(participant.avatarUrl || '', profileName || String(participant.identityTag || ''))
+  const nextProfile = normalizeProfile(
+    {
+      id: profileId,
+      name: profileName,
+      avatarUrl,
+      signature: getProfileById(store, profileId)?.signature || '',
+      identityTag: sanitizeProfileName(participant.identityTag || '') || '好友',
+      phone: getProfileById(store, profileId)?.phone || '',
+      wechatOpenId: getProfileById(store, profileId)?.wechatOpenId || '',
+      wechatUnionId: getProfileById(store, profileId)?.wechatUnionId || '',
+      phoneBoundAt: getProfileById(store, profileId)?.phoneBoundAt || '',
+      lastLoginAt: getProfileById(store, profileId)?.lastLoginAt || '',
+      loginCount: getProfileById(store, profileId)?.loginCount || 0,
+      createdAt: getProfileById(store, profileId)?.createdAt || now(),
+      updatedAt: now(),
+    },
+    getProfileById(store, profileId) || {},
+  )
+
+  const existedProfile = getProfileById(store, profileId)
+  if (existedProfile) {
+    store.profiles = store.profiles.map((item) => (item.id === profileId ? { ...item, ...nextProfile, createdAt: item.createdAt || nextProfile.createdAt } : item))
+    return { ...nextProfile, createdAt: existedProfile.createdAt || nextProfile.createdAt }
+  }
+
+  store.profiles.unshift(nextProfile)
+  return nextProfile
+}
+
+const syncSessionContacts = ({ ownerId, participants = [] }) => {
+  const store = readStore()
+  const normalizedOwnerId = String(ownerId || '').trim()
+  if (!normalizedOwnerId) {
+    return []
+  }
+
+  const uniqueParticipants = new Map()
+  participants.forEach((item) => {
+    const participantId = String(item?.profileId || item?.id || '').trim()
+    if (!participantId || participantId === normalizedOwnerId) {
+      return
+    }
+    if (uniqueParticipants.has(participantId)) {
+      return
+    }
+    uniqueParticipants.set(participantId, {
+      ...item,
+      profileId: participantId,
+      id: participantId,
+    })
+  })
+
+  const touchedAt = now()
+  uniqueParticipants.forEach((participant) => {
+    const targetProfile = ensureProfileFromSessionContact(store, participant)
+    if (!targetProfile) {
+      return
+    }
+
+    const friendshipAlias = sanitizeProfileName(participant.name || targetProfile.name)
+    const existing = store.friendships.find(
+      (item) => item.ownerId === normalizedOwnerId && item.friendId === targetProfile.id,
+    )
+    const nextMeta = friendProfileMeta(participant.meta || '酒局联系人')
+    if (existing) {
+      store.friendships = store.friendships.map((item) =>
+        item.id === existing.id
+          ? {
+              ...item,
+              alias: friendshipAlias || item.alias,
+              meta: nextMeta,
+              updatedAt: touchedAt,
+            }
+          : item,
+      )
+      return
+    }
+
+    store.friendships.unshift({
+      id: `friendship-${touchedAt}-${Math.random().toString(16).slice(2, 8)}`,
+      ownerId: normalizedOwnerId,
+      friendId: targetProfile.id,
+      alias: friendshipAlias || targetProfile.name,
+      meta: nextMeta,
+      updatedAt: touchedAt,
+    })
+  })
+
+  writeStore(store)
+  return listFriends(normalizedOwnerId)
+}
+
 const serializeFriend = (store, friendship) => {
   const profile = getProfileById(store, friendship.friendId)
   return {
@@ -500,6 +600,11 @@ const removeFriend = ({ ownerId, friendshipId }) => {
   store.friendships = store.friendships.filter((item) => !(item.id === friendshipId && item.ownerId === ownerId))
   writeStore(store)
   return listFriends(ownerId)
+}
+
+const friendProfileMeta = (meta = '') => {
+  const text = String(meta || '').trim()
+  return text || '酒局联系人'
 }
 
 const touchFriends = ({ ownerId, participants = [] }) => {
@@ -656,6 +761,7 @@ module.exports = {
   listProfiles,
   readSocialStore: readStore,
   removeFriend,
+  syncSessionContacts,
   replyPoke,
   searchProfiles,
   sendPoke,

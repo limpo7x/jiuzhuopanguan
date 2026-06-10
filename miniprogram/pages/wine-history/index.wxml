@@ -38,7 +38,7 @@
           <text class="history-title">{{item.name}}</text>
           <text class="history-meta">{{item.meta}}</text>
         </view>
-        <view class="history-tag {{item.status === '已结束' ? 'history-tag-green' : ''}}">{{item.tag}}</view>
+        <view class="history-tag {{item.status === '进行中' ? 'history-tag-green' : ''}}">{{item.tag}}</view>
       </view>
     </view>
 

@@ -327,6 +327,7 @@ const formatLiveSession = (session) => {
   return {
     hostAvatarUrl: session?.hostAvatarUrl || memberPlayers[0]?.avatarUrl || '/static/avatar-1.png',
     hostName: session?.hostName || '小太阳组会玩',
+    hostProfileId: session?.hostProfileId || memberPlayers.find((item) => item.profileId)?.profileId || '',
     id: session?.id,
     inviteCode: session?.inviteCode || 'AB7K9Q',
     joinedCount,

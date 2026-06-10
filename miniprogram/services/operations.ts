@@ -72,6 +72,7 @@ interface RemoteSessionPlayer {
 
 interface RemoteLiveSession {
   hostName?: string
+  hostProfileId?: string
   id?: string
   inviteCode?: string
   joinedCount?: number
@@ -211,6 +212,7 @@ export interface ManagedWheelHistoryItem {
 
 export interface ManagedLiveSession {
   hostName: string
+  hostProfileId: string
   id: string
   inviteCode: string
   joinedCount: number
@@ -508,6 +510,7 @@ export const getManagedLiveSession = async (sessionId?: string, inviteCode?: str
 
   return {
     hostName: remote.hostName || runtime.currentUser?.name || '',
+    hostProfileId: remote.hostProfileId || '',
     id: remote.id || runtime.sessionId || '',
     inviteCode: remote.inviteCode || runtime.inviteCode || '',
     joinedCount: Number(remote.joinedCount) || joinedPlayers.length,

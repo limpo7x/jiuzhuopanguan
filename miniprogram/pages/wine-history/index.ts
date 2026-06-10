@@ -30,6 +30,7 @@ interface WineHistoryMethods {
   handleCreateTap: () => void
   handleFilterTap: (event: WechatMiniprogram.BaseEvent) => void
   handleSessionTap: (event: WechatMiniprogram.BaseEvent) => void
+  openPage: (url: string) => void
 }
 
 const HISTORY_FILTERS = ['全部', '进行中', '已结束', '已失效']
@@ -117,23 +118,25 @@ Page<WineHistoryState, WineHistoryMethods>({
     }
 
     if (status === '已失效') {
-      wx.navigateTo({
-        url: '/pages/invalid-state/index',
+      this.openPage('/pages/invalid-state/index')
+      return
+    }
+
+    if (status === '已结束') {
+      if (reportId) {
+        this.openPage(`/pages/result-report/index?reportId=${encodeURIComponent(reportId)}`)
+        return
+      }
+
+      wx.showToast({
+        title: '该酒局缺少战报数据',
+        icon: 'none',
       })
       return
     }
 
-    if (recordType === 'report' && reportId) {
-      wx.navigateTo({
-        url: `/pages/result-report/index?reportId=${encodeURIComponent(reportId)}`,
-      })
-      return
-    }
-
-    if (sessionId) {
-      wx.navigateTo({
-        url: `/pages/waiting-room/index?sessionId=${encodeURIComponent(sessionId)}`,
-      })
+    if (status === '进行中' && sessionId) {
+      this.openPage(`/pages/live-record/index?sessionId=${encodeURIComponent(sessionId)}`)
       return
     }
 
@@ -144,8 +147,15 @@ Page<WineHistoryState, WineHistoryMethods>({
   },
 
   handleCreateTap() {
+    this.openPage('/pages/create-session/index')
+  },
+
+  openPage(url) {
     wx.navigateTo({
-      url: '/pages/create-session/index',
+      url,
+      fail: () => {
+        wx.redirectTo({ url })
+      },
     })
   },
 })

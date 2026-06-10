@@ -163,6 +163,20 @@ export interface AuthorizedWechatProfile {
   name: string
 }
 
+const requestLoginCode = () =>
+  new Promise<string>((resolve, reject) => {
+    wx.login({
+      success: (result) => {
+        if (result.code) {
+          resolve(result.code)
+          return
+        }
+        reject(new Error('wx.login failed'))
+      },
+      fail: reject,
+    })
+  })
+
 const normalizeAuthorizedWechatProfile = (value: Partial<AuthorizedWechatProfile> | null | undefined): AuthorizedWechatProfile | null => {
   const name = String(value?.name || '').trim()
   const avatarUrl = String(value?.avatarUrl || '').trim()
@@ -226,6 +240,23 @@ const createDefaultProfile = (): SocialProfile => ({
   signature: '',
   identityTag: '',
 })
+
+const buildCachedWechatLoginProfile = (profile?: Partial<SocialProfile>): UserLoginPayload['profile'] | null => {
+  const authorizedWechatProfile = getAuthorizedWechatProfile()
+  const name = sanitizeSocialName(authorizedWechatProfile?.name || profile?.name || '')
+  const avatarUrl = String(authorizedWechatProfile?.avatarUrl || profile?.avatarUrl || '').trim()
+
+  if (!name && !avatarUrl) {
+    return null
+  }
+
+  return {
+    avatarUrl: avatarUrl || avatarAsset(1),
+    identityTag: String(profile?.identityTag || '').trim(),
+    name,
+    signature: String(profile?.signature || '').trim(),
+  }
+}
 
 const getLocalProfile = (): SocialProfile => {
   const raw = wx.getStorageSync(CURRENT_PROFILE_KEY) as Partial<SocialProfile> | undefined
@@ -326,6 +357,51 @@ const upsertLocalProfile = (profile: SocialProfile) => {
   return cacheProfile(profile)
 }
 
+const finalizeWechatLogin = async (payload: UserLoginPayload): Promise<SocialProfile> => {
+  const result = await request<{ profile: SocialProfile; token: string }>('/user/auth/login', 'POST', payload as WechatMiniprogram.IAnyObject)
+  cacheUserToken(result.token)
+  const requestedName = String(payload.profile?.name || '').trim()
+  const requestedAvatarUrl = String(payload.profile?.avatarUrl || '').trim()
+  const resolvedName = sanitizeSocialName(requestedName) || sanitizeSocialName(result.profile?.name || '')
+  const mergedProfile: SocialProfile = {
+    ...result.profile,
+    name: resolvedName,
+    avatarUrl: requestedAvatarUrl || result.profile.avatarUrl,
+  }
+  const cached = upsertLocalProfile(mergedProfile)
+  cacheAuthorizedWechatProfile({
+    name: resolvedName,
+    avatarUrl: requestedAvatarUrl || result.profile.avatarUrl,
+  })
+
+  if (cached.name !== result.profile.name || cached.avatarUrl !== result.profile.avatarUrl) {
+    try {
+      await request<SocialProfile>('/social/profile', 'PUT', cached as WechatMiniprogram.IAnyObject)
+    } catch {
+      void 0
+    }
+  }
+
+  return cached
+}
+
+const trySilentWechatLogin = async (profile?: Partial<SocialProfile>): Promise<SocialProfile | null> => {
+  const loginProfile = buildCachedWechatLoginProfile(profile)
+  if (!loginProfile) {
+    return null
+  }
+
+  try {
+    const loginCode = await requestLoginCode()
+    return await finalizeWechatLogin({
+      loginCode,
+      profile: loginProfile,
+    })
+  } catch {
+    return null
+  }
+}
+
 const getLocalWineFriends = (): WineFriend[] => {
   const raw = wx.getStorageSync(LOCAL_WINE_FRIENDS_KEY) as WineFriend[] | undefined
   return Array.isArray(raw) ? raw : []
@@ -414,6 +490,10 @@ export const ensureCurrentProfile = async (): Promise<SocialProfile> => {
         return upsertLocalProfile(session.profile)
       }
       cacheUserToken('')
+      const restoredProfile = await trySilentWechatLogin(local)
+      if (restoredProfile) {
+        return restoredProfile
+      }
       return upsertLocalProfile(local)
     } catch {
       if (local.wechatOpenId) {
@@ -421,6 +501,11 @@ export const ensureCurrentProfile = async (): Promise<SocialProfile> => {
       }
       cacheUserToken('')
     }
+  }
+
+  const restoredProfile = await trySilentWechatLogin(local)
+  if (restoredProfile) {
+    return restoredProfile
   }
 
   try {
@@ -448,11 +533,12 @@ export const bootstrapSocial = async (): Promise<SocialBootstrapResponse> => {
 export const getCurrentProfile = async (): Promise<SocialProfile> => ensureCurrentProfile()
 
 export const getUserAuthSession = async (): Promise<UserAuthSession> => {
+  const local = getLocalProfile()
   const token = getUserSessionToken()
   if (!token) {
-    return { loggedIn: false, profile: null }
+    const restoredProfile = await trySilentWechatLogin(local)
+    return restoredProfile ? { loggedIn: true, profile: restoredProfile } : { loggedIn: false, profile: null }
   }
-  const local = getLocalProfile()
   try {
     const session = await request<UserAuthSession>('/user/auth/session')
     if (session.loggedIn && session.profile) {
@@ -460,7 +546,8 @@ export const getUserAuthSession = async (): Promise<UserAuthSession> => {
       return session
     }
     cacheUserToken('')
-    return { loggedIn: false, profile: null }
+    const restoredProfile = await trySilentWechatLogin(local)
+    return restoredProfile ? { loggedIn: true, profile: restoredProfile } : { loggedIn: false, profile: null }
   } catch {
     return local.wechatOpenId ? { loggedIn: true, profile: local } : { loggedIn: false, profile: null }
   }
@@ -476,31 +563,7 @@ export const ensureUserAuthorized = async (redirectUrl?: string): Promise<Social
 }
 
 export const loginWithWechat = async (payload: UserLoginPayload): Promise<SocialProfile> => {
-  const result = await request<{ profile: SocialProfile; token: string }>('/user/auth/login', 'POST', payload as WechatMiniprogram.IAnyObject)
-  cacheUserToken(result.token)
-  const requestedName = String(payload.profile?.name || '').trim()
-  const requestedAvatarUrl = String(payload.profile?.avatarUrl || '').trim()
-  const resolvedName = sanitizeSocialName(requestedName) || sanitizeSocialName(result.profile?.name || '')
-  const mergedProfile: SocialProfile = {
-    ...result.profile,
-    name: resolvedName,
-    avatarUrl: requestedAvatarUrl || result.profile.avatarUrl,
-  }
-  const cached = upsertLocalProfile(mergedProfile)
-  cacheAuthorizedWechatProfile({
-    name: resolvedName,
-    avatarUrl: requestedAvatarUrl || result.profile.avatarUrl,
-  })
-
-  if (cached.name !== result.profile.name || cached.avatarUrl !== result.profile.avatarUrl) {
-    try {
-      await request<SocialProfile>('/social/profile', 'PUT', cached as WechatMiniprogram.IAnyObject)
-    } catch {
-      void 0
-    }
-  }
-
-  return cached
+  return finalizeWechatLogin(payload)
 }
 
 export const bindCurrentUserPhone = async (phoneCode: string): Promise<SocialProfile> => {
