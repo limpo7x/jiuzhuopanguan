@@ -319,7 +319,9 @@ Page<LiveRecordState, LiveRecordMethods>({
       this.showPreviewToast('刷新成功')
     } catch (error) {
       this.showPreviewToast(error instanceof Error ? error.message : '刷新失败')
-    wx.hideLoading()
+    } finally {
+      wx.hideLoading()
+    }
   },
 
   onShow() {
