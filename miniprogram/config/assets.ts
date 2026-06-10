@@ -36,6 +36,17 @@ export const normalizeManagedAssetPath = (path?: string) => {
   }
 
   if (/^https?:\/\//i.test(path)) {
+    const origin = getApiOrigin()
+    if (origin && path.startsWith(origin)) {
+      const pathname = path.slice(origin.length)
+
+      if (pathname.startsWith('/assets/')) {
+        return `${origin}/static/${pathname.replace(/^\/assets\/+/, '')}`
+      }
+
+      return pathname.startsWith('/static/') || pathname.startsWith('/uploads/') ? path : `${origin}${pathname}`
+    }
+
     return path
   }
 
@@ -52,6 +63,14 @@ export const normalizeManagedAssetPath = (path?: string) => {
   const staticAssetFile = STATIC_ASSET_FILE_BY_LOCAL_PATH[path]
   if (staticAssetFile) {
     return staticAsset(staticAssetFile)
+  }
+
+  if (path.startsWith('/assets/')) {
+    const normalized = path.replace(/^\/+assets\/+/, '')
+    const fallback = normalized.split('/').pop()
+    if (fallback) {
+      return staticAsset(fallback)
+    }
   }
 
   return path

@@ -484,10 +484,16 @@ Page<LiveRecordState, LiveRecordMethods>({
   },
 
   async handleSaveTap() {
+    if (!this.data.isJudge) {
+      this.openPage('/pages/table-mode/index')
+      return
+    }
+
     this.syncRecordsToRuntime(this.data.records)
     if (!(await this.persistRecordsToManagedSession(this.data.records))) {
       return
     }
+
     this.openPage('/pages/table-mode/index')
   },
 

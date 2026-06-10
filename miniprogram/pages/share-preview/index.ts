@@ -25,6 +25,7 @@ interface SharePreviewState {
   playerCount: number
   previewImageUrl: string
   previewTitle: string
+  isGeneratingPoster: boolean
   sessionId: string
   sessionName: string
   shareCardImagePath: string
@@ -41,6 +42,7 @@ interface SharePreviewMethods {
     drawer: (ctx: WechatMiniprogram.CanvasContext) => void,
   ) => Promise<string>
   ensureShareImage: () => Promise<string>
+  renderPosterIfNeeded: () => Promise<void>
   handleSaveTap: () => Promise<void>
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   loadSession: () => Promise<void>
@@ -284,6 +286,7 @@ Page<SharePreviewState, SharePreviewMethods>({
     playerCount: 6,
     previewImageUrl: '',
     previewTitle: '快来加入这一局',
+    isGeneratingPoster: false,
     sessionId: '',
     sessionName: '今晚聚会不醉不归',
     shareCardImagePath: '',
@@ -385,7 +388,7 @@ Page<SharePreviewState, SharePreviewMethods>({
       )
     })
 
-    await this.ensureShareImage()
+    this.renderPosterIfNeeded()
   },
 
   async handleTabTap(event) {
@@ -401,10 +404,15 @@ Page<SharePreviewState, SharePreviewMethods>({
       )
     })
 
-    await this.ensureShareImage()
+    this.renderPosterIfNeeded()
   },
 
   async handleSaveTap() {
+    if (this.data.isGeneratingPoster) {
+      this.showPreviewToast('分享图生成中，请稍后再试')
+      return
+    }
+
     try {
       const tempFilePath = await this.ensureShareImage()
       await this.saveImageFile(tempFilePath)
@@ -458,6 +466,22 @@ Page<SharePreviewState, SharePreviewMethods>({
     const filePath = await this.buildShareImage()
     this.setData({ shareCardImagePath: filePath })
     return filePath
+  },
+
+  async renderPosterIfNeeded() {
+    if (this.data.shareCardImagePath || this.data.isGeneratingPoster) {
+      return
+    }
+
+    this.setData({ isGeneratingPoster: true })
+
+    try {
+      await this.ensureShareImage()
+    } catch {
+      this.showPreviewToast('分享图生成失败，请重试')
+    } finally {
+      this.setData({ isGeneratingPoster: false })
+    }
   },
 
   async buildShareImage() {

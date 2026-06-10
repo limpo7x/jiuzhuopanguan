@@ -11,7 +11,12 @@
     <view class="points-banner">
       <text class="points-value">{{balance}}</text>
       <text class="points-subtitle">可用积分</text>
-      <image class="points-image" src="{{bannerImageUrl}}" mode="aspectFill"></image>
+      <image
+        class="points-image"
+        src="{{bannerImageUrl}}"
+        mode="aspectFill"
+        binderror="handleBannerImageError"
+      ></image>
     </view>
 
     <view class="points-tab-row">

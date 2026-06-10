@@ -37,6 +37,7 @@ interface WinePointsMethods {
   handleRewardRedeem: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleTaskClaim: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleBannerImageError: () => void
   resolveTaskViews: (tasks: PointsTask[], taskClaimStates?: Record<string, TaskClaimState>, claimedTaskIds?: string[]) => Array<
     PointsTask & {
       buttonText: string
@@ -66,11 +67,13 @@ const DEFAULT_REWARDS: PointsReward[] = [
   { id: 'reward-avatar-frame', title: '专属头像框（30天）', subtitle: '限时点亮酒局身份展示效果', cost: 300, iconClass: 'points-icon-crown' },
 ]
 
+const DEFAULT_BANNER_IMAGE_URL = staticAsset('points-gift.png')
+
 Page<WinePointsState, WinePointsMethods>({
   data: {
     activeTab: 'tasks',
     balance: 168,
-    bannerImageUrl: staticAsset('points-gift.png'),
+    bannerImageUrl: DEFAULT_BANNER_IMAGE_URL,
     taskClaimStates: {},
     claimedTaskIds: [],
     ownedRewardIds: [],
@@ -98,8 +101,9 @@ Page<WinePointsState, WinePointsMethods>({
     try {
       const config = await getPointsConfig()
       const tasks = config.tasks?.length ? config.tasks : DEFAULT_TASKS
+      const bannerImageUrl = config.bannerImageUrl || DEFAULT_BANNER_IMAGE_URL
       this.setData({
-        bannerImageUrl: config.bannerImageUrl || this.data.bannerImageUrl,
+        bannerImageUrl,
         rewards: config.rewards?.length ? config.rewards : DEFAULT_REWARDS,
         tasks: this.resolveTaskViews(tasks, this.data.taskClaimStates, this.data.claimedTaskIds),
       })
@@ -165,6 +169,14 @@ Page<WinePointsState, WinePointsMethods>({
     this.setData({
       activeTab: tab,
     })
+  },
+
+  handleBannerImageError() {
+    if (this.data.bannerImageUrl !== DEFAULT_BANNER_IMAGE_URL) {
+      this.setData({
+        bannerImageUrl: DEFAULT_BANNER_IMAGE_URL,
+      })
+    }
   },
 
   async handleTaskClaim(event) {

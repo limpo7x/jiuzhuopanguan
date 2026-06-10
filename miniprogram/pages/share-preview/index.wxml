@@ -10,7 +10,7 @@
   <scroll-view class="share-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="share-chip-row">
       <view class="share-chip {{!showJoinStatus ? 'share-chip-active' : ''}}" data-tab="preview" bindtap="handleTabTap">é‚€è¯·å¡é¢„è§ˆ</view>
-      <view class="share-chip {{showJoinStatus ? 'share-chip-active' : ''}}" data-tab="status" bindtap="handleTabTap">åŠ å…¥çŠ¶æ€</view>
+      <view class="share-chip {{showJoinStatus ? 'share-chip-active' : ''}}" data-tab="status" bindtap="handleTabTap">åŠ å…¥çŠ¶æ€?/view>
     </view>
 
     <view wx:if="{{!showJoinStatus}}" class="share-poster-card">
@@ -32,7 +32,7 @@
     <view wx:else class="share-poster-card">
       <view class="share-poster-copy">
         <text class="share-poster-title">{{shareHeadline}}</text>
-        <text class="share-poster-subtitle">é‚€è¯·å£ä»¤ {{inviteCode}}ï¼Œå½“å‰ {{joinedCount}}/{{playerCount}} äººå·²åŠ å…¥</text>
+        <text class="share-poster-subtitle">é‚€è¯·å£ä»?{{inviteCode}}ï¼Œå½“å‰?{{joinedCount}}/{{playerCount}} äººå·²åŠ å…¥</text>
         <view class="share-status-list">
           <view wx:for="{{joinStatusPlayers}}" wx:key="name" class="share-status-item">
             <view class="share-status-user">
@@ -56,8 +56,8 @@
       </button>
     </view>
 
-    <view class="share-primary" bindtap="handleSaveTap">
-      <text>ä¿å­˜åˆ†äº«å›¾</text>
+    <view class="share-primary {{isGeneratingPoster ? 'share-primary-disabled' : ''}}" bindtap="handleSaveTap">
+      <text>{{isGeneratingPoster ? '·ÖÏíÍ¼Éú³ÉÖĞ' : '±£´æ·ÖÏíÍ¼'}}</text>
       <view class="share-primary-icon"></view>
     </view>
   </scroll-view>

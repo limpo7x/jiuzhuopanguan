@@ -316,7 +316,9 @@ Page<SharePosterState, SharePosterMethods>({
         )
       })
 
-      await this.ensurePosterImage()
+      this.ensurePosterImage().catch(() => {
+        this.showPreviewToast('海报生成失败，请重试')
+      })
     } catch (error) {
       this.showPreviewToast(error instanceof Error ? error.message : '分享页加载失败')
     } finally {
