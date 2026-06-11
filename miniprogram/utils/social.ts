@@ -58,6 +58,10 @@ interface SocialBootstrapResponse {
   wineFriends: WineFriend[]
 }
 
+interface UserAuthConfig {
+  wechatLoginEnabled: boolean
+}
+
 export interface UserAuthSession {
   loggedIn: boolean
   profile: SocialProfile | null
@@ -470,6 +474,13 @@ const trySilentWechatLogin = async (profile?: Partial<SocialProfile>): Promise<S
   }
 }
 
+const ensureWechatLoginConfigured = async () => {
+  const config = await request<UserAuthConfig>('/user/auth/config')
+  if (!config.wechatLoginEnabled) {
+    throw new Error('服务器未配置微信登录，请先配置 WECHAT_APP_ID 与 WECHAT_APP_SECRET')
+  }
+}
+
 export const ensureCurrentProfile = async (): Promise<SocialProfile> => {
   const local = getLocalProfile()
   const token = getUserSessionToken()
@@ -532,6 +543,7 @@ export const ensureUserAuthorized = async (redirectUrl?: string): Promise<Social
 export const loginWithWechat = async (payload: UserLoginPayload): Promise<SocialProfile> => finalizeWechatLogin(payload)
 
 export const loginWithWechatProfile = async (profile: UserLoginPayload['profile']): Promise<SocialProfile> => {
+  await ensureWechatLoginConfigured()
   const loginCode = await requestLoginCode()
   return finalizeWechatLogin({ loginCode, profile })
 }

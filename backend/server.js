@@ -572,6 +572,13 @@ const server = http.createServer((request, response) => {
       return
     }
 
+    if (request.method === 'GET' && pathname === '/api/v1/user/auth/config') {
+      sendOk(response, {
+        wechatLoginEnabled: Boolean(wechatConfig.appId && wechatConfig.appSecret),
+      })
+      return
+    }
+
     if (request.method === 'POST' && pathname === '/api/v1/user/auth/login') {
       const payload = await readJsonBody(request)
       const wechatSession = await getWechatSessionByCode(String(payload.loginCode || '').trim())
