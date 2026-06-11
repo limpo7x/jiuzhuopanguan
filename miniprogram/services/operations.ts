@@ -4,10 +4,6 @@ import { resolveCachedManagedImagePath, resolveCachedManagedImagePathQuick } fro
 import { getSessionRuntime, resolveSessionParticipants } from '../utils/session'
 import { getUserAuthHeaders } from '../utils/social'
 import {
-  TOOL_CATEGORIES,
-  TOOL_LIST,
-  getToolById,
-  getToolCategoryCards,
   resolveToolId,
   type ToolCategory,
   type ToolCategoryCard,
@@ -371,15 +367,15 @@ let shareConfigCache: { expiresAt: number; value: ManagedShareConfig } | null = 
 let merchantCatalogCache: { expiresAt: number; value: ManagedMerchantCatalog } | null = null
 
 const DEFAULT_TOOLS_CATALOG: ManagedToolCatalog = {
-  categories: TOOL_CATEGORIES,
-  categoryCards: getToolCategoryCards(),
+  categories: [],
+  categoryCards: [],
   hero: {
     imageUrl: '',
-    subtitle: '高效 · 实用 · 有趣',
-    title: '工具在手 生活不愁',
+    subtitle: '',
+    title: '',
   },
-  popularTools: TOOL_LIST.slice(0, 4),
-  tools: TOOL_LIST,
+  popularTools: [],
+  tools: [],
 }
 
 const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', data?: Record<string, unknown>): Promise<T> =>
@@ -425,27 +421,26 @@ const normalizeSessionPlayer = (player?: RemoteSessionPlayer): ManagedSessionPla
 
 const mergeToolDescriptor = async (remoteTool: RemoteToolItem): Promise<ToolDescriptor> => {
   const toolId = resolveToolId(remoteTool.id || remoteTool.rawId || '')
-  const fallback = getToolById(toolId) || TOOL_LIST[0]
   const imageUrlSource = normalizeManagedAssetPath(remoteTool.imageUrl)
-  const heroImageSource = normalizeManagedAssetPath(remoteTool.heroImage || remoteTool.imageUrl)
+  const heroImageSource = normalizeManagedAssetPath(remoteTool.heroImage)
   const resolvedImage = imageUrlSource ? resolveCachedManagedImagePathQuick(imageUrlSource, 1200) : Promise.resolve('')
-  const resolvedHero = heroImageSource
-    ? resolveCachedManagedImagePathQuick(heroImageSource, 1200)
-    : Promise.resolve('')
+  const resolvedHero = heroImageSource ? resolveCachedManagedImagePathQuick(heroImageSource, 1200) : Promise.resolve('')
   const [imageUrl, heroImage] = await Promise.all([resolvedImage, resolvedHero])
 
   return {
-    ...fallback,
-    id: toolId || fallback.id,
-    name: remoteTool.name || fallback.name,
-    categoryId: remoteTool.categoryId || fallback.categoryId,
-    iconClass: remoteTool.iconClass || fallback.iconClass,
-    toneClass: remoteTool.toneClass || fallback.toneClass,
-    imageUrl: imageUrl || imageUrlSource || fallback.imageUrl,
-    heroImage: heroImage || heroImageSource || imageUrl || fallback.heroImage,
-    meta: remoteTool.meta || fallback.meta,
-    subtitle: remoteTool.target ? `${remoteTool.target} · ${remoteTool.favoriteRate || '收藏率 0%'}` : fallback.subtitle,
-    summary: remoteTool.meta || fallback.summary,
+    id: toolId,
+    name: remoteTool.name || '',
+    categoryId: remoteTool.categoryId || '',
+    iconClass: remoteTool.iconClass || '',
+    toneClass: remoteTool.toneClass || '',
+    imageUrl: imageUrl || imageUrlSource,
+    heroImage: heroImage || heroImageSource,
+    meta: remoteTool.meta || '',
+    subtitle: remoteTool.target || '',
+    summary: remoteTool.meta || '',
+    tips: [],
+    steps: [],
+    mode: (toolId === 'loan-calc' ? 'loan' : toolId) as ToolDescriptor['mode'],
   }
 }
 
@@ -457,7 +452,7 @@ const buildCategoryCards = (tools: ToolDescriptor[], categories: ToolCategory[])
       return {
         id: category.id,
         name: category.name,
-        meta: hits.length ? `${hits.length} 个工具 · ${hits.map((item) => item.name).slice(0, 3).join(' / ')}` : '暂无工具',
+        meta: hits.length ? ${hits.length} 个工具 ·  : '',
         imageUrl: hits[0]?.imageUrl || '',
       }
     })
@@ -472,8 +467,8 @@ export const getManagedToolsCatalog = async (): Promise<ManagedToolCatalog> => {
     const categories =
       remote.categories?.length
         ? remote.categories.map((item) => ({ id: item.id, name: item.name }))
-        : DEFAULT_TOOLS_CATALOG.categories
-    const tools = remote.tools?.length ? await Promise.all(remote.tools.map(mergeToolDescriptor)) : DEFAULT_TOOLS_CATALOG.tools
+        : []
+    const tools = remote.tools?.length ? await Promise.all(remote.tools.map(mergeToolDescriptor)) : []
 
     const next: ManagedToolCatalog = {
       categories,
@@ -482,10 +477,10 @@ export const getManagedToolsCatalog = async (): Promise<ManagedToolCatalog> => {
         imageUrl:
           (await resolveCachedManagedImagePathQuick(normalizeManagedAssetPath(remote.hero?.imageUrl), 2000)) ||
           '',
-        subtitle: remote.hero?.subtitle || DEFAULT_TOOLS_CATALOG.hero.subtitle,
-        title: remote.hero?.title || DEFAULT_TOOLS_CATALOG.hero.title,
+        subtitle: remote.hero?.subtitle || '',
+        title: remote.hero?.title || '',
       },
-      popularTools: remote.popularTools?.length ? await Promise.all(remote.popularTools.map(mergeToolDescriptor)) : tools.slice(0, 4),
+      popularTools: remote.popularTools?.length ? await Promise.all(remote.popularTools.map(mergeToolDescriptor)) : [],
       tools,
     }
 

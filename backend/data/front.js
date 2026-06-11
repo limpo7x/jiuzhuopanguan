@@ -1,9 +1,7 @@
 ﻿const { getAdminStore, getManagedSessionById, getManagedSessionByInviteCode } = require('./admin')
 const { getCompliance, getToolHistory } = require('./content')
 
-const emptyImage = () => ''
 const toText = (value, fallback = '') => String(value || fallback || '').trim()
-const toNumber = (value, fallback = 0) => Number(value) || fallback
 
 const TOOL_ID_MAP = {
   'tool-compress': 'image-compress',
@@ -32,18 +30,6 @@ const TOOL_CATEGORY_LABEL_MAP = {
   share: '分享生成',
 }
 
-const TOOL_VISUALS = {
-  currency: { iconClass: 'tools-icon-currency', toneClass: 'tools-tile-green' },
-  'image-compress': { iconClass: 'tools-icon-compress', toneClass: '' },
-  json: { iconClass: 'tools-icon-code', toneClass: 'tools-tile-blue' },
-  'loan-calc': { iconClass: 'tools-icon-home', toneClass: '' },
-  'nine-grid': { iconClass: 'tools-icon-grid', toneClass: 'tools-tile-blue' },
-  'qr-code': { iconClass: 'tools-icon-qr', toneClass: '' },
-  'text-count': { iconClass: 'tools-icon-text', toneClass: '' },
-  unit: { iconClass: 'tools-icon-scale', toneClass: 'tools-tile-green' },
-  watermark: { iconClass: 'tools-icon-eraser', toneClass: '' },
-}
-
 const MERCHANT_ICON_MAP = {
   代驾: 'merchant-icon-taxi',
   夜宵: 'merchant-icon-food',
@@ -64,8 +50,8 @@ const SHARE_ICON_MAP = {
 
 const SESSION_PLAYER_NAMES = ['阿浩', '小熊', 'Mika', '可可', '阿乐', 'Nina', '老白', '七七']
 
-const normalizeToolId = (item = {}) => TOOL_ID_MAP[item.id] || item.id || 'image-compress'
-const normalizeToolCategoryId = (value) => TOOL_CATEGORY_ID_MAP[value] || 'share'
+const normalizeToolId = (item = {}) => TOOL_ID_MAP[item.id] || item.id || ''
+const normalizeToolCategoryId = (value) => TOOL_CATEGORY_ID_MAP[value] || ''
 const isEnabledTool = (item) => !String(item?.status || '').includes('停用')
 const isHotTool = (item) => String(item?.isHot || '').includes('是')
 const supportsPlacement = (item, placement) => {
@@ -225,25 +211,24 @@ const listFrontendTools = () => {
   const tools = enabledTools.filter((item) => supportsPlacement(item, 'tools')).map((item) => {
     const toolId = normalizeToolId(item)
     const categoryId = normalizeToolCategoryId(item.category)
-    const visual = TOOL_VISUALS[toolId] || TOOL_VISUALS['image-compress']
     return {
       id: toolId,
       rawId: item.id,
-      name: item.name || toolId,
+      name: toText(item.name),
       categoryId,
-      categoryName: TOOL_CATEGORY_LABEL_MAP[categoryId] || item.category || '工具',
-      target: item.target || '',
+      categoryName: TOOL_CATEGORY_LABEL_MAP[categoryId] || toText(item.category),
+      target: toText(item.target),
       usageCount: Number(item.usageCount) || 0,
-      favoriteRate: item.favoriteRate || '0%',
-      status: item.status || '启用',
+      favoriteRate: toText(item.favoriteRate),
+      status: toText(item.status),
       sortOrder: Number(item.sortOrder) || 0,
       isHot: isHotTool(item) ? '是' : '否',
-      placement: item.placement || 'tools',
-      iconClass: visual.iconClass,
-      toneClass: visual.toneClass,
+      placement: toText(item.placement),
+      iconClass: '',
+      toneClass: '',
       imageUrl: toText(item.imageUrl),
       heroImage: toText(item.heroImage),
-      meta: `${item.target || '运营工具'} · 收藏率 ${item.favoriteRate || '0%'}`,
+      meta: [toText(item.target), toText(item.favoriteRate) ? `收藏率 ${toText(item.favoriteRate)}` : ''].filter(Boolean).join(' · '),
     }
   })
   const categories = [
@@ -282,12 +267,12 @@ const getShareConfig = () => {
   return {
     notice: compliance.copy || '理性饮酒，适量饮酒，未成年人禁止饮酒',
     poster: {
-      imageUrl: emptyImage(),
+      imageUrl: '',
       title: report.title || '本局战报已生成',
     },
     preview: {
       inviteCode: liveSession.inviteCode || '',
-      imageUrl: emptyImage(),
+      imageUrl: '',
       title: `${liveSession.sessionName || '今晚酒局'}，快来加入`,
     },
     shareItems: [
@@ -340,7 +325,7 @@ const getMerchantPartnersConfig = () => {
     })),
     shops: merchants.map((item) => ({
       id: item.id,
-      imageUrl: emptyImage(),
+      imageUrl: '',
       meta: `${item.category || '商户'} · 已领取 ${item.claimCount || '0'} · 核销率 ${item.verifyRate || '0%'} · ${item.status || '上线中'}`,
       name: item.name,
       status: item.status || '上线中',

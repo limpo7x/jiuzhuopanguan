@@ -57,10 +57,10 @@ Page<ToolsPageState, ToolsPageMethods>({
     categoryCards: [],
     filteredTools: [],
     heroImageUrl: '',
-    heroSubtitle: '高效 · 实用 · 有趣',
-    heroTitle: '工具在手 生活不愁',
+    heroSubtitle: '',
+    heroTitle: '',
     popularTools: [],
-    activeCategoryName: '全部',
+    activeCategoryName: '',
     searchKeyword: '',
   },
 

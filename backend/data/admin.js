@@ -1,4 +1,4 @@
-﻿const crypto = require('crypto')
+const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const { createStoreAccessor, isMySQLEnabled } = require('./store-accessor')
@@ -49,51 +49,30 @@ const seedCountFromRate = (rateText, denominator, fallbackBase = 1000) => {
   return Math.max(0, Math.round((rateValue / 100) * base))
 }
 
-const DEFAULT_TOOLS_CATALOG = [
-  { id: 'tool-qr', name: '二维码生成', category: '分享生成', target: '邀局裂变', imageUrl: '/static/report-poster.png', usageCount: 5622, favoriteRate: '16.8%', status: '启用', sortOrder: 10, isHot: '是', placement: 'both' },
-  { id: 'tool-compress', name: '图片压缩', category: '图片处理', target: '工具留存', imageUrl: '/static/image-process-hero.png', usageCount: 3410, favoriteRate: '13.2%', status: '启用', sortOrder: 20, isHot: '是', placement: 'both' },
-  { id: 'tool-json', name: 'JSON 格式化', category: '开发工具', target: '日活补充', imageUrl: '/static/toolbox-hero.png', usageCount: 2184, favoriteRate: '8.7%', status: '启用', sortOrder: 30, isHot: '是', placement: 'tools' },
-  { id: 'tool-loan', name: '房贷计算', category: '计算工具', target: '实用转化', imageUrl: '/static/report-poster.png', usageCount: 1921, favoriteRate: '9.4%', status: '启用', sortOrder: 40, isHot: '是', placement: 'both' },
-  { id: 'tool-currency', name: '汇率换算', category: '计算工具', target: '日常工具', imageUrl: '/static/report-poster.png', usageCount: 1688, favoriteRate: '7.1%', status: '启用', sortOrder: 50, isHot: '否', placement: 'tools' },
-  { id: 'tool-unit', name: '单位换算', category: '计算工具', target: '日常工具', imageUrl: '/static/report-poster.png', usageCount: 1450, favoriteRate: '6.3%', status: '启用', sortOrder: 60, isHot: '否', placement: 'tools' },
-  { id: 'tool-9-grid', name: '九宫格切图', category: '图片处理', target: '分享物料', imageUrl: '/static/image-process-hero.png', usageCount: 1280, favoriteRate: '10.2%', status: '启用', sortOrder: 70, isHot: '否', placement: 'tools' },
-  { id: 'tool-watermark', name: '图片去水印', category: '图片处理', target: '内容编辑', imageUrl: '/static/party-hero.png', usageCount: 1166, favoriteRate: '8.4%', status: '启用', sortOrder: 80, isHot: '否', placement: 'tools' },
-]
+const DEFAULT_TOOLS_CATALOG = []
 
 const normalizeToolItem = (item = {}, index = 0) => ({
-  id: String(item.id || `tool-${index + 1}`).trim(),
-  name: String(item.name || `工具 ${index + 1}`).trim(),
-  category: String(item.category || '工具').trim(),
+  id: String(item.id || '').trim(),
+  name: String(item.name || '').trim(),
+  category: String(item.category || '').trim(),
   target: String(item.target || '').trim(),
-  imageUrl: String(item.imageUrl || '/static/toolbox-hero.png').trim(),
+  imageUrl: String(item.imageUrl || '').trim(),
   usageCount: Number(item.usageCount) || 0,
-  favoriteCount: Math.max(
-    0,
-    Number(item.favoriteCount) || seedCountFromRate(item.favoriteRate, item.usageCount, Math.max(1, Number(item.usageCount) || 1)),
-  ),
-  favoriteRate: ratioPercent(
-    Math.max(0, Number(item.favoriteCount) || seedCountFromRate(item.favoriteRate, item.usageCount, Math.max(1, Number(item.usageCount) || 1))),
-    Math.max(1, Number(item.usageCount) || 1),
-  ),
-  status: String(item.status || '启用').trim(),
+  favoriteCount: Math.max(0, Number(item.favoriteCount) || 0),
+  favoriteRate: String(item.favoriteRate || '').trim(),
+  status: String(item.status || '').trim(),
   sortOrder: Number(item.sortOrder) || (index + 1) * 10,
-  isHot: String(item.isHot || '否').trim(),
-  placement: String(item.placement || 'tools').trim(),
+  isHot: String(item.isHot || '').trim(),
+  placement: String(item.placement || '').trim(),
 })
 
 const normalizeToolsCatalog = (tools = []) => {
   const inputItems = Array.isArray(tools) ? tools : []
-  const existingById = new Map(inputItems.filter((item) => item && item.id).map((item) => [String(item.id), item]))
-  const mergedDefaults = DEFAULT_TOOLS_CATALOG.map((item, index) =>
-    normalizeToolItem({ ...item, ...(existingById.get(item.id) || {}) }, index),
-  )
-  const extras = inputItems
-    .filter((item) => item && item.id && !DEFAULT_TOOLS_CATALOG.some((defaultItem) => defaultItem.id === String(item.id)))
-    .map((item, index) => normalizeToolItem(item, mergedDefaults.length + index))
-
-  return [...mergedDefaults, ...extras].sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
+  return inputItems
+    .filter((item) => item && String(item.id || '').trim())
+    .map((item, index) => normalizeToolItem(item, index))
+    .sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
 }
-
 const createDefaultStore = () => ({
   adminUsers: [
     {
@@ -1945,8 +1924,8 @@ const pageMap = {
         { key: 'heroImageUrl', label: '主视觉图片', type: 'image' },
       ],
       meta: {
-        heroTitle: toolsHero.title || '工具箱',
-        heroSubtitle: toolsHero.subtitle || '高频、实用、可复用',
+        heroTitle: toolsHero.title || '',
+        heroSubtitle: toolsHero.subtitle || '',
         heroImageUrl: toolsHero.imageUrl || '',
       },
       collection: {
@@ -2845,8 +2824,8 @@ const savePageData = (slug, payload = {}) => {
 
   if (slug === 'content-tools-ops') {
     adminStore.toolsHero = {
-      title: String(payload.meta?.heroTitle || '工具箱').trim(),
-      subtitle: String(payload.meta?.heroSubtitle || '高频、实用、可复用').trim(),
+      title: String(payload.meta?.heroTitle || '').trim(),
+      subtitle: String(payload.meta?.heroSubtitle || '').trim(),
       imageUrl: String(payload.meta?.heroImageUrl || '').trim(),
     }
     adminStore.toolsCatalog = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.toolsCatalog)
