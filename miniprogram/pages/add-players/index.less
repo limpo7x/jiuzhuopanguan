@@ -199,7 +199,7 @@ page {
 .players-list-avatar {
   overflow: hidden;
   border-radius: 50%;
-  background: #fff0df;
+  background: linear-gradient(135deg, #e8e2da, #d8d0c6);
 }
 
 .players-avatar {
@@ -364,4 +364,30 @@ page {
 
 .players-icon-search {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Ccircle cx='9' cy='9' r='5.5' fill='none' stroke='%238f7f6d' stroke-width='1.8'/%3E%3Cpath d='M13.5 13.5L17 17' stroke='%238f7f6d' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* 2026-06 flow CTA fixed bottom */
+.players-scroll {
+  padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
+
+.players-footer-row {
+  position: fixed;
+  right: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  left: 18px;
+  z-index: 30;
+  margin-top: 0;
+  padding: 6px;
+  border: 1px solid rgba(234, 223, 206, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: 0 16px 34px rgba(128, 78, 36, 0.16);
+  backdrop-filter: blur(10px);
+}
+
+.players-ghost,
+.players-primary {
+  min-height: 52px;
+  font-size: 17px;
 }

@@ -12,7 +12,7 @@
   <scroll-view class="restart-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="restart-center">
       <text class="restart-title">换个玩法，继续快乐！</text>
-      <image class="restart-state-image" src="https://api.pomer.cn/static/beer-toast.png" mode="aspectFill"></image>
+      <view class="restart-state-image"></view>
     </view>
 
     <view class="restart-section-head">
@@ -21,7 +21,7 @@
 
     <view class="restart-item">
       <view class="restart-thumb">
-        <image src="https://api.pomer.cn/static/toolbox-hero.png" mode="aspectFill"></image>
+        <view class="restart-preview-placeholder"></view>
       </view>
       <view class="restart-copy">
         <text class="restart-item-title">多模板混合局</text>
@@ -46,10 +46,10 @@
     </view>
 
     <view class="restart-share-grid">
-      <view wx:for="{{shareItems}}" wx:key="id" class="restart-share-item" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="handleShareTap">
+      <button wx:for="{{shareItems}}" wx:key="id" class="restart-share-item" data-id="{{item.id}}" data-name="{{item.name}}" open-type="share" bindtap="handleShareTap">
         <view class="restart-share-icon {{item.iconClass}}"></view>
         <text class="restart-share-label">{{item.name}}</text>
-      </view>
+      </button>
     </view>
 
     <view class="restart-notice">

@@ -11,7 +11,6 @@
 <view class="poster-page">
   <scroll-view class="poster-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="poster-card">
-      <image wx:if="{{posterImageUrl}}" class="poster-image" src="{{posterImageUrl}}" mode="aspectFill"></image>
       <view class="poster-copy">
         <view class="poster-tag">{{sessionName}}</view>
         <text class="poster-headline">{{shareHeadline}}</text>
@@ -23,7 +22,8 @@
             <view class="poster-featured-badge">全场焦点</view>
           </view>
           <view class="poster-featured-body">
-            <image class="poster-featured-avatar" src="{{featuredRank.avatarUrl}}" mode="aspectFill"></image>
+            <image wx:if="{{featuredRank.avatarUrl}}" class="poster-featured-avatar" src="{{featuredRank.avatarUrl}}" mode="aspectFill"></image>
+            <view wx:else class="poster-featured-avatar"></view>
             <view class="poster-featured-copy">
               <text class="poster-featured-name">{{featuredRank.name}}</text>
               <text class="poster-featured-value">{{featuredRank.value}}</text>
@@ -34,10 +34,16 @@
         <view wx:if="{{secondaryRanks.length}}" class="poster-ranks">
           <view wx:for="{{secondaryRanks}}" wx:key="title" class="poster-rank-card">
             <view class="poster-rank-tag">{{item.title}}</view>
-            <image class="poster-rank-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <image wx:if="{{item.avatarUrl}}" class="poster-rank-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <view wx:else class="poster-rank-avatar"></view>
             <text class="poster-rank-name">{{item.name}}</text>
             <text class="poster-rank-value">{{item.value}}</text>
           </view>
+        </view>
+
+        <view wx:if="{{events.length}}" class="poster-events">
+          <view class="poster-events-title">本局精彩事件</view>
+          <text wx:for="{{events}}" wx:key="text" class="poster-event-text">· {{item.text}}</text>
         </view>
       </view>
     </view>
@@ -70,7 +76,6 @@
   </scroll-view>
 
   <canvas
-    type="2d"
     canvas-id="sharePosterCanvas"
     class="poster-hidden-canvas"
     style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"

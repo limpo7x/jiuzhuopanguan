@@ -1,6 +1,6 @@
 import { trackAnalyticsEvent } from '../../services/analytics'
 import { getManagedReport, getManagedShareConfig } from '../../services/operations'
-import { staticAsset } from '../../config/assets'
+import { getApiBase } from '../../config/api'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 
 interface PosterRank {
@@ -16,9 +16,14 @@ interface PosterShareItem {
   name: string
 }
 
+interface PosterEvent {
+  text: string
+}
+
 interface SharePosterState {
   canvasHeight: number
   canvasWidth: number
+  events: PosterEvent[]
   featuredRank: PosterRank | null
   inviteCode: string
   posterImagePath: string
@@ -50,9 +55,6 @@ interface SharePosterMethods {
 const SHARE_HEADLINE = '查看谁是今晚欠酒王？'
 const CANVAS_WIDTH = 900
 const CARD_WIDTH = 820
-const MINIAPP_QR_ASSET = '../../assets/home/share-miniapp-qr.png'
-const MINIAPP_QR_ASSET_ABSOLUTE = '/assets/home/share-miniapp-qr.png'
-const MINIAPP_QR_REMOTE_ASSET = staticAsset('share-miniapp-qr.png')
 
 const getImageInfo = (src: string) =>
   new Promise<WechatMiniprogram.GetImageInfoSuccessCallbackResult>((resolve, reject) => {
@@ -165,7 +167,10 @@ const drawQrPanel = (
 }
 
 const resolveMiniappQrPath = async () => {
-  const candidates = [MINIAPP_QR_ASSET, MINIAPP_QR_ASSET_ABSOLUTE, MINIAPP_QR_REMOTE_ASSET]
+  const target = '/pages/index/index'
+  const candidates: string[] = [
+    `${getApiBase()}/tools/qr-code.png?text=${encodeURIComponent(target)}&ts=${Date.now()}`,
+  ]
   for (const candidate of candidates) {
     try {
       const image = await getImageInfo(candidate)
@@ -252,6 +257,7 @@ Page<SharePosterState, SharePosterMethods>({
   data: {
     canvasHeight: 1320,
     canvasWidth: CANVAS_WIDTH,
+    events: [],
     featuredRank: null,
     inviteCode: '',
     posterImagePath: '',
@@ -296,6 +302,7 @@ Page<SharePosterState, SharePosterMethods>({
         this.setData(
           {
             featuredRank: featuredRank || null,
+            events: report.events.length ? report.events.slice(0, 4) : [{ text: '本局暂未记录精彩事件' }],
             inviteCode: report.inviteCode || runtime.inviteCode || shareConfig.preview.inviteCode || '',
             posterImagePath: '',
             posterImageUrl: shareConfig.poster.imageUrl,
@@ -316,9 +323,8 @@ Page<SharePosterState, SharePosterMethods>({
         )
       })
 
-      this.ensurePosterImage().catch(() => {
-        this.showPreviewToast('海报生成失败，请重试')
-      })
+      // Poster generation is intentionally deferred until save/share image is needed.
+      // Generating a large canvas during onLoad blocks the first render on low-end devices.
     } catch (error) {
       this.showPreviewToast(error instanceof Error ? error.message : '分享页加载失败')
     } finally {
@@ -427,7 +433,8 @@ Page<SharePosterState, SharePosterMethods>({
 
     const secondaryCount = Math.max(this.data.secondaryRanks.length, 0)
     const secondaryRows = Math.ceil(secondaryCount / 2)
-    const canvasHeight = 510 + (this.data.featuredRank ? 250 : 0) + secondaryRows * 210 + 220
+    const eventRows = Math.max(this.data.events.length, 1)
+    const canvasHeight = 610 + (this.data.featuredRank ? 250 : 0) + secondaryRows * 210 + eventRows * 44 + 220
 
     return this.drawCanvasToFile(CANVAS_WIDTH, canvasHeight, (ctx) => {
       drawPartyBackdrop(ctx, CANVAS_WIDTH, canvasHeight)
@@ -508,6 +515,17 @@ Page<SharePosterState, SharePosterMethods>({
         ctx.setFillStyle('#ff5b3d')
         ctx.setFontSize(22)
         ctx.fillText(rank.value || '-', x + 106, y + 150)
+      })
+
+      currentY += secondaryRows * 210 + 20
+      fillRoundRect(ctx, 90, currentY, 720, 70 + eventRows * 42, 24, '#fff8f0')
+      ctx.setFillStyle('#24160f')
+      ctx.setFontSize(28)
+      ctx.fillText('本局精彩事件', 122, currentY + 44)
+      ctx.setFillStyle('#7b3926')
+      ctx.setFontSize(22)
+      this.data.events.slice(0, 4).forEach((event, index) => {
+        ctx.fillText(`· ${event.text}`, 122, currentY + 88 + index * 42, 620)
       })
 
       drawQrPanel(ctx, qrPath, 652, canvasHeight - 212, 106)

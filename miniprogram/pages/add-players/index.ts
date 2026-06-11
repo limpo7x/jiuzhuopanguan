@@ -3,6 +3,7 @@ import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 import {
   addWineFriend,
   addWineFriendByProfile,
+  ensureUserAuthorized,
   getWineFriends,
   searchRegisteredUsers,
   touchWineFriends,
@@ -72,10 +73,14 @@ Page<AddPlayersState, AddPlayersMethods>({
   },
 
   async onLoad() {
+    const profile = await ensureUserAuthorized('/pages/add-players/index')
+    if (!profile) return
     await this.syncPlayers()
   },
 
   async onShow() {
+    const profile = await ensureUserAuthorized('/pages/add-players/index')
+    if (!profile) return
     await this.syncPlayers()
   },
 

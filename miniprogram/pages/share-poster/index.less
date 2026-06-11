@@ -308,3 +308,79 @@ button.poster-share-item::after {
 .poster-icon-more {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='5' cy='12' r='2' fill='%2342b883'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%2342b883'/%3E%3Ccircle cx='19' cy='12' r='2' fill='%2342b883'/%3E%3C/svg%3E");
 }
+
+/* 2026-06 global readability refresh */
+.poster-page {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 205, 121, 0.28), transparent 28%),
+    linear-gradient(180deg, #fffaf1 0%, #fff4e8 58%, #fff8ee 100%);
+}
+.poster-scroll { padding: 18px 18px 28px; }
+.poster-card { border-radius: 26px; box-shadow: 0 18px 40px rgba(255, 117, 65, 0.16); }
+.poster-image { height: 280px; }
+.poster-copy { padding: 22px; }
+.poster-tag,
+.poster-rank-tag { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.poster-title { font-size: 34px; }
+.poster-headline { font-size: 20px; line-height: 1.45; }
+.poster-featured-rank { margin-top: 22px; padding: 20px; border-radius: 24px; }
+.poster-featured-tag,
+.poster-featured-badge { min-height: 38px; font-size: 15px; }
+.poster-featured-body { gap: 18px; margin-top: 18px; }
+.poster-featured-avatar { width: 86px; height: 86px; }
+.poster-featured-name { font-size: 28px; }
+.poster-featured-value { font-size: 20px; }
+.poster-ranks { gap: 14px; margin-top: 16px; }
+.poster-rank-card { padding: 16px 10px; border-radius: 20px; }
+.poster-rank-avatar { width: 56px; height: 56px; }
+.poster-rank-name { font-size: 17px; }
+.poster-rank-value { font-size: 15px; }
+.poster-section-head { margin: 24px 0 12px; }
+.poster-section-title { font-size: 21px; }
+.poster-share-grid { gap: 12px; }
+.poster-share-item { min-height: 86px; border-radius: 18px; font-size: 13px; background: rgba(255,255,255,0.86); }
+.poster-share-icon { width: 30px; height: 30px; }
+.poster-primary { min-height: 54px; margin-top: 18px; font-size: 17px; }
+.poster-notice { min-height: 42px; margin-top: 14px; padding: 0 14px; font-size: 13px; }
+
+/* 2026-06 image placeholder policy: no default bitmap fallback */
+.poster-image,
+.poster-featured-avatar,
+.poster-rank-avatar {
+  background: linear-gradient(135deg, #e8e2da, #d8d0c6);
+}
+
+/* 2026-06-11 share poster remove top image and add events */
+.poster-scroll {
+  padding-top: 8px !important;
+}
+.poster-card {
+  margin-top: 0;
+}
+.poster-image {
+  display: none !important;
+}
+.poster-copy {
+  padding-top: 18px !important;
+}
+.poster-events {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #fff8f0;
+}
+.poster-events-title {
+  color: #24160f;
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 950;
+}
+.poster-event-text {
+  display: block;
+  color: #7b6049;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+}

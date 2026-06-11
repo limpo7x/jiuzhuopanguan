@@ -1,4 +1,4 @@
-import { getManagedLiveSession, joinManagedSession } from '../../services/operations'
+﻿import { getManagedLiveSession, joinManagedSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import { ensureUserAuthorized, getCurrentDisplayProfile } from '../../utils/social'
 
@@ -32,13 +32,8 @@ Page<JoinClaimState, JoinClaimMethods>({
     const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
     const redirect = `/pages/join-claim/index?inviteCode=${encodeURIComponent(inviteCode)}${sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : ''}`
     const profile = await ensureUserAuthorized(redirect)
-    if (!profile) {
-      return
-    }
-    this.setData({
-      inviteCode,
-      sessionId,
-    })
+    if (!profile) return
+    this.setData({ inviteCode, sessionId })
     await this.loadSession()
   },
 
@@ -55,17 +50,9 @@ Page<JoinClaimState, JoinClaimMethods>({
 
   async handleJoinTap() {
     try {
-      const [profile, liveSession] = await Promise.all([
-        getCurrentDisplayProfile(),
-        joinManagedSession(this.data.inviteCode),
-      ])
-
+      const [profile, liveSession] = await Promise.all([getCurrentDisplayProfile(), joinManagedSession(this.data.inviteCode)])
       setSessionRuntime({
-        currentUser: {
-          id: profile.id,
-          name: profile.name,
-          avatarUrl: profile.avatarUrl,
-        },
+        currentUser: { id: profile.id, name: profile.name, avatarUrl: profile.avatarUrl },
         inviteCode: liveSession.inviteCode,
         isJudge: false,
         playerCount: liveSession.playerCount,
@@ -81,10 +68,7 @@ Page<JoinClaimState, JoinClaimMethods>({
         startedAt: 0,
         templateName: liveSession.templateName,
       })
-
-      wx.redirectTo({
-        url: `/pages/waiting-room/index?role=viewer&sessionId=${encodeURIComponent(liveSession.id)}`,
-      })
+      wx.redirectTo({ url: `/pages/waiting-room/index?role=viewer&sessionId=${encodeURIComponent(liveSession.id)}` })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'join failed'
       const notPlayer = message.includes('not session player')
@@ -97,9 +81,7 @@ Page<JoinClaimState, JoinClaimMethods>({
           fail: () => resolve(),
         })
       })
-      wx.reLaunch({
-        url: '/pages/index/index',
-      })
+      wx.reLaunch({ url: '/pages/index/index' })
     }
   },
 })

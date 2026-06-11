@@ -1,0 +1,246 @@
+﻿{
+  "profile": {
+    "nickname": "閰掑眬鍙戣捣浜?,
+    "avatarUrl": "",
+    "points": 168
+  },
+  "compliance": {
+    "copy": "鐞嗘€чギ閰掞紝閫傞噺楗厭锛屾湭鎴愬勾浜虹姝㈤ギ閰掋€?
+  },
+  "toolHistory": [
+    {
+      "id": "watermark",
+      "name": "鍥剧墖鍘绘按鍗?,
+      "category": "鍥剧墖宸ュ叿",
+      "usedAt": "浠婂ぉ 18:30"
+    },
+    {
+      "id": "json",
+      "name": "JSON 鏍煎紡鍖?,
+      "category": "寮€鍙戝伐鍏?,
+      "usedAt": "浠婂ぉ 15:08"
+    },
+    {
+      "id": "currency",
+      "name": "姹囩巼鎹㈢畻",
+      "category": "璁＄畻宸ュ叿",
+      "usedAt": "鏄ㄥぉ 22:10"
+    }
+  ],
+  "homeConfig": {
+    "hero": {
+      "title": "閰掓鍒ゅ畼",
+      "subtitle": "娆犻厭浜掓€?路 鏁存椿涓嶆柇 路 姘旀皼鎷夋弧",
+      "imageUrl": "/static/party-hero.png",
+      "imageUploadEndpoint": "/api/v1/admin/upload/home-hero",
+      "imageUpdateEndpoint": "/api/v1/admin/config/home/hero"
+    },
+    "quickTools": [
+      {
+        "id": "image-compress",
+        "name": "鍥剧墖鍘嬬缉"
+      },
+      {
+        "id": "text-count",
+        "name": "鏂囧瓧璁℃暟"
+      },
+      {
+        "id": "qr-code",
+        "name": "浜岀淮鐮?
+      },
+      {
+        "id": "loan-calc",
+        "name": "鎴胯捶璁＄畻"
+      }
+    ],
+    "banner": {
+      "title": "绛惧埌鎷跨Н鍒?,
+      "imageUrl": "/static/points-gift.png"
+    },
+    "judge": {
+      "title": "閰掓鍒ゅ畼",
+      "subtitle": "杩滀竴鐐逛篃鑳界湅娓咃紝寮€灞€銆佽鍒嗐€佸嚭鎴樻姤閮芥洿鐩存帴銆?,
+      "imageUrl": "/static/party-hero.png"
+    }
+  },
+  "pointsConfig": {
+    "balance": 3286,
+    "bannerImageUrl": "/static/points-gift.png",
+    "tasks": [
+      {
+        "id": "task-signin",
+        "title": "姣忔棩绛惧埌",
+        "value": 10,
+        "iconClass": "points-icon-coin"
+      },
+      {
+        "id": "task-share-report",
+        "title": "鍒嗕韩鎴樻姤",
+        "value": 20,
+        "iconClass": "points-icon-share"
+      },
+      {
+        "id": "task-reopen",
+        "title": "瀹屾暣缁撴潫涓€鍦鸿仛浼?,
+        "value": 20,
+        "iconClass": "points-icon-refresh"
+      }
+    ],
+    "rewards": [
+      {
+        "id": "reward-noads",
+        "title": "鍏嶅箍鍛婄壒鏉冿紙7澶╋級",
+        "subtitle": "瑙ｉ攣宸ュ叿椤靛拰鎴樻姤椤电函鍑€妯″紡",
+        "cost": 600,
+        "iconClass": "points-icon-shield"
+      },
+      {
+        "id": "reward-poster-pack",
+        "title": "楂樼骇娴锋姤妯℃澘鍖?,
+        "subtitle": "鎵╁睍鍒嗕韩娴锋姤鍜岄個灞€妯℃澘鏍峰紡",
+        "cost": 800,
+        "iconClass": "points-icon-image"
+      },
+      {
+        "id": "reward-merchant-coupon",
+        "title": "鍟嗘埛浼樻儬鍒?,
+        "subtitle": "鍏戞崲鍚堜綔鍟嗘埛鐨勫埌搴椾紭鎯犲埜",
+        "cost": 500,
+        "iconClass": "points-icon-coupon"
+      },
+      {
+        "id": "reward-avatar-frame",
+        "title": "涓撳睘澶村儚妗嗭紙30澶╋級",
+        "subtitle": "闄愭椂鐐逛寒閰掑眬韬唤灞曠ず鏁堟灉",
+        "cost": 300,
+        "iconClass": "points-icon-crown"
+      }
+    ]
+  },
+  "templateConfig": {
+    "filters": [
+      {
+        "id": "all",
+        "name": "鍏ㄩ儴"
+      },
+      {
+        "id": "friendship",
+        "name": "鍙嬫儏浜掓崯"
+      },
+      {
+        "id": "classic",
+        "name": "缁忓吀鎯╃綒"
+      },
+      {
+        "id": "party",
+        "name": "鑱氫細鏁存椿"
+      }
+    ],
+    "templates": [
+      {
+        "id": "tpl-friendship",
+        "filterId": "friendship",
+        "title": "鍙嬫儏浜掓崯",
+        "meta": "28 涓帺娉?路 閫傚悎姝诲厷灞€",
+        "cost": 800,
+        "imageUrl": "/static/toolbox-hero.png"
+      },
+      {
+        "id": "tpl-classic",
+        "filterId": "classic",
+        "title": "缁忓吀鎯╃綒",
+        "meta": "26 涓帺娉?路 杞绘澗涓嶆按灞€",
+        "cost": 800,
+        "imageUrl": "/static/party-hero.png"
+      },
+      {
+        "id": "tpl-party",
+        "filterId": "party",
+        "title": "鏁存椿澶ф寫鎴?,
+        "meta": "32 涓帺娉?路 姘旀皼鎷夋弧",
+        "cost": 800,
+        "imageUrl": "/static/report-poster.png"
+      },
+      {
+        "id": "tpl-birthday",
+        "filterId": "party",
+        "title": "鐢熸棩涓撳睘",
+        "meta": "18 涓帺娉?路 瀹氬埗鎯婂枩",
+        "cost": 800,
+        "imageUrl": "/static/image-process-hero.png"
+      }
+    ],
+    "unlockCard": {
+      "title": "鐪嬫縺鍔辫棰戣В閿?PRO 妯℃澘",
+      "progressText": "0/3"
+    }
+  },
+  "commerce": {
+    "claimedTaskIds": [],
+    "membership": {
+      "active": false,
+      "activatedAt": "",
+      "expiresAt": "",
+      "planId": ""
+    },
+    "membershipOrders": [],
+    "ownedRewardIds": [],
+    "taskStates": {
+      "task-signin": {
+        "lastClaimAt": ""
+      },
+      "task-share-report": {
+        "claimHistory": []
+      },
+      "task-reopen": {
+        "claimedSessionIds": []
+      }
+    },
+    "pointsLedger": [],
+    "rewardRedemptions": [],
+    "templateUnlockProgress": {},
+    "templateUnlockRequiredViews": 3,
+    "unlockedTemplateIds": []
+  },
+  "userCommerce": {
+    "test-profile-001": {
+      "claimedTaskIds": [
+        "task-signin"
+      ],
+      "membership": {
+        "active": false,
+        "activatedAt": "",
+        "expiresAt": "",
+        "planId": ""
+      },
+      "membershipOrders": [],
+      "ownedRewardIds": [],
+      "taskStates": {
+        "task-signin": {
+          "lastClaimAt": "2026-06-10T06:10:20.466Z"
+        },
+        "task-share-report": {
+          "claimHistory": []
+        },
+        "task-reopen": {
+          "claimedSessionIds": []
+        }
+      },
+      "pointsLedger": [
+        {
+          "id": "ledger-1781071820467-dce5e0",
+          "title": "姣忔棩绛惧埌",
+          "createdAt": "2026-06-10T06:10:20.467Z",
+          "delta": 10,
+          "kind": "task",
+          "sourceId": "task-signin"
+        }
+      ],
+      "rewardRedemptions": [],
+      "templateUnlockProgress": {},
+      "templateUnlockRequiredViews": 3,
+      "unlockedTemplateIds": [],
+      "points": 178
+    }
+  }
+}

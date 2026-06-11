@@ -491,3 +491,66 @@ page {
 .judge-nav-me {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Cpath d='M11 4.2C13.1 4.2 14.8 5.9 14.8 8C14.8 10.1 13.1 11.8 11 11.8C8.9 11.8 7.2 10.1 7.2 8C7.2 5.9 8.9 4.2 11 4.2ZM4.8 17.8C5.5 15.1 8 13.5 11 13.5C14 13.5 16.5 15.1 17.2 17.8H4.8Z' fill='%23827569'/%3E%3C/svg%3E");
 }
+
+/* 2026-06 global readability refresh */
+.judge-page {
+  background:
+    radial-gradient(circle at 14% 8%, rgba(255, 205, 121, 0.28), transparent 28%),
+    radial-gradient(circle at 88% 20%, rgba(255, 102, 72, 0.16), transparent 26%),
+    linear-gradient(180deg, #fffaf1 0%, #fff4e8 58%, #fff8ee 100%);
+}
+.judge-scroll { padding: 18px 18px calc(92px + env(safe-area-inset-bottom)); }
+.judge-hero { min-height: 258px; border-radius: 26px; }
+.judge-hero-content { right: 20px; bottom: 20px; left: 20px; }
+.judge-hero-badge { min-height: 34px; padding: 0 14px; font-size: 13px; }
+.judge-hero-title { margin-top: 14px; font-size: 36px; }
+.judge-hero-subtitle { font-size: 17px; line-height: 1.48; }
+.judge-hero-chip { min-height: 34px; padding: 0 14px; font-size: 13px; }
+.judge-primary { min-height: 56px; margin-top: 20px; font-size: 18px; }
+.judge-grid { gap: 12px; margin-top: 20px; }
+.judge-tile {
+  min-height: 106px;
+  gap: 11px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.84);
+  font-size: 14px;
+  box-shadow: 0 10px 24px rgba(128, 78, 36, 0.07);
+}
+.judge-tile-icon { width: 50px; height: 50px; border-radius: 18px; }
+.judge-section-head { margin: 26px 0 12px; }
+.judge-section-title { font-size: 21px; }
+.judge-template-list { gap: 12px; }
+.judge-template-card,
+.judge-session-card,
+.judge-poke-card {
+  border-radius: 20px;
+  background: rgba(255,255,255,0.86);
+  box-shadow: 0 10px 24px rgba(128, 78, 36, 0.07);
+}
+.judge-template-card { padding: 18px; }
+.judge-template-title { font-size: 18px; }
+.judge-template-tag,
+.judge-session-tag { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.judge-template-meta,
+.judge-session-meta,
+.judge-poke-meta { font-size: 14px; line-height: 1.5; }
+.judge-session-card { grid-template-columns: 72px 1fr auto; min-height: 96px; padding: 14px; }
+.judge-session-thumb { width: 72px; height: 72px; border-radius: 18px; }
+.judge-session-title { font-size: 19px; }
+.judge-poke-card { min-height: 104px; padding: 16px; }
+.judge-poke-avatar { width: 58px; height: 58px; }
+.judge-poke-title { font-size: 17px; }
+.judge-tabbar { height: calc(66px + env(safe-area-inset-bottom)); }
+.judge-tab-item { height: 66px; gap: 4px; }
+.judge-tab-icon { width: 22px; height: 22px; }
+.judge-tab-label { font-size: 12px; }
+
+/* 2026-06 image placeholder policy: no default bitmap fallback */
+.judge-hero,
+.judge-poke-avatar,
+.judge-session-thumb,
+.judge-session-thumb-placeholder {
+  background: linear-gradient(135deg, #e8e2da, #d8d0c6);
+}
+.judge-session-thumb-placeholder { width: 100%; height: 100%; }
+.judge-hero-image { background: transparent; }

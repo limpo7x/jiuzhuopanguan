@@ -1,7 +1,3 @@
-import { staticAsset } from '../config/assets'
-
-const asset = (path: string): string => (path.startsWith('home/') ? staticAsset(path.replace(/^home\//, '')) : `/assets/${path}`)
-
 export interface HomeHero {
   title: string
   subtitle: string
@@ -41,7 +37,7 @@ export const homePageMock: HomePageData = {
   hero: {
     title: '酒桌判官',
     subtitle: '欠酒互怼 · 整活不断 · 气氛拉满',
-    imageUrl: asset('home/party-hero.png'),
+    imageUrl: '',
     shareTitle: '酒桌判官：今晚这局谁先欠酒？',
   },
   quickTools: [
@@ -75,7 +71,7 @@ export const homePageMock: HomePageData = {
       id: 'nine-grid',
       name: '九宫格切图',
       usedAt: '刚刚使用',
-      imageUrl: asset('home/image-process-hero.png'),
+      imageUrl: '',
       badgeText: '常用',
       badgeClass: 'green',
     },
@@ -83,7 +79,7 @@ export const homePageMock: HomePageData = {
       id: 'json',
       name: 'JSON格式化',
       usedAt: '1小时前',
-      imageUrl: asset('home/toolbox-hero.png'),
+      imageUrl: '',
       badgeText: '工具',
       badgeClass: '',
     },
@@ -91,7 +87,7 @@ export const homePageMock: HomePageData = {
       id: 'watermark',
       name: '图片去水印',
       usedAt: '2小时前',
-      imageUrl: asset('home/party-hero.png'),
+      imageUrl: '',
       badgeText: '图片',
       badgeClass: '',
     },

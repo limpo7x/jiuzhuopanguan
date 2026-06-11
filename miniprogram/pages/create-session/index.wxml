@@ -65,7 +65,8 @@
         data-id="{{item.id}}"
         bindtap="handleTemplateTap"
       >
-        <image class="create-template-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
+        <image wx:if="{{item.imageUrl}}" class="create-template-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
+        <view wx:else class="create-template-image"></view>
         <text class="create-template-name">{{item.name}}</text>
       </view>
     </view>

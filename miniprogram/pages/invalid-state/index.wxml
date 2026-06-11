@@ -9,7 +9,7 @@
 <view class="invalid-page">
   <scroll-view class="invalid-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="invalid-center">
-      <image class="invalid-state-image" src="https://api.pomer.cn/static/beer-toast.png" mode="aspectFill"></image>
+      <view class="invalid-state-image"></view>
       <text class="invalid-title">本局已结束</text>
       <text class="invalid-subtitle">美好时光总是短暂的</text>
 

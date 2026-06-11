@@ -1,9 +1,8 @@
-import {
+﻿import {
   resolveToolId,
   type ToolCategoryCard,
   type ToolDescriptor,
 } from '../../utils/toolkit'
-import { staticAsset } from '../../config/assets'
 import { getManagedToolsCatalog } from '../../services/operations'
 
 interface CategoryViewItem {
@@ -54,7 +53,7 @@ Page<ToolsPageState, ToolsPageMethods>({
     allTools: [],
     categories: [],
     categoryCards: [],
-    heroImageUrl: staticAsset('toolbox-hero.png'),
+    heroImageUrl: '',
     heroSubtitle: '高效 · 实用 · 有趣',
     heroTitle: '工具在手 生活不愁',
     popularTools: [],
@@ -199,3 +198,4 @@ Page<ToolsPageState, ToolsPageMethods>({
 })
 
 export {}
+

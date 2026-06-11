@@ -1,4 +1,3 @@
-import { staticAsset } from '../../config/assets'
 import { createManagedSession } from '../../services/operations'
 import { setSessionRuntime } from '../../utils/session'
 import { ensureUserAuthorized } from '../../utils/social'
@@ -36,9 +35,9 @@ Page<CreateSessionState, CreateSessionMethods>({
     sessionName: '今晚聚会不醉不归',
     sessionNamePresets: [{ name: '推荐', active: true }, { name: '今晚什么局' }, { name: '周五快乐局' }, { name: '生日局' }],
     templates: [
-      { id: 'classic', name: '经典喝酒版', imageUrl: staticAsset('party-hero.png'), active: true },
-      { id: 'report', name: '战报分享版', imageUrl: staticAsset('report-poster.png') },
-      { id: 'toolbox', name: '轻松整活版', imageUrl: staticAsset('toolbox-hero.png') },
+      { id: 'classic', name: '经典喝酒版', imageUrl: '', active: true },
+      { id: 'report', name: '战报分享版', imageUrl: '' },
+      { id: 'toolbox', name: '轻松整活版', imageUrl: '' },
     ],
   },
 

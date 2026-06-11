@@ -1,4 +1,3 @@
-import { avatarAsset } from '../../config/assets'
 import {
   getManagedLiveSession,
   getManagedQuestionBank,
@@ -93,7 +92,7 @@ const pickDefaultPlayer = () => {
   const player = resolveSessionParticipants(runtime)[0]
 
   return {
-    avatarUrl: player?.avatarUrl || avatarAsset(1),
+    avatarUrl: player?.avatarUrl || '',
     id: player?.profileId || 'player-1',
     name: player?.name || '当前玩家',
   }
@@ -171,7 +170,7 @@ const buildFallbackPlayers = () => {
   return participants.map<WheelPlayer>((item, index) => {
     const stat = statMap.get(item.profileId || item.name)
     return {
-      avatarUrl: item.avatarUrl || avatarAsset((index % 4) + 1),
+      avatarUrl: item.avatarUrl || '',
       clearedCount: stat?.clearedCount || 0,
       debtCount: stat?.debtCount || 0,
       drinkCount: stat?.drinkCount || 0,
@@ -426,7 +425,7 @@ Page<JudgeWheelState, JudgeWheelMethods>({
     const runtime = getSessionRuntime()
     const sessionId = this.data.sessionId || runtime.sessionId || ''
     if (!sessionId) {
-      this.showPreviewToast('当前酒局未接入后端，无法保存消杯结果')
+      this.showPreviewToast('当前酒局缺少同步信息，无法保存消杯结果')
       return
     }
 

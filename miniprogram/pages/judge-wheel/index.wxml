@@ -55,7 +55,8 @@
     </view>
 
     <view class="wheel-player-card">
-      <image class="wheel-avatar" src="{{currentPlayerAvatar}}" mode="aspectFill"></image>
+      <image wx:if="{{currentPlayerAvatar}}" class="wheel-avatar" src="{{currentPlayerAvatar}}" mode="aspectFill"></image>
+      <view wx:else class="wheel-avatar"></view>
       <view class="wheel-player-copy">
         <text class="wheel-player-name">{{currentPlayerName}}</text>
         <text class="wheel-player-meta">当前欠酒 {{currentDebtCount}} 杯 · 已消 {{currentClearedCount}} / {{maxClearPerPlayer}}</text>

@@ -1,7 +1,7 @@
 import { homePageMock, type HomePageData } from '../mock/home'
 import { getApiBase } from '../config/api'
-import { normalizeManagedAssetPath, staticAsset } from '../config/assets'
-import { resolveCachedManagedImagePath } from '../utils/imageCache'
+import { normalizeManagedAssetPath } from '../config/assets'
+import { resolveCachedManagedImagePathQuick } from '../utils/imageCache'
 import { getUserAuthHeaders } from '../utils/social'
 import { resolveToolId } from '../utils/toolkit'
 
@@ -54,11 +54,11 @@ const QUICK_TOOL_VISUALS: Record<string, { iconClass: string; toneClass: string 
 }
 
 const RECENT_TOOL_ASSET_BY_CATEGORY: Record<string, { badgeClass: string; badgeText: string; imageUrl: string }> = {
-  分享生成: { badgeClass: '', badgeText: '分享', imageUrl: staticAsset('report-poster.png') },
-  图片工具: { badgeClass: 'green', badgeText: '图片', imageUrl: staticAsset('image-process-hero.png') },
-  图片处理: { badgeClass: 'green', badgeText: '图片', imageUrl: staticAsset('image-process-hero.png') },
-  开发工具: { badgeClass: '', badgeText: '工具', imageUrl: staticAsset('toolbox-hero.png') },
-  计算工具: { badgeClass: '', badgeText: '计算', imageUrl: staticAsset('report-poster.png') },
+  分享生成: { badgeClass: '', badgeText: '分享', imageUrl: '' },
+  图片工具: { badgeClass: 'green', badgeText: '图片', imageUrl: '' },
+  图片处理: { badgeClass: 'green', badgeText: '图片', imageUrl: '' },
+  开发工具: { badgeClass: '', badgeText: '工具', imageUrl: '' },
+  计算工具: { badgeClass: '', badgeText: '计算', imageUrl: '' },
 }
 
 const RECENT_TOOL_ID_BY_NAME: Record<string, string> = {
@@ -132,7 +132,7 @@ const mapRecentTools = async (items?: ToolHistoryResponseItem[]) => {
         id: normalizeRecentToolId(item, fallback.id),
         name: item.name || fallback.name || '工具',
         usedAt: item.usedAt || fallback.usedAt || '刚刚使用',
-        imageUrl: await resolveCachedManagedImagePath(visual.imageUrl),
+        imageUrl: visual.imageUrl ? await resolveCachedManagedImagePathQuick(visual.imageUrl, 800) : '',
         badgeText: visual.badgeText,
         badgeClass: visual.badgeClass,
         route: item.route || fallback.route || '',
@@ -176,8 +176,8 @@ export const getHomePageData = async (): Promise<HomePageData> => {
   }
 
   try {
-    const homeConfig = await request<HomeConfigResponse>('/config/home')
-    const [compliance, profile, toolHistory] = await Promise.all([
+    const [homeConfig, compliance, profile, toolHistory] = await Promise.all([
+      request<HomeConfigResponse>('/config/home').catch<HomeConfigResponse>(() => ({})),
       request<ComplianceResponse>('/config/compliance').catch<ComplianceResponse>(() => ({ copy: '' })),
       request<UserProfileResponse>('/user/profile').catch<UserProfileResponse>(() => ({ points: undefined })),
       request<ToolHistoryResponseItem[]>('/tools/history').catch<ToolHistoryResponseItem[]>(() => []),
@@ -190,8 +190,7 @@ export const getHomePageData = async (): Promise<HomePageData> => {
         ...homePageMock.hero,
         ...homeConfig.hero,
         imageUrl:
-          (await resolveCachedManagedImagePath(normalizeManagedAssetPath(homeConfig.hero?.imageUrl))) ||
-          homePageMock.hero.imageUrl,
+          (await resolveCachedManagedImagePathQuick(normalizeManagedAssetPath(homeConfig.hero?.imageUrl), 800)) || '',
       },
       quickTools: mergeQuickTools(homeConfig.quickTools),
       recentTools: await mapRecentTools(toolHistory),

@@ -73,7 +73,7 @@ page {
   width: 48px;
   height: 48px;
   border-radius: 8px;
-  background: #f7ead8;
+  background: linear-gradient(135deg, #e8e2da, #d8d0c6);
 }
 
 .pro-thumb image {
@@ -154,4 +154,12 @@ page {
   line-height: 1;
   font-weight: 900;
   box-shadow: 0 9px 18px rgba(255, 91, 61, 0.24);
+}
+
+/* 2026-06 image placeholder policy: no default bitmap fallback */
+.pro-template-image,
+.template-image,
+.premium-template-image,
+.pro-thumb {
+  background: linear-gradient(135deg, #e8e2da, #d8d0c6);
 }

@@ -1,7 +1,7 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath } from '../config/assets'
 import { resolveCachedManagedImagePath } from '../utils/imageCache'
-import { getUserAuthHeaders } from '../utils/social'
+import { clearUserSessionToken, getUserAuthHeaders } from '../utils/social'
 
 interface ApiResponse<T> {
   code: number
@@ -157,6 +157,12 @@ const request = <T>(path: string, method: 'GET' | 'PUT' | 'POST' = 'GET', data?:
 
         if (response.statusCode >= 200 && response.statusCode < 300 && payload.code === 0) {
           resolve(payload.data)
+          return
+        }
+
+        if (response.statusCode === 401) {
+          clearUserSessionToken()
+          reject(new Error('请先登录'))
           return
         }
 

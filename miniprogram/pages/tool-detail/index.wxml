@@ -9,7 +9,8 @@
 <view class="tool-detail-page">
   <scroll-view class="tool-detail-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="tool-detail-hero">
-      <image class="tool-detail-hero-image" src="{{heroImage}}" mode="aspectFill"></image>
+      <image wx:if="{{heroImage}}" class="tool-detail-hero-image" src="{{heroImage}}" mode="aspectFill"></image>
+      <view wx:else class="tool-detail-hero-image"></view>
       <view class="tool-detail-hero-mask"></view>
       <view class="tool-detail-hero-copy">
         <text class="tool-detail-hero-title">{{toolName}}</text>
@@ -151,7 +152,8 @@
           <view class="tool-inline-button" bindtap="handleDownloadQrCode">保存二维码</view>
         </view>
         <view class="tool-qr-card">
-          <image class="tool-qr-image" src="{{qrImageUrl}}" mode="aspectFit"></image>
+          <image wx:if="{{qrImageUrl}}" class="tool-qr-image" src="{{qrImageUrl}}" mode="aspectFit"></image>
+          <view wx:else class="tool-qr-image"></view>
           <view class="tool-qr-copy">
             <text class="tool-qr-code">{{qrCode}}</text>
             <text class="tool-qr-meta">把这串分享码配合口令一起发给朋友即可。</text>
@@ -182,7 +184,8 @@
         </view>
 
         <view wx:if="{{imageSource}}" class="tool-image-stage">
-          <image class="tool-image-preview" src="{{imagePreviewSrc}}" mode="widthFix"></image>
+          <image wx:if="{{imagePreviewSrc}}" class="tool-image-preview" src="{{imagePreviewSrc}}" mode="widthFix"></image>
+          <view wx:else class="tool-image-preview"></view>
           <view wx:if="{{toolMode === 'watermark'}}" class="tool-watermark-mask {{watermarkMaskClass}}"></view>
           <view wx:if="{{toolMode === 'watermark'}}" class="tool-watermark-label">{{watermarkLabel}}</view>
         </view>

@@ -1,50 +1,22 @@
-const crypto = require('crypto')
-const fs = require('fs')
+﻿const crypto = require('crypto')
 const path = require('path')
 const { createStoreAccessor } = require('./store-accessor')
 
 const storePath = path.join(__dirname, 'social-store.json')
-const avatarPool = [
-  '/static/avatar-1.png',
-  '/static/avatar-2.png',
-  '/static/avatar-3.png',
-  '/static/avatar-4.png',
-]
-const LEGACY_DEMO_PROFILE_IDS = new Set(['user-1001', 'user-1002', 'user-1003', 'user-1004', 'user-test-a', 'user-test-b', 'user-search-a', 'user-search-b'])
 const USER_SESSION_TTL = 1000 * 60 * 60 * 24 * 30
 
-const hashNameToAvatar = (name = '') => {
-  const sum = Array.from(name).reduce((total, char) => total + char.charCodeAt(0), 0)
-  return avatarPool[sum % avatarPool.length]
-}
-
 const now = () => Date.now()
-const isPlaceholderName = (value = '') => {
-  const text = String(value || '').trim()
-  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text)
-}
-const sanitizeProfileName = (value = '') => {
-  const text = String(value || '').trim()
-  return isPlaceholderName(text) ? '' : text
-}
-const isLegacyDemoProfile = (profile = {}) => {
-  const id = String(profile.id || '').trim()
-  if (!LEGACY_DEMO_PROFILE_IDS.has(id)) {
-    return false
-  }
-  const openId = String(profile.wechatOpenId || '').trim()
-  const phone = String(profile.phone || '').trim()
-  return !openId && !phone
-}
-const normalizeAvatarUrl = (value = '', fallbackName = '') => {
-  const raw = String(value || '').trim()
-  if (!raw) {
-    return hashNameToAvatar(fallbackName || '微信用户')
-  }
-  if (raw.startsWith('/assets/avatars/')) {
-    return `/static/${raw.split('/').pop()}`
-  }
-  return raw
+const isoNow = () => new Date().toISOString()
+const randomToken = () => crypto.randomBytes(24).toString('hex')
+const randomId = (prefix) => `${prefix}-${now()}-${Math.random().toString(16).slice(2, 8)}`
+const maskPhone = (phone = '') => (phone.length === 11 ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : phone)
+const cleanText = (value = '') => String(value || '').trim()
+const cleanAvatar = (value = '') => {
+  const text = cleanText(value)
+  if (!text) return ''
+  if (/^\/static\/avatar-(?:host|\d+)\.png$/i.test(text) || text.startsWith('/assets/avatars/')) return ''
+  if (/\/tmp\//i.test(text) || /\/__tmp__\//i.test(text)) return ''
+  return text
 }
 
 const createDefaultStore = () => ({
@@ -55,104 +27,68 @@ const createDefaultStore = () => ({
   userSessions: [],
 })
 
-const isBrokenSample = (value) =>
-  typeof value === 'string' && (!value.trim() || value.includes('?'))
-
 const normalizeProfile = (profile = {}, fallback = {}) => {
   const timestamp = now()
-  const requestedName = isBrokenSample(profile.name) ? '' : String(profile.name || '').trim()
-  const fallbackName = isBrokenSample(fallback.name) ? '' : String(fallback.name || '').trim()
-  const name = sanitizeProfileName(requestedName) || sanitizeProfileName(fallbackName)
-
   return {
-    id: String(profile.id || fallback.id || `user-${timestamp}`),
-    name,
-    avatarUrl: normalizeAvatarUrl(profile.avatarUrl || fallback.avatarUrl, name),
-    signature: isBrokenSample(profile.signature) ? fallback.signature || '今晚这局不见不散。' : String(profile.signature || fallback.signature || '今晚这局不见不散。').trim(),
-    identityTag: isBrokenSample(profile.identityTag) ? fallback.identityTag || '酒局常驻玩家' : String(profile.identityTag || fallback.identityTag || '酒局常驻玩家').trim(),
-    phone: typeof profile.phone === 'string' ? profile.phone.trim() : typeof fallback.phone === 'string' ? fallback.phone.trim() : '',
-    wechatOpenId:
-      typeof profile.wechatOpenId === 'string'
-        ? profile.wechatOpenId.trim()
-        : typeof fallback.wechatOpenId === 'string'
-          ? fallback.wechatOpenId.trim()
-          : '',
-    wechatUnionId:
-      typeof profile.wechatUnionId === 'string'
-        ? profile.wechatUnionId.trim()
-        : typeof fallback.wechatUnionId === 'string'
-          ? fallback.wechatUnionId.trim()
-          : '',
-    phoneBoundAt:
-      typeof profile.phoneBoundAt === 'string'
-        ? profile.phoneBoundAt
-        : typeof fallback.phoneBoundAt === 'string'
-          ? fallback.phoneBoundAt
-          : '',
-    lastLoginAt:
-      typeof profile.lastLoginAt === 'string'
-        ? profile.lastLoginAt
-        : typeof fallback.lastLoginAt === 'string'
-          ? fallback.lastLoginAt
-          : '',
+    id: cleanText(profile.id || fallback.id || randomId('user')),
+    name: cleanText(profile.name || fallback.name),
+    avatarUrl: cleanAvatar(profile.avatarUrl || fallback.avatarUrl),
+    signature: cleanText(profile.signature || fallback.signature),
+    identityTag: cleanText(profile.identityTag || fallback.identityTag),
+    phone: cleanText(profile.phone || fallback.phone),
+    wechatOpenId: cleanText(profile.wechatOpenId || fallback.wechatOpenId),
+    wechatUnionId: cleanText(profile.wechatUnionId || fallback.wechatUnionId),
+    phoneBoundAt: cleanText(profile.phoneBoundAt || fallback.phoneBoundAt),
+    lastLoginAt: cleanText(profile.lastLoginAt || fallback.lastLoginAt),
     loginCount: Math.max(0, Number(profile.loginCount ?? fallback.loginCount) || 0),
-    createdAt: profile.createdAt || fallback.createdAt || timestamp,
+    createdAt: Number(profile.createdAt || fallback.createdAt) || timestamp,
     updatedAt: timestamp,
   }
 }
 
-const normalizeStore = (store = {}) => {
-  const defaults = createDefaultStore()
-  return {
-    profiles: Array.isArray(store.profiles) && store.profiles.length
-      ? store.profiles
-          .filter((item) => !isLegacyDemoProfile(item))
-          .map((item) => normalizeProfile(item, {}))
-      : defaults.profiles,
-    friendships: Array.isArray(store.friendships)
-      ? store.friendships.map((item, index) => ({
-          id: String(item.id || `friendship-${index + 1}`),
-          ownerId: String(item.ownerId || ''),
-          friendId: String(item.friendId || ''),
-          alias: typeof item.alias === 'string' ? item.alias.trim() : '',
-          meta: isBrokenSample(item.meta) ? '最近联系' : String(item.meta || '最近联系').trim(),
-          updatedAt: Number(item.updatedAt) || now(),
-        }))
-      : [],
-    loginLogs: Array.isArray(store.loginLogs)
-      ? store.loginLogs
-          .map((item, index) => ({
-            id: String(item?.id || `login-log-${index + 1}`),
-            profileId: String(item?.profileId || ''),
-            phone: typeof item?.phone === 'string' ? item.phone.trim() : '',
-            wechatOpenId: typeof item?.wechatOpenId === 'string' ? item.wechatOpenId.trim() : '',
-            loginAt: typeof item?.loginAt === 'string' ? item.loginAt : '',
-            source: typeof item?.source === 'string' ? item.source : 'wechat-miniapp',
-          }))
-          .filter((item) => item.profileId)
-      : [],
-    pokes: Array.isArray(store.pokes)
-      ? store.pokes.map((item) => ({
-          id: String(item.id || ''),
-          senderId: String(item.senderId || ''),
-          receiverId: String(item.receiverId || ''),
-          status: item.status === 'matched' ? 'matched' : 'pending',
+const normalizeStore = (store = {}) => ({
+  profiles: Array.isArray(store.profiles) ? store.profiles.map((item) => normalizeProfile(item)) : [],
+  friendships: Array.isArray(store.friendships)
+    ? store.friendships.map((item, index) => ({
+        id: cleanText(item.id || `friendship-${index + 1}`),
+        ownerId: cleanText(item.ownerId),
+        friendId: cleanText(item.friendId),
+        alias: cleanText(item.alias),
+        meta: cleanText(item.meta || '最近联系'),
+        updatedAt: Number(item.updatedAt) || now(),
+      }))
+    : [],
+  loginLogs: Array.isArray(store.loginLogs)
+    ? store.loginLogs.map((item, index) => ({
+        id: cleanText(item.id || `login-log-${index + 1}`),
+        profileId: cleanText(item.profileId),
+        phone: cleanText(item.phone),
+        wechatOpenId: cleanText(item.wechatOpenId),
+        loginAt: cleanText(item.loginAt),
+        source: cleanText(item.source || 'wechat-miniapp'),
+      }))
+    : [],
+  pokes: Array.isArray(store.pokes)
+    ? store.pokes.map((item) => ({
+        id: cleanText(item.id),
+        senderId: cleanText(item.senderId),
+        receiverId: cleanText(item.receiverId),
+        status: item.status === 'matched' ? 'matched' : 'pending',
+        createdAt: Number(item.createdAt) || now(),
+        updatedAt: Number(item.updatedAt) || now(),
+      }))
+    : [],
+  userSessions: Array.isArray(store.userSessions)
+    ? store.userSessions
+        .map((item) => ({
+          token: cleanText(item.token),
+          profileId: cleanText(item.profileId),
           createdAt: Number(item.createdAt) || now(),
-          updatedAt: Number(item.updatedAt) || now(),
+          expiresAt: Number(item.expiresAt) || 0,
         }))
-      : [],
-    userSessions: Array.isArray(store.userSessions)
-      ? store.userSessions
-          .map((item) => ({
-            token: String(item?.token || ''),
-            profileId: String(item?.profileId || ''),
-            createdAt: Number(item?.createdAt) || now(),
-            expiresAt: Number(item?.expiresAt) || 0,
-          }))
-          .filter((item) => item.token && item.profileId && item.expiresAt > now())
-      : [],
-  }
-}
+        .filter((item) => item.token && item.profileId && item.expiresAt > now())
+    : [],
+})
 
 const storeAccessor = createStoreAccessor({
   key: 'social_store',
@@ -162,319 +98,88 @@ const storeAccessor = createStoreAccessor({
 })
 
 const readStore = () => storeAccessor.read()
-
-const writeStore = (store) => storeAccessor.write(store)
-
+const writeStore = (store) => storeAccessor.write(normalizeStore(store))
 const getProfileById = (store, profileId) => store.profiles.find((item) => item.id === profileId)
 const getProfileByPhone = (store, phone) => store.profiles.find((item) => item.phone && item.phone === phone)
 const getProfileByOpenId = (store, openId) => store.profiles.find((item) => item.wechatOpenId && item.wechatOpenId === openId)
-const isoNow = () => new Date().toISOString()
-const randomToken = () => crypto.randomBytes(24).toString('hex')
-const maskPhone = (phone = '') => (phone.length === 11 ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : phone)
 
-const remapProfileReferences = (store, sourceId, targetId) => {
-  if (!sourceId || !targetId || sourceId === targetId) {
-    return
+const upsertProfile = (store, profile) => {
+  const existed = getProfileById(store, profile.id)
+  const normalized = normalizeProfile(profile, existed || {})
+  if (existed) {
+    store.profiles = store.profiles.map((item) => (item.id === normalized.id ? { ...item, ...normalized, createdAt: item.createdAt } : item))
+  } else {
+    store.profiles.unshift(normalized)
   }
-  store.friendships = store.friendships.map((item) => ({
-    ...item,
-    ownerId: item.ownerId === sourceId ? targetId : item.ownerId,
-    friendId: item.friendId === sourceId ? targetId : item.friendId,
-  }))
-  store.pokes = store.pokes.map((item) => ({
-    ...item,
-    senderId: item.senderId === sourceId ? targetId : item.senderId,
-    receiverId: item.receiverId === sourceId ? targetId : item.receiverId,
-  }))
-  store.userSessions = store.userSessions.map((item) => ({
-    ...item,
-    profileId: item.profileId === sourceId ? targetId : item.profileId,
-  }))
+  return normalized
 }
 
-const bindWechatUser = ({
-  phone,
-  wechatOpenId,
-  wechatUnionId = '',
-  profile = {},
-}) => {
+const ensureProfile = (inputProfile = {}) => {
   const store = readStore()
-  const normalizedPhone = String(phone || '').trim()
-  const normalizedOpenId = String(wechatOpenId || '').trim()
+  const profile = upsertProfile(store, inputProfile)
+  writeStore(store)
+  return profile
+}
+
+const bindWechatUser = ({ phone, wechatOpenId, wechatUnionId = '', profile = {} }) => {
+  const store = readStore()
+  const normalizedPhone = cleanText(phone)
+  const normalizedOpenId = cleanText(wechatOpenId)
   if (!normalizedOpenId) {
     throw new Error('missing wechat openid')
   }
-  const phoneProfile = normalizedPhone ? getProfileByPhone(store, normalizedPhone) : null
-  const openIdProfile = normalizedOpenId ? getProfileByOpenId(store, normalizedOpenId) : null
-  let targetProfile = phoneProfile || openIdProfile
 
-  if (phoneProfile && openIdProfile && phoneProfile.id !== openIdProfile.id) {
-    remapProfileReferences(store, openIdProfile.id, phoneProfile.id)
-    store.profiles = store.profiles.filter((item) => item.id !== openIdProfile.id)
-    targetProfile = phoneProfile
-  }
-
-  const timestamp = now()
+  const targetProfile = (normalizedPhone && getProfileByPhone(store, normalizedPhone)) || getProfileByOpenId(store, normalizedOpenId)
   const loginAt = isoNow()
-  const nextName = sanitizeProfileName(profile.name) || sanitizeProfileName(targetProfile?.name)
-  const nextProfile = normalizeProfile(
-    {
-      ...(targetProfile || {}),
-      id: targetProfile?.id || `user-${timestamp}`,
-      name: nextName,
-      avatarUrl: profile.avatarUrl || targetProfile?.avatarUrl || hashNameToAvatar(profile.name || normalizedPhone || '微信用户'),
-      signature: profile.signature || targetProfile?.signature || '已使用微信登录',
-      identityTag: profile.identityTag || targetProfile?.identityTag || '微信登录用户',
-      phone: normalizedPhone || targetProfile?.phone || '',
-      wechatOpenId: normalizedOpenId,
-      wechatUnionId: wechatUnionId || targetProfile?.wechatUnionId || '',
-      phoneBoundAt: normalizedPhone ? targetProfile?.phoneBoundAt || loginAt : targetProfile?.phoneBoundAt || '',
-      lastLoginAt: loginAt,
-      loginCount: Math.max(0, Number(targetProfile?.loginCount) || 0) + 1,
-      createdAt: targetProfile?.createdAt || timestamp,
-      updatedAt: timestamp,
-    },
-    targetProfile || {},
-  )
-
-  if (targetProfile) {
-    store.profiles = store.profiles.map((item) => (item.id === nextProfile.id ? { ...item, ...nextProfile, createdAt: item.createdAt } : item))
-  } else {
-    store.profiles.unshift(nextProfile)
-  }
+  const nextProfile = upsertProfile(store, {
+    ...(targetProfile || {}),
+    id: targetProfile?.id || randomId('user'),
+    name: cleanText(profile.name || targetProfile?.name),
+    avatarUrl: cleanAvatar(profile.avatarUrl || targetProfile?.avatarUrl),
+    signature: cleanText(profile.signature || targetProfile?.signature),
+    identityTag: cleanText(profile.identityTag || targetProfile?.identityTag),
+    phone: normalizedPhone || targetProfile?.phone || '',
+    wechatOpenId: normalizedOpenId,
+    wechatUnionId: cleanText(wechatUnionId || targetProfile?.wechatUnionId),
+    phoneBoundAt: normalizedPhone ? targetProfile?.phoneBoundAt || loginAt : targetProfile?.phoneBoundAt || '',
+    lastLoginAt: loginAt,
+    loginCount: Math.max(0, Number(targetProfile?.loginCount) || 0) + 1,
+  })
 
   const token = randomToken()
-  store.userSessions = store.userSessions.filter((item) => item.profileId !== nextProfile.id && item.expiresAt > timestamp)
-  store.userSessions.unshift({
-    token,
-    profileId: nextProfile.id,
-    createdAt: timestamp,
-    expiresAt: timestamp + USER_SESSION_TTL,
-  })
-  store.loginLogs = Array.isArray(store.loginLogs) ? store.loginLogs : []
+  store.userSessions = store.userSessions.filter((item) => item.profileId !== nextProfile.id && item.expiresAt > now())
+  store.userSessions.unshift({ token, profileId: nextProfile.id, createdAt: now(), expiresAt: now() + USER_SESSION_TTL })
   store.loginLogs.unshift({
-    id: `login-log-${timestamp}`,
+    id: randomId('login-log'),
     profileId: nextProfile.id,
     phone: nextProfile.phone,
     wechatOpenId: nextProfile.wechatOpenId,
-    loginAt: loginAt,
+    loginAt,
     source: 'wechat-miniapp',
   })
   writeStore(store)
-  return {
-    token,
-    profile: {
-      ...nextProfile,
-      phoneMasked: maskPhone(nextProfile.phone),
-    },
-  }
+  return { token, profile: { ...nextProfile, phoneMasked: maskPhone(nextProfile.phone) } }
 }
 
 const bindPhoneToMiniUser = ({ profileId, phone }) => {
   const store = readStore()
-  const normalizedProfileId = String(profileId || '').trim()
-  const normalizedPhone = String(phone || '').trim()
-
-  if (!normalizedProfileId) {
-    throw new Error('missing profileId')
-  }
-  if (!normalizedPhone) {
-    throw new Error('missing phone')
-  }
-
-  const targetProfile = getProfileById(store, normalizedProfileId)
-  if (!targetProfile) {
+  const target = getProfileById(store, cleanText(profileId))
+  if (!target) {
     throw new Error('profile not found')
   }
-
-  const duplicatedPhoneProfile = getProfileByPhone(store, normalizedPhone)
-  if (duplicatedPhoneProfile && duplicatedPhoneProfile.id !== normalizedProfileId) {
-    store.profiles = store.profiles.map((item) =>
-      item.id === duplicatedPhoneProfile.id
-        ? {
-            ...item,
-            phone: '',
-            phoneBoundAt: '',
-            updatedAt: now(),
-          }
-        : item,
-    )
-  }
-
-  const nextProfile = normalizeProfile(
-    {
-      ...targetProfile,
-      phone: normalizedPhone,
-      phoneBoundAt: targetProfile.phoneBoundAt || isoNow(),
-      updatedAt: now(),
-    },
-    targetProfile,
-  )
-
-  store.profiles = store.profiles.map((item) => (item.id === normalizedProfileId ? { ...item, ...nextProfile, createdAt: item.createdAt } : item))
+  const nextProfile = upsertProfile(store, { ...target, phone: cleanText(phone), phoneBoundAt: target.phoneBoundAt || isoNow() })
   writeStore(store)
-
-  return {
-    ...nextProfile,
-    phoneMasked: maskPhone(nextProfile.phone),
-  }
+  return { ...nextProfile, phoneMasked: maskPhone(nextProfile.phone) }
 }
 
 const getMiniUserSession = (token) => {
-  if (!token) {
-    return null
-  }
   const store = readStore()
   const session = store.userSessions.find((item) => item.token === token && item.expiresAt > now())
   if (!session) {
     return null
   }
   const profile = getProfileById(store, session.profileId)
-  if (!profile) {
-    return null
-  }
-  return {
-    token: session.token,
-    profile: {
-      ...profile,
-      phoneMasked: maskPhone(profile.phone),
-    },
-  }
-}
-
-const ensureProfile = (inputProfile) => {
-  const store = readStore()
-  const existed = store.profiles.find((item) => item.id === String(inputProfile?.id || ''))
-  const normalized = normalizeProfile(inputProfile, existed)
-
-  if (existed) {
-    store.profiles = store.profiles.map((item) => (item.id === normalized.id ? { ...item, ...normalized, createdAt: item.createdAt } : item))
-  } else {
-    store.profiles.unshift(normalized)
-  }
-
-  writeStore(store)
-  return normalized
-}
-
-const getOrCreatePlaceholderProfile = (store, name) => {
-  const trimmed = String(name || '').trim()
-  const existed = store.profiles.find((item) => item.name.toLowerCase() === trimmed.toLowerCase())
-  if (existed) {
-    return existed
-  }
-
-  const profile = normalizeProfile(
-    {
-      id: `user-${now()}`,
-      name: trimmed,
-      signature: '刚加入酒局圈子。',
-      identityTag: '最近酒友',
-    },
-    {},
-  )
-  store.profiles.unshift(profile)
-  return profile
-}
-
-const ensureProfileFromSessionContact = (store, participant = {}) => {
-  const profileId = String(participant.id || participant.profileId || '').trim()
-  if (!profileId) {
-    return null
-  }
-
-  const profileName = sanitizeProfileName(participant.name || '')
-  const avatarUrl = normalizeAvatarUrl(participant.avatarUrl || '', profileName || String(participant.identityTag || ''))
-  const nextProfile = normalizeProfile(
-    {
-      id: profileId,
-      name: profileName,
-      avatarUrl,
-      signature: getProfileById(store, profileId)?.signature || '',
-      identityTag: sanitizeProfileName(participant.identityTag || '') || '好友',
-      phone: getProfileById(store, profileId)?.phone || '',
-      wechatOpenId: getProfileById(store, profileId)?.wechatOpenId || '',
-      wechatUnionId: getProfileById(store, profileId)?.wechatUnionId || '',
-      phoneBoundAt: getProfileById(store, profileId)?.phoneBoundAt || '',
-      lastLoginAt: getProfileById(store, profileId)?.lastLoginAt || '',
-      loginCount: getProfileById(store, profileId)?.loginCount || 0,
-      createdAt: getProfileById(store, profileId)?.createdAt || now(),
-      updatedAt: now(),
-    },
-    getProfileById(store, profileId) || {},
-  )
-
-  const existedProfile = getProfileById(store, profileId)
-  if (existedProfile) {
-    store.profiles = store.profiles.map((item) => (item.id === profileId ? { ...item, ...nextProfile, createdAt: item.createdAt || nextProfile.createdAt } : item))
-    return { ...nextProfile, createdAt: existedProfile.createdAt || nextProfile.createdAt }
-  }
-
-  store.profiles.unshift(nextProfile)
-  return nextProfile
-}
-
-const syncSessionContacts = ({ ownerId, participants = [] }) => {
-  const store = readStore()
-  const normalizedOwnerId = String(ownerId || '').trim()
-  if (!normalizedOwnerId) {
-    return []
-  }
-
-  const uniqueParticipants = new Map()
-  participants.forEach((item) => {
-    const participantId = String(item?.profileId || item?.id || '').trim()
-    if (!participantId || participantId === normalizedOwnerId) {
-      return
-    }
-    if (uniqueParticipants.has(participantId)) {
-      return
-    }
-    uniqueParticipants.set(participantId, {
-      ...item,
-      profileId: participantId,
-      id: participantId,
-    })
-  })
-
-  const touchedAt = now()
-  uniqueParticipants.forEach((participant) => {
-    const targetProfile = ensureProfileFromSessionContact(store, participant)
-    if (!targetProfile) {
-      return
-    }
-
-    const friendshipAlias = sanitizeProfileName(participant.name || targetProfile.name)
-    const existing = store.friendships.find(
-      (item) => item.ownerId === normalizedOwnerId && item.friendId === targetProfile.id,
-    )
-    const nextMeta = friendProfileMeta(participant.meta || '酒局联系人')
-    if (existing) {
-      store.friendships = store.friendships.map((item) =>
-        item.id === existing.id
-          ? {
-              ...item,
-              alias: friendshipAlias || item.alias,
-              meta: nextMeta,
-              updatedAt: touchedAt,
-            }
-          : item,
-      )
-      return
-    }
-
-    store.friendships.unshift({
-      id: `friendship-${touchedAt}-${Math.random().toString(16).slice(2, 8)}`,
-      ownerId: normalizedOwnerId,
-      friendId: targetProfile.id,
-      alias: friendshipAlias || targetProfile.name,
-      meta: nextMeta,
-      updatedAt: touchedAt,
-    })
-  })
-
-  writeStore(store)
-  return listFriends(normalizedOwnerId)
+  return profile ? { token: session.token, profile: { ...profile, phoneMasked: maskPhone(profile.phone) } } : null
 }
 
 const serializeFriend = (store, friendship) => {
@@ -483,8 +188,8 @@ const serializeFriend = (store, friendship) => {
     id: friendship.id,
     profileId: friendship.friendId,
     ownerId: friendship.ownerId,
-    avatarUrl: profile?.avatarUrl || hashNameToAvatar(friendship.alias || profile?.name || '酒友'),
-    name: friendship.alias || profile?.name || '酒友',
+    avatarUrl: cleanAvatar(profile?.avatarUrl),
+    name: friendship.alias || profile?.name || '未命名用户',
     meta: friendship.meta || '最近联系',
     updatedAt: friendship.updatedAt,
   }
@@ -498,78 +203,47 @@ const listFriends = (profileId) => {
     .map((item) => serializeFriend(store, item))
 }
 
-const listProfiles = () => {
-  return readStore().profiles
-}
-
-const listFriendships = () => {
-  const store = readStore()
-  return store.friendships
-    .slice()
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .map((item) => serializeFriend(store, item))
-}
-
-const searchProfiles = ({ ownerId, keyword = '' }) => {
-  const store = readStore()
-  const trimmed = String(keyword || '').trim().toLowerCase()
-  if (!trimmed) {
-    return []
+const getOrCreatePlaceholderProfile = (store, name) => {
+  const trimmed = cleanText(name)
+  const existed = store.profiles.find((item) => item.name.toLowerCase() === trimmed.toLowerCase())
+  if (existed) {
+    return existed
   }
-
-  const friendIds = new Set(store.friendships.filter((item) => item.ownerId === ownerId).map((item) => item.friendId))
-  return store.profiles
-    .filter((item) => item.id !== ownerId)
-    .filter((item) => [item.name, item.identityTag].join(' ').toLowerCase().includes(trimmed))
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 8)
-    .map((item) => ({
-      id: item.id,
-      name: item.name,
-      avatarUrl: item.avatarUrl,
-      identityTag: item.identityTag,
-      alreadyFriend: friendIds.has(item.id),
-    }))
+  return upsertProfile(store, { id: randomId('user'), name: trimmed, avatarUrl: '', identityTag: '好友' })
 }
 
 const addFriend = ({ ownerId, friendName, friendProfileId, meta = '最近添加' }) => {
   const store = readStore()
-  if (!ownerId) {
+  const normalizedOwnerId = cleanText(ownerId)
+  if (!normalizedOwnerId) {
     throw new Error('missing ownerId')
   }
-
-  let targetProfile = friendProfileId ? getProfileById(store, friendProfileId) : null
+  let targetProfile = friendProfileId ? getProfileById(store, cleanText(friendProfileId)) : null
   if (!targetProfile && friendName) {
     targetProfile = getOrCreatePlaceholderProfile(store, friendName)
   }
   if (!targetProfile) {
     throw new Error('friend not found')
   }
-  if (targetProfile.id === ownerId) {
+  if (targetProfile.id === normalizedOwnerId) {
     throw new Error('cannot add self')
   }
 
-  const existed = store.friendships.find((item) => item.ownerId === ownerId && item.friendId === targetProfile.id)
+  const existed = store.friendships.find((item) => item.ownerId === normalizedOwnerId && item.friendId === targetProfile.id)
   const updatedAt = now()
-
   if (existed) {
-    const nextFriendship = {
-      ...existed,
-      alias: friendName && friendName.trim() ? friendName.trim() : existed.alias,
-      meta: meta || existed.meta,
-      updatedAt,
-    }
+    const nextFriendship = { ...existed, alias: cleanText(friendName) || existed.alias, meta: cleanText(meta) || existed.meta, updatedAt }
     store.friendships = store.friendships.map((item) => (item.id === existed.id ? nextFriendship : item))
     writeStore(store)
     return serializeFriend(store, nextFriendship)
   }
 
   const friendship = {
-    id: `friendship-${updatedAt}`,
-    ownerId,
+    id: randomId('friendship'),
+    ownerId: normalizedOwnerId,
     friendId: targetProfile.id,
-    alias: friendName && friendName.trim() ? friendName.trim() : '',
-    meta,
+    alias: cleanText(friendName),
+    meta: cleanText(meta) || '最近添加',
     updatedAt,
   }
   store.friendships.unshift(friendship)
@@ -577,22 +251,16 @@ const addFriend = ({ ownerId, friendName, friendProfileId, meta = '最近添加'
   return serializeFriend(store, friendship)
 }
 
-const updateFriend = ({ ownerId, friendshipId, name, meta }) => {
+const updateFriend = ({ ownerId, friendshipId, patch = {} }) => {
   const store = readStore()
   const target = store.friendships.find((item) => item.id === friendshipId && item.ownerId === ownerId)
   if (!target) {
-    throw new Error('friendship not found')
+    throw new Error('friend not found')
   }
-
-  const nextFriendship = {
-    ...target,
-    alias: typeof name === 'string' ? name.trim() : target.alias,
-    meta: typeof meta === 'string' ? meta.trim() : target.meta,
-    updatedAt: now(),
-  }
-  store.friendships = store.friendships.map((item) => (item.id === friendshipId ? nextFriendship : item))
+  const next = { ...target, alias: cleanText(patch.name || target.alias), meta: cleanText(patch.meta || target.meta), updatedAt: now() }
+  store.friendships = store.friendships.map((item) => (item.id === friendshipId ? next : item))
   writeStore(store)
-  return serializeFriend(store, nextFriendship)
+  return serializeFriend(store, next)
 }
 
 const removeFriend = ({ ownerId, friendshipId }) => {
@@ -602,42 +270,61 @@ const removeFriend = ({ ownerId, friendshipId }) => {
   return listFriends(ownerId)
 }
 
-const friendProfileMeta = (meta = '') => {
-  const text = String(meta || '').trim()
-  return text || '酒局联系人'
-}
-
 const touchFriends = ({ ownerId, participants = [] }) => {
-  participants.forEach((item, index) => {
-    addFriend({
-      ownerId,
-      friendName: item.name,
-      meta: index < 2 ? '刚一起开过局' : '最近联系',
-    })
+  participants.forEach((item) => {
+    if (item?.profileId && item.profileId === ownerId) {
+      return
+    }
+    try {
+      addFriend({ ownerId, friendName: item?.name || '', friendProfileId: item?.profileId || '', meta: item?.meta || '酒局联系人' })
+    } catch {
+      void 0
+    }
   })
   return listFriends(ownerId)
 }
 
-const getThreadId = (senderId, receiverId) => [senderId, receiverId].sort().join('__')
+const syncSessionContacts = ({ ownerId, participants = [] }) => touchFriends({ ownerId, participants })
 
-const serializeThread = (store, profileId, thread) => {
-  const isIncoming = thread.receiverId === profileId
-  const counterpart = getProfileById(store, isIncoming ? thread.senderId : thread.receiverId)
+const listProfiles = () => readStore().profiles.map((item) => ({ ...item, avatarUrl: cleanAvatar(item.avatarUrl) }))
+const listFriendships = () => {
+  const store = readStore()
+  return store.friendships.map((item) => serializeFriend(store, item))
+}
 
+const searchProfiles = ({ ownerId, keyword = '' }) => {
+  const store = readStore()
+  const trimmed = cleanText(keyword).toLowerCase()
+  if (!trimmed) {
+    return []
+  }
+  const friendIds = new Set(store.friendships.filter((item) => item.ownerId === ownerId).map((item) => item.friendId))
+  return store.profiles
+    .filter((item) => item.id !== ownerId)
+    .filter((item) => [item.name, item.identityTag].join(' ').toLowerCase().includes(trimmed))
+    .slice(0, 8)
+    .map((item) => ({ id: item.id, name: item.name, avatarUrl: cleanAvatar(item.avatarUrl), identityTag: item.identityTag, alreadyFriend: friendIds.has(item.id) }))
+}
+
+const serializeThread = (store, viewerId, thread) => {
+  const sender = getProfileById(store, thread.senderId) || {}
+  const receiver = getProfileById(store, thread.receiverId) || {}
+  const isIncoming = thread.receiverId === viewerId
+  const counterpart = isIncoming ? sender : receiver
   return {
     id: thread.id,
     senderId: thread.senderId,
-    senderName: getProfileById(store, thread.senderId)?.name || '酒友',
-    senderAvatarUrl: getProfileById(store, thread.senderId)?.avatarUrl || hashNameToAvatar('酒友'),
+    senderName: sender.name || '',
+    senderAvatarUrl: cleanAvatar(sender.avatarUrl),
     receiverId: thread.receiverId,
-    receiverName: getProfileById(store, thread.receiverId)?.name || '酒友',
-    receiverAvatarUrl: getProfileById(store, thread.receiverId)?.avatarUrl || hashNameToAvatar('酒友'),
+    receiverName: receiver.name || '',
+    receiverAvatarUrl: cleanAvatar(receiver.avatarUrl),
+    counterpartId: counterpart.id || '',
+    counterpartName: counterpart.name || '',
+    counterpartAvatarUrl: cleanAvatar(counterpart.avatarUrl),
     status: thread.status,
-    updatedAt: thread.updatedAt,
-    counterpartId: counterpart?.id || '',
-    counterpartName: counterpart?.name || '酒友',
-    counterpartAvatarUrl: counterpart?.avatarUrl || hashNameToAvatar('酒友'),
     actionState: thread.status === 'matched' ? 'matched' : isIncoming ? 'incoming' : 'outgoing',
+    updatedAt: thread.updatedAt,
   }
 }
 
@@ -651,47 +338,23 @@ const listPokes = (profileId) => {
 
 const listAllPokes = () => {
   const store = readStore()
-  return store.pokes
-    .slice()
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-    .map((item) => serializeThread(store, item.receiverId, item))
+  return store.pokes.map((item) => serializeThread(store, item.senderId, item))
 }
 
 const sendPoke = ({ ownerId, friendshipId }) => {
   const store = readStore()
   const friendship = store.friendships.find((item) => item.id === friendshipId && item.ownerId === ownerId)
   if (!friendship) {
-    throw new Error('friendship not found')
+    throw new Error('friend not found')
   }
-
+  const senderId = ownerId
   const receiverId = friendship.friendId
-  if (receiverId === ownerId) {
-    throw new Error('cannot poke self')
-  }
-
-  const id = getThreadId(ownerId, receiverId)
+  const id = [senderId, receiverId].sort().join('__')
   const existed = store.pokes.find((item) => item.id === id)
-  const updatedAt = now()
-
-  if (existed) {
-    const nextThread =
-      existed.status === 'pending' && existed.receiverId === ownerId
-        ? { ...existed, status: 'matched', updatedAt }
-        : { ...existed, senderId: ownerId, receiverId, updatedAt }
-    store.pokes = store.pokes.map((item) => (item.id === id ? nextThread : item))
-    writeStore(store)
-    return serializeThread(store, ownerId, nextThread)
-  }
-
-  const thread = {
-    id,
-    senderId: ownerId,
-    receiverId,
-    status: 'pending',
-    createdAt: updatedAt,
-    updatedAt,
-  }
-  store.pokes.unshift(thread)
+  const thread = existed
+    ? { ...existed, status: existed.receiverId === senderId ? 'matched' : existed.status, updatedAt: now() }
+    : { id, senderId, receiverId, status: 'pending', createdAt: now(), updatedAt: now() }
+  store.pokes = [thread, ...store.pokes.filter((item) => item.id !== id)]
   writeStore(store)
   return serializeThread(store, ownerId, thread)
 }
@@ -702,30 +365,14 @@ const replyPoke = ({ profileId, threadId }) => {
   if (!target) {
     throw new Error('thread not found')
   }
-  if (target.receiverId !== profileId && target.senderId !== profileId) {
-    throw new Error('forbidden')
-  }
-
-  const nextThread = {
-    ...target,
-    status: 'matched',
-    updatedAt: now(),
-  }
-  store.pokes = store.pokes.map((item) => (item.id === threadId ? nextThread : item))
+  const next = { ...target, status: 'matched', updatedAt: now() }
+  store.pokes = store.pokes.map((item) => (item.id === threadId ? next : item))
   writeStore(store)
-  return serializeThread(store, profileId, nextThread)
+  return serializeThread(store, profileId, next)
 }
 
 const ignorePoke = ({ profileId, threadId }) => {
   const store = readStore()
-  const target = store.pokes.find((item) => item.id === threadId)
-  if (!target) {
-    return listPokes(profileId)
-  }
-  if (target.receiverId !== profileId && target.senderId !== profileId) {
-    throw new Error('forbidden')
-  }
-
   store.pokes = store.pokes.filter((item) => item.id !== threadId)
   writeStore(store)
   return listPokes(profileId)
@@ -737,9 +384,8 @@ const getBootstrap = (profileId) => {
   if (!currentProfile) {
     throw new Error('profile not found')
   }
-
   return {
-    currentProfile,
+    currentProfile: { ...currentProfile, avatarUrl: cleanAvatar(currentProfile.avatarUrl) },
     wineFriends: listFriends(profileId),
     pokeThreads: listPokes(profileId),
   }

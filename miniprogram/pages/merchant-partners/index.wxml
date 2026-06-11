@@ -31,7 +31,7 @@
     <view class="merchant-list">
       <view wx:for="{{shops}}" wx:key="id" class="merchant-item">
         <view class="merchant-thumb">
-          <image src="{{item.imageUrl}}" mode="aspectFill"></image>
+          <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
         </view>
         <view class="merchant-copy">
           <text class="merchant-item-title">{{item.name}}</text>

@@ -44,7 +44,8 @@
 
     <view wx:if="{{searchMatches.length}}" class="players-list">
       <view wx:for="{{searchMatches}}" wx:key="id" class="players-list-item players-list-item-registered">
-        <image class="players-list-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <image wx:if="{{item.avatarUrl}}" class="players-list-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view wx:else class="players-list-avatar"></view>
         <view class="players-list-copy">
           <text class="players-list-title">{{item.name}}</text>
           <text class="players-list-meta">{{item.identityTag}}</text>
@@ -75,7 +76,8 @@
 
     <view class="players-avatar-row">
       <view wx:for="{{favoritePlayers}}" wx:key="name" class="players-avatar-card" data-name="{{item.name}}" bindtap="handlePlayerToggle">
-        <image class="players-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <image wx:if="{{item.avatarUrl}}" class="players-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view wx:else class="players-avatar"></view>
         <text class="players-avatar-name">{{item.name}}</text>
       </view>
     </view>
@@ -92,7 +94,8 @@
         data-name="{{item.name}}"
         bindtap="handlePlayerToggle"
       >
-        <image class="players-list-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <image wx:if="{{item.avatarUrl}}" class="players-list-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view wx:else class="players-list-avatar"></view>
         <view class="players-list-copy">
           <text class="players-list-title">{{item.name}}</text>
           <text class="players-list-meta">{{item.meta}}</text>

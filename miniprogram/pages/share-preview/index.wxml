@@ -9,34 +9,35 @@
 <view class="share-page">
   <scroll-view class="share-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="share-chip-row">
-      <view class="share-chip {{!showJoinStatus ? 'share-chip-active' : ''}}" data-tab="preview" bindtap="handleTabTap">邀请卡预览</view>
-      <view class="share-chip {{showJoinStatus ? 'share-chip-active' : ''}}" data-tab="status" bindtap="handleTabTap">加入状�?/view>
+      <view class="share-chip {{!showJoinStatus ? 'share-chip-active' : ''}}" data-tab="preview" bindtap="handleTabTap">分享卡片预览</view>
+      <view class="share-chip {{showJoinStatus ? 'share-chip-active' : ''}}" data-tab="status" bindtap="handleTabTap">口令加入状态</view>
     </view>
 
     <view wx:if="{{!showJoinStatus}}" class="share-poster-card">
-      <image wx:if="{{previewImageUrl}}" class="share-poster-image" src="{{previewImageUrl}}" mode="aspectFill"></image>
       <view class="share-poster-copy">
-        <text class="share-poster-title">{{shareHeadline}}</text>
-        <text class="share-poster-subtitle">{{previewTitle}}</text>
-        <text class="share-poster-session">{{sessionName}}</text>
+        <text class="share-poster-title">这局快乐就完事了！</text>
+        <text class="share-poster-subtitle">{{sessionName}}</text>
         <view class="share-poster-row">
           <view class="share-avatar-stack">
-            <image wx:for="{{avatars}}" wx:key="index" class="share-avatar" src="{{item}}" mode="aspectFill"></image>
+            <block wx:for="{{avatars}}" wx:key="index">
+              <image wx:if="{{item}}" class="share-avatar" src="{{item}}" mode="aspectFill"></image>
+              <view wx:else class="share-avatar"></view>
+            </block>
           </view>
-          <text class="share-poster-count">{{joinedCount}}/{{playerCount}} 人已加入</text>
+          <text class="share-poster-count">{{joinedCount}}/{{playerCount}} 已加入</text>
         </view>
-        <view class="share-code-box">{{inviteCode}}</view>
+        <view class="share-code-box">AB7K9Q</view>
       </view>
     </view>
-
     <view wx:else class="share-poster-card">
       <view class="share-poster-copy">
-        <text class="share-poster-title">{{shareHeadline}}</text>
-        <text class="share-poster-subtitle">邀请口�?{{inviteCode}}，当�?{{joinedCount}}/{{playerCount}} 人已加入</text>
+        <text class="share-poster-title">口令加入状态</text>
+        <text class="share-poster-subtitle">邀请码 AB7K9Q · 当前 {{joinedCount}}/{{playerCount}} 已加入</text>
         <view class="share-status-list">
           <view wx:for="{{joinStatusPlayers}}" wx:key="name" class="share-status-item">
             <view class="share-status-user">
-              <image class="share-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+              <image wx:if="{{item.avatarUrl}}" class="share-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+              <view wx:else class="share-avatar"></view>
               <text class="share-status-name">{{item.name}}</text>
             </view>
             <text class="share-status-tag">{{item.status}}</text>
@@ -50,20 +51,27 @@
     </view>
 
     <view class="share-grid">
-      <button wx:for="{{shareItems}}" wx:key="id" class="share-item" open-type="share">
+      <button
+        wx:for="{{shareItems}}"
+        wx:key="id"
+        class="share-item"
+        data-id="{{item.id}}"
+        data-name="{{item.name}}"
+        open-type="share"
+        bindtap="handleShareTap"
+      >
         <view class="share-item-icon {{item.iconClass}}"></view>
         <text class="share-item-label">{{item.name}}</text>
       </button>
     </view>
 
-    <view class="share-primary {{isGeneratingPoster ? 'share-primary-disabled' : ''}}" bindtap="handleSaveTap">
-      <text>{{isGeneratingPoster ? '����ͼ������' : '�������ͼ'}}</text>
+    <view class="share-primary" bindtap="handleSaveTap">
+      <text>保存海报</text>
       <view class="share-primary-icon"></view>
     </view>
   </scroll-view>
 
   <canvas
-    type="2d"
     canvas-id="sharePreviewCanvas"
     class="share-hidden-canvas"
     style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"

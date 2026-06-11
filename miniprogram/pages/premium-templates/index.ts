@@ -1,5 +1,4 @@
 import { getTemplateConfig, getUserCommerceState, getMembershipCatalog, unlockTemplateByAd, type TemplateFilter, type TemplateItem } from '../../services/content'
-import { staticAsset } from '../../config/assets'
 
 interface ProFilter extends TemplateFilter {
   active?: boolean
@@ -43,10 +42,10 @@ const DEFAULT_FILTERS: ProFilter[] = [
 ]
 
 const DEFAULT_TEMPLATES: TemplateItem[] = [
-  { id: 'tpl-friendship', filterId: 'friendship', title: '友情题材', meta: '28 个局例 · 2 位主创', cost: 800, imageUrl: staticAsset('toolbox-hero.png') },
-  { id: 'tpl-classic', filterId: 'classic', title: '经典局', meta: '26 个局例 · 适合新手入门', cost: 800, imageUrl: staticAsset('party-hero.png') },
-  { id: 'tpl-party', filterId: 'party', title: '欢快氛围', meta: '32 个局例 · 轻松开场', cost: 800, imageUrl: staticAsset('report-poster.png') },
-  { id: 'tpl-birthday', filterId: 'party', title: '生日聚局', meta: '18 个局例 · 热闹有礼', cost: 800, imageUrl: staticAsset('image-process-hero.png') },
+  { id: 'tpl-friendship', filterId: 'friendship', title: '友情题材', meta: '28 个局例 · 2 位主创', cost: 800, imageUrl: '' },
+  { id: 'tpl-classic', filterId: 'classic', title: '经典局', meta: '26 个局例 · 适合新手入门', cost: 800, imageUrl: '' },
+  { id: 'tpl-party', filterId: 'party', title: '欢快氛围', meta: '32 个局例 · 轻松开场', cost: 800, imageUrl: '' },
+  { id: 'tpl-birthday', filterId: 'party', title: '生日聚局', meta: '18 个局例 · 热闹有礼', cost: 800, imageUrl: '' },
 ]
 
 Page<PremiumTemplatesState, PremiumTemplatesMethods>({

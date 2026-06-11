@@ -22,7 +22,8 @@
             <view class="report-featured-badge">全场焦点</view>
           </view>
           <view class="report-featured-body">
-            <image class="report-featured-avatar" src="{{featuredRank.avatarUrl}}" mode="aspectFill"></image>
+            <image wx:if="{{featuredRank.avatarUrl}}" class="report-featured-avatar" src="{{featuredRank.avatarUrl}}" mode="aspectFill"></image>
+            <view wx:else class="report-featured-avatar"></view>
             <view class="report-featured-copy">
               <text class="report-featured-name">{{featuredRank.name}}</text>
               <text class="report-featured-value">{{featuredRank.value}}</text>
@@ -33,7 +34,8 @@
         <view wx:if="{{secondaryRanks.length}}" class="report-ranks">
           <view wx:for="{{secondaryRanks}}" wx:key="title" class="report-rank-card">
             <view class="report-rank-tag">{{item.title}}</view>
-            <image class="report-rank-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <image wx:if="{{item.avatarUrl}}" class="report-rank-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <view wx:else class="report-rank-avatar"></view>
             <text class="report-rank-name">{{item.name}}</text>
             <text class="report-rank-value">{{item.value}}</text>
           </view>

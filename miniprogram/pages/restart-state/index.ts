@@ -30,11 +30,16 @@ Page<RestartStateState, RestartStateMethods>({
       { name: '友情互损局' },
     ],
     shareItems: [
-      { id: 'save', name: '保存图片', iconClass: 'restart-icon-download' },
       { id: 'friend', name: '分享给好友', iconClass: 'restart-icon-wechat' },
       { id: 'group', name: '分享到群', iconClass: 'restart-icon-group' },
-      { id: 'more', name: '更多', iconClass: 'restart-icon-more' },
     ],
+  },
+
+  onShareAppMessage() {
+    return {
+      title: '再开一局，继续酒桌判官',
+      path: '/pages/create-session/index',
+    }
   },
 
   handleReuseTap() {
@@ -52,8 +57,10 @@ Page<RestartStateState, RestartStateMethods>({
   },
 
   handleShareTap(event) {
-    const { id, name } = event.currentTarget.dataset as { id: string; name: string }
-    this.openPage(`/pages/share-helper/index?scene=restart&channel=${encodeURIComponent(id)}&label=${encodeURIComponent(name)}`)
+    const { id } = event.currentTarget.dataset as { id: string }
+    if (!id) {
+      this.openPage('/pages/create-session/index')
+    }
   },
 
   openPage(url) {

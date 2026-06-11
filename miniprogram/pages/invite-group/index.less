@@ -247,3 +247,22 @@ button.invite-share-item::after {
 .invite-icon-arrow {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M7 4.5L13 10L7 15.5' fill='none' stroke='%23ffffff' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
+
+/* 2026-06 flow CTA fixed bottom */
+.invite-scroll {
+  padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
+
+.invite-primary-full {
+  position: fixed;
+  right: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  left: 18px;
+  z-index: 30;
+  width: auto;
+  min-height: 58px;
+  margin-top: 0;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  font-size: 17px;
+  box-shadow: 0 16px 34px rgba(255, 91, 61, 0.34);
+}

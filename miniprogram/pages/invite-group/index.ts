@@ -1,4 +1,4 @@
-import { getSessionRuntime } from '../../utils/session'
+﻿import { getSessionRuntime } from '../../utils/session'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface ShareItem {
@@ -37,28 +37,20 @@ Page<InviteGroupState, InviteGroupMethods>({
     const runtime = getSessionRuntime()
     const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
     const profile = await ensureUserAuthorized(`/pages/invite-group/index${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ''}`)
-    if (!profile) {
-      return
-    }
-    this.setData({
-      inviteCode: runtime.inviteCode || 'AB7K9Q',
-      sessionId,
-      sessionName: runtime.sessionName || '今晚聚会不醉不归',
-    })
+    if (!profile) return
+    this.setData({ inviteCode: runtime.inviteCode || 'AB7K9Q', sessionId, sessionName: runtime.sessionName || '今晚聚会不醉不归' })
   },
 
   onShareAppMessage() {
     return {
-      title: `${this.data.sessionName} 邀你入局`,
+      title: `${this.data.sessionName} 邀请你入局`,
       path: `/pages/join-claim/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,
-      imageUrl: 'https://api.pomer.cn/static/party-hero.png',
+      imageUrl: '',
     }
   },
 
   handleCopyTap() {
-    wx.setClipboardData({
-      data: this.data.inviteCode,
-    })
+    wx.setClipboardData({ data: this.data.inviteCode })
   },
 
   handlePreviewTap() {
@@ -70,12 +62,7 @@ Page<InviteGroupState, InviteGroupMethods>({
   },
 
   openPage(url) {
-    wx.navigateTo({
-      url,
-      fail: () => {
-        wx.redirectTo({ url })
-      },
-    })
+    wx.navigateTo({ url, fail: () => wx.redirectTo({ url }) })
   },
 })
 

@@ -23,7 +23,8 @@
 
     <view class="live-avatar-row">
       <view wx:for="{{players}}" wx:key="index" class="live-avatar-card">
-        <image class="live-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <image wx:if="{{item.avatarUrl}}" class="live-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view wx:else class="live-avatar"></view>
         <text class="live-avatar-name">{{item.name}}</text>
       </view>
       <view wx:if="{{isJudge && players.length < playerCount}}" class="live-avatar-card" bindtap="handleAddPlayerTap">
@@ -37,7 +38,8 @@
       <view wx:for="{{records}}" wx:key="index" class="live-record-item">
         <view class="live-row-between live-record-top">
           <view class="live-record-user">
-            <image class="live-record-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <image wx:if="{{item.avatarUrl}}" class="live-record-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <view wx:else class="live-record-avatar"></view>
             <view class="live-record-copy">
               <text class="live-record-title">{{item.name}}</text>
               <text class="live-record-meta">{{item.meta}}</text>

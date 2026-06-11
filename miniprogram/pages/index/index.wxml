@@ -1,4 +1,4 @@
-<navigation-bar
+﻿<navigation-bar
   title="首页"
   back="{{false}}"
   color="#24160f"
@@ -9,19 +9,53 @@
 <view class="page-shell">
   <scroll-view class="screen-body scroll-body with-tabs" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="top-row">
-      <view class="profile-chip" bindtap="handleProfileTap">
-        <image class="profile-chip-avatar" src="{{userAvatarUrl}}" mode="aspectFill"></image>
-        <text class="profile-chip-name">{{userName}}</text>
+      <view class="top-profile-left">
+        <view wx:if="{{loggedIn}}" class="profile-chip">
+          <image wx:if="{{userAvatarUrl}}" class="profile-chip-avatar" src="{{userAvatarUrl}}" mode="aspectFill"></image>
+          <view wx:else class="profile-chip-avatar"></view>
+          <text class="profile-chip-name">{{userName}}</text>
+        </view>
+        <view wx:else class="profile-chip profile-login-entry" bindtap="handleLoginTextTap">
+          <view class="profile-chip-avatar"></view>
+          <text class="profile-login-text">点击登录</text>
+        </view>
       </view>
-      <view class="top-row-spacer"></view>
       <view wx:if="{{canCheckIn}}" class="sign-tag" bindtap="handleCheckIn">
         <view class="sign-tag-icon icon-coin"></view>
-        <text class="sign-tag-text">{{checkedIn ? '今日已签' : '签到 +10'}}</text>
+        <text class="sign-tag-text">{{signingIn ? '签到中' : (checkedIn ? '今日已签' : '签到 +10')}}</text>
       </view>
       <view wx:else class="sign-tag sign-tag-disabled">
         <view class="sign-tag-icon icon-coin"></view>
         <text class="sign-tag-text">登录后签到</text>
       </view>
+    </view>
+
+    <view wx:if="{{authPanelVisible}}" class="auth-panel-mask" bindtap="closeAuthPanel">
+      <form class="auth-panel" catchtap="noop" bindsubmit="handleLoginSubmit">
+        <view class="auth-panel-head">
+          <text class="auth-panel-title">微信授权登录</text>
+          <text class="auth-panel-close" bindtap="closeAuthPanel">关闭</text>
+        </view>
+        <view class="auth-avatar-row">
+          <button class="auth-avatar-btn" open-type="chooseAvatar" bindchooseavatar="handleAuthAvatar">
+            <image wx:if="{{authAvatarUrl}}" class="auth-avatar" src="{{authAvatarUrl}}" mode="aspectFill"></image>
+            <view wx:else class="auth-avatar"></view>
+          </button>
+          <view class="auth-avatar-copy">
+            <text class="auth-avatar-title">点击头像授权</text>
+            <text class="auth-avatar-desc">用于酒局身份展示，不会使用默认图片占位。</text>
+          </view>
+        </view>
+        <input
+          class="auth-name-input"
+          name="nickname"
+          type="nickname"
+          placeholder="填写微信昵称"
+          value="{{authName}}"
+          bindinput="handleAuthNameInput"
+        />
+        <button class="auth-submit" form-type="submit" loading="{{authSubmitting}}">确认登录</button>
+      </form>
     </view>
 
     <view class="home-search-box">
@@ -33,7 +67,7 @@
     <view class="spacer"></view>
 
     <view class="hero">
-      <image class="hero-image" src="{{home.hero.imageUrl}}" mode="scaleToFill"></image>
+      <image wx:if="{{home.hero.imageUrl}}" class="hero-image" src="{{home.hero.imageUrl}}" mode="scaleToFill"></image>
       <view class="hero-overlay"></view>
       <view class="hero-content">
         <view class="hero-title-wrap">
@@ -87,13 +121,13 @@
         bindtap="handleToolTap"
       >
         <view class="recent-thumb">
-          <image src="{{item.imageUrl}}" mode="aspectFill"></image>
+          <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
         </view>
         <view class="recent-item-copy">
           <text class="recent-item-title">{{item.name}}</text>
           <text class="recent-item-meta">{{item.usedAt}}</text>
         </view>
-        <view class="recent-tag {{item.badgeClass === 'green' ? 'recent-tag-green' : '' }}">{{item.badgeText}}</view>
+        <view class="recent-tag {{item.badgeClass === 'green' ? 'recent-tag-green' : ''}}">{{item.badgeText}}</view>
       </view>
     </view>
   </scroll-view>

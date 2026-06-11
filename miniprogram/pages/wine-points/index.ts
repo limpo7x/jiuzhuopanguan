@@ -7,7 +7,6 @@ import {
   type PointsReward,
   type PointsTask,
 } from '../../services/content'
-import { staticAsset } from '../../config/assets'
 
 interface PointsTab {
   id: 'tasks' | 'mall'
@@ -67,7 +66,7 @@ const DEFAULT_REWARDS: PointsReward[] = [
   { id: 'reward-avatar-frame', title: '专属头像框（30天）', subtitle: '限时点亮酒局身份展示效果', cost: 300, iconClass: 'points-icon-crown' },
 ]
 
-const DEFAULT_BANNER_IMAGE_URL = staticAsset('points-gift.png')
+const DEFAULT_BANNER_IMAGE_URL = ''
 
 Page<WinePointsState, WinePointsMethods>({
   data: {
@@ -112,10 +111,12 @@ Page<WinePointsState, WinePointsMethods>({
     }
   },
 
-  resolveTaskViews(tasks, taskClaimStates = this.data.taskClaimStates, claimedTaskIds = this.data.claimedTaskIds) {
+  resolveTaskViews(tasks, taskClaimStates, claimedTaskIds) {
+    const resolvedTaskClaimStates = taskClaimStates || this.data.taskClaimStates
+    const resolvedClaimedTaskIds = claimedTaskIds || this.data.claimedTaskIds
     return tasks.map((item) => {
-      const claimState = taskClaimStates[item.id]
-      const isClaimed = claimedTaskIds.includes(item.id)
+      const claimState = resolvedTaskClaimStates[item.id]
+      const isClaimed = resolvedClaimedTaskIds.includes(item.id)
       if (!claimState) {
         return {
           ...item,

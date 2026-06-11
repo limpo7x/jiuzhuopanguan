@@ -1,0 +1,1064 @@
+﻿{
+  "adminUsers": [
+    {
+      "id": "admin-root",
+      "username": "admin",
+      "passwordHash": "ad89b64d66caa8e30e5d5ce4a9763f4ecc205814c412175f3e2c50027471426d",
+      "name": "绯荤粺绠＄悊鍛?,
+      "roleId": "role-super-admin",
+      "status": "active",
+      "lastLoginAt": "2026-06-08T12:14:21.559Z"
+    },
+    {
+      "id": "admin-content",
+      "username": "content.ops",
+      "passwordHash": "8b29885080c3f39f1dbff9a9d1f692acfe3513e04f9dfa18073235ade5d2dd56",
+      "name": "鍐呭杩愯惀",
+      "roleId": "role-content-ops",
+      "status": "active",
+      "lastLoginAt": ""
+    }
+  ],
+  "roles": [
+    {
+      "id": "role-super-admin",
+      "name": "瓒呯骇绠＄悊鍛?,
+      "scope": "鍏ㄩ噺妯″潡",
+      "permissions": [
+        "*"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "role-content-ops",
+      "name": "鍐呭杩愯惀",
+      "scope": "棣栭〉銆佹ā鏉裤€侀搴撱€佺礌鏉?,
+      "permissions": [
+        "content",
+        "share",
+        "tools"
+      ],
+      "status": "active"
+    },
+    {
+      "id": "role-commerce-ops",
+      "name": "鍟嗕笟鍖栬繍钀?,
+      "scope": "绉垎銆佷細鍛樸€佸箍鍛娿€佸晢鎴?,
+      "permissions": [
+        "points",
+        "membership",
+        "ads",
+        "merchant"
+      ],
+      "status": "active"
+    }
+  ],
+  "sessions": [],
+  "operationLogs": [],
+  "analyticsEvents": [
+    {
+      "id": "event-1781071825392-fc05c2",
+      "createdAt": "2026-06-10T06:10:25.392Z",
+      "type": "report_share",
+      "profileId": "test-profile-001",
+      "reportId": "",
+      "assetId": "",
+      "planId": "",
+      "toolId": "",
+      "slotId": "",
+      "merchantId": "",
+      "campaignId": "",
+      "meta": {
+        "sessionId": "s1"
+      }
+    },
+    {
+      "id": "event-1780987864024-1f7d00",
+      "createdAt": "2026-06-09T06:51:04.024Z",
+      "type": "report_share",
+      "profileId": "user-1780987863660",
+      "reportId": "report-1780987864020-c778b2",
+      "assetId": "share-1",
+      "planId": "",
+      "toolId": "",
+      "slotId": "",
+      "merchantId": "",
+      "campaignId": "",
+      "meta": {
+        "channel": "smoke-test",
+        "sessionId": "session-1780987864011-6f437a"
+      }
+    },
+    {
+      "id": "event-1780987864020-dfc9e6",
+      "createdAt": "2026-06-09T06:51:04.020Z",
+      "type": "report_generated",
+      "reportId": "report-1780987864020-c778b2",
+      "meta": {
+        "sessionId": "session-1780987864011-6f437a",
+        "playerCount": 2,
+        "templateName": "缁忓吀鍠濋厭鐗?
+      }
+    },
+    {
+      "id": "event-1780987864014-0dc1d1",
+      "createdAt": "2026-06-09T06:51:04.014Z",
+      "type": "session_joined",
+      "profileId": "user-1780987863661",
+      "meta": {
+        "sessionId": "session-1780987864011-6f437a",
+        "inviteCode": "7A7K9Q",
+        "joinedCount": 2
+      }
+    },
+    {
+      "id": "event-1780987864011-e0ea55",
+      "createdAt": "2026-06-09T06:51:04.011Z",
+      "type": "session_created",
+      "profileId": "user-1780987863660",
+      "meta": {
+        "sessionId": "session-1780987864011-6f437a",
+        "playerCount": 2,
+        "template": "缁忓吀鍠濋厭鐗?
+      }
+    },
+    {
+      "id": "event-1780987714748-c5f1ad",
+      "createdAt": "2026-06-09T06:48:34.748Z",
+      "type": "report_share",
+      "profileId": "user-1780987714380",
+      "reportId": "report-1780987714742-b1fa9b",
+      "assetId": "share-1",
+      "planId": "",
+      "toolId": "",
+      "slotId": "",
+      "merchantId": "",
+      "campaignId": "",
+      "meta": {
+        "channel": "smoke-test",
+        "sessionId": "session-1780987714732-9e1c9f"
+      }
+    },
+    {
+      "id": "event-1780987714742-f1051f",
+      "createdAt": "2026-06-09T06:48:34.742Z",
+      "type": "report_generated",
+      "reportId": "report-1780987714742-b1fa9b",
+      "meta": {
+        "sessionId": "session-1780987714732-9e1c9f",
+        "playerCount": 2,
+        "templateName": "缁忓吀鍠濋厭鐗?
+      }
+    },
+    {
+      "id": "event-1780987714737-8b7509",
+      "createdAt": "2026-06-09T06:48:34.737Z",
+      "type": "session_joined",
+      "profileId": "user-1780987714381",
+      "meta": {
+        "sessionId": "session-1780987714732-9e1c9f",
+        "inviteCode": "9F7K9Q",
+        "joinedCount": 2
+      }
+    },
+    {
+      "id": "event-1780987714733-a0e185",
+      "createdAt": "2026-06-09T06:48:34.733Z",
+      "type": "session_created",
+      "profileId": "user-1780987714380",
+      "meta": {
+        "sessionId": "session-1780987714732-9e1c9f",
+        "playerCount": 2,
+        "template": "缁忓吀鍠濋厭鐗?
+      }
+    },
+    {
+      "id": "event-1780987445184-8d354f",
+      "createdAt": "2026-06-09T06:44:05.184Z",
+      "type": "session_created",
+      "profileId": "user-1780987444800",
+      "meta": {
+        "sessionId": "session-1780987445184-a7fe31",
+        "playerCount": 2,
+        "template": "缁忓吀鍠濋厭鐗?
+      }
+    }
+  ],
+  "userOps": [
+    {
+      "id": "user-1001",
+      "status": "楂樻椿璺?,
+      "tags": [
+        "妯℃澘鍋忓ソ",
+        "鎴樻姤鍒嗕韩"
+      ],
+      "note": "鏈€杩?7 澶╄繛缁紑灞€"
+    },
+    {
+      "id": "user-1002",
+      "status": "鏅€?,
+      "tags": [
+        "宸ュ叿鐢ㄦ埛"
+      ],
+      "note": "浜岀淮鐮佷笌鍥剧墖宸ュ叿浣跨敤杈冮珮"
+    },
+    {
+      "id": "user-1003",
+      "status": "楂樹环鍊?,
+      "tags": [
+        "浼氬憳",
+        "娣卞鍦烘櫙"
+      ],
+      "note": "浼氬憳濂楅杞寲姒傜巼楂?
+    }
+  ],
+  "questionBank": [
+    {
+      "id": "q-1",
+      "content": "缁欏乏鎵嬭竟鐜╁鍞变竴鍙ョ閰掕瘝",
+      "type": "浜掑姩",
+      "difficulty": "绠€鍗?,
+      "template": "鐢熸棩涓撳睘",
+      "riskLevel": "浣?,
+      "status": "寰呭鏍?
+    },
+    {
+      "id": "q-2",
+      "content": "鍒嗕韩涓€寮犳湰鍛ㄦ渶灏村艾鐓х墖",
+      "type": "鎯╃綒",
+      "difficulty": "涓瓑",
+      "template": "鏁存椿澶ф寫鎴?,
+      "riskLevel": "涓?,
+      "status": "寰呭鏍?
+    },
+    {
+      "id": "q-3",
+      "content": "璁╁叏鍦烘姇绁ㄤ綘浠婃櫄鏈€鍍忚皝",
+      "type": "闂瓟",
+      "difficulty": "绠€鍗?,
+      "template": "鍙嬫儏浜掓崯",
+      "riskLevel": "浣?,
+      "status": "涓婄嚎涓?
+    }
+  ],
+  "shareAssets": [
+    {
+      "id": "share-1",
+      "name": "鐑満灞€鎴樻姤娴锋姤 A",
+      "assetType": "鎴樻姤娴锋姤",
+      "scene": "鎴樻姤鍒嗕韩",
+      "imageUrl": "/static/report-poster.png",
+      "openRate": "52.1%",
+      "returnRate": "11.5%",
+      "status": "涓婄嚎涓?,
+      "exposureCount": 1000,
+      "openCount": 521,
+      "returnCount": 60
+    },
+    {
+      "id": "share-2",
+      "name": "濂藉弸閭€灞€鍗?B",
+      "assetType": "閭€灞€鍗?,
+      "scene": "閭€璇峰ソ鍙?,
+      "imageUrl": "/static/party-hero.png",
+      "openRate": "36.8%",
+      "returnRate": "8.2%",
+      "status": "涓婄嚎涓?,
+      "exposureCount": 1000,
+      "openCount": 368,
+      "returnCount": 30
+    },
+    {
+      "id": "share-3",
+      "name": "缇ゅ垎浜簩缁寸爜鍗＄墖",
+      "assetType": "鍒嗕韩鐮?,
+      "scene": "缇ら個璇?,
+      "imageUrl": "/static/report-poster.png",
+      "openRate": "29.4%",
+      "returnRate": "14.3%",
+      "status": "涓婄嚎涓?,
+      "exposureCount": 1000,
+      "openCount": 294,
+      "returnCount": 42
+    }
+  ],
+  "toolsCatalog": [
+    {
+      "id": "tool-qr",
+      "name": "浜岀淮鐮佺敓鎴?,
+      "category": "鍒嗕韩鐢熸垚",
+      "target": "閭€灞€瑁傚彉",
+      "imageUrl": "/static/report-poster.png",
+      "usageCount": 5622,
+      "favoriteCount": 944,
+      "favoriteRate": "16.8%",
+      "status": "鍚敤",
+      "sortOrder": 10,
+      "isHot": "鏄?,
+      "placement": "both"
+    },
+    {
+      "id": "tool-compress",
+      "name": "鍥剧墖鍘嬬缉",
+      "category": "鍥剧墖澶勭悊",
+      "target": "宸ュ叿鐣欏瓨",
+      "imageUrl": "/static/image-process-hero.png",
+      "usageCount": 3410,
+      "favoriteCount": 450,
+      "favoriteRate": "13.2%",
+      "status": "鍚敤",
+      "sortOrder": 20,
+      "isHot": "鏄?,
+      "placement": "both"
+    },
+    {
+      "id": "tool-json",
+      "name": "JSON 鏍煎紡鍖?,
+      "category": "寮€鍙戝伐鍏?,
+      "target": "鏃ユ椿琛ュ厖",
+      "imageUrl": "/static/toolbox-hero.png",
+      "usageCount": 2184,
+      "favoriteCount": 190,
+      "favoriteRate": "8.7%",
+      "status": "鍚敤",
+      "sortOrder": 30,
+      "isHot": "鏄?,
+      "placement": "tools"
+    },
+    {
+      "id": "tool-loan",
+      "name": "鎴胯捶璁＄畻",
+      "category": "璁＄畻宸ュ叿",
+      "target": "瀹炵敤杞寲",
+      "imageUrl": "/static/report-poster.png",
+      "usageCount": 1921,
+      "favoriteCount": 181,
+      "favoriteRate": "9.4%",
+      "status": "鍚敤",
+      "sortOrder": 40,
+      "isHot": "鏄?,
+      "placement": "both"
+    },
+    {
+      "id": "tool-currency",
+      "name": "姹囩巼鎹㈢畻",
+      "category": "璁＄畻宸ュ叿",
+      "target": "鏃ュ父宸ュ叿",
+      "imageUrl": "/static/report-poster.png",
+      "usageCount": 1688,
+      "favoriteCount": 120,
+      "favoriteRate": "7.1%",
+      "status": "鍚敤",
+      "sortOrder": 50,
+      "isHot": "鍚?,
+      "placement": "tools"
+    },
+    {
+      "id": "tool-unit",
+      "name": "鍗曚綅鎹㈢畻",
+      "category": "璁＄畻宸ュ叿",
+      "target": "鏃ュ父宸ュ叿",
+      "imageUrl": "/static/report-poster.png",
+      "usageCount": 1450,
+      "favoriteCount": 91,
+      "favoriteRate": "6.3%",
+      "status": "鍚敤",
+      "sortOrder": 60,
+      "isHot": "鍚?,
+      "placement": "tools"
+    },
+    {
+      "id": "tool-9-grid",
+      "name": "涔濆鏍煎垏鍥?,
+      "category": "鍥剧墖澶勭悊",
+      "target": "鍒嗕韩鐗╂枡",
+      "imageUrl": "/static/image-process-hero.png",
+      "usageCount": 1280,
+      "favoriteCount": 131,
+      "favoriteRate": "10.2%",
+      "status": "鍚敤",
+      "sortOrder": 70,
+      "isHot": "鍚?,
+      "placement": "tools"
+    },
+    {
+      "id": "tool-watermark",
+      "name": "鍥剧墖鍘绘按鍗?,
+      "category": "鍥剧墖澶勭悊",
+      "target": "鍐呭缂栬緫",
+      "imageUrl": "/static/party-hero.png",
+      "usageCount": 1166,
+      "favoriteCount": 98,
+      "favoriteRate": "8.4%",
+      "status": "鍚敤",
+      "sortOrder": 80,
+      "isHot": "鍚?,
+      "placement": "tools"
+    }
+  ],
+  "liveSessions": [
+    {
+      "id": "session-1780987864011-6f437a",
+      "createdAt": "2026-06-09T06:51:04.011Z",
+      "city": "涓婃捣",
+      "district": "娴︿笢鏂板尯",
+      "name": "楠屾敹灞€-1780987863660",
+      "players": 2,
+      "template": "缁忓吀鍠濋厭鐗?,
+      "hostName": "楠屾敹涓荤悊浜?660",
+      "inviteCode": "7A7K9Q",
+      "hostAvatarUrl": "",
+      "latitude": 0,
+      "location": "",
+      "longitude": 0,
+      "province": "",
+      "state": "宸茬粨鏉?,
+      "source": "鐩存帴鍒涘缓",
+      "status": "姝ｅ父",
+      "members": [
+        {
+          "avatarUrl": "",
+          "clearedCount": 0,
+          "debtCount": 0,
+          "drinkCount": 0,
+          "isHost": true,
+          "meta": "",
+          "name": "楠屾敹涓荤悊浜?660",
+          "phone": "",
+          "profileId": "user-1780987863660",
+          "status": "宸插姞鍏?,
+          "wheelHistory": []
+        },
+        {
+          "avatarUrl": "",
+          "clearedCount": 0,
+          "debtCount": 0,
+          "drinkCount": 0,
+          "isHost": false,
+          "meta": "",
+          "name": "楠屾敹鎴愬憳3660",
+          "phone": "",
+          "profileId": "user-1780987863661",
+          "status": "宸插姞鍏?,
+          "wheelHistory": []
+        }
+      ],
+      "joinedCount": 2
+    },
+    {
+      "id": "session-1780987714732-9e1c9f",
+      "createdAt": "2026-06-09T06:48:34.733Z",
+      "city": "涓婃捣",
+      "district": "娴︿笢鏂板尯",
+      "name": "楠屾敹灞€-1780987714380",
+      "players": 2,
+      "template": "缁忓吀鍠濋厭鐗?,
+      "hostName": "楠屾敹涓荤悊浜?380",
+      "inviteCode": "9F7K9Q",
+      "hostAvatarUrl": "",
+      "latitude": 0,
+      "location": "",
+      "longitude": 0,
+      "province": "",
+      "state": "宸茬粨鏉?,
+      "source": "鐩存帴鍒涘缓",
+      "status": "姝ｅ父",
+      "members": [
+        {
+          "avatarUrl": "",
+          "clearedCount": 0,
+          "debtCount": 0,
+          "drinkCount": 0,
+          "isHost": true,
+          "meta": "",
+          "name": "楠屾敹涓荤悊浜?380",
+          "phone": "",
+          "profileId": "user-1780987714380",
+          "status": "宸插姞鍏?,
+          "wheelHistory": []
+        },
+        {
+          "avatarUrl": "",
+          "clearedCount": 0,
+          "debtCount": 0,
+          "drinkCount": 0,
+          "isHost": false,
+          "meta": "",
+          "name": "楠屾敹鎴愬憳4380",
+          "phone": "",
+          "profileId": "user-1780987714381",
+          "status": "宸插姞鍏?,
+          "wheelHistory": []
+        }
+      ],
+      "joinedCount": 2
+    },
+    {
+      "id": "session-1780987445184-a7fe31",
+      "createdAt": "2026-06-09T06:44:05.184Z",
+      "city": "涓婃捣",
+      "district": "娴︿笢鏂板尯",
+      "name": "楠屾敹灞€-1780987444799",
+      "players": 2,
+      "template": "缁忓吀鍠濋厭鐗?,
+      "hostName": "楠屾敹涓荤悊浜?799",
+      "inviteCode": "317K9Q",
+      "hostAvatarUrl": "",
+      "latitude": 0,
+      "location": "",
+      "longitude": 0,
+      "province": "",
+      "state": "绛夊緟寮€灞€",
+      "source": "鐩存帴鍒涘缓",
+      "status": "姝ｅ父",
+      "members": [
+        {
+          "avatarUrl": "",
+          "clearedCount": 0,
+          "debtCount": 0,
+          "drinkCount": 0,
+          "isHost": true,
+          "meta": "",
+          "name": "楠屾敹涓荤悊浜?799",
+          "phone": "",
+          "profileId": "user-1780987444800",
+          "status": "宸插姞鍏?,
+          "wheelHistory": []
+        },
+        {
+          "avatarUrl": "",
+          "clearedCount": 0,
+          "debtCount": 0,
+          "drinkCount": 0,
+          "isHost": false,
+          "meta": "",
+          "name": "楠屾敹鎴愬憳4799",
+          "phone": "",
+          "profileId": "user-1780987444801",
+          "status": "寰呭姞鍏?,
+          "wheelHistory": []
+        }
+      ],
+      "joinedCount": 1
+    },
+    {
+      "id": "session-1780911427571-59a33d",
+      "name": "??????",
+      "players": 4,
+      "template": "?????",
+      "hostName": "????",
+      "inviteCode": "3D7K9Q",
+      "state": "???",
+      "source": "????",
+      "status": "??",
+      "city": "",
+      "district": "",
+      "hostAvatarUrl": "",
+      "joinedCount": 1,
+      "latitude": 0,
+      "location": "",
+      "longitude": 0,
+      "members": [
+        {
+          "avatarUrl": "",
+          "clearedCount": 0,
+          "debtCount": 0,
+          "drinkCount": 0,
+          "isHost": true,
+          "meta": "",
+          "name": "????",
+          "phone": "",
+          "profileId": "",
+          "status": "宸插姞鍏?,
+          "wheelHistory": []
+        }
+      ],
+      "province": ""
+    },
+    {
+      "id": "session-1",
+      "name": "鍛ㄤ簲鐑満灞€",
+      "players": 6,
+      "template": "鍙嬫儏浜掓崯",
+      "hostName": "闃挎旦",
+      "inviteCode": "A17K9Q",
+      "state": "杩涜涓?26 鍒嗛挓",
+      "source": "缇ゅ垎浜?,
+      "status": "姝ｅ父",
+      "city": "",
+      "district": "",
+      "hostAvatarUrl": "",
+      "joinedCount": 1,
+      "latitude": 0,
+      "location": "",
+      "longitude": 0,
+      "members": [
+        {
+          "avatarUrl": "",
+          "clearedCount": 0,
+          "debtCount": 0,
+          "drinkCount": 0,
+          "isHost": true,
+          "meta": "",
+          "name": "闃挎旦",
+          "phone": "",
+          "profileId": "",
+          "status": "宸插姞鍏?,
+          "wheelHistory": []
+        }
+      ],
+      "province": ""
+    },
+    {
+      "id": "session-2",
+      "name": "鐢熸棩涓撳睘灞€",
+      "players": 8,
+      "template": "鐢熸棩涓撳睘",
+      "hostName": "Mika",
+      "inviteCode": "N27K9Q",
+      "state": "宸茬粨鏉?,
+      "source": "濂藉弸閭€璇?,
+      "status": "姝ｅ父",
+      "city": "",
+      "district": "",
+      "hostAvatarUrl": "",
+      "joinedCount": 1,
+      "latitude": 0,
+      "location": "",
+      "longitude": 0,
+      "members": [
+        {
+          "avatarUrl": "",
+          "clearedCount": 0,
+          "debtCount": 0,
+          "drinkCount": 0,
+          "isHost": true,
+          "meta": "",
+          "name": "Mika",
+          "phone": "",
+          "profileId": "",
+          "status": "宸插姞鍏?,
+          "wheelHistory": []
+        }
+      ],
+      "province": ""
+    },
+    {
+      "id": "session-3",
+      "name": "鍗堝鏁存椿鍦?,
+      "players": 5,
+      "template": "鍗堝鐑満灞€",
+      "hostName": "鍙彲",
+      "inviteCode": "N37K9Q",
+      "state": "绛夊緟寮€灞€",
+      "source": "浜岀淮鐮佸姞鍏?,
+      "status": "寰呰瀵?,
+      "city": "",
+      "district": "",
+      "hostAvatarUrl": "",
+      "joinedCount": 1,
+      "latitude": 0,
+      "location": "",
+      "longitude": 0,
+      "members": [
+        {
+          "avatarUrl": "",
+          "clearedCount": 0,
+          "debtCount": 0,
+          "drinkCount": 0,
+          "isHost": true,
+          "meta": "",
+          "name": "鍙彲",
+          "phone": "",
+          "profileId": "",
+          "status": "宸插姞鍏?,
+          "wheelHistory": []
+        }
+      ],
+      "province": ""
+    }
+  ],
+  "reports": [
+    {
+      "id": "report-1780987864020-c778b2",
+      "sessionId": "session-1780987864011-6f437a",
+      "name": "楠屾敹灞€-1780987863660鎴樻姤",
+      "template": "缁忓吀鍠濋厭鐗?,
+      "title": "杩欏眬蹇箰灏卞畬浜嬩簡锛?,
+      "scene": "甯歌灞€",
+      "highlight1": "楠屾敹灞€瀹屾垚鍒涘缓骞舵垚鍔熷姞鍏ャ€?,
+      "highlight2": "楠屾敹灞€宸茬敓鎴愮湡瀹炲悗绔垬鎶ャ€?,
+      "highlight3": "鍙户缁垎浜垬鎶ユ垨鐩存帴鍐嶅紑涓€灞€",
+      "viewCount": 2,
+      "shareCount": 1,
+      "replayCount": 0,
+      "createdAt": "2026-06-09T06:51:04.020Z",
+      "playerCount": 2,
+      "ranks": [
+        {
+          "title": "娆犻厭澶х帇",
+          "name": "楠屾敹涓荤悊浜?660",
+          "avatarUrl": "",
+          "value": "娆犱簡 1 鏉?
+        },
+        {
+          "title": "骞叉澂鐜?,
+          "name": "楠屾敹鎴愬憳3660",
+          "avatarUrl": "",
+          "value": "宸插枬 1 鏉?
+        }
+      ],
+      "events": [
+        {
+          "text": "楠屾敹灞€瀹屾垚鍒涘缓骞舵垚鍔熷姞鍏ャ€?
+        },
+        {
+          "text": "楠屾敹灞€宸茬敓鎴愮湡瀹炲悗绔垬鎶ャ€?
+        }
+      ],
+      "status": "姝ｅ父",
+      "shareRate": "50%",
+      "replayRate": "0%"
+    },
+    {
+      "id": "report-1780987714742-b1fa9b",
+      "sessionId": "session-1780987714732-9e1c9f",
+      "name": "楠屾敹灞€-1780987714380鎴樻姤",
+      "template": "缁忓吀鍠濋厭鐗?,
+      "title": "杩欏眬蹇箰灏卞畬浜嬩簡锛?,
+      "scene": "甯歌灞€",
+      "highlight1": "楠屾敹灞€瀹屾垚鍒涘缓骞舵垚鍔熷姞鍏ャ€?,
+      "highlight2": "楠屾敹灞€宸茬敓鎴愮湡瀹炲悗绔垬鎶ャ€?,
+      "highlight3": "鍙户缁垎浜垬鎶ユ垨鐩存帴鍐嶅紑涓€灞€",
+      "viewCount": 2,
+      "shareCount": 1,
+      "replayCount": 0,
+      "createdAt": "2026-06-09T06:48:34.742Z",
+      "playerCount": 2,
+      "ranks": [
+        {
+          "title": "娆犻厭澶х帇",
+          "name": "楠屾敹涓荤悊浜?380",
+          "avatarUrl": "",
+          "value": "娆犱簡 1 鏉?
+        },
+        {
+          "title": "骞叉澂鐜?,
+          "name": "楠屾敹鎴愬憳4380",
+          "avatarUrl": "",
+          "value": "宸插枬 1 鏉?
+        }
+      ],
+      "events": [
+        {
+          "text": "楠屾敹灞€瀹屾垚鍒涘缓骞舵垚鍔熷姞鍏ャ€?
+        },
+        {
+          "text": "楠屾敹灞€宸茬敓鎴愮湡瀹炲悗绔垬鎶ャ€?
+        }
+      ],
+      "status": "姝ｅ父",
+      "shareRate": "50%",
+      "replayRate": "0%"
+    },
+    {
+      "id": "report-1780911427653-e030fb",
+      "name": "??????鎴樻姤",
+      "template": "?????",
+      "title": "???????",
+      "scene": "甯歌灞€",
+      "highlight1": "???? ????????",
+      "highlight2": "? 2 ???????",
+      "highlight3": "??????????????",
+      "shareRate": "44%",
+      "replayRate": "16%",
+      "status": "姝ｅ父",
+      "viewCount": 1000,
+      "shareCount": 440,
+      "replayCount": 160
+    },
+    {
+      "id": "report-1",
+      "name": "鍛ㄤ簲鐑満灞€鎴樻姤",
+      "template": "鍙嬫儏浜掓崯",
+      "title": "杩欏眬涓€寮€鍙ｅ氨鍋滀笉涓嬫潵",
+      "scene": "甯歌灞€",
+      "highlight1": "闃挎旦 杩炵画琚偣鍚嶏紝鐩存帴鍧愬疄娆犻厭澶х帇",
+      "highlight2": "灏忕唺 璺戣皟鐗堛€婂鍕囪€呫€嬫垚浜嗘湰灞€鍚嶅満闈?,
+      "highlight3": "鍏ㄥ満鍦ㄦ渶鍚庝竴杞复鏃跺姞璧涳紝绗戠偣鎷夋弧",
+      "shareRate": "46.8%",
+      "replayRate": "18.2%",
+      "status": "姝ｅ父",
+      "viewCount": 1000,
+      "shareCount": 468,
+      "replayCount": 182
+    },
+    {
+      "id": "report-2",
+      "name": "鐢熸棩涓撳睘灞€鎴樻姤",
+      "template": "鐢熸棩涓撳睘",
+      "title": "杩欏眬蹇箰灏卞畬浜嬩簡锛?,
+      "scene": "鐢熸棩灞€",
+      "highlight1": "瀵挎槦寮€灞€琚叏鍛樺洿鏀伙紝姘旀皼鐩存帴璧烽",
+      "highlight2": "Mika 鐨勪复鍦哄姞棰樻妸鍏ㄦ甯﹁繘鐖嗙瑧鑺傚",
+      "highlight3": "鎴樻姤杞彂鍒?3 涓兢鍚庣户缁甫鏉ュ洖娴?,
+      "shareRate": "52.1%",
+      "replayRate": "22.7%",
+      "status": "鐖嗗彂",
+      "viewCount": 1000,
+      "shareCount": 521,
+      "replayCount": 227
+    },
+    {
+      "id": "report-3",
+      "name": "鍗堝鏁存椿灞€鎴樻姤",
+      "template": "鍗堝鐑満灞€",
+      "title": "澶滃満杩欐尝鏁存椿鍊煎洖绁ㄤ环",
+      "scene": "澶滃満",
+      "highlight1": "鍙彲 涓诲姩鍔犺禌娴疯崏鑸烇紝鐜板満褰诲簳鏀惧紑",
+      "highlight2": "闃夸箰 鐨勫彛澶寸琚寲鍑烘潵锛屽叏鍦烘帴榫?,
+      "highlight3": "鏈€鍚庝竴杞洖鐪嬫垬鎶ユ椂锛屽張鎷夊洖涓€灞€",
+      "shareRate": "37.6%",
+      "replayRate": "15.1%",
+      "status": "姝ｅ父",
+      "viewCount": 1000,
+      "shareCount": 376,
+      "replayCount": 151
+    }
+  ],
+  "membershipPlans": [
+    {
+      "id": "member-1",
+      "name": "闂韩鏈堝崱",
+      "price": "楼18",
+      "duration": "30 澶?,
+      "conversionRate": "4.2%",
+      "renewRate": "38.1%",
+      "status": "涓婄嚎涓?,
+      "exposureCount": 1000,
+      "purchaseCount": 42,
+      "renewalCount": 16
+    },
+    {
+      "id": "member-2",
+      "name": "闂韩瀛ｅ崱",
+      "price": "楼48",
+      "duration": "90 澶?,
+      "conversionRate": "2.6%",
+      "renewRate": "46.2%",
+      "status": "涓婄嚎涓?,
+      "exposureCount": 1000,
+      "purchaseCount": 26,
+      "renewalCount": 12
+    },
+    {
+      "id": "member-3",
+      "name": "闂韩骞村崱",
+      "price": "楼158",
+      "duration": "365 澶?,
+      "conversionRate": "0.8%",
+      "renewRate": "62.5%",
+      "status": "涓婄嚎涓?,
+      "exposureCount": 1000,
+      "purchaseCount": 8,
+      "renewalCount": 5
+    }
+  ],
+  "membershipBenefits": [
+    {
+      "id": "benefit-1",
+      "name": "妯℃澘鏃犻檺鐪?,
+      "scope": "楂樼骇妯℃澘椤?,
+      "status": "鍚敤",
+      "note": "浼氬憳涓撲韩妯℃澘鍏ㄩ噺鍙"
+    },
+    {
+      "id": "benefit-2",
+      "name": "鎴樻姤瀵煎嚭鍏嶅箍鍛?,
+      "scope": "鍒嗕韩鎴樻姤椤?,
+      "status": "鍚敤",
+      "note": "璺宠繃婵€鍔辫棰?
+    },
+    {
+      "id": "benefit-3",
+      "name": "浼氬憳涓撳睘娴锋姤",
+      "scope": "娴锋姤妯℃澘",
+      "status": "鍚敤",
+      "note": "鍝佺墝瑙掓爣涓庨珮绾ц儗鏅?
+    }
+  ],
+  "adSlots": [
+    {
+      "id": "ad-1",
+      "name": "妯℃澘瑙ｉ攣瑙嗛",
+      "page": "楂樼骇妯℃澘",
+      "adType": "婵€鍔辫棰?,
+      "completionRate": "71.8%",
+      "revenue": "楼4,820",
+      "status": "鍚敤",
+      "impressions": 1000,
+      "completions": 718,
+      "revenueValue": 4820
+    },
+    {
+      "id": "ad-2",
+      "name": "鎴樻姤瀵煎嚭瑙嗛",
+      "page": "鍒嗕韩鎴樻姤",
+      "adType": "婵€鍔辫棰?,
+      "completionRate": "74.2%",
+      "revenue": "楼3,912",
+      "status": "鍚敤",
+      "impressions": 1000,
+      "completions": 742,
+      "revenueValue": 3912
+    },
+    {
+      "id": "ad-3",
+      "name": "宸ュ叿璇︽儏 Banner",
+      "page": "宸ュ叿璇︽儏",
+      "adType": "Banner",
+      "completionRate": "3.8%",
+      "revenue": "楼1,106",
+      "status": "鍚敤",
+      "impressions": 1000,
+      "completions": 38,
+      "revenueValue": 1106
+    }
+  ],
+  "merchants": [
+    {
+      "id": "merchant-1",
+      "name": "浠ｉ┚浼樻儬鍒?,
+      "category": "浠ｉ┚",
+      "inventory": "2400 / 7 澶?,
+      "claimCount": "5202",
+      "verifyRate": "21.9%",
+      "status": "涓婄嚎涓?,
+      "verifiedCount": 1139
+    },
+    {
+      "id": "merchant-2",
+      "name": "澶滃婊″噺鍒?,
+      "category": "澶滃",
+      "inventory": "1800 / 5 澶?,
+      "claimCount": "4116",
+      "verifyRate": "17.4%",
+      "status": "涓婄嚎涓?,
+      "verifiedCount": 716
+    },
+    {
+      "id": "merchant-3",
+      "name": "KTV 鎷煎眬鍒?,
+      "category": "濞变箰",
+      "inventory": "920 / 14 澶?,
+      "claimCount": "1486",
+      "verifyRate": "12.8%",
+      "status": "鐏板害",
+      "verifiedCount": 190
+    }
+  ],
+  "campaigns": [
+    {
+      "id": "campaign-1",
+      "name": "閭€璇?3 浣嶆柊鏈嬪弸瑙ｉ攣妯℃澘",
+      "reward": "妯℃澘鍖?/ 7 澶?,
+      "participants": "4612",
+      "returnRate": "18.4%",
+      "status": "杩涜涓?,
+      "returnCount": 849
+    },
+    {
+      "id": "campaign-2",
+      "name": "鐢熸棩瀛ｄ笓灞炲眬瑁傚彉",
+      "reward": "娴锋姤 + 鍒稿寘 / 10 澶?,
+      "participants": "3286",
+      "returnRate": "21.7%",
+      "status": "杩涜涓?,
+      "returnCount": 713
+    },
+    {
+      "id": "campaign-3",
+      "name": "鍛ㄦ湯澶滃満鍐插埡",
+      "reward": "绉垎 + 浠ｉ┚鍒?/ 3 澶?,
+      "participants": "1924",
+      "returnRate": "16.3%",
+      "status": "鐏板害",
+      "returnCount": 314
+    }
+  ],
+  "baseConfigs": [
+    {
+      "id": "cfg-1",
+      "key": "REMOTE_API_BASE",
+      "value": "https://pomer.cn/api/v1",
+      "scope": "鐢熶骇 / 鍏ㄥ眬",
+      "updatedAt": "浠婂ぉ 09:30",
+      "status": "宸茬敓鏁?
+    },
+    {
+      "id": "cfg-2",
+      "key": "SHARE_DEFAULT_COPY",
+      "value": "娆犻厭浜掓€?路 鏁存椿涓嶆柇",
+      "scope": "鐢熶骇 / 鍒嗕韩",
+      "updatedAt": "鏄ㄥぉ 18:10",
+      "status": "宸茬敓鏁?
+    },
+    {
+      "id": "cfg-3",
+      "key": "HOME_BIRTHDAY_BANNER",
+      "value": "鐢熸棩瀛ｇ儹鍦哄懆",
+      "scope": "鐏板害 / 棣栭〉",
+      "updatedAt": "寰?20:00",
+      "status": "寰呭彂甯?
+    }
+  ],
+  "sensitiveWords": [
+    {
+      "id": "word-1",
+      "word": "鏈垚骞翠篃鑳界帺",
+      "level": "楂?,
+      "scene": "娲诲姩鏂囨",
+      "status": "鍚敤"
+    },
+    {
+      "id": "word-2",
+      "word": "鍠濆埌绔欎笉绋?,
+      "level": "楂?,
+      "scene": "妯℃澘鏂囨",
+      "status": "鍚敤"
+    },
+    {
+      "id": "word-3",
+      "word": "杩炲枬涓夋澂",
+      "level": "涓?,
+      "scene": "棰樺簱",
+      "status": "鍚敤"
+    }
+  ],
+  "auditQueue": [
+    {
+      "id": "audit-1",
+      "target": "鈥滆繛鍠濅笁鏉啀鑷媿鍙戠兢鈥?,
+      "source": "棰樺簱",
+      "reason": "杩囧害楗厭瀵煎悜",
+      "submittedAt": "浠婂ぉ 11:26",
+      "status": "寰呭鏍?
+    },
+    {
+      "id": "audit-2",
+      "target": "鈥滃枬鍒扮珯涓嶇ǔ鎵嶇畻杈撯€?,
+      "source": "妯℃澘鏂囨",
+      "reason": "杩濊楗厭寮曞",
+      "submittedAt": "浠婂ぉ 09:14",
+      "status": "寰呭鏍?
+    },
+    {
+      "id": "audit-3",
+      "target": "鏄电О鈥滈厭鐤瓙xxx鈥?,
+      "source": "鐢ㄦ埛鏄电О",
+      "reason": "璐熼潰寮曞",
+      "submittedAt": "浠婂ぉ 08:22",
+      "status": "宸叉嫤鎴?
+    }
+  ]
+}

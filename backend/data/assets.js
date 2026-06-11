@@ -1,4 +1,4 @@
-const crypto = require('crypto')
+﻿const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const sharp = require('sharp')
@@ -19,12 +19,12 @@ const MIME_EXTENSION_MAP = {
 }
 
 const BUILTIN_ASSETS = [
-  { id: 'builtin-home-hero', name: '首页主图', category: 'home', url: '/static/party-hero.png', source: 'builtin' },
-  { id: 'builtin-home-banner', name: '积分横幅', category: 'points', url: '/static/points-gift.png', source: 'builtin' },
-  { id: 'builtin-template-party', name: '模板封面 A', category: 'templates', url: '/static/toolbox-hero.png', source: 'builtin' },
-  { id: 'builtin-template-report', name: '模板封面 B', category: 'templates', url: '/static/report-poster.png', source: 'builtin' },
-  { id: 'builtin-tool-hero', name: '工具封面', category: 'tools', url: '/static/image-process-hero.png', source: 'builtin' },
-  { id: 'builtin-avatar-host', name: '主持人头像', category: 'avatars', url: '/static/avatar-host.png', source: 'builtin' },
+  { id: 'builtin-home-hero', name: '首页主图', category: 'home', url: '', source: 'builtin' },
+  { id: 'builtin-home-banner', name: '积分横幅', category: 'points', url: '', source: 'builtin' },
+  { id: 'builtin-template-party', name: '模板封面 A', category: 'templates', url: '', source: 'builtin' },
+  { id: 'builtin-template-report', name: '模板封面 B', category: 'templates', url: '', source: 'builtin' },
+  { id: 'builtin-tool-hero', name: '工具封面', category: 'tools', url: '', source: 'builtin' },
+  { id: 'builtin-avatar-host', name: '主持人头像', category: 'avatars', url: '', source: 'builtin' },
 ]
 
 const ensureUploadRoot = () => {
@@ -160,3 +160,4 @@ module.exports = {
   saveAdminImage,
   uploadRoot,
 }
+

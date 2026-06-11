@@ -1,4 +1,4 @@
-<navigation-bar
+﻿<navigation-bar
   title="积分中心"
   back="{{true}}"
   color="#24160f"
@@ -12,6 +12,7 @@
       <text class="points-value">{{balance}}</text>
       <text class="points-subtitle">可用积分</text>
       <image
+        wx:if="{{bannerImageUrl}}"
         class="points-image"
         src="{{bannerImageUrl}}"
         mode="aspectFill"
@@ -74,3 +75,4 @@
     </view>
   </scroll-view>
 </view>
+

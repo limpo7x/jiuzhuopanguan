@@ -286,3 +286,39 @@ button.share-item::after {
 .share-icon-more {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='5' cy='12' r='2' fill='%2342b883'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%2342b883'/%3E%3Ccircle cx='19' cy='12' r='2' fill='%2342b883'/%3E%3C/svg%3E");
 }
+
+/* 2026-06 global readability refresh */
+.share-page {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 205, 121, 0.28), transparent 28%),
+    linear-gradient(180deg, #fffaf1 0%, #fff4e8 58%, #fff8ee 100%);
+}
+.share-scroll { padding: 18px 18px 28px; }
+.share-chip-row { gap: 10px; }
+.share-chip { min-height: 38px; padding: 0 16px; font-size: 14px; }
+.share-poster-card { margin-top: 16px; border-radius: 26px; box-shadow: 0 18px 40px rgba(255, 96, 66, 0.18); }
+.share-poster-copy { padding: 22px; }
+.share-poster-title { font-size: 31px; }
+.share-poster-subtitle,
+.share-poster-session { margin-top: 9px; font-size: 15px; line-height: 1.45; }
+.share-poster-row { margin-top: 18px; }
+.share-avatar { width: 44px; height: 44px; }
+.share-poster-count { font-size: 15px; }
+.share-code-box { min-height: 90px; margin-top: 18px; border-radius: 18px; font-size: 38px; }
+.share-status-list { gap: 12px; margin-top: 18px; }
+.share-status-item { padding: 14px; border-radius: 18px; }
+.share-status-name { font-size: 16px; }
+.share-status-tag { min-height: 30px; font-size: 13px; }
+.share-section-head { margin: 24px 0 12px; }
+.share-section-title { font-size: 21px; }
+.share-grid { gap: 12px; }
+.share-item { min-height: 86px; border-radius: 18px; font-size: 13px; background: rgba(255,255,255,0.86); }
+.share-item-icon { width: 30px; height: 30px; }
+.share-primary { min-height: 54px; margin-top: 18px; font-size: 17px; }
+
+/* 2026-06 image placeholder policy: no default bitmap fallback */
+.share-avatar,
+.share-poster-card {
+  background: linear-gradient(135deg, #e8e2da, #d8d0c6);
+}
+.share-poster-card { color: #24160f; }

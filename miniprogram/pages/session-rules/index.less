@@ -231,3 +231,118 @@ page {
 .rules-icon-user {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M9 4C10.7 4 12 5.3 12 7C12 8.7 10.7 10 9 10C7.3 10 6 8.7 6 7C6 5.3 7.3 4 9 4ZM4 16C4.5 13.4 6.7 12 9 12C11.3 12 13.5 13.4 14 16H4ZM14.5 7V5H16.5V7H18.5V9H16.5V11H14.5V9H12.5V7H14.5Z' fill='%23ffffff'/%3E%3C/svg%3E");
 }
+
+/* 2026-06 flow CTA and rules readability refresh */
+.rules-page {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 205, 121, 0.28), transparent 28%),
+    linear-gradient(180deg, #fffaf1 0%, #fff4e8 58%, #fff8ee 100%);
+}
+
+.rules-scroll {
+  padding: 18px 18px calc(112px + env(safe-area-inset-bottom));
+}
+
+.rules-progress {
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.rules-progress-step {
+  gap: 8px;
+  font-size: 13px;
+}
+
+.rules-progress-dot {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.rules-card {
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 14px 32px rgba(128, 78, 36, 0.09);
+}
+
+.rules-form-card {
+  gap: 22px;
+  padding: 22px 18px;
+}
+
+.rules-block-title {
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.rules-field {
+  gap: 12px;
+}
+
+.rules-label,
+.rules-item-title {
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.rules-item-meta {
+  margin-top: 7px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.rules-chip-row {
+  gap: 10px;
+}
+
+.rules-chip {
+  min-height: 42px;
+  padding: 0 16px;
+  font-size: 15px;
+}
+
+.rules-row-between {
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.rules-stepper {
+  grid-template-columns: 52px 84px 52px;
+  height: 48px;
+}
+
+.rules-stepper-btn {
+  font-size: 24px;
+}
+
+.rules-stepper-value {
+  font-size: 16px;
+}
+
+.rules-toggle {
+  width: 58px;
+  height: 32px;
+}
+
+.rules-toggle::after {
+  width: 26px;
+  height: 26px;
+}
+
+.rules-toggle-on::after {
+  left: 29px;
+}
+
+.rules-primary {
+  position: fixed;
+  right: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  left: 18px;
+  z-index: 30;
+  min-height: 58px;
+  margin-top: 0;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  font-size: 18px;
+  box-shadow: 0 16px 34px rgba(255, 91, 61, 0.34);
+}

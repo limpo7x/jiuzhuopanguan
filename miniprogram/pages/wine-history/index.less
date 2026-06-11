@@ -165,3 +165,36 @@ page {
   font-weight: 900;
   box-shadow: 0 9px 18px rgba(255, 91, 61, 0.24);
 }
+
+/* 2026-06 global readability refresh */
+.history-page {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 205, 121, 0.28), transparent 28%),
+    linear-gradient(180deg, #fffaf1 0%, #fff4e8 58%, #fff8ee 100%);
+}
+.history-scroll { padding: 18px 18px 28px; }
+.history-chip-row { gap: 10px; }
+.history-chip { min-height: 38px; padding: 0 16px; font-size: 14px; }
+.history-list { gap: 14px; margin-top: 18px; }
+.history-item {
+  grid-template-columns: 68px 1fr auto;
+  min-height: 96px;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.86);
+  box-shadow: 0 12px 28px rgba(128, 78, 36, 0.08);
+}
+.history-thumb { width: 68px; height: 68px; border-radius: 18px; }
+.history-title { font-size: 18px; }
+.history-meta { margin-top: 7px; font-size: 13px; line-height: 1.35; }
+.history-tag { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.history-empty { gap: 10px; margin-top: 18px; padding: 28px 20px; border-radius: 22px; }
+.history-empty-title { font-size: 20px; }
+.history-empty-meta { font-size: 15px; }
+.history-primary { min-height: 54px; margin-top: 20px; font-size: 17px; }
+
+/* 2026-06 image placeholder policy: no default bitmap fallback */
+.history-thumb {
+  background: linear-gradient(135deg, #e8e2da, #d8d0c6);
+}

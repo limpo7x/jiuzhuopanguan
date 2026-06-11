@@ -268,3 +268,88 @@ page {
 .create-icon-shield {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M10 2.5L15.5 5V9.1C15.5 12.8 13.2 15.6 10 17C6.8 15.6 4.5 12.8 4.5 9.1V5L10 2.5ZM8.9 10.9L12.8 7L11.7 5.9L8.9 8.7L7.8 7.6L6.7 8.7L8.9 10.9Z' fill='%234e8062'/%3E%3C/svg%3E");
 }
+
+/* 2026-06 global readability refresh */
+.create-page {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 205, 121, 0.28), transparent 28%),
+    linear-gradient(180deg, #fffaf1 0%, #fff4e8 58%, #fff8ee 100%);
+}
+.create-scroll { padding: 18px 18px 28px; }
+.create-progress { gap: 10px; margin-bottom: 18px; }
+.create-progress-step { gap: 8px; font-size: 13px; }
+.create-progress-dot { width: 28px; height: 28px; font-size: 13px; font-weight: 900; }
+.create-card,
+.create-template-card {
+  border-radius: 22px;
+  background: rgba(255,255,255,0.86);
+  box-shadow: 0 12px 28px rgba(128, 78, 36, 0.08);
+}
+.create-form-card { gap: 18px; padding: 18px; }
+.create-field { gap: 10px; }
+.create-label { font-size: 16px; }
+.create-input { min-height: 54px; padding: 0 16px; border-radius: 16px; font-size: 16px; }
+.create-pill-row { gap: 10px; }
+.create-pill { min-height: 38px; padding: 0 16px; font-size: 14px; }
+.create-stepper { grid-template-columns: 54px 88px 54px; height: 50px; }
+.create-stepper-btn { font-size: 24px; }
+.create-stepper-value { font-size: 17px; }
+.create-tiny,
+.create-section-link { font-size: 13px; }
+.create-section-head { margin: 26px 0 14px; }
+.create-section-title { font-size: 21px; }
+.create-template-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.create-template-card { border-radius: 22px; }
+.create-template-image { aspect-ratio: 1 / 0.76; }
+.create-template-name { padding: 12px; font-size: 16px; }
+.create-primary { min-height: 56px; margin-top: 24px; font-size: 18px; }
+.create-notice { min-height: 42px; margin-top: 14px; padding: 0 14px; font-size: 13px; }
+
+/* 2026-06 image placeholder policy: no default bitmap fallback */
+.create-template-image {
+  background: linear-gradient(135deg, #e8e2da, #d8d0c6);
+}
+
+/* 2026-06 flow CTA and compact template launch policy */
+.create-scroll {
+  padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
+
+.create-section-head {
+  margin: 18px 0 10px;
+}
+
+.create-template-grid {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+.create-template-card {
+  flex: 1;
+  min-width: 0;
+  border-radius: 999px;
+}
+
+.create-template-image {
+  display: none;
+}
+
+.create-template-name {
+  padding: 10px 8px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.create-primary {
+  position: fixed;
+  right: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  left: 18px;
+  z-index: 30;
+  min-height: 58px;
+  margin-top: 0;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  box-shadow: 0 16px 34px rgba(255, 91, 61, 0.34);
+}

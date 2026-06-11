@@ -1,18 +1,9 @@
-import { trackAnalyticsEvent } from '../../services/analytics'
-import { getManagedLiveSession, getManagedShareConfig } from '../../services/operations'
-import { staticAsset } from '../../config/assets'
-import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
+﻿import { getSessionRuntime } from '../../utils/session'
 
 interface SharePreviewItem {
   iconClass: string
   id: string
   name: string
-}
-
-interface JoinStatusPlayer {
-  avatarUrl: string
-  name: string
-  status: string
 }
 
 interface SharePreviewState {
@@ -21,405 +12,188 @@ interface SharePreviewState {
   canvasWidth: number
   inviteCode: string
   joinedCount: number
-  joinStatusPlayers: JoinStatusPlayer[]
+  joinStatusPlayers: Array<{ avatarUrl: string; name: string; status: string }>
   playerCount: number
-  previewImageUrl: string
-  previewTitle: string
-  isGeneratingPoster: boolean
-  sessionId: string
+  posterImagePath: string
   sessionName: string
-  shareCardImagePath: string
-  shareHeadline: string
   shareItems: SharePreviewItem[]
   showJoinStatus: boolean
 }
 
 interface SharePreviewMethods {
-  buildShareImage: () => Promise<string>
+  buildInvitePoster: () => Promise<string>
   drawCanvasToFile: (
     width: number,
     height: number,
     drawer: (ctx: WechatMiniprogram.CanvasContext) => void,
   ) => Promise<string>
-  ensureShareImage: () => Promise<string>
-  renderPosterIfNeeded: () => Promise<void>
+  handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
   handleSaveTap: () => Promise<void>
-  handleTabTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
-  loadSession: () => Promise<void>
+  handleShareTap: (event: WechatMiniprogram.BaseEvent) => void
+  openPage: (url: string) => void
   saveImageFile: (filePath: string) => Promise<void>
   showPreviewToast: (message: string) => void
 }
 
-const SHARE_HEADLINE = '查看谁是今晚欠酒王？'
-const CANVAS_WIDTH = 900
-const CARD_WIDTH = 820
-const MINIAPP_QR_ASSET = '../../assets/home/share-miniapp-qr.png'
-const MINIAPP_QR_ASSET_ABSOLUTE = '/assets/home/share-miniapp-qr.png'
-const MINIAPP_QR_REMOTE_ASSET = staticAsset('share-miniapp-qr.png')
-
-const getImageInfo = (src: string) =>
-  new Promise<WechatMiniprogram.GetImageInfoSuccessCallbackResult>((resolve, reject) => {
-    if (!src) {
-      reject(new Error('missing image src'))
-      return
-    }
-    wx.getImageInfo({
-      src,
-      success: resolve,
-      fail: reject,
-    })
-  })
-
-const fillRoundRect = (
-  ctx: WechatMiniprogram.CanvasContext,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-  color: string,
-) => {
-  const safeRadius = Math.min(radius, width / 2, height / 2)
-  ctx.beginPath()
-  ctx.moveTo(x + safeRadius, y)
-  ctx.arcTo(x + width, y, x + width, y + height, safeRadius)
-  ctx.arcTo(x + width, y + height, x, y + height, safeRadius)
-  ctx.arcTo(x, y + height, x, y, safeRadius)
-  ctx.arcTo(x, y, x + width, y, safeRadius)
-  ctx.closePath()
-  ctx.setFillStyle(color)
-  ctx.fill()
-}
-
-const strokeRoundRect = (
-  ctx: WechatMiniprogram.CanvasContext,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-  color: string,
-  lineWidth: number,
-) => {
-  const safeRadius = Math.min(radius, width / 2, height / 2)
-  ctx.beginPath()
-  ctx.moveTo(x + safeRadius, y)
-  ctx.arcTo(x + width, y, x + width, y + height, safeRadius)
-  ctx.arcTo(x + width, y + height, x, y + height, safeRadius)
-  ctx.arcTo(x, y + height, x, y, safeRadius)
-  ctx.arcTo(x, y, x + width, y, safeRadius)
-  ctx.closePath()
-  ctx.setStrokeStyle(color)
-  ctx.setLineWidth(lineWidth)
-  ctx.stroke()
-}
-
-const drawCenteredText = (
-  ctx: WechatMiniprogram.CanvasContext,
-  text: string,
-  x: number,
-  y: number,
-  width: number,
-  fontSize: number,
-  color: string,
-) => {
-  ctx.setFillStyle(color)
-  ctx.setFontSize(fontSize)
-  ctx.setTextAlign('center')
-  ctx.fillText(text, x + width / 2, y)
-  ctx.setTextAlign('left')
-}
-
-const drawAvatar = (
-  ctx: WechatMiniprogram.CanvasContext,
-  avatarPath: string,
-  x: number,
-  y: number,
-  size: number,
-) => {
-  if (avatarPath) {
-    ctx.save()
-    ctx.beginPath()
-    ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2)
-    ctx.clip()
-    ctx.drawImage(avatarPath, x, y, size, size)
-    ctx.restore()
-    return
-  }
-
-  ctx.setFillStyle('#ffd7c4')
-  ctx.beginPath()
-  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.setFillStyle('#ff6b4d')
-  ctx.setFontSize(Math.round(size * 0.34))
-  ctx.setTextAlign('center')
-  ctx.fillText('友', x + size / 2, y + size * 0.62)
-  ctx.setTextAlign('left')
-}
-
-const drawQrPanel = (
-  ctx: WechatMiniprogram.CanvasContext,
-  qrPath: string,
-  x: number,
-  y: number,
-  size: number,
-) => {
-  const panelWidth = size + 28
-  const panelHeight = size + 64
-  fillRoundRect(ctx, x, y, panelWidth, panelHeight, 24, '#fffaf4')
-  strokeRoundRect(ctx, x, y, panelWidth, panelHeight, 24, '#ffd0ad', 2)
-
-  if (qrPath) {
-    ctx.drawImage(qrPath, x + 14, y + 14, size, size)
-  } else {
-    fillRoundRect(ctx, x + 14, y + 14, size, size, 18, '#fff1df')
-    ctx.setStrokeStyle('#ffb88a')
-    ctx.setLineWidth(2)
-    ctx.strokeRect(x + 24, y + 24, size - 20, size - 20)
-    ctx.setFillStyle('#a14f36')
-    ctx.setFontSize(20)
-    ctx.setTextAlign('center')
-    ctx.fillText('小程序', x + 14 + size / 2, y + 14 + size / 2 + 8)
-    ctx.setTextAlign('left')
-  }
-
-  ctx.setFillStyle('#7b3926')
-  ctx.setFontSize(18)
-  ctx.setTextAlign('center')
-  ctx.fillText('扫一扫看看怎么个事', x + panelWidth / 2, y + size + 46)
-  ctx.setTextAlign('left')
-}
-
-const resolveMiniappQrPath = async () => {
-  const candidates = [MINIAPP_QR_ASSET, MINIAPP_QR_ASSET_ABSOLUTE, MINIAPP_QR_REMOTE_ASSET]
-  for (const candidate of candidates) {
-    try {
-      const image = await getImageInfo(candidate)
-      return image.path
-    } catch {
-      continue
-    }
-  }
-  return ''
-}
-
-const drawPartyBackdrop = (ctx: WechatMiniprogram.CanvasContext, width: number, height: number) => {
-  const gradient = ctx.createLinearGradient(0, 0, width, height)
-  gradient.addColorStop(0, '#53130d')
-  gradient.addColorStop(0.42, '#8f2418')
-  gradient.addColorStop(1, '#ff9152')
-  ctx.setFillStyle(gradient)
-  ctx.fillRect(0, 0, width, height)
-
-  ctx.setFillStyle('rgba(255, 219, 138, 0.14)')
-  ctx.beginPath()
-  ctx.arc(120, 150, 150, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(width - 136, 180, 186, 0, Math.PI * 2)
-  ctx.fill()
-
-  ctx.setStrokeStyle('rgba(255, 218, 146, 0.16)')
-  ctx.setLineWidth(4)
-  for (let index = 0; index < 11; index += 1) {
-    const endX = 152 + index * 62
-    ctx.beginPath()
-    ctx.moveTo(width / 2, 36)
-    ctx.lineTo(endX, 262)
-    ctx.stroke()
-  }
-
-  const confettiColors = ['#ffd76d', '#fff5d0', '#ffb56b', '#ff7057']
-  for (let index = 0; index < 30; index += 1) {
-    const color = confettiColors[index % confettiColors.length]
-    const x = 42 + (index * 67) % (width - 84)
-    const y = 56 + ((index * 101) % Math.min(height - 120, 460))
-    const w = 10 + (index % 3) * 6
-    const h = 6 + (index % 2) * 4
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.rotate(((index % 8) - 3) * 0.28)
-    ctx.setFillStyle(color)
-    ctx.fillRect(-w / 2, -h / 2, w, h)
-    ctx.restore()
-  }
-
-  const drawGlass = (centerX: number, centerY: number, scale: number, rotateDeg: number) => {
-    ctx.save()
-    ctx.translate(centerX, centerY)
-    ctx.rotate((rotateDeg * Math.PI) / 180)
-    ctx.setFillStyle('rgba(255, 249, 236, 0.22)')
-    ctx.beginPath()
-    ctx.moveTo(-22 * scale, -26 * scale)
-    ctx.lineTo(22 * scale, -26 * scale)
-    ctx.lineTo(12 * scale, 10 * scale)
-    ctx.lineTo(-12 * scale, 10 * scale)
-    ctx.closePath()
-    ctx.fill()
-    ctx.setStrokeStyle('rgba(255, 249, 236, 0.46)')
-    ctx.setLineWidth(3)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(0, 10 * scale)
-    ctx.lineTo(0, 44 * scale)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(-18 * scale, 44 * scale)
-    ctx.lineTo(18 * scale, 44 * scale)
-    ctx.stroke()
-    ctx.restore()
-  }
-
-  drawGlass(width - 142, 104, 1, -16)
-  drawGlass(width - 96, 124, 0.9, 18)
-}
-
 Page<SharePreviewState, SharePreviewMethods>({
   data: {
-    avatars: [],
-    canvasHeight: 1080,
-    canvasWidth: CANVAS_WIDTH,
-    inviteCode: '',
-    joinedCount: 0,
-    joinStatusPlayers: [],
+    avatars: [
+      '',
+      '',
+      '',
+      '',
+    ],
+    canvasHeight: 960,
+    canvasWidth: 720,
+    inviteCode: 'AB7K9Q',
+    joinedCount: 4,
+    joinStatusPlayers: [
+      { name: '阿浩', avatarUrl: '', status: '已加入' },
+      { name: '小熊', avatarUrl: '', status: '已加入' },
+      { name: 'Mika', avatarUrl: '', status: '待确认' },
+      { name: '可可', avatarUrl: '', status: '已加入' },
+      { name: '阿乐', avatarUrl: '', status: '待加入' },
+      { name: 'Nina', avatarUrl: '', status: '待加入' },
+    ],
     playerCount: 6,
-    previewImageUrl: '',
-    previewTitle: '快来加入这一局',
-    isGeneratingPoster: false,
-    sessionId: '',
+    posterImagePath: '',
     sessionName: '今晚聚会不醉不归',
-    shareCardImagePath: '',
-    shareHeadline: SHARE_HEADLINE,
-    shareItems: [],
+    shareItems: [
+      { id: 'friend', name: '分享给好友', iconClass: 'share-icon-wechat' },
+      { id: 'group', name: '分享到群', iconClass: 'share-icon-group' },
+    ],
     showJoinStatus: false,
   },
 
-  async onLoad(query) {
+  onLoad() {
     const runtime = getSessionRuntime()
-    const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
+    const playerCount = Math.max(2, runtime.playerCount || 6)
+    const selectedPlayers = runtime.selectedPlayers?.length
+      ? runtime.selectedPlayers
+      : this.data.joinStatusPlayers.map((item) => ({
+          name: item.name,
+          avatarUrl: item.avatarUrl,
+        }))
+    const joinedCount = Math.min(playerCount, Math.min(selectedPlayers.length, 4))
+    const avatars = selectedPlayers.slice(0, joinedCount).map((item) => item.avatarUrl)
+    const joinStatusPlayers = selectedPlayers.slice(0, playerCount).map((item, index) => ({
+      ...item,
+      status: index < joinedCount ? '已加入' : '待加入',
+    }))
 
     this.setData({
-      inviteCode: runtime.inviteCode || '',
-      sessionId,
+      avatars,
+      joinedCount,
+      joinStatusPlayers,
+      inviteCode: runtime.inviteCode || this.data.inviteCode,
+      playerCount,
+      sessionName: runtime.sessionName,
     })
-
-    trackAnalyticsEvent({
-      type: 'share_asset_exposure',
-      assetId: 'share-2',
-      meta: {
-        sessionId,
-        scene: 'invite-preview',
-      },
-    })
-
-    try {
-      await this.loadSession()
-    } catch (error) {
-      this.showPreviewToast(error instanceof Error ? error.message : '邀请页加载失败')
-    }
-  },
-
-  async onShow() {
-    if (!this.data.sessionId && !getSessionRuntime().sessionId) {
-      return
-    }
-
-    try {
-      await this.loadSession()
-    } catch (error) {
-      this.showPreviewToast(error instanceof Error ? error.message : '邀请页加载失败')
-    }
   },
 
   onShareAppMessage() {
-    trackAnalyticsEvent({
-      type: 'share_asset_open',
-      assetId: 'share-2',
-      meta: {
-        sessionId: this.data.sessionId,
-        channel: 'share-preview',
-      },
-    })
+    const runtime = getSessionRuntime()
+    const inviteCode = this.data.inviteCode || runtime.inviteCode || ''
+    const sessionId = runtime.sessionId || ''
+    const query = [
+      inviteCode ? `inviteCode=${encodeURIComponent(inviteCode)}` : '',
+      sessionId ? `sessionId=${encodeURIComponent(sessionId)}` : '',
+    ].filter(Boolean).join('&')
 
     return {
-      title: SHARE_HEADLINE,
-      path: `/pages/join-claim/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,
-      imageUrl: this.data.shareCardImagePath || this.data.previewImageUrl,
+      title: `${this.data.sessionName}，来加入这局`,
+      path: `/pages/join-claim/index${query ? `?${query}` : ''}`,
+      imageUrl: this.data.posterImagePath || '',
     }
   },
 
-  async loadSession() {
-    const runtime = getSessionRuntime()
-    const [liveSession, shareConfig] = await Promise.all([
-      getManagedLiveSession(this.data.sessionId || runtime.sessionId, this.data.inviteCode || runtime.inviteCode),
-      getManagedShareConfig(),
-    ])
-
-    setSessionRuntime({
-      inviteCode: liveSession.inviteCode,
-      sessionId: liveSession.id,
-      sessionName: liveSession.sessionName,
-      templateName: liveSession.templateName,
-    })
-
-    await new Promise<void>((resolve) => {
-      this.setData(
-        {
-          avatars: liveSession.joinedPlayers.map((item) => item.avatarUrl).slice(0, liveSession.playerCount),
-          inviteCode: liveSession.inviteCode,
-          joinedCount: liveSession.joinedCount,
-          joinStatusPlayers: liveSession.joinStatusPlayers,
-          playerCount: liveSession.playerCount,
-          previewImageUrl: shareConfig.preview.imageUrl,
-          previewTitle: shareConfig.preview.title,
-          sessionId: liveSession.id,
-          sessionName: liveSession.sessionName,
-          shareCardImagePath: '',
-          shareItems: shareConfig.shareItems
-            .filter((item) => item.id && item.id !== 'save')
-            .map((item) => ({
-              id: item.id,
-              name: item.name,
-              iconClass: item.iconClass,
-            })),
-        },
-        () => resolve(),
-      )
-    })
-
-    this.renderPosterIfNeeded()
-  },
-
-  async handleTabTap(event) {
+  handleTabTap(event) {
     const { tab } = event.currentTarget.dataset as { tab: 'preview' | 'status' }
 
-    await new Promise<void>((resolve) => {
-      this.setData(
-        {
-          showJoinStatus: tab === 'status',
-          shareCardImagePath: '',
-        },
-        () => resolve(),
-      )
+    this.setData({
+      showJoinStatus: tab === 'status',
     })
-
-    this.renderPosterIfNeeded()
   },
 
   async handleSaveTap() {
-    if (this.data.isGeneratingPoster) {
-      this.showPreviewToast('分享图生成中，请稍后再试')
-      return
-    }
-
     try {
-      const tempFilePath = await this.ensureShareImage()
-      await this.saveImageFile(tempFilePath)
-      this.showPreviewToast('分享图已保存到相册')
+      wx.showLoading({ title: '生成海报', mask: true })
+      const filePath = this.data.posterImagePath || await this.buildInvitePoster()
+      this.setData({ posterImagePath: filePath })
+      await this.saveImageFile(filePath)
+      this.showPreviewToast('邀请海报已保存')
     } catch {
       this.showPreviewToast('保存失败，请检查相册权限')
+    } finally {
+      wx.hideLoading()
     }
+  },
+
+  handleShareTap(event) {
+    const { id } = event.currentTarget.dataset as { id: string }
+    if (id === 'save') {
+      void this.handleSaveTap()
+    }
+  },
+
+  drawCanvasToFile(width, height, drawer) {
+    return new Promise((resolve, reject) => {
+      this.setData({ canvasWidth: width, canvasHeight: height }, () => {
+        const ctx = wx.createCanvasContext('sharePreviewCanvas')
+        drawer(ctx)
+        ctx.draw(false, () => {
+          wx.canvasToTempFilePath({
+            canvasId: 'sharePreviewCanvas',
+            width,
+            height,
+            destWidth: width,
+            destHeight: height,
+            success: (result) => resolve(result.tempFilePath),
+            fail: reject,
+          })
+        })
+      })
+    })
+  },
+
+  buildInvitePoster() {
+    const width = 720
+    const height = 960
+    return this.drawCanvasToFile(width, height, (ctx) => {
+      ctx.setFillStyle('#fff8ee')
+      ctx.fillRect(0, 0, width, height)
+      const gradient = ctx.createLinearGradient(0, 0, width, height)
+      gradient.addColorStop(0, '#ff6b4d')
+      gradient.addColorStop(1, '#42b883')
+      ctx.setFillStyle(gradient)
+      ctx.fillRect(0, 0, width, 300)
+
+      ctx.setFillStyle('#ffffff')
+      ctx.setFontSize(48)
+      ctx.fillText('酒桌判官邀局', 64, 110)
+      ctx.setFontSize(30)
+      ctx.fillText(this.data.sessionName || '今晚聚会不醉不归', 64, 168)
+
+      ctx.setFillStyle('#ffffff')
+      ctx.fillRect(54, 250, 612, 560)
+      ctx.setFillStyle('#24160f')
+      ctx.setFontSize(36)
+      ctx.fillText('加入口令', 94, 340)
+      ctx.setFontSize(70)
+      ctx.fillText(this.data.inviteCode || 'AB7K9Q', 94, 455)
+      ctx.setFontSize(28)
+      ctx.fillText(`${this.data.joinedCount}/${this.data.playerCount} 已加入`, 94, 530)
+      ctx.setFontSize(24)
+      ctx.setFillStyle('#665447')
+      ctx.fillText('打开小程序后输入口令加入本局', 94, 600)
+      ctx.fillText('请理性饮酒，量力而行。', 94, 650)
+
+      ctx.setFillStyle('#ff6b4d')
+      ctx.fillRect(94, 704, 532, 72)
+      ctx.setFillStyle('#ffffff')
+      ctx.setFontSize(28)
+      ctx.fillText('保存后即可分享给好友', 176, 750)
+    })
   },
 
   saveImageFile(filePath) {
@@ -432,204 +206,22 @@ Page<SharePreviewState, SharePreviewMethods>({
     })
   },
 
-  drawCanvasToFile(width, height, drawer) {
-    return new Promise((resolve, reject) => {
-      this.setData(
-        {
-          canvasWidth: width,
-          canvasHeight: height,
-        },
-        () => {
-          const ctx = wx.createCanvasContext('sharePreviewCanvas')
-          drawer(ctx)
-          ctx.draw(false, () => {
-            wx.canvasToTempFilePath({
-              canvasId: 'sharePreviewCanvas',
-              width,
-              height,
-              destWidth: width,
-              destHeight: height,
-              success: (result) => resolve(result.tempFilePath),
-              fail: reject,
-            })
-          })
-        },
-      )
-    })
-  },
-
-  async ensureShareImage() {
-    if (this.data.shareCardImagePath) {
-      return this.data.shareCardImagePath
-    }
-
-    const filePath = await this.buildShareImage()
-    this.setData({ shareCardImagePath: filePath })
-    return filePath
-  },
-
-  async renderPosterIfNeeded() {
-    if (this.data.shareCardImagePath || this.data.isGeneratingPoster) {
-      return
-    }
-
-    this.setData({ isGeneratingPoster: true })
-
-    try {
-      await this.ensureShareImage()
-    } catch {
-      this.showPreviewToast('分享图生成失败，请重试')
-    } finally {
-      this.setData({ isGeneratingPoster: false })
-    }
-  },
-
-  async buildShareImage() {
-    const qrPath = await resolveMiniappQrPath()
-
-    if (this.data.showJoinStatus) {
-      const itemHeight = 104
-      const listHeight = Math.max(this.data.joinStatusPlayers.length, 1) * itemHeight
-      const canvasHeight = 360 + listHeight + 260
-      const avatarPaths = await Promise.all(
-        this.data.joinStatusPlayers.map(async (item) => {
-          try {
-            const image = await getImageInfo(item.avatarUrl)
-            return image.path
-          } catch {
-            return ''
-          }
-        }),
-      )
-
-      return this.drawCanvasToFile(CANVAS_WIDTH, canvasHeight, (ctx) => {
-        drawPartyBackdrop(ctx, CANVAS_WIDTH, canvasHeight)
-
-        const cardGradient = ctx.createLinearGradient(40, 40, 40, canvasHeight - 40)
-        cardGradient.addColorStop(0, '#ff6b48')
-        cardGradient.addColorStop(0.6, '#db4428')
-        cardGradient.addColorStop(1, '#8a241a')
-        fillRoundRect(ctx, 40, 40, CARD_WIDTH, canvasHeight - 80, 30, cardGradient)
-
-        const headerGradient = ctx.createLinearGradient(40, 40, 40, 250)
-        headerGradient.addColorStop(0, 'rgba(255,255,255,0.24)')
-        headerGradient.addColorStop(1, 'rgba(255,255,255,0.05)')
-        fillRoundRect(ctx, 40, 40, CARD_WIDTH, 196, 30, headerGradient)
-
-        ctx.setFillStyle('rgba(255, 238, 189, 0.16)')
-        ctx.beginPath()
-        ctx.arc(132, 108, 88, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.beginPath()
-        ctx.arc(740, 116, 76, 0, Math.PI * 2)
-        ctx.fill()
-
-        ctx.setFillStyle('#ffffff')
-        ctx.setFontSize(46)
-        ctx.fillText(this.data.shareHeadline, 90, 120)
-        ctx.setFontSize(24)
-        ctx.fillText(`邀请口令 ${this.data.inviteCode}`, 90, 168)
-        ctx.fillText(`当前 ${this.data.joinedCount}/${this.data.playerCount} 人已加入`, 90, 206)
-
-        let y = 270
-        this.data.joinStatusPlayers.forEach((player, index) => {
-          fillRoundRect(ctx, 90, y, 720, 84, 20, 'rgba(255,255,255,0.14)')
-          drawAvatar(ctx, avatarPaths[index] || '', 116, y + 16, 52)
-          ctx.setFillStyle('#ffffff')
-          ctx.setFontSize(28)
-          ctx.fillText(player.name || '未命名玩家', 186, y + 48)
-
-          fillRoundRect(ctx, 620, y + 21, 150, 40, 20, 'rgba(255,255,255,0.22)')
-          drawCenteredText(ctx, player.status || '待加入', 620, y + 49, 150, 22, '#ffffff')
-          y += itemHeight
-        })
-
-        drawQrPanel(ctx, qrPath, 652, canvasHeight - 226, 120)
-      })
-    }
-
-    const previewAvatarPaths = await Promise.all(
-      this.data.avatars.slice(0, 6).map(async (avatarUrl) => {
-        try {
-          const image = await getImageInfo(avatarUrl)
-          return image.path
-        } catch {
-          return ''
-        }
-      }),
-    )
-
-    return this.drawCanvasToFile(CANVAS_WIDTH, 1180, (ctx) => {
-      drawPartyBackdrop(ctx, CANVAS_WIDTH, 1180)
-
-      const cardGradient = ctx.createLinearGradient(40, 40, 40, 1140)
-      cardGradient.addColorStop(0, '#ff6b48')
-      cardGradient.addColorStop(0.58, '#d94328')
-      cardGradient.addColorStop(1, '#8a241a')
-      fillRoundRect(ctx, 40, 40, CARD_WIDTH, 1100, 30, cardGradient)
-
-      const headerGradient = ctx.createLinearGradient(40, 40, 40, 364)
-      headerGradient.addColorStop(0, 'rgba(255,255,255,0.26)')
-      headerGradient.addColorStop(1, 'rgba(255,255,255,0.05)')
-      fillRoundRect(ctx, 40, 40, CARD_WIDTH, 320, 30, headerGradient)
-
-      ctx.setFillStyle('rgba(255, 240, 205, 0.18)')
-      ctx.beginPath()
-      ctx.arc(130, 120, 94, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.beginPath()
-      ctx.arc(760, 120, 84, 0, Math.PI * 2)
-      ctx.fill()
-
-      ctx.setFillStyle('#ffffff')
-      ctx.setFontSize(50)
-      ctx.fillText(this.data.shareHeadline, 90, 132)
-      ctx.setFontSize(28)
-      ctx.fillText(this.data.previewTitle || '快来加入这一局', 90, 188)
-      ctx.setFontSize(24)
-      ctx.fillText(this.data.sessionName || '今晚聚会不醉不归', 90, 228)
-
-      ctx.setFontSize(24)
-      ctx.fillText(`${this.data.joinedCount}/${this.data.playerCount} 人已加入`, 650, 316)
-
-      const avatarSize = 72
-      const overlap = 18
-      const startX = 90
-      const avatarY = 286
-      previewAvatarPaths.forEach((avatarPath, index) => {
-        drawAvatar(ctx, avatarPath, startX + index * (avatarSize - overlap), avatarY, avatarSize)
-      })
-
-      fillRoundRect(ctx, 90, 430, 720, 230, 26, '#fff7f0')
-      strokeRoundRect(ctx, 90, 430, 720, 230, 26, '#ffc08d', 3)
-      ctx.setFillStyle('#7b3926')
-      ctx.setFontSize(24)
-      ctx.fillText('加入口令', 120, 490)
-      ctx.setFillStyle('#2b1b12')
-      ctx.setFontSize(76)
-      ctx.fillText(this.data.inviteCode || '----', 120, 590)
-      ctx.setFillStyle('#8f7f6d')
-      ctx.setFontSize(22)
-      ctx.fillText('进入小程序后输入口令即可加入本局', 120, 632)
-
-      fillRoundRect(ctx, 90, 716, 720, 180, 26, '#fff2e6')
-      ctx.setFillStyle('#7b3926')
-      ctx.setFontSize(30)
-      ctx.fillText('现在点开，一眼看出今晚谁最该罚酒', 120, 788)
-      ctx.setFillStyle('#8f7f6d')
-      ctx.setFontSize(22)
-      ctx.fillText('该分享图仅保留展示数据，不包含页面按钮', 120, 836)
-
-      drawQrPanel(ctx, qrPath, 648, 946, 128)
-    })
-  },
-
   showPreviewToast(message) {
     wx.showToast({
       title: message,
       icon: 'none',
     })
   },
+
+  openPage(url) {
+    wx.navigateTo({
+      url,
+      fail: () => {
+        wx.redirectTo({ url })
+      },
+    })
+  },
 })
 
 export {}
+

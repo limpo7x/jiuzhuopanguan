@@ -363,3 +363,262 @@ page {
   height: 12px;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M10 2.5L15.5 5V9.1C15.5 12.8 13.2 15.6 10 17C6.8 15.6 4.5 12.8 4.5 9.1V5L10 2.5ZM8.9 10.9L12.8 7L11.7 5.9L8.9 8.7L7.8 7.6L6.7 8.7L8.9 10.9Z' fill='%234e8062'/%3E%3C/svg%3E") center/contain no-repeat;
 }
+
+/* 2026-06 global readability refresh */
+.live-page {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 205, 121, 0.28), transparent 28%),
+    linear-gradient(180deg, #fffaf1 0%, #fff4e8 58%, #fff8ee 100%);
+}
+.live-scroll { padding: 18px 18px 28px; }
+.live-top-row {
+  padding: 18px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #fff8e9, #ffe7cf);
+  box-shadow: 0 14px 32px rgba(130, 75, 28, 0.1);
+}
+.live-round-title { font-size: 22px; }
+.live-tag { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.live-refresh-btn { min-height: 42px; padding: 0 14px; font-size: 14px; }
+.live-avatar-row { gap: 13px; margin: 20px 0 24px; }
+.live-avatar,
+.live-record-avatar { width: 46px; height: 46px; border: 2px solid #fff; box-shadow: 0 8px 18px rgba(123, 73, 33, 0.12); }
+.live-avatar-name { max-width: 58px; margin-top: 7px; font-size: 12px; }
+.live-card,
+.live-record-item {
+  border-radius: 22px;
+  background: rgba(255,255,255,0.86);
+  box-shadow: 0 12px 28px rgba(128, 78, 36, 0.08);
+}
+.live-form-card { gap: 16px; padding: 18px; }
+.live-spacing-top { margin-top: 18px; }
+.live-block-title { font-size: 20px; }
+.live-record-item { gap: 14px; padding: 16px; }
+.live-record-title { font-size: 17px; }
+.live-record-meta,
+.live-event-text { font-size: 13px; line-height: 1.45; }
+.live-record-clear { min-height: 30px; padding: 0 10px; font-size: 12px; }
+.live-record-stat-card { gap: 10px; padding: 14px; border-radius: 18px; }
+.live-record-stat-label { font-size: 14px; }
+.live-adjust-btn { width: 38px; height: 38px; border-radius: 19px; font-size: 24px; }
+.live-record-score { font-size: 22px; }
+.live-record-wheel { min-height: 48px; font-size: 16px; }
+.live-primary-full { min-height: 54px; margin-top: 18px; font-size: 17px; }
+.live-notice { min-height: 42px; margin-top: 14px; padding: 0 14px; font-size: 13px; }
+
+/* 2026-06 image placeholder policy: no default bitmap fallback */
+.live-avatar,
+.live-record-avatar {
+  background: linear-gradient(135deg, #e8e2da, #d8d0c6);
+}
+
+/* 2026-06 compact live debt rows and fixed bottom action */
+.live-scroll {
+  padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
+
+.live-form-card:first-of-type {
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.live-record-item {
+  grid-template-columns: minmax(112px, 1.05fr) minmax(178px, 1.55fr) 86px;
+  grid-template-areas: "user stats wheel";
+  align-items: center;
+  gap: 10px;
+  min-width: 620px;
+  padding: 12px;
+  border-radius: 18px;
+}
+
+.live-record-top {
+  grid-area: user;
+}
+
+.live-record-user {
+  gap: 8px;
+}
+
+.live-record-avatar {
+  width: 38px;
+  height: 38px;
+  box-shadow: none;
+}
+
+.live-record-title {
+  font-size: 15px;
+}
+
+.live-record-meta {
+  margin-top: 3px;
+  font-size: 11px;
+}
+
+.live-record-clear {
+  display: none;
+}
+
+.live-record-stats {
+  grid-area: stats;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.live-record-stat-card {
+  grid-template-columns: 40px 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.live-record-stat-label {
+  font-size: 12px;
+}
+
+.live-adjust-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  font-size: 20px;
+}
+
+.live-record-score {
+  font-size: 20px;
+}
+
+.live-record-score-box {
+  min-width: 42px;
+}
+
+.live-record-wheel {
+  grid-area: wheel;
+  min-height: 40px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+.live-primary-full {
+  position: fixed;
+  right: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  left: 18px;
+  z-index: 30;
+  width: auto;
+  min-height: 58px;
+  margin-top: 0;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  font-size: 18px;
+  box-shadow: 0 16px 34px rgba(255, 91, 61, 0.34);
+}
+
+/* 2026-06-11 live record in-bound compact single row */
+.live-form-card:first-of-type {
+  overflow: visible;
+  overflow-x: visible;
+}
+.live-record-item {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.9fr) minmax(142px, 1.65fr) 58px !important;
+  grid-template-areas: "user stats wheel";
+  width: 100%;
+  min-width: 0 !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  overflow: hidden;
+  border-radius: 14px;
+}
+.live-record-top {
+  min-width: 0;
+}
+.live-record-user {
+  min-width: 0;
+  gap: 5px;
+}
+.live-record-avatar {
+  width: 28px !important;
+  height: 28px !important;
+  flex: 0 0 28px;
+  border: 0;
+}
+.live-record-copy {
+  min-width: 0;
+}
+.live-record-title {
+  max-width: 58px;
+  font-size: 12px !important;
+  line-height: 1.1;
+}
+.live-record-meta {
+  display: none;
+}
+.live-record-stats {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+.live-record-stat-card {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  min-width: 0;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 10px;
+}
+.live-record-stat-label {
+  font-size: 10px !important;
+  line-height: 24px;
+  white-space: nowrap;
+}
+.live-record-adjuster {
+  min-width: 0;
+  gap: 2px;
+}
+.live-adjust-btn {
+  width: 22px !important;
+  height: 22px !important;
+  flex: 0 0 22px;
+  border-radius: 11px !important;
+  font-size: 15px !important;
+}
+.live-record-score-box {
+  min-width: 24px;
+  gap: 1px;
+}
+.live-record-score {
+  font-size: 14px !important;
+}
+.live-record-score-unit {
+  display: none;
+}
+.live-record-wheel {
+  min-width: 0;
+  min-height: 28px !important;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 10px !important;
+  line-height: 28px;
+  white-space: nowrap;
+}
+
+/* 2026-06-11 live record wheel on second row */
+.live-record-item {
+  grid-template-columns: minmax(82px, 0.9fr) minmax(158px, 1.7fr) !important;
+  grid-template-areas:
+    "user stats"
+    "wheel wheel";
+  gap: 7px;
+}
+.live-record-wheel {
+  width: 100%;
+  min-height: 32px !important;
+  padding: 0 10px;
+  box-sizing: border-box;
+  font-size: 12px !important;
+  line-height: 32px;
+}

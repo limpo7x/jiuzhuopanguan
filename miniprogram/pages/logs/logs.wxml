@@ -1,4 +1,4 @@
-<navigation-bar title="²é¿´Æô¶¯ÈÕÖ¾" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+<navigation-bar title="é¿´Ö¾" back="{{true}}" color="black" background="#FFF"></navigation-bar>
 <scroll-view class="scrollarea" scroll-y type="list">
   <block wx:for="{{logs}}" wx:key="timeStamp" wx:for-item="log">
     <view class="log-item">{{index + 1}}. {{log.date}}</view>

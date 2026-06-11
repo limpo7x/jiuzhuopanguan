@@ -9,7 +9,7 @@
 <view class="judge-page">
   <scroll-view class="judge-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="judge-hero">
-      <image class="judge-hero-image" src="{{heroImageUrl}}" mode="aspectFill"></image>
+      <image wx:if="{{heroImageUrl}}" class="judge-hero-image" src="{{heroImageUrl}}" mode="aspectFill"></image>
       <view class="judge-hero-mask"></view>
       <view class="judge-hero-content">
         <view class="judge-hero-badge">酒桌主模式</view>
@@ -66,7 +66,8 @@
     </view>
 
     <view wx:for="{{pokeCards}}" wx:key="id" class="judge-poke-card">
-      <image class="judge-poke-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+      <image wx:if="{{item.avatarUrl}}" class="judge-poke-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+      <view wx:else class="judge-poke-avatar"></view>
       <view class="judge-poke-copy">
         <text class="judge-poke-title">{{item.name}}</text>
         <text class="judge-poke-meta">{{item.message}}</text>
@@ -81,7 +82,7 @@
 
     <view class="judge-session-card">
       <view class="judge-session-thumb">
-        <image src="https://api.pomer.cn/static/report-poster.png" mode="aspectFill"></image>
+        <view class="judge-session-thumb-placeholder"></view>
       </view>
       <view class="judge-session-copy">
         <text class="judge-session-title">{{sessionName}}</text>

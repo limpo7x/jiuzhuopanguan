@@ -1,3 +1,5 @@
+import { ensureUserAuthorized } from '../../utils/social'
+
 interface SelectItem {
   name: string
   active?: boolean
@@ -37,6 +39,16 @@ Page<SessionRulesState, SessionRulesMethods>({
       { name: '适中', active: true },
       { name: '刺激' },
     ],
+  },
+
+  async onLoad() {
+    const profile = await ensureUserAuthorized('/pages/session-rules/index')
+    if (!profile) return
+  },
+
+  async onShow() {
+    const profile = await ensureUserAuthorized('/pages/session-rules/index')
+    if (!profile) return
   },
 
   handleChipTap(event) {

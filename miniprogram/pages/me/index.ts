@@ -1,12 +1,6 @@
-import { avatarAsset } from '../../config/assets'
-import { getMembershipCatalog, getUserCommerceState } from '../../services/content'
+﻿import { getMembershipCatalog, getUserCommerceState } from '../../services/content'
 import { getManagedJudgeStats } from '../../services/operations'
-import { getCurrentDisplayProfile, getUserAuthSession, getWineFriends, type SocialProfile } from '../../utils/social'
-
-const isPlaceholderProfileName = (value: string) => {
-  const text = String(value || '').trim()
-  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text) || text === '未登录'
-}
+import { getCurrentDisplayProfile, getUserAuthSession, getWineFriends, loginWithWechatProfile, type SocialProfile } from '../../utils/social'
 
 interface StatItem {
   label: string
@@ -19,8 +13,20 @@ interface FeatureItem {
   name: string
 }
 
+interface NicknameInputDetail {
+  value?: string
+}
+
+interface ChooseAvatarDetail {
+  avatarUrl?: string
+}
+
 interface MePageState {
   assetStats: StatItem[]
+  authAvatarUrl: string
+  authName: string
+  authPanelVisible: boolean
+  authSubmitting: boolean
   currentProfile: SocialProfile
   membershipEnabled: boolean
   features: FeatureItem[]
@@ -29,13 +35,18 @@ interface MePageState {
 }
 
 interface MePageMethods {
+  closeAuthPanel: () => void
   handleAssetTap: (event: WechatMiniprogram.BaseEvent) => void
-  handleEditTap: () => void
+  handleAuthAvatar: (event: WechatMiniprogram.CustomEvent<ChooseAvatarDetail>) => Promise<void>
+  handleAuthNameInput: (event: WechatMiniprogram.CustomEvent<NicknameInputDetail>) => void
   handleFeatureTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleLoginSubmit: (event: WechatMiniprogram.CustomEvent<{ value?: Record<string, string> }>) => Promise<void>
+  handleLoginTextTap: () => void
   handleMemberTap: () => void
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
   handleWineStatTap: (event: WechatMiniprogram.BaseEvent) => void
   loadSocialData: () => Promise<void>
+  noop: () => void
   openPage: (url: string) => void
   showPreviewToast: (message: string) => void
 }
@@ -47,6 +58,17 @@ const TAB_ROUTES: Record<string, string> = {
   me: '/pages/me/index',
 }
 
+const DEFAULT_PROFILE: SocialProfile = {
+  id: '',
+  name: '',
+  avatarUrl: '',
+  identityTag: '',
+  signature: '',
+  phone: '',
+  phoneMasked: '',
+  wechatOpenId: '',
+}
+
 const DEFAULT_ASSET_STATS: StatItem[] = [
   { value: '0', label: '我的积分' },
   { value: '0', label: '我的权益' },
@@ -54,36 +76,49 @@ const DEFAULT_ASSET_STATS: StatItem[] = [
 ]
 
 const DEFAULT_WINE_STATS: StatItem[] = [
-  { value: '0', label: '发起酒局' },
+  { value: '0', label: '我的酒局' },
   { value: '0', label: '参与场次' },
-  { value: '0', label: '战报分享' },
+  { value: '0', label: '待分享战报' },
   { value: '0', label: '我的聚友' },
 ]
 
 const DEFAULT_FEATURES: FeatureItem[] = [
-  { id: 'favorites', name: '我的收藏', iconClass: 'me-icon-star' },
   { id: 'history', name: '使用记录', iconClass: 'me-icon-history' },
-  { id: 'reports', name: '我的战报', iconClass: 'me-icon-report' },
   { id: 'coupons', name: '我的权益', iconClass: 'me-icon-ticket' },
   { id: 'points', name: '积分商城', iconClass: 'me-icon-shield' },
   { id: 'merchant', name: '商户优惠', iconClass: 'me-icon-store' },
   { id: 'invite', name: '邀请好友', iconClass: 'me-icon-user' },
-  { id: 'settings', name: '设置', iconClass: 'me-icon-settings' },
 ]
+
+const normalizeName = (value?: string) => {
+  const text = String(value || '').trim()
+  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text) || text === '未登录' ? '' : text
+}
+
+const normalizeAvatar = (value?: string) => String(value || '').trim()
+
+const persistAvatar = (avatarUrl: string) =>
+  new Promise<string>((resolve) => {
+    const source = normalizeAvatar(avatarUrl)
+    if (!source || /^wxfile:\/\/usr\//i.test(source)) {
+      resolve(source)
+      return
+    }
+    wx.saveFile({
+      tempFilePath: source,
+      success: (result) => resolve(normalizeAvatar(result.savedFilePath)),
+      fail: () => resolve(source),
+    })
+  })
 
 Page<MePageState, MePageMethods>({
   data: {
     assetStats: DEFAULT_ASSET_STATS,
-    currentProfile: {
-      id: 'me-owner',
-      name: '',
-      avatarUrl: avatarAsset(1),
-      identityTag: '',
-      signature: '',
-      phone: '',
-      phoneMasked: '',
-      wechatOpenId: '',
-    },
+    authAvatarUrl: '',
+    authName: '',
+    authPanelVisible: false,
+    authSubmitting: false,
+    currentProfile: DEFAULT_PROFILE,
     membershipEnabled: true,
     features: DEFAULT_FEATURES,
     loggedIn: false,
@@ -101,52 +136,85 @@ Page<MePageState, MePageMethods>({
   async loadSocialData() {
     const [authSession, currentProfile, commerceState, judgeStats, wineFriends, membershipCatalog] = await Promise.all([
       getUserAuthSession().catch(() => ({ loggedIn: false, profile: null })),
-      getCurrentDisplayProfile(),
+      getCurrentDisplayProfile().catch(() => DEFAULT_PROFILE),
       getUserCommerceState().catch(() => null),
       getManagedJudgeStats().catch(() => null),
       getWineFriends().catch(() => []),
       getMembershipCatalog().catch(() => null),
     ])
-    const displayProfile =
-      authSession.loggedIn &&
-      authSession.profile &&
-      !(isPlaceholderProfileName(authSession.profile.name) && !isPlaceholderProfileName(currentProfile.name))
-        ? {
-            ...currentProfile,
-            ...authSession.profile,
-            avatarUrl: currentProfile.avatarUrl || authSession.profile.avatarUrl || avatarAsset(1),
-            name: currentProfile.name || authSession.profile.name || '',
-          }
-        : currentProfile
-
+    const displayProfile = authSession.profile || currentProfile || DEFAULT_PROFILE
+    const loggedIn = Boolean(authSession.loggedIn && authSession.profile?.wechatOpenId)
     this.setData({
       assetStats: [
         { value: String(commerceState?.points ?? 0), label: '我的积分' },
         { value: String(commerceState?.rewardRedemptions?.length ?? 0), label: '我的权益' },
         { value: String(commerceState?.unlockedTemplateIds?.length ?? 0), label: '已解锁模板' },
       ],
-      currentProfile: displayProfile,
-      loggedIn: Boolean(authSession.profile?.wechatOpenId || displayProfile.wechatOpenId),
+      authAvatarUrl: loggedIn ? '' : this.data.authAvatarUrl || normalizeAvatar(displayProfile.avatarUrl),
+      authName: loggedIn ? '' : this.data.authName || normalizeName(displayProfile.name),
+      authPanelVisible: loggedIn ? false : this.data.authPanelVisible,
+      currentProfile: { ...displayProfile, name: normalizeName(displayProfile.name), avatarUrl: normalizeAvatar(displayProfile.avatarUrl) },
+      loggedIn,
       membershipEnabled: Boolean(membershipCatalog ? membershipCatalog.membershipEnabled : true),
       wineStats: [
-        { value: String(judgeStats?.hostedCount ?? 0), label: '发起酒局' },
+        { value: String(judgeStats?.hostedCount ?? 0), label: '我的酒局' },
         { value: String(judgeStats?.joinedCount ?? 0), label: '参与场次' },
-        { value: String(judgeStats?.reportShareCount ?? 0), label: '战报分享' },
+        { value: String(judgeStats?.unsharedReportCount ?? 0), label: '待分享战报' },
         { value: String(wineFriends.length), label: '我的聚友' },
       ],
     })
   },
 
-  handleEditTap() {
-    this.openPage('/pages/profile-edit/index')
+  async handleAuthAvatar(event) {
+    this.setData({ authAvatarUrl: await persistAvatar(event.detail?.avatarUrl || '') })
+  },
+
+  handleAuthNameInput(event) {
+    this.setData({ authName: normalizeName(event.detail?.value || '') })
+  },
+
+  handleLoginTextTap() {
+    this.setData({ authPanelVisible: true })
+  },
+
+  closeAuthPanel() {
+    this.setData({ authPanelVisible: false })
+  },
+
+  noop() {
+    return
+  },
+
+  async handleLoginSubmit(event) {
+    if (this.data.authSubmitting) return
+    const name = normalizeName(event.detail?.value?.nickname || this.data.authName)
+    const avatarUrl = normalizeAvatar(this.data.authAvatarUrl)
+    if (!name) {
+      wx.showToast({ title: '请填写微信昵称', icon: 'none' })
+      return
+    }
+    this.setData({ authSubmitting: true })
+    try {
+      const profile = await loginWithWechatProfile({ avatarUrl, name, identityTag: '', signature: '' })
+      this.setData({
+        authAvatarUrl: '',
+        authName: '',
+        authPanelVisible: false,
+        currentProfile: { ...profile, avatarUrl: normalizeAvatar(profile.avatarUrl) || avatarUrl, name: normalizeName(profile.name) || name },
+        loggedIn: true,
+      })
+      wx.showToast({ title: '登录成功', icon: 'success' })
+      await this.loadSocialData()
+    } catch (error) {
+      wx.showToast({ title: error instanceof Error ? error.message : '微信登录失败', icon: 'none' })
+    } finally {
+      this.setData({ authSubmitting: false })
+    }
   },
 
   handleMemberTap() {
     if (!this.data.membershipEnabled) {
-      wx.showToast({
-        title: '会员功能暂未开放，当前入口已隐藏',
-        icon: 'none',
-      })
+      wx.showToast({ title: '会员功能暂未开放', icon: 'none' })
       return
     }
     this.openPage('/pages/member-center/index')
@@ -160,72 +228,51 @@ Page<MePageState, MePageMethods>({
       已解锁模板: '/pages/premium-templates/index',
     }
     const target = routes[label]
-    if (target) {
-      this.openPage(target)
-    }
+    if (target) this.openPage(target)
   },
 
   handleFeatureTap(event) {
     const { name } = event.currentTarget.dataset as { name: string }
     const routes: Record<string, string> = {
-      我的收藏: '/pages/favorites/index',
       使用记录: '/pages/usage-history/index',
-      我的战报: '/pages/wine-history/index',
       我的权益: '/pages/coupon-center/index',
       积分商城: '/pages/wine-points/index?tab=mall',
       商户优惠: '/pages/merchant-partners/index',
       邀请好友: '/pages/invite-friends/index',
-      设置: '/pages/settings/index',
     }
     const target = routes[name]
-
     if (target) {
       this.openPage(target)
       return
     }
-
-    this.showPreviewToast(`${name} 暂未接入`)
+    this.showPreviewToast(`${name} 当前不可用`)
   },
 
   handleTabTap(event) {
     const { tab } = event.currentTarget.dataset as { tab: string }
     const target = TAB_ROUTES[tab]
-
-    if (!target || tab === 'me') {
-      return
-    }
-
+    if (!target || tab === 'me') return
     wx.redirectTo({ url: target })
   },
 
   handleWineStatTap(event) {
     const { label } = event.currentTarget.dataset as { label: string }
     const routes: Record<string, string> = {
-      发起酒局: '/pages/wine-history/index',
-      参与场次: '/pages/wine-history/index',
-      战报分享: '/pages/wine-history/index',
+      我的酒局: '/pages/wine-history/index?mode=host',
+      参与场次: '/pages/wine-history/index?mode=joined',
+      待分享战报: '/pages/wine-history/index?mode=unshared',
       我的聚友: '/pages/friend-hub/index',
     }
     const target = routes[label]
-    if (target) {
-      this.openPage(target)
-    }
+    if (target) this.openPage(target)
   },
 
   showPreviewToast(message) {
-    wx.showToast({
-      title: message,
-      icon: 'none',
-    })
+    wx.showToast({ title: message, icon: 'none' })
   },
 
   openPage(url) {
-    wx.navigateTo({
-      url,
-      fail: () => {
-        wx.redirectTo({ url })
-      },
-    })
+    wx.navigateTo({ url, fail: () => wx.redirectTo({ url }) })
   },
 })
 

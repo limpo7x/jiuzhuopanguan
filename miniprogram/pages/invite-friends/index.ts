@@ -29,7 +29,7 @@ Page<InviteFriendsState, InviteFriendsMethods>({
 
   handlePosterTap() {
     wx.navigateTo({
-      url: '/pages/share-poster/index',
+      url: '/pages/share-preview/index',
     })
   },
 })

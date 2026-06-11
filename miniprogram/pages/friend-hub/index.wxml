@@ -1,4 +1,4 @@
-<navigation-bar
+﻿<navigation-bar
   title="我的聚友"
   back="{{true}}"
   color="#24160f"
@@ -8,7 +8,8 @@
 <view class="friend-hub-page">
   <scroll-view class="friend-hub-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="friend-hub-profile">
-      <image class="friend-hub-avatar" src="{{currentProfile.avatarUrl}}" mode="aspectFill"></image>
+      <image wx:if="{{currentProfile.avatarUrl}}" class="friend-hub-avatar" src="{{currentProfile.avatarUrl}}" mode="aspectFill"></image>
+      <view wx:else class="friend-hub-avatar"></view>
       <view class="friend-hub-copy">
         <text class="friend-hub-name">{{currentProfile.name}}</text>
         <text class="friend-hub-meta">仅显示你参与过的酒局中的聚友，支持拍一拍和删除。</text>
@@ -21,7 +22,8 @@
 
     <view wx:if="{{newFriendMatches.length}}" class="friend-hub-search-list">
       <view wx:for="{{newFriendMatches}}" wx:key="id" class="friend-hub-search-card">
-        <image class="friend-hub-friend-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <image wx:if="{{item.avatarUrl}}" class="friend-hub-friend-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view wx:else class="friend-hub-friend-avatar"></view>
         <view class="friend-hub-friend-copy">
           <text class="friend-hub-friend-name">{{item.name}}</text>
           <text class="friend-hub-friend-meta">{{item.identityTag}}</text>
@@ -31,7 +33,8 @@
 
     <view class="friend-hub-list">
       <view wx:for="{{wineFriends}}" wx:key="id" class="friend-hub-card">
-        <image class="friend-hub-friend-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <image wx:if="{{item.avatarUrl}}" class="friend-hub-friend-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+        <view wx:else class="friend-hub-friend-avatar"></view>
         <view class="friend-hub-friend-copy">
           <text class="friend-hub-friend-name">{{item.name}}</text>
           <text class="friend-hub-friend-meta">{{item.meta}}</text>
@@ -46,3 +49,4 @@
     </view>
   </scroll-view>
 </view>
+

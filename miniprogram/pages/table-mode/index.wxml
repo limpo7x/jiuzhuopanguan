@@ -30,7 +30,8 @@
       <view wx:for="{{rows}}" wx:key="name" class="table-score-item">
         <view class="table-score-row">
           <view class="table-cell table-col-user">
-            <image class="table-col-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <image wx:if="{{item.avatarUrl}}" class="table-col-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <view wx:else class="table-col-avatar"></view>
             <text class="table-col-user-name">{{item.name}}</text>
           </view>
           <view class="table-cell">{{item.debt}}</view>

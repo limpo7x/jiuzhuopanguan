@@ -21,7 +21,7 @@
     <view class="pro-list">
       <view wx:for="{{visibleTemplates}}" wx:key="id" class="pro-item" data-id="{{item.id}}" data-title="{{item.title}}" bindtap="handleTemplateTap">
         <view class="pro-thumb">
-          <image src="{{item.imageUrl}}" mode="aspectFill"></image>
+          <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
         </view>
         <view class="pro-copy">
           <text class="pro-title">{{item.title}}</text>

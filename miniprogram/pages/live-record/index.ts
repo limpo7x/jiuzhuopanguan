@@ -1,4 +1,4 @@
-import {
+﻿import {
   formatElapsed,
   getSessionRuntime,
   resolveSessionParticipants,
@@ -8,6 +8,7 @@ import {
 } from '../../utils/session'
 import { getManagedLiveSession, updateManagedSession } from '../../services/operations'
 import { confirmAndExitSession } from '../../utils/session-exit'
+import { ensureUserAuthorized } from '../../utils/social'
 
 interface LivePlayer {
   avatarUrl: string
@@ -51,7 +52,7 @@ interface LiveRecordState {
 
 interface LiveRecordMethods {
   applyWheelResult: () => void
-  hydrateManagedSession: (sessionId: string, role?: string) => Promise<void>
+  hydrateManagedSession: (sessionId: string) => Promise<void>
   handleRefreshTap: () => Promise<void>
   handleAddPlayerTap: () => void
   handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
@@ -83,7 +84,7 @@ const buildPlayers = (runtime = getSessionRuntime()): LivePlayer[] =>
 const buildRecordId = (player: LivePlayer, index: number) => player.profileId || `player-${index + 1}`
 
 const buildDefaultMeta = (player: SessionParticipant | LivePlayer) =>
-  ('status' in player && player.status) || '等待本局记录'
+  ('status' in player && player.status) || '绛夊緟鏈眬璁板綍'
 
 const buildRecords = (players: LivePlayer[], runtime = getSessionRuntime()): LiveRecordItem[] => {
   const statMap = new Map(runtime.playerStats.map((item) => [item.profileId || item.name, item]))
@@ -117,7 +118,7 @@ const buildSessionEvents = (
         .filter((item) => !!item?.text)
         .map((item) => ({
           createdAt: item.createdAt || '',
-          text: `${name} ${item.label || '转盘'}：${item.text || ''}`,
+            text: `${name} ${item.label || '转盘'}：${item.text || ''}`,
         }))
     })
     .sort((left, right) => {
@@ -162,11 +163,24 @@ Page<LiveRecordState, LiveRecordMethods>({
     players: [],
     isJudge: true,
     records: [],
-    sessionName: '酒桌判官酒局',
+    sessionName: '閰掓鍒ゅ畼閰掑眬',
     events: [],
   },
 
   async onLoad(query) {
+    const sessionIdFromQuery = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : ''
+    const roleFromQuery = typeof query?.role === 'string' ? decodeURIComponent(query.role) : ''
+    const redirect = `/pages/live-record/index${sessionIdFromQuery ? `?sessionId=${encodeURIComponent(sessionIdFromQuery)}${roleFromQuery ? `&role=${encodeURIComponent(roleFromQuery)}` : ''}` : ''}`
+    const profile = await ensureUserAuthorized(redirect)
+    if (!profile) return
+    setSessionRuntime({
+      currentUser: {
+        avatarUrl: profile.avatarUrl,
+        id: profile.id,
+        name: profile.name,
+      },
+    })
+
     const runtime = getSessionRuntime()
     const sessionId = query?.sessionId ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
     const role = query?.role ? decodeURIComponent(query.role) : ''
@@ -174,12 +188,12 @@ Page<LiveRecordState, LiveRecordMethods>({
 
     if (sessionId) {
       try {
-        await this.hydrateManagedSession(sessionId, role)
+        await this.hydrateManagedSession(sessionId)
         this.handleTimerTick()
         return
       } catch (error) {
         wx.showToast({
-          title: error instanceof Error ? error.message : '酒局加载失败',
+          title: error instanceof Error ? error.message : '閰掑眬鍔犺浇澶辫触',
           icon: 'none',
         })
       }
@@ -202,15 +216,10 @@ Page<LiveRecordState, LiveRecordMethods>({
     this.handleTimerTick()
   },
 
-  async hydrateManagedSession(sessionId, role = '') {
+  async hydrateManagedSession(sessionId) {
     const runtime = getSessionRuntime()
     const liveSession = await getManagedLiveSession(sessionId, runtime.inviteCode)
-    const inferredIsJudge =
-      role === 'viewer'
-        ? false
-        : role === 'judge'
-          ? true
-          : Boolean(liveSession.hostProfileId && runtime.currentUser?.id && liveSession.hostProfileId === runtime.currentUser.id)
+    const inferredIsJudge = Boolean(liveSession.hostProfileId && runtime.currentUser?.id && liveSession.hostProfileId === runtime.currentUser.id)
     const players = liveSession.joinStatusPlayers
       .slice(0, liveSession.playerCount)
       .map((item) => ({
@@ -263,7 +272,7 @@ Page<LiveRecordState, LiveRecordMethods>({
 
     const runtime = getSessionRuntime()
     if (!runtime.sessionId) {
-      this.showPreviewToast('未找到当前局信息')
+      this.showPreviewToast('鏈壘鍒板綋鍓嶅眬淇℃伅')
       return
     }
 
@@ -316,9 +325,9 @@ Page<LiveRecordState, LiveRecordMethods>({
         events: buildSessionEvents(liveSession.sessionName, players, liveSession.joinStatusPlayers),
       })
 
-      this.showPreviewToast('刷新成功')
+      this.showPreviewToast('鍒锋柊鎴愬姛')
     } catch (error) {
-      this.showPreviewToast(error instanceof Error ? error.message : '刷新失败')
+      this.showPreviewToast(error instanceof Error ? error.message : '鍒锋柊澶辫触')
     } finally {
       wx.hideLoading()
     }
@@ -396,7 +405,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       })
       return true
     } catch (error) {
-      this.showPreviewToast(error instanceof Error ? error.message : '酒局记录保存失败')
+      this.showPreviewToast(error instanceof Error ? error.message : '閰掑眬璁板綍淇濆瓨澶辫触')
       return false
     }
   },
@@ -428,7 +437,7 @@ Page<LiveRecordState, LiveRecordMethods>({
 
     const changed = records.find((item) => item.id === result.playerId)
     const events = changed
-      ? [{ text: `${changed.name} 完成了消杯任务：${result.question || '本轮挑战'}` }, ...this.data.events].slice(0, 4)
+      ? [{ text: `${changed.name} 瀹屾垚浜嗘秷鏉换鍔★細${result.question || '鏈疆鎸戞垬'}` }, ...this.data.events].slice(0, 4)
       : this.data.events
 
     wx.removeStorageSync(JUDGE_WHEEL_RESULT_KEY)
@@ -585,3 +594,4 @@ Page<LiveRecordState, LiveRecordMethods>({
 })
 
 export {}
+

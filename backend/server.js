@@ -384,8 +384,22 @@ const requireAdminSession = (request, response) => {
 }
 
 const sanitizePathWithin = (baseDir, relativePath) => {
-  const normalized = path.normalize(path.join(baseDir, relativePath))
-  return normalized.startsWith(baseDir) ? normalized : null
+  if (typeof relativePath !== 'string') {
+    return null
+  }
+  const resolvedBase = path.resolve(baseDir)
+  const resolvedPath = path.resolve(resolvedBase, relativePath)
+  if (!resolvedPath.startsWith(`${resolvedBase}${path.sep}`)) {
+    return null
+  }
+  return resolvedPath
+}
+
+const normalizeAdminPageSlug = (rawSlug = '') => {
+  const slug = String(rawSlug || '')
+    .trim()
+    .replace(/^\/+|\/+$/g, '')
+  return /^[a-z0-9-]+$/i.test(slug) ? slug : null
 }
 
 const server = http.createServer((request, response) => {
@@ -450,8 +464,16 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname && pathname.startsWith('/admin/pages/')) {
-      const slug = pathname.replace('/admin/pages/', '').trim()
-      const filePath = path.join(heatwaveDir, `${slug}.html`)
+      const slug = normalizeAdminPageSlug(pathname.replace('/admin/pages/', ''))
+      if (!slug) {
+        sendError(response, 404, 'not found')
+        return
+      }
+      const filePath = sanitizePathWithin(heatwaveDir, `${slug}.html`)
+      if (!filePath) {
+        sendError(response, 403, 'forbidden')
+        return
+      }
       sendFile(request, response, filePath)
       return
     }
@@ -570,6 +592,19 @@ const server = http.createServer((request, response) => {
       return
     }
 
+    if (request.method === 'POST' && pathname === '/api/v1/user/avatar/upload') {
+      const payload = await readJsonBody(request)
+      const asset = await saveAdminImage({
+        category: 'user-avatars',
+        dataUrl: payload.dataUrl,
+        fileName: payload.fileName || 'wechat-avatar.png',
+      })
+      sendOk(response, {
+        url: asset.url,
+      })
+      return
+    }
+
     if (request.method === 'POST' && pathname === '/api/v1/user/auth/bind-phone') {
       const userSession = requireUserSession(request, response)
       if (!userSession) {
@@ -592,6 +627,10 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/admin/config/home') {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
       sendOk(response, getHomeConfig())
       return
     }
@@ -739,7 +778,7 @@ const server = http.createServer((request, response) => {
       if (!userSession) {
         return
       }
-      sendOk(response, listManagedReports(userSession.profile.id))
+      sendOk(response, listManagedReports(userSession.profile.id, String(query.mode || 'all')))
       return
     }
 
@@ -830,7 +869,24 @@ const server = http.createServer((request, response) => {
 
     if (pathname && pathname.startsWith('/api/v1/sessions/')) {
       const sessionId = pathname.replace('/api/v1/sessions/', '').trim()
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const targetSession = getManagedSessionById(sessionId)
+      if (!targetSession) {
+        sendError(response, 404, 'session not found')
+        return
+      }
+      const userProfileId = String(userSession.profile.id || '').trim()
+      const isHost = String(targetSession.members?.find((item) => item?.isHost)?.profileId || '').trim() === userProfileId
+      const isMember = userProfileId && (targetSession.members || []).some((item) => String(item?.profileId || '') === userProfileId)
+
       if (request.method === 'PUT') {
+        if (!isHost) {
+          sendError(response, 403, 'forbidden')
+          return
+        }
         const payload = await readJsonBody(request)
         const updated = updateManagedSession(sessionId, payload)
         if (!updated) {
@@ -841,6 +897,10 @@ const server = http.createServer((request, response) => {
         return
       }
       if (request.method === 'DELETE') {
+        if (!isHost) {
+          sendError(response, 403, 'forbidden')
+          return
+        }
         if (!deleteManagedSession(sessionId)) {
           sendError(response, 404, 'session not found')
           return
@@ -885,6 +945,10 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'PUT' && pathname === '/api/v1/admin/config/home/hero') {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
       const payload = await readJsonBody(request)
       sendOk(response, {
         hero: updateHomeHero(payload),
@@ -927,11 +991,19 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/admin/config/points') {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
       sendOk(response, getPointsConfig())
       return
     }
 
     if (request.method === 'PUT' && pathname === '/api/v1/admin/config/points') {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
       const payload = await readJsonBody(request)
       sendOk(response, {
         pointsConfig: updatePointsConfig(payload),
@@ -941,11 +1013,19 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/admin/config/templates') {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
       sendOk(response, getTemplateConfig())
       return
     }
 
     if (request.method === 'PUT' && pathname === '/api/v1/admin/config/templates') {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
       const payload = await readJsonBody(request)
       sendOk(response, {
         templateConfig: updateTemplateConfig(payload),
@@ -955,7 +1035,11 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/social/bootstrap') {
-      const profileId = String(query.profileId || '').trim()
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const profileId = userSession.profile.id
       const sessionContacts = getSessionContactsByProfile(profileId)
       const allowedFriendIds = new Set(sessionContacts.map((item) => String(item.profileId || item.id || '').trim()).filter(Boolean))
       if (sessionContacts.length) {
@@ -976,10 +1060,20 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/social/users/search') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const ownerId = userSession.profile.id
+      const requestOwnerId = String(query.profileId || '').trim()
+      if (requestOwnerId && requestOwnerId !== ownerId) {
+        sendError(response, 403, 'forbidden')
+        return
+      }
       sendOk(
         response,
         searchProfiles({
-          ownerId: String(query.profileId || ''),
+          ownerId,
           keyword: String(query.keyword || ''),
         }),
       )
@@ -987,39 +1081,63 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'PUT' && pathname === '/api/v1/social/profile') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
       const payload = await readJsonBody(request)
-      sendOk(response, ensureProfile(payload))
+      sendOk(response, ensureProfile({ ...payload, id: userSession.profile.id }))
       return
     }
 
     if (request.method === 'POST' && pathname === '/api/v1/social/friends') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
       const payload = await readJsonBody(request)
-      sendOk(response, addFriend(payload))
+      sendOk(response, addFriend({ ...payload, ownerId: userSession.profile.id }))
       return
     }
 
     if (request.method === 'POST' && pathname === '/api/v1/social/friends/touch') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
       const payload = await readJsonBody(request)
-      sendOk(response, touchFriends(payload))
+      sendOk(response, touchFriends({ ...payload, ownerId: userSession.profile.id }))
       return
     }
 
     if (pathname && pathname.startsWith('/api/v1/social/friends/')) {
       const friendshipId = pathname.replace('/api/v1/social/friends/', '')
       if (request.method === 'PUT') {
+        const userSession = requireUserSession(request, response)
+        if (!userSession) {
+          return
+        }
         const payload = await readJsonBody(request)
-        sendOk(response, updateFriend({ ...payload, friendshipId }))
+        sendOk(response, updateFriend({ ...payload, ownerId: userSession.profile.id, friendshipId }))
         return
       }
       if (request.method === 'DELETE') {
-        sendOk(response, removeFriend({ ownerId: String(query.profileId || ''), friendshipId }))
+        const userSession = requireUserSession(request, response)
+        if (!userSession) {
+          return
+        }
+        sendOk(response, removeFriend({ ownerId: userSession.profile.id, friendshipId }))
         return
       }
     }
 
     if (request.method === 'POST' && pathname === '/api/v1/social/pokes') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
       const payload = await readJsonBody(request)
-      sendOk(response, sendPoke(payload))
+      sendOk(response, sendPoke({ ...payload, ownerId: userSession.profile.id }))
       return
     }
 
@@ -1028,12 +1146,20 @@ const server = http.createServer((request, response) => {
       const threadId = segments[4]
       const action = segments[5]
       if (request.method === 'POST' && action === 'reply') {
+        const userSession = requireUserSession(request, response)
+        if (!userSession) {
+          return
+        }
         const payload = await readJsonBody(request)
-        sendOk(response, replyPoke({ profileId: payload.profileId, threadId }))
+        sendOk(response, replyPoke({ profileId: userSession.profile.id, threadId }))
         return
       }
       if (request.method === 'DELETE' && threadId) {
-        sendOk(response, ignorePoke({ profileId: String(query.profileId || ''), threadId }))
+        const userSession = requireUserSession(request, response)
+        if (!userSession) {
+          return
+        }
+        sendOk(response, ignorePoke({ profileId: userSession.profile.id, threadId }))
         return
       }
     }

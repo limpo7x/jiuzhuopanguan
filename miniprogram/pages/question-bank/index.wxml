@@ -28,8 +28,8 @@
 
     <view wx:else class="question-bank-list">
       <view class="question-bank-item">
-        <view class="question-bank-tag">未接入</view>
-        <text class="question-bank-text">后台当前没有“上线中”的题目，请先在后台题库页上架题目。</text>
+        <view class="question-bank-tag">暂无题目</view>
+        <text class="question-bank-text">后台当前没有可用题目，请先在后台题库页上架后再使用。</text>
       </view>
     </view>
 

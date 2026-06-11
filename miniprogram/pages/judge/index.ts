@@ -62,7 +62,7 @@ const TAB_ROUTES: Record<string, string> = {
 
 Page<JudgePageState, JudgePageMethods>({
   data: {
-    heroImageUrl: 'https://api.pomer.cn/static/party-hero.png',
+    heroImageUrl: '',
     heroSubtitle: '远一点也能看清，开局、记分、出战报都更直接。',
     heroTitle: '酒桌判官',
     pokeCards: [],
@@ -144,7 +144,7 @@ Page<JudgePageState, JudgePageMethods>({
     const joinedCount = Math.min(runtime.selectedPlayers.length || 0, runtime.playerCount || 0)
 
     this.setData({
-      heroImageUrl: homeConfig?.judge?.imageUrl || 'https://api.pomer.cn/static/party-hero.png',
+      heroImageUrl: homeConfig?.judge?.imageUrl || '',
       heroSubtitle: homeConfig?.judge?.subtitle || '远一点也能看清，开局、记分、出战报都更直接。',
       heroTitle: homeConfig?.judge?.title || '酒桌判官',
       pokeCards,

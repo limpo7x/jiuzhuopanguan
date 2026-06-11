@@ -1167,7 +1167,7 @@ const normalizeWheelHistoryItem = (item = {}) => ({
 })
 
 const normalizeSessionMember = (member = {}, index = 0) => ({
-  avatarUrl: String(member.avatarUrl || `/static/avatar-${(index % 4) + 1}.png`).trim(),
+  avatarUrl: String(member.avatarUrl || '').trim(),
   clearedCount: Math.max(0, Number(member.clearedCount) || 0),
   debtCount: Math.max(0, Number(member.debtCount) || 0),
   drinkCount: Math.max(0, Number(member.drinkCount) || 0),
@@ -1185,7 +1185,7 @@ const normalizeSessionMember = (member = {}, index = 0) => ({
 const buildSessionMembers = (payload = {}, existingMembers = []) => {
   const hostProfileId = String(payload.hostProfileId || '').trim()
   const hostName = String(payload.hostName || '当前发起人').trim() || '当前发起人'
-  const hostAvatarUrl = String(payload.hostAvatarUrl || existingMembers.find((item) => item.isHost)?.avatarUrl || '/static/avatar-1.png').trim()
+  const hostAvatarUrl = String(payload.hostAvatarUrl || existingMembers.find((item) => item.isHost)?.avatarUrl || '').trim()
   const hostPhone = String(payload.hostPhone || '').trim()
   const selectedPlayers = Array.isArray(payload.selectedPlayers) ? payload.selectedPlayers : []
   const hostPayloadMember =
@@ -1252,7 +1252,8 @@ const normalizeLiveSession = (session = {}, index = 0) => {
 
   return {
     ...session,
-    hostAvatarUrl: String(session.hostAvatarUrl || members[0]?.avatarUrl || `/static/avatar-${(index % 4) + 1}.png`).trim(),
+    hostProfileId: String(session.hostProfileId || members.find((item) => item.isHost)?.profileId || '').trim(),
+    hostAvatarUrl: String(session.hostAvatarUrl || members[0]?.avatarUrl || '').trim(),
     id: String(session.id || createId('session')).trim(),
     inviteCode: String(session.inviteCode || makeInviteCode(session.id || `session-${index + 1}`)).trim() || makeInviteCode(session.id || `session-${index + 1}`),
     joinedCount: Number(session.joinedCount) || members.filter((item) => item.status === '已加入').length,
@@ -1330,8 +1331,9 @@ const createManagedSession = (payload = {}) => {
     players: Math.max(2, Number(payload.playerCount) || 6),
     template: String(payload.templateName || '经典欠酒版').trim() || '经典欠酒版',
     hostName: String(payload.hostName || '当前发起人').trim() || '当前发起人',
+    hostProfileId: String(payload.hostProfileId || '').trim(),
     inviteCode: String(payload.inviteCode || makeInviteCode(id)).trim() || makeInviteCode(id),
-    hostAvatarUrl: String(payload.hostAvatarUrl || '/static/avatar-1.png').trim() || '/static/avatar-1.png',
+    hostAvatarUrl: String(payload.hostAvatarUrl || '').trim() || '',
     state: String(payload.state || '等待开局').trim() || '等待开局',
     source: String(payload.source || '直接创建').trim() || '直接创建',
     status: String(payload.status || '正常').trim() || '正常',
@@ -1363,6 +1365,7 @@ const updateManagedSession = (sessionId, payload = {}) => {
       players: Number(payload.playerCount) || item.players,
       template: payload.templateName || item.template,
       hostName: payload.hostName || item.hostName,
+      hostProfileId: payload.hostProfileId || item.hostProfileId,
       hostAvatarUrl: payload.hostAvatarUrl || item.hostAvatarUrl,
       inviteCode: payload.inviteCode || item.inviteCode,
       state: payload.state || item.state,
@@ -1528,6 +1531,46 @@ const resolveHistoryStatus = (session, report) => {
   return '进行中'
 }
 
+const getSessionHost = (session = {}) => {
+  const members = Array.isArray(session?.members) ? session.members : []
+  return members.find((item) => item?.isHost) || {
+    name: session?.hostName || '',
+    profileId: session?.hostProfileId || '',
+  }
+}
+
+const isSessionHost = (session = {}, profileId = '') => {
+  const normalizedProfileId = String(profileId || '').trim()
+  if (!normalizedProfileId) {
+    return false
+  }
+  const host = getSessionHost(session)
+  return String(host?.profileId || '').trim() === normalizedProfileId
+}
+
+const isSessionMember = (session = {}, profileId = '') => {
+  const normalizedProfileId = String(profileId || '').trim()
+  if (!normalizedProfileId) {
+    return false
+  }
+  const members = Array.isArray(session?.members) ? session.members : []
+  return members.some((item) => String(item?.profileId || '').trim() === normalizedProfileId)
+}
+
+const hasSharedReport = (store, profileId = '', report = {}) => {
+  const normalizedProfileId = String(profileId || '').trim()
+  const reportId = String(report?.id || '').trim()
+  const sessionId = String(report?.sessionId || '').trim()
+  return (store.analyticsEvents || []).some((item) => {
+    if (item?.type !== 'report_share' || String(item.profileId || '').trim() !== normalizedProfileId) {
+      return false
+    }
+    const eventReportId = String(item.reportId || item.meta?.reportId || '').trim()
+    const eventSessionId = String(item.sessionId || item.meta?.sessionId || '').trim()
+    return (reportId && eventReportId === reportId) || (sessionId && eventSessionId === sessionId)
+  })
+}
+
 const getManagedReportById = (reportId) => {
   const normalizedReportId = String(reportId || '').trim()
   if (!normalizedReportId) {
@@ -1538,15 +1581,25 @@ const getManagedReportById = (reportId) => {
   return buildManagedReportDetail(report)
 }
 
-const listManagedReports = (profileId = '') => {
+const listManagedReports = (profileId = '', mode = 'all') => {
   const normalizedProfileId = String(profileId || '').trim()
+  const normalizedMode = ['host', 'joined', 'unshared', 'all'].includes(String(mode || '').trim())
+    ? String(mode || '').trim()
+    : 'all'
   const store = readStore()
   const sessions = (store.liveSessions || []).filter((session) => {
     if (!normalizedProfileId) {
       return true
     }
-    const members = Array.isArray(session?.members) ? session.members : []
-    return members.some((item) => String(item.profileId || '').trim() === normalizedProfileId)
+    const isHost = isSessionHost(session, normalizedProfileId)
+    const isMember = isSessionMember(session, normalizedProfileId)
+    if (normalizedMode === 'host') {
+      return isHost
+    }
+    if (normalizedMode === 'joined' || normalizedMode === 'unshared') {
+      return isMember && !isHost
+    }
+    return isMember
   })
 
   const reportBySessionId = new Map(
@@ -1558,14 +1611,18 @@ const listManagedReports = (profileId = '') => {
   const rows = sessions.map((session) => {
     const report = reportBySessionId.get(String(session.id || ''))
     const status = resolveHistoryStatus(session, report)
+    const host = getSessionHost(session)
     const createdAt = report?.createdAt || session?.createdAt || ''
     return {
       id: report?.id || `session:${session.id}`,
       recordType: report ? 'report' : 'session',
       reportId: report?.id || '',
+      role: isSessionHost(session, normalizedProfileId) ? 'host' : 'member',
       sessionId: String(session.id || ''),
       sessionName: report ? String(report.name || report.title || '本局战报').replace(/战报$/, '') : String(session.name || '本局酒局'),
       title: report?.title || String(session.name || '本局酒局'),
+      hostName: String(host?.name || session.hostName || '').trim(),
+      hostProfileId: String(host?.profileId || session.hostProfileId || '').trim(),
       imageUrl: report ? '/static/report-poster.png' : '/static/party-hero.png',
       status,
       meta: `${Number(report?.playerCount) || Number(session?.players) || 0}人 · ${report?.template || session?.template || '常规局'} · ${createdAt}`.replace(/\s+/g, ' ').trim(),
@@ -1574,7 +1631,12 @@ const listManagedReports = (profileId = '') => {
     }
   })
 
-  return rows.sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')))
+  const filteredRows =
+    normalizedMode === 'unshared'
+      ? rows.filter((row) => row.role === 'member' && row.reportId && row.status === '已结束' && !hasSharedReport(store, normalizedProfileId, { id: row.reportId, sessionId: row.sessionId }))
+      : rows
+
+  return filteredRows.sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')))
 }
 
 const getUserJudgeStats = (profileId = '') => {
@@ -1588,22 +1650,25 @@ const getUserJudgeStats = (profileId = '') => {
   }
 
   const store = readStore()
-  const relatedSessions = (store.liveSessions || []).filter((session) =>
-    Array.isArray(session?.members)
-      ? session.members.some((member) => String(member.profileId || '').trim() === normalizedProfileId)
-      : false,
+  const relatedSessions = (store.liveSessions || []).filter((session) => isSessionMember(session, normalizedProfileId))
+  const hostedSessions = relatedSessions.filter((session) => isSessionHost(session, normalizedProfileId))
+  const joinedSessions = relatedSessions.filter((session) => !isSessionHost(session, normalizedProfileId))
+  const reportBySessionId = new Map(
+    (store.reports || [])
+      .filter((report) => report?.sessionId)
+      .map((report) => [String(report.sessionId), report]),
   )
 
   return {
-    hostedCount: relatedSessions.filter((session) =>
-      Array.isArray(session?.members)
-        ? session.members.some((member) => member.isHost && String(member.profileId || '').trim() === normalizedProfileId)
-        : false,
-    ).length,
-    joinedCount: relatedSessions.length,
+    hostedCount: hostedSessions.length,
+    joinedCount: joinedSessions.length,
     reportShareCount: (store.analyticsEvents || []).filter(
       (item) => item?.type === 'report_share' && String(item.profileId || '').trim() === normalizedProfileId,
     ).length,
+    unsharedReportCount: joinedSessions.filter((session) => {
+      const report = reportBySessionId.get(String(session.id || ''))
+      return report && resolveHistoryStatus(session, report) === '已结束' && !hasSharedReport(store, normalizedProfileId, report)
+    }).length,
   }
 }
 
@@ -1909,6 +1974,18 @@ const pageMap = {
   },
   'sessions': () => {
     const store = readStore()
+    const sessions = (store.liveSessions || []).map((item) => {
+      const members = Array.isArray(item.members) ? item.members : []
+      const host = getSessionHost(item)
+      const participants = members.filter((member) => !member.isHost)
+      return {
+        ...item,
+        hostName: item.hostName || host?.name || '',
+        hostProfileId: item.hostProfileId || host?.profileId || '',
+        participantsText: participants.map((member) => member.name || member.profileId).filter(Boolean).join('、'),
+        participantProfileIds: participants.map((member) => member.profileId).filter(Boolean).join('、'),
+      }
+    })
     return {
       slug: 'sessions',
       title: '酒局管理',
@@ -1922,7 +1999,10 @@ const pageMap = {
           { key: 'players', label: '人数', type: 'number' },
           { key: 'template', label: '模板', type: 'select', options: getSessionTemplateOptions() },
           { key: 'hostName', label: '发起人', type: 'select', options: getProfileNameOptions() },
+          { key: 'hostProfileId', label: '判官唯一ID', type: 'text' },
           { key: 'inviteCode', label: '口令', type: 'text' },
+          { key: 'participantsText', label: '参与人', type: 'textarea' },
+          { key: 'participantProfileIds', label: '参与人唯一ID', type: 'textarea' },
           { key: 'state', label: '流程状态', type: 'select', options: getSessionStateOptions() },
           { key: 'source', label: '分享来源', type: 'select', options: getSessionSourceOptions() },
           { key: 'status', label: '运营状态', type: 'select', options: getSessionStatusOptions() },
@@ -1931,11 +2011,15 @@ const pageMap = {
           { key: 'name', label: '酒局名称' },
           { key: 'players', label: '人数' },
           { key: 'template', label: '模板' },
+          { key: 'hostName', label: '判官' },
+          { key: 'hostProfileId', label: '判官唯一ID' },
+          { key: 'participantsText', label: '参与人' },
+          { key: 'participantProfileIds', label: '参与人唯一ID' },
           { key: 'inviteCode', label: '口令' },
           { key: 'state', label: '流程状态' },
           { key: 'status', label: '状态' },
         ],
-        items: store.liveSessions,
+        items: sessions,
       },
     }
   },
@@ -2874,5 +2958,6 @@ module.exports = {
   updateManagedSession,
   writeAdminStore: writeStore,
 }
+
 
 

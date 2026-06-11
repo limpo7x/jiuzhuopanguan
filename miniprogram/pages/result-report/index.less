@@ -264,3 +264,48 @@ page {
   height: 12px;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M10 2.5L15.5 5V9.1C15.5 12.8 13.2 15.6 10 17C6.8 15.6 4.5 12.8 4.5 9.1V5L10 2.5ZM8.9 10.9L12.8 7L11.7 5.9L8.9 8.7L7.8 7.6L6.7 8.7L8.9 10.9Z' fill='%234e8062'/%3E%3C/svg%3E") center/contain no-repeat;
 }
+
+/* 2026-06 global readability refresh */
+.report-page {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 205, 121, 0.28), transparent 28%),
+    linear-gradient(180deg, #fffaf1 0%, #fff4e8 58%, #fff8ee 100%);
+}
+.report-scroll { padding: 18px 18px 28px; }
+.report-poster-card {
+  border-radius: 26px;
+  background: linear-gradient(180deg, #fff0df 0%, #fffaf2 100%);
+  box-shadow: 0 18px 40px rgba(255, 117, 65, 0.16);
+}
+.report-poster-copy { padding: 22px; }
+.report-tag,
+.report-rank-tag { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.report-title { margin-top: 14px; font-size: 34px; }
+.report-meta { margin-top: 10px; font-size: 15px; line-height: 1.45; }
+.report-featured-rank { margin-top: 22px; padding: 20px; border-radius: 24px; }
+.report-featured-tag,
+.report-featured-badge { min-height: 38px; font-size: 15px; }
+.report-featured-body { gap: 18px; margin-top: 18px; }
+.report-featured-avatar { width: 86px; height: 86px; }
+.report-featured-name { font-size: 28px; }
+.report-featured-value { font-size: 20px; }
+.report-ranks { gap: 14px; margin-top: 16px; }
+.report-rank-card { padding: 16px 10px; border-radius: 20px; }
+.report-rank-avatar { width: 56px; height: 56px; }
+.report-rank-name { font-size: 17px; }
+.report-rank-value { font-size: 15px; }
+.report-section-head { margin: 24px 0 12px; }
+.report-section-title { font-size: 21px; }
+.report-card { border-radius: 22px; background: rgba(255,255,255,0.86); }
+.report-form-card { gap: 14px; padding: 18px; }
+.report-event-text { font-size: 15px; line-height: 1.6; }
+.report-action-row { gap: 12px; margin-top: 18px; }
+.report-ghost,
+.report-primary { min-height: 54px; font-size: 17px; }
+.report-notice { min-height: 42px; margin-top: 14px; padding: 0 14px; font-size: 13px; }
+
+/* 2026-06 image placeholder policy: no default bitmap fallback */
+.report-featured-avatar,
+.report-rank-avatar {
+  background: linear-gradient(135deg, #e8e2da, #d8d0c6);
+}

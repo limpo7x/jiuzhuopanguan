@@ -28,7 +28,7 @@
     </view>
 
     <view class="tools-hero">
-      <image class="tools-hero-image" src="{{heroImageUrl}}" mode="aspectFill"></image>
+      <image wx:if="{{heroImageUrl}}" class="tools-hero-image" src="{{heroImageUrl}}" mode="aspectFill"></image>
       <view class="tools-hero-mask"></view>
       <view class="tools-hero-content">
         <text class="tools-hero-title">{{heroTitle}}</text>
@@ -84,7 +84,7 @@
         bindtap="handleToolTap"
       >
         <view class="tools-list-thumb">
-          <image lazy-load="true" src="{{item.imageUrl}}" mode="aspectFill"></image>
+          <image wx:if="{{item.imageUrl}}" lazy-load="true" src="{{item.imageUrl}}" mode="aspectFill"></image>
         </view>
         <view class="tools-list-copy">
           <text class="tools-list-title">{{item.name}}</text>

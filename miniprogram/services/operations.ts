@@ -1,5 +1,5 @@
 import { getApiBase } from '../config/api'
-import { normalizeManagedAssetPath, staticAsset } from '../config/assets'
+import { normalizeManagedAssetPath } from '../config/assets'
 import { resolveCachedManagedImagePath, resolveCachedManagedImagePathQuick } from '../utils/imageCache'
 import { getSessionRuntime, resolveSessionParticipants } from '../utils/session'
 import { getUserAuthHeaders } from '../utils/social'
@@ -91,6 +91,8 @@ interface RemoteLiveSession {
 interface RemoteManagedReport {
   createdAt?: string
   events?: Array<{ text?: string }>
+  hostName?: string
+  hostProfileId?: string
   id?: string
   imageUrl?: string
   inviteCode?: string
@@ -110,6 +112,7 @@ interface RemoteManagedReport {
   sessionName?: string
   shareRate?: string
   status?: string
+  role?: 'host' | 'member'
   templateName?: string
   title?: string
 }
@@ -181,6 +184,7 @@ interface RemoteJudgeStats {
   hostedCount?: number
   joinedCount?: number
   reportShareCount?: number
+  unsharedReportCount?: number
 }
 
 export interface ManagedToolCatalog {
@@ -272,11 +276,14 @@ export interface ManagedReportDetail {
 
 export interface ManagedReportSummary {
   createdAt: string
+  hostName: string
+  hostProfileId: string
   id: string
   imageUrl: string
   meta: string
   recordType: 'report' | 'session'
   reportId: string
+  role: 'host' | 'member'
   sessionId: string
   sessionName: string
   shareRate: string
@@ -349,16 +356,17 @@ export interface ManagedJudgeStats {
   hostedCount: number
   joinedCount: number
   reportShareCount: number
+  unsharedReportCount: number
 }
 
-const DEFAULT_AVATAR = staticAsset('avatar-1.png')
+const DEFAULT_AVATAR = ''
 const TOOLS_CATALOG_CACHE_TTL = 60000
 const REPORT_HISTORY_CACHE_TTL = 45000
 const SHARE_CONFIG_CACHE_TTL = 60000
 const MERCHANT_CATALOG_CACHE_TTL = 60000
 
 let toolsCatalogCache: { expiresAt: number; value: ManagedToolCatalog } | null = null
-let reportHistoryCache: { expiresAt: number; value: ManagedReportSummary[] } | null = null
+let reportHistoryCache: { expiresAt: number; key: string; value: ManagedReportSummary[] } | null = null
 let shareConfigCache: { expiresAt: number; value: ManagedShareConfig } | null = null
 let merchantCatalogCache: { expiresAt: number; value: ManagedMerchantCatalog } | null = null
 
@@ -366,7 +374,7 @@ const DEFAULT_TOOLS_CATALOG: ManagedToolCatalog = {
   categories: TOOL_CATEGORIES,
   categoryCards: getToolCategoryCards(),
   hero: {
-    imageUrl: staticAsset('toolbox-hero.png'),
+    imageUrl: '',
     subtitle: '高效 · 实用 · 有趣',
     title: '工具在手 生活不愁',
   },
@@ -450,7 +458,7 @@ const buildCategoryCards = (tools: ToolDescriptor[], categories: ToolCategory[])
         id: category.id,
         name: category.name,
         meta: hits.length ? `${hits.length} 个工具 · ${hits.map((item) => item.name).slice(0, 3).join(' / ')}` : '暂无工具',
-        imageUrl: hits[0]?.imageUrl || staticAsset('toolbox-hero.png'),
+        imageUrl: hits[0]?.imageUrl || '',
       }
     })
 
@@ -473,7 +481,7 @@ export const getManagedToolsCatalog = async (): Promise<ManagedToolCatalog> => {
       hero: {
         imageUrl:
           (await resolveCachedManagedImagePathQuick(normalizeManagedAssetPath(remote.hero?.imageUrl), 2000)) ||
-          DEFAULT_TOOLS_CATALOG.hero.imageUrl,
+          '',
         subtitle: remote.hero?.subtitle || DEFAULT_TOOLS_CATALOG.hero.subtitle,
         title: remote.hero?.title || DEFAULT_TOOLS_CATALOG.hero.title,
       },
@@ -590,22 +598,25 @@ export const createManagedReport = async (payload: Record<string, unknown>): Pro
 export const getManagedReport = async (reportId: string): Promise<ManagedReportDetail> =>
   normalizeManagedReport(await requestJson<RemoteManagedReport>(`/reports/${encodeURIComponent(reportId)}`))
 
-export const getManagedReportHistory = async (): Promise<ManagedReportSummary[]> => {
-  if (reportHistoryCache && reportHistoryCache.expiresAt > Date.now()) {
+export const getManagedReportHistory = async (mode = 'all'): Promise<ManagedReportSummary[]> => {
+  const normalizedMode = ['host', 'joined', 'unshared', 'all'].includes(mode) ? mode : 'all'
+  if (reportHistoryCache && reportHistoryCache.key === normalizedMode && reportHistoryCache.expiresAt > Date.now()) {
     return reportHistoryCache.value
   }
 
-  const reports = await requestJson<RemoteManagedReport[]>('/reports/history')
+  const reports = await requestJson<RemoteManagedReport[]>(`/reports/history?mode=${encodeURIComponent(normalizedMode)}`)
   const next: ManagedReportSummary[] = await Promise.all(
     reports.map(async (item) => ({
       createdAt: item.createdAt || '',
+      hostName: item.hostName || '',
+      hostProfileId: item.hostProfileId || '',
       id: item.id || '',
       imageUrl:
-        (await resolveCachedManagedImagePath(normalizeManagedAssetPath(item.imageUrl))) ||
-        staticAsset('report-poster.png'),
+        (await resolveCachedManagedImagePath(normalizeManagedAssetPath(item.imageUrl))) || '',
       meta: item.meta || '',
       recordType: item.recordType === 'session' ? ('session' as const) : ('report' as const),
       reportId: item.reportId || (item.recordType === 'report' ? item.id || '' : ''),
+      role: item.role === 'host' ? 'host' : 'member',
       sessionId: item.sessionId || '',
       sessionName: item.sessionName || '',
       shareRate: item.shareRate || '0%',
@@ -616,6 +627,7 @@ export const getManagedReportHistory = async (): Promise<ManagedReportSummary[]>
 
   reportHistoryCache = {
     expiresAt: Date.now() + REPORT_HISTORY_CACHE_TTL,
+    key: normalizedMode,
     value: next,
   }
 
@@ -636,14 +648,12 @@ export const getManagedShareConfig = async (): Promise<ManagedShareConfig> => {
     },
     poster: {
       imageUrl:
-        (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remote.poster?.imageUrl))) ||
-        staticAsset('report-poster.png'),
+        (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remote.poster?.imageUrl))) || '',
       title: remote.poster?.title || '这局快乐就完事了！',
     },
     preview: {
       imageUrl:
-        (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remote.preview?.imageUrl))) ||
-        staticAsset('party-hero.png'),
+        (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remote.preview?.imageUrl))) || '',
       inviteCode: remote.preview?.inviteCode || '',
       title: remote.preview?.title || '快来加入这一局',
     },
@@ -707,8 +717,7 @@ export const getManagedMerchantCatalog = async (): Promise<ManagedMerchantCatalo
       ? await Promise.all(remote.shops.map(async (item) => ({
           id: item?.id || '',
           imageUrl:
-            (await resolveCachedManagedImagePath(normalizeManagedAssetPath(item?.imageUrl))) ||
-            staticAsset('party-hero.png'),
+            (await resolveCachedManagedImagePath(normalizeManagedAssetPath(item?.imageUrl))) || '',
           meta: item?.meta || '',
           name: item?.name || '',
           status: item?.status || '',
@@ -740,5 +749,6 @@ export const getManagedJudgeStats = async (): Promise<ManagedJudgeStats> => {
     hostedCount: Number(remote.hostedCount) || 0,
     joinedCount: Number(remote.joinedCount) || 0,
     reportShareCount: Number(remote.reportShareCount) || 0,
+    unsharedReportCount: Number(remote.unsharedReportCount) || 0,
   }
 }

@@ -1,6 +1,4 @@
-import { staticAsset } from '../config/assets'
-
-export interface ToolCategory {
+﻿export interface ToolCategory {
   id: string
   name: string
 }
@@ -37,8 +35,6 @@ export interface ToolCategoryCard {
   imageUrl: string
 }
 
-const asset = (path: string) => (path.startsWith('home/') ? staticAsset(path.replace(/^home\//, '')) : `/assets/${path}`)
-
 export const TOOL_CATEGORIES: ToolCategory[] = [
   { id: 'all', name: '全部' },
   { id: 'image', name: '图片处理' },
@@ -61,11 +57,11 @@ export const TOOL_MAP: Record<string, ToolDescriptor> = {
     categoryId: 'image',
     iconClass: 'tools-icon-compress',
     toneClass: '',
-    imageUrl: asset('home/image-process-hero.png'),
-    heroImage: asset('home/image-process-hero.png'),
+    imageUrl: '',
+    heroImage: '',
     meta: '压缩、转发、上传前快速减小图片体积',
     subtitle: '批量压缩图片，适合分享、上传和朋友圈场景。',
-    summary: '支持调用微信原生压缩能力，选择图片后即可按质量生成更小体积版本。',
+    summary: '调用微信原生压缩能力，选择图片后按质量生成更小体积版本。',
     tips: [
       { label: '压缩模式', value: '原生压缩' },
       { label: '推荐用途', value: '群分享/上传' },
@@ -84,11 +80,11 @@ export const TOOL_MAP: Record<string, ToolDescriptor> = {
     categoryId: 'dev',
     iconClass: 'tools-icon-text',
     toneClass: '',
-    imageUrl: asset('home/toolbox-hero.png'),
-    heroImage: asset('home/toolbox-hero.png'),
+    imageUrl: '',
+    heroImage: '',
     meta: '实时统计字数、段落、空格和标点',
-    subtitle: '实时统计字数、段落、空格和标点。',
-    summary: '适合投稿、文案审核和日常输入统计，粘贴即算。',
+    subtitle: '粘贴文本后实时统计字数、段落和空格。',
+    summary: '适合投稿、文案审核和日常输入统计，粘贴即可计算。',
     tips: [
       { label: '统计内容', value: '字数/段落/空格' },
       { label: '输入方式', value: '粘贴文本' },
@@ -107,11 +103,11 @@ export const TOOL_MAP: Record<string, ToolDescriptor> = {
     categoryId: 'share',
     iconClass: 'tools-icon-qr',
     toneClass: '',
-    imageUrl: asset('home/report-poster.png'),
-    heroImage: asset('home/report-poster.png'),
+    imageUrl: '',
+    heroImage: '',
     meta: '分享口令、链接和活动信息快速出码',
-    subtitle: '输入口令或链接，立即生成一张分享码卡片。',
-    summary: '当前先提供轻量码阵预览和分享口令生成，适合酒局邀人和活动卡片场景。',
+    subtitle: '输入口令或链接，立即生成分享码卡片。',
+    summary: '当前提供轻量码阵预览和分享口令生成，适合酒局邀人和活动卡片场景。',
     tips: [
       { label: '输入对象', value: '链接/口令/文本' },
       { label: '输出形式', value: '分享码卡片' },
@@ -130,8 +126,8 @@ export const TOOL_MAP: Record<string, ToolDescriptor> = {
     categoryId: 'dev',
     iconClass: 'tools-icon-code',
     toneClass: 'tools-tile-blue',
-    imageUrl: asset('home/toolbox-hero.png'),
-    heroImage: asset('home/toolbox-hero.png'),
+    imageUrl: '',
+    heroImage: '',
     meta: '粘贴 JSON 后一键格式化或压缩',
     subtitle: 'JSON 一键格式化，便于阅读和调试。',
     summary: '适合接口联调、日志查看和结构排查，支持格式化、压缩和复制输出。',
@@ -153,8 +149,8 @@ export const TOOL_MAP: Record<string, ToolDescriptor> = {
     categoryId: 'calc',
     iconClass: 'tools-icon-home',
     toneClass: '',
-    imageUrl: asset('home/report-poster.png'),
-    heroImage: asset('home/report-poster.png'),
+    imageUrl: '',
+    heroImage: '',
     meta: '月供、总利息和总还款快速试算',
     subtitle: '按月供、总利息和还款计划快速试算。',
     summary: '支持等额本息试算，适合预算判断和多方案对比。',
@@ -176,8 +172,8 @@ export const TOOL_MAP: Record<string, ToolDescriptor> = {
     categoryId: 'calc',
     iconClass: 'tools-icon-currency',
     toneClass: 'tools-tile-green',
-    imageUrl: asset('home/report-poster.png'),
-    heroImage: asset('home/report-poster.png'),
+    imageUrl: '',
+    heroImage: '',
     meta: '常用货币之间快速换算',
     subtitle: '输入金额后，按预置参考汇率快速换算。',
     summary: '适合日常旅行预算、活动结算和简单估算场景。',
@@ -199,8 +195,8 @@ export const TOOL_MAP: Record<string, ToolDescriptor> = {
     categoryId: 'calc',
     iconClass: 'tools-icon-scale',
     toneClass: 'tools-tile-green',
-    imageUrl: asset('home/report-poster.png'),
-    heroImage: asset('home/report-poster.png'),
+    imageUrl: '',
+    heroImage: '',
     meta: '长度、重量和温度常见单位换算',
     subtitle: '快速完成长度、重量和温度的常用换算。',
     summary: '适合日常估算、活动准备和轻量计算场景。',
@@ -222,11 +218,11 @@ export const TOOL_MAP: Record<string, ToolDescriptor> = {
     categoryId: 'image',
     iconClass: 'tools-icon-grid',
     toneClass: 'tools-tile-blue',
-    imageUrl: asset('home/image-process-hero.png'),
-    heroImage: asset('home/image-process-hero.png'),
+    imageUrl: '',
+    heroImage: '',
     meta: '朋友圈九宫格预览与分区检查',
     subtitle: '一张图自动切成九宫格，适合朋友圈排版。',
-    summary: '当前提供九宫格切片预览，便于检查主视觉是否被切开。',
+    summary: '提供九宫格切片预览，便于检查主视觉是否被切开。',
     tips: [
       { label: '输出规格', value: '3 x 3' },
       { label: '适合场景', value: '朋友圈排版' },
@@ -245,8 +241,8 @@ export const TOOL_MAP: Record<string, ToolDescriptor> = {
     categoryId: 'image',
     iconClass: 'tools-icon-eraser',
     toneClass: '',
-    imageUrl: asset('home/party-hero.png'),
-    heroImage: asset('home/party-hero.png'),
+    imageUrl: '',
+    heroImage: '',
     meta: '快速预览遮盖处理，适合轻量内容整理',
     subtitle: '快速处理图片角标或小面积水印区域。',
     summary: '当前提供水印位置遮挡预览，适合素材初筛和快速整理。',
@@ -288,6 +284,6 @@ export const getToolCategoryCards = (): ToolCategoryCard[] =>
         id: category.id,
         name: category.name,
         meta: `${tools.length} 个工具 · ${tools.map((item) => item.name).slice(0, 3).join(' / ')}`,
-        imageUrl: tools[0]?.imageUrl || asset('home/toolbox-hero.png'),
+        imageUrl: tools[0]?.imageUrl || '',
       }
     })
