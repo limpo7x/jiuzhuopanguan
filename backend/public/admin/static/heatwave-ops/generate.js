@@ -29,11 +29,11 @@ const makeShell = (slug) => `<!doctype html>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${slug}</title>
-    <link rel="stylesheet" href="/admin/static/heatwave-ops/styles.css" />
+    <link rel="stylesheet" href="/admin/static/heatwave-ops/styles.css?v=20260611-admin-pagination" />
   </head>
   <body data-page="${slug}">
     <div id="app"></div>
-    <script src="/admin/static/heatwave-ops/app.js"></script>
+    <script src="/admin/static/heatwave-ops/app.js?v=20260611-admin-pagination"></script>
   </body>
 </html>
 `
@@ -44,7 +44,7 @@ const loginHtml = `<!doctype html>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Login</title>
-    <link rel="stylesheet" href="/admin/static/heatwave-ops/styles.css" />
+    <link rel="stylesheet" href="/admin/static/heatwave-ops/styles.css?v=20260611-admin-pagination" />
   </head>
   <body class="login-page">
     <div class="login-card">

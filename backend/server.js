@@ -501,7 +501,7 @@ const server = http.createServer((request, response) => {
         return
       }
       sendFile(request, response, filePath, {
-        cacheControl: 'public, max-age=3600, stale-while-revalidate=86400',
+        cacheControl: 'no-store',
       })
       return
     }
