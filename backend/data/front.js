@@ -241,8 +241,8 @@ const listFrontendTools = () => {
       placement: item.placement || 'tools',
       iconClass: visual.iconClass,
       toneClass: visual.toneClass,
-      imageUrl: item.imageUrl || emptyImage(),
-      heroImage: item.heroImage || item.imageUrl || emptyImage(),
+      imageUrl: toText(item.imageUrl),
+      heroImage: toText(item.heroImage),
       meta: `${item.target || '运营工具'} · 收藏率 ${item.favoriteRate || '0%'}`,
     }
   })
@@ -255,9 +255,9 @@ const listFrontendTools = () => {
   ]
   return {
     hero: {
-      imageUrl: toolsHero.imageUrl || emptyImage(),
-      subtitle: toolsHero.subtitle || '高频、实用、可复用',
-      title: toolsHero.title || '工具箱',
+      imageUrl: toText(toolsHero.imageUrl),
+      subtitle: toText(toolsHero.subtitle),
+      title: toText(toolsHero.title),
     },
     categories,
     popularTools: sortTools(tools.filter((item) => item.isHot === '是')).slice(0, 4),

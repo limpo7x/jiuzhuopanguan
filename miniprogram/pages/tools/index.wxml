@@ -48,7 +48,7 @@
 
     <block wx:if="{{activeCategory === 'all'}}">
       <view class="tools-section-head">
-        <text class="tools-section-title">????</text>
+        <text class="tools-section-title">热门工具</text>
       </view>
 
       <view class="tools-grid">
@@ -62,18 +62,17 @@
         >
           <view class="tools-tile-icon">
             <image wx:if="{{item.imageUrl}}" class="tools-tile-image" lazy-load="true" src="{{item.imageUrl}}" mode="aspectFill"></image>
-            <view wx:else class="tools-tile-glyph {{item.iconClass}}"></view>
           </view>
           <text class="tools-tile-label">{{item.name}}</text>
         </view>
       </view>
       <view wx:if="{{!popularTools.length}}" class="tools-empty">
-        <text class="tools-empty-title">??????</text>
-        <text class="tools-empty-meta">????????????</text>
+        <text class="tools-empty-title">没有匹配工具</text>
+        <text class="tools-empty-meta">请切换分类，或更换关键词。</text>
       </view>
 
       <view class="tools-section-head">
-        <text class="tools-section-title">????</text>
+        <text class="tools-section-title">工具分类</text>
       </view>
 
       <view class="tools-list">
@@ -91,11 +90,11 @@
             <text class="tools-list-title">{{item.name}}</text>
             <text class="tools-list-meta">{{item.meta}}</text>
           </view>
-          <text class="tools-list-arrow">?</text>
+          <text class="tools-list-arrow">&gt;</text>
         </view>
       </view>
       <view wx:if="{{!categoryCards.length}}" class="tools-empty tools-empty-soft">
-        <text class="tools-empty-meta">?????????</text>
+        <text class="tools-empty-meta">当前没有分类结果。</text>
       </view>
     </block>
 
@@ -115,17 +114,16 @@
         >
           <view class="tools-list-thumb">
             <image wx:if="{{item.imageUrl}}" lazy-load="true" src="{{item.imageUrl}}" mode="aspectFill"></image>
-            <view wx:else class="tools-list-glyph {{item.iconClass}}"></view>
           </view>
           <view class="tools-list-copy">
             <text class="tools-list-title">{{item.name}}</text>
             <text class="tools-list-meta">{{item.meta}}</text>
           </view>
-          <text class="tools-list-arrow">?</text>
+          <text class="tools-list-arrow">&gt;</text>
         </view>
       </view>
       <view wx:if="{{!filteredTools.length}}" class="tools-empty tools-empty-soft">
-        <text class="tools-empty-meta">??????????</text>
+        <text class="tools-empty-meta">当前分类下暂无工具。</text>
       </view>
     </block>
   </scroll-view>
