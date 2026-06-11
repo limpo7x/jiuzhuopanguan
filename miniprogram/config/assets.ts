@@ -20,6 +20,10 @@ export const normalizeManagedAssetPath = (path?: string) => {
     return ''
   }
 
+  if (/^(wxfile|file):\/\//i.test(path) || /^https?:\/\/127\.0\.0\.1(?::\d+)?\/__store__\//i.test(path) || /\/__store__\//i.test(path) || /\/__tmp__\//i.test(path) || /\/tmp\//i.test(path)) {
+    return ''
+  }
+
   if (/^\/static\/avatar-(?:host|\d+)\.png$/i.test(path) || path.startsWith('/assets/avatars/')) {
     return ''
   }

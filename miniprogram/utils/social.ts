@@ -95,16 +95,18 @@ const normalizeSocialAvatarUrl = (value?: string) => {
   if (
     /^\/static\/avatar-(?:host|\d+)\.png$/i.test(text) ||
     text.startsWith('/assets/avatars/') ||
+    /^https?:\/\/127\.0\.0\.1(?::\d+)?\/__store__\//i.test(text) ||
     /^https?:\/\/tmp\//i.test(text) ||
     /^file:\/\//i.test(text) ||
+    /\/__store__\//i.test(text) ||
     /\/__tmp__\//i.test(text)
   ) {
     return ''
   }
-  if (/^wxfile:\/\//i.test(text) && !/^wxfile:\/\/usr\//i.test(text)) {
+  if (/^wxfile:\/\//i.test(text)) {
     return ''
   }
-  if (/\/tmp\//i.test(text) && !/^wxfile:\/\/usr\//i.test(text)) {
+  if (/\/tmp\//i.test(text)) {
     return ''
   }
   return text
@@ -244,10 +246,7 @@ const requestLoginCode = () =>
 
 const isTempWechatAvatar = (value: string) => {
   const text = String(value || '').trim()
-  if (/^wxfile:\/\/usr\//i.test(text)) {
-    return false
-  }
-  return /^wxfile:\/\//i.test(text) || /^https?:\/\/tmp\//i.test(text) || /^file:\/\//i.test(text) || /\/tmp\//i.test(text) || /\/__tmp__\//i.test(text)
+  return /^wxfile:\/\//i.test(text) || /^https?:\/\/tmp\//i.test(text) || /^file:\/\//i.test(text) || /\/tmp\//i.test(text) || /\/__tmp__\//i.test(text) || /\/__store__\//i.test(text)
 }
 
 const readLocalFileAsDataUrl = (filePath: string): Promise<string> =>
@@ -300,7 +299,7 @@ const uploadWechatAvatarIfNeeded = async (avatarUrl: string): Promise<string> =>
     try {
       return normalizeSocialAvatarUrl(await uploadAvatarDataUrl(await readLocalFileAsDataUrl(raw)))
     } catch {
-      return normalizeSocialAvatarUrl(raw)
+      return ''
     }
   }
   const source = normalizeSocialAvatarUrl(raw)

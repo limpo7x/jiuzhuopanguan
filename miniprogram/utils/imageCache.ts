@@ -21,6 +21,13 @@ const getCacheMap = () => {
 
   const stored = wx.getStorageSync(STORAGE_KEY)
   cacheMap = stored && typeof stored === 'object' ? (stored as Record<string, string>) : {}
+  const currentCache = cacheMap
+  Object.keys(currentCache).forEach((key) => {
+    const value = currentCache[key] || ''
+    if (/^(wxfile|file):\/\//i.test(value) || /\/__store__\//i.test(value)) {
+      delete currentCache[key]
+    }
+  })
   return cacheMap
 }
 
@@ -66,16 +73,8 @@ const persistCacheMap = () => {
 
 const fileExists = (filePath: string) =>
   new Promise<boolean>((resolve) => {
-    if (!filePath || !filePath.startsWith('wxfile://')) {
-      resolve(false)
-      return
-    }
-
-    wx.getFileSystemManager().access({
-      path: filePath,
-      success: () => resolve(true),
-      fail: () => resolve(false),
-    })
+    void filePath
+    resolve(false)
   })
 
 const isCacheableRemoteImage = (source: string) => {
@@ -115,19 +114,7 @@ const downloadAndPersist = async (source: string) => {
     })
   })
 
-  try {
-    const saved = await new Promise<WechatMiniprogram.SaveFileSuccessCallbackResult>((resolve, reject) => {
-      const fs = wx.getFileSystemManager()
-      fs.saveFile({
-        tempFilePath: downloaded.tempFilePath,
-        success: resolve,
-        fail: reject,
-      })
-    })
-    return saved.savedFilePath || downloaded.tempFilePath
-  } catch {
-    return downloaded.tempFilePath
-  }
+  return downloaded.tempFilePath
 }
 
 export const resolveCachedManagedImagePath = async (source?: string) => {
@@ -158,10 +145,6 @@ export const resolveCachedManagedImagePath = async (source?: string) => {
 
   const task = downloadAndPersist(normalized)
     .then((localPath) => {
-      if (localPath.startsWith('wxfile://')) {
-        currentCache[normalized] = localPath
-        persistCacheMap()
-      }
       inflightDownloads.delete(normalized)
       return localPath
     })

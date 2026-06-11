@@ -210,7 +210,7 @@ const resolveDrawableAvatarPath = async (avatarUrl?: string) => {
       const image = await getImageInfo(source)
       return image.path || source
     } catch {
-      return source
+      return ''
     }
   }
 

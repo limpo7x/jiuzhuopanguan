@@ -100,15 +100,7 @@ const normalizeAvatar = (value?: string) => String(value || '').trim()
 const persistAvatar = (avatarUrl: string) =>
   new Promise<string>((resolve) => {
     const source = normalizeAvatar(avatarUrl)
-    if (!source || /^wxfile:\/\/usr\//i.test(source)) {
-      resolve(source)
-      return
-    }
-    wx.saveFile({
-      tempFilePath: source,
-      success: (result) => resolve(normalizeAvatar(result.savedFilePath)),
-      fail: () => resolve(source),
-    })
+    resolve(source)
   })
 
 Page<MePageState, MePageMethods>({

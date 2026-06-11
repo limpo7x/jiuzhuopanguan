@@ -15,7 +15,9 @@ const cleanAvatar = (value = '') => {
   const text = cleanText(value)
   if (!text) return ''
   if (/^\/static\/avatar-(?:host|\d+)\.png$/i.test(text) || text.startsWith('/assets/avatars/')) return ''
-  if (/\/tmp\//i.test(text) || /\/__tmp__\//i.test(text)) return ''
+  if (/^(wxfile|file):\/\//i.test(text)) return ''
+  if (/^https?:\/\/127\.0\.0\.1(?::\d+)?\/__store__\//i.test(text)) return ''
+  if (/\/tmp\//i.test(text) || /\/__tmp__\//i.test(text) || /\/__store__\//i.test(text)) return ''
   return text
 }
 
