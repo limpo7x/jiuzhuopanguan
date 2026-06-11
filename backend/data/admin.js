@@ -1488,6 +1488,23 @@ const buildManagedReportDetail = (report) => {
   const store = readStore()
   const relatedSession = report.sessionId ? store.liveSessions.find((item) => item.id === report.sessionId) : null
   const sessionName = String(report.name || report.title || '本局战报').replace(/战报$/, '')
+  const sessionMembers = Array.isArray(relatedSession?.members) ? relatedSession.members : []
+  const ranks = Array.isArray(report.ranks)
+    ? report.ranks.map((rank) => {
+        if (rank?.avatarUrl) {
+          return rank
+        }
+        const matchedMember = sessionMembers.find(
+          (member) =>
+            (rank?.profileId && String(member?.profileId || '') === String(rank.profileId)) ||
+            (rank?.name && String(member?.name || '') === String(rank.name)),
+        )
+        return {
+          ...rank,
+          avatarUrl: String(matchedMember?.avatarUrl || '').trim(),
+        }
+      })
+    : []
 
   return {
     id: report.id,
@@ -1502,7 +1519,7 @@ const buildManagedReportDetail = (report) => {
     inviteCode: relatedSession?.inviteCode || '',
     shareRate: report.shareRate || '0%',
     replayRate: report.replayRate || '0%',
-    ranks: Array.isArray(report.ranks) ? report.ranks : [],
+    ranks,
     events:
       Array.isArray(report.events) && report.events.length
         ? report.events

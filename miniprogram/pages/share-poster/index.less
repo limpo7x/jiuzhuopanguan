@@ -286,9 +286,10 @@ button.poster-share-item::after {
 }
 
 .poster-hidden-canvas {
-  position: fixed;
-  left: -9999px;
-  top: -9999px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
   pointer-events: none;
   opacity: 0;
 }

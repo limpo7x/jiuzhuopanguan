@@ -1,6 +1,8 @@
 import { trackAnalyticsEvent } from '../../services/analytics'
 import { getManagedReport, getManagedShareConfig } from '../../services/operations'
 import { getApiBase } from '../../config/api'
+import { normalizeManagedAssetPath } from '../../config/assets'
+import { resolveCachedManagedImagePath } from '../../utils/imageCache'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 
 interface PosterRank {
@@ -180,6 +182,55 @@ const resolveMiniappQrPath = async () => {
     }
   }
   return ''
+}
+
+const downloadImageToTempFile = (src: string) =>
+  new Promise<string>((resolve, reject) => {
+    wx.downloadFile({
+      url: src,
+      success: (result) => {
+        if (result.statusCode >= 200 && result.statusCode < 300 && result.tempFilePath) {
+          resolve(result.tempFilePath)
+          return
+        }
+        reject(new Error(`download failed: ${result.statusCode}`))
+      },
+      fail: reject,
+    })
+  })
+
+const resolveDrawableAvatarPath = async (avatarUrl?: string) => {
+  const source = normalizeManagedAssetPath(avatarUrl)
+  if (!source) {
+    return ''
+  }
+
+  if (/^(wxfile|file):\/\//i.test(source)) {
+    try {
+      const image = await getImageInfo(source)
+      return image.path || source
+    } catch {
+      return source
+    }
+  }
+
+  const cachedSource = await resolveCachedManagedImagePath(source)
+  try {
+    const image = await getImageInfo(cachedSource)
+    return image.path || cachedSource
+  } catch {
+    if (!/^https?:\/\//i.test(source)) {
+      return ''
+    }
+  }
+
+  try {
+    const tempFilePath = await downloadImageToTempFile(source)
+    const image = await getImageInfo(tempFilePath)
+    return image.path || tempFilePath
+  } catch {
+    return ''
+  }
 }
 
 const drawPartyBackdrop = (ctx: WechatMiniprogram.CanvasContext, width: number, height: number) => {
@@ -387,18 +438,21 @@ Page<SharePosterState, SharePosterMethods>({
           canvasHeight: height,
         },
         () => {
-          const ctx = wx.createCanvasContext('sharePosterCanvas')
+          const ctx = wx.createCanvasContext('sharePosterCanvas', this)
           drawer(ctx)
           ctx.draw(false, () => {
-            wx.canvasToTempFilePath({
-              canvasId: 'sharePosterCanvas',
-              width,
-              height,
-              destWidth: width,
-              destHeight: height,
-              success: (result) => resolve(result.tempFilePath),
-              fail: reject,
-            })
+            wx.canvasToTempFilePath(
+              {
+                canvasId: 'sharePosterCanvas',
+                width,
+                height,
+                destWidth: width,
+                destHeight: height,
+                success: (result) => resolve(result.tempFilePath),
+                fail: reject,
+              },
+              this,
+            )
           })
         },
       )
@@ -420,16 +474,7 @@ Page<SharePosterState, SharePosterMethods>({
       ? [this.data.featuredRank, ...this.data.secondaryRanks]
       : this.data.secondaryRanks
     const qrPath = await resolveMiniappQrPath()
-    const avatarPaths = await Promise.all(
-      rankPool.map(async (item) => {
-        try {
-          const image = await getImageInfo(item.avatarUrl)
-          return image.path
-        } catch {
-          return ''
-        }
-      }),
-    )
+    const avatarPaths = await Promise.all(rankPool.map((item) => resolveDrawableAvatarPath(item.avatarUrl)))
 
     const secondaryCount = Math.max(this.data.secondaryRanks.length, 0)
     const secondaryRows = Math.ceil(secondaryCount / 2)

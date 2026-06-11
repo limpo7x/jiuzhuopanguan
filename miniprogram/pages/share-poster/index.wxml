@@ -1,4 +1,4 @@
-<navigation-bar
+﻿<navigation-bar
   title="分享战报"
   back="{{true}}"
   customBack="{{true}}"
