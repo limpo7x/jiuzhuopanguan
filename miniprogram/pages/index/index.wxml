@@ -30,10 +30,10 @@
       </view>
     </view>
 
-    <view class="home-search-box">
+    <view class="home-search-box" bindtap="handleJoinByCodeTap">
       <view class="search-glyph icon-search"></view>
-      <text class="search-text">{{home.searchPlaceholder}}</text>
-      <text class="search-action">搜索</text>
+      <text class="search-text">输入口令加入</text>
+      <text class="search-action">加入</text>
     </view>
 
     <view class="spacer"></view>
@@ -52,9 +52,6 @@
             <text>去开一局</text>
             <view class="btn-glyph icon-flash"></view>
           </button>
-          <view class="secondary-join-btn" bindtap="handleJoinByCodeTap">
-            <text>输入口令加入</text>
-          </view>
         </view>
       </view>
     </view>
