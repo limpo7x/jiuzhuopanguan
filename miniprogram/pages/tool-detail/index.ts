@@ -31,7 +31,7 @@ interface ToolDetailState {
   toolError: string
   toolId: string
   toolInput: string
-  toolMode: ToolDescriptor['mode']
+  toolMode: ToolDescriptor['mode'] | ''
   toolName: string
   toolOutput: string
   unitAmount: string
@@ -58,7 +58,7 @@ interface ToolDetailState {
 }
 
 interface ToolDetailMethods {
-  applyToolConfig: (tool: ToolDescriptor) => void
+  applyToolConfig: (tool?: ToolDescriptor) => void
   calculateCurrency: () => void
   calculateLoan: () => void
   calculateTextStats: (value: string) => void
@@ -291,6 +291,22 @@ Page<ToolDetailState, ToolDetailMethods>({
   },
 
   applyToolConfig(tool) {
+    if (!tool) {
+      this.setData({
+        toolId: '',
+        toolName: '',
+        toolMode: '',
+        heroImage: '',
+        subtitle: '',
+        summary: '',
+        tips: [],
+        steps: [],
+        toolInput: '',
+        toolOutput: '',
+        toolError: '',
+      })
+      return
+    }
     this.setData(
       {
         toolId: tool.id,

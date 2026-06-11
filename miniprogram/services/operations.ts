@@ -1,7 +1,6 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath } from '../config/assets'
 import { resolveCachedManagedImagePath, resolveCachedManagedImagePathQuick } from '../utils/imageCache'
-import { getSessionRuntime, resolveSessionParticipants } from '../utils/session'
 import { getUserAuthHeaders } from '../utils/social'
 import {
   resolveToolId,
@@ -451,7 +450,7 @@ const buildCategoryCards = (tools: ToolDescriptor[], categories: ToolCategory[])
       return {
         id: category.id,
         name: category.name,
-        meta: hits.length ? ${hits.length} 个工具 ·  : '',
+        meta: hits.length ? `${hits.length} 个工具 · ${hits.map((item) => item.name).filter(Boolean).slice(0, 3).join(' / ')}` : '',
         imageUrl: hits[0]?.imageUrl || '',
       }
     })
@@ -502,13 +501,6 @@ export const getManagedLiveSession = async (sessionId?: string, inviteCode?: str
     .filter(Boolean)
     .join('&')
   const remote = await requestJson<RemoteLiveSession>(`/sessions/live${query ? `?${query}` : ''}`)
-  const runtime = getSessionRuntime()
-  const runtimePlayers = resolveSessionParticipants(runtime).map((item) => ({
-    avatarUrl: normalizeManagedAssetPath(item.avatarUrl),
-    name: item.name,
-    profileId: item.profileId || '',
-    status: item.status || '',
-  }))
   const joinedPlayers = remote.joinedPlayers?.length ? remote.joinedPlayers.map(normalizeSessionPlayer) : []
   const joinStatusPlayers = remote.joinStatusPlayers?.length ? remote.joinStatusPlayers.map(normalizeSessionPlayer) : []
 

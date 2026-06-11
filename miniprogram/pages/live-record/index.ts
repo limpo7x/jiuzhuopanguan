@@ -84,7 +84,7 @@ const buildPlayers = (runtime = getSessionRuntime()): LivePlayer[] =>
 const buildRecordId = (player: LivePlayer, index: number) => player.profileId || `player-${index + 1}`
 
 const buildDefaultMeta = (player: SessionParticipant | LivePlayer) =>
-  ('status' in player && player.status) || '绛夊緟鏈眬璁板綍'
+  ('status' in player && player.status) || ''
 
 const buildRecords = (players: LivePlayer[], runtime = getSessionRuntime()): LiveRecordItem[] => {
   const statMap = new Map(runtime.playerStats.map((item) => [item.profileId || item.name, item]))
@@ -163,7 +163,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     players: [],
     isJudge: true,
     records: [],
-    sessionName: '閰掓鍒ゅ畼閰掑眬',
+    sessionName: '',
     events: [],
   },
 
@@ -193,7 +193,7 @@ Page<LiveRecordState, LiveRecordMethods>({
         return
       } catch (error) {
         wx.showToast({
-          title: error instanceof Error ? error.message : '閰掑眬鍔犺浇澶辫触',
+          title: error instanceof Error ? error.message : '酒局加载失败',
           icon: 'none',
         })
       }
@@ -272,7 +272,7 @@ Page<LiveRecordState, LiveRecordMethods>({
 
     const runtime = getSessionRuntime()
     if (!runtime.sessionId) {
-      this.showPreviewToast('鏈壘鍒板綋鍓嶅眬淇℃伅')
+      this.showPreviewToast('未找到当前酒局信息')
       return
     }
 
@@ -327,7 +327,7 @@ Page<LiveRecordState, LiveRecordMethods>({
 
       this.showPreviewToast('鍒锋柊鎴愬姛')
     } catch (error) {
-      this.showPreviewToast(error instanceof Error ? error.message : '鍒锋柊澶辫触')
+      this.showPreviewToast(error instanceof Error ? error.message : '酒局记录保存失败')
     } finally {
       wx.hideLoading()
     }
@@ -405,7 +405,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       })
       return true
     } catch (error) {
-      this.showPreviewToast(error instanceof Error ? error.message : '閰掑眬璁板綍淇濆瓨澶辫触')
+      this.showPreviewToast(error instanceof Error ? error.message : '酒局记录保存失败')
       return false
     }
   },
@@ -437,7 +437,7 @@ Page<LiveRecordState, LiveRecordMethods>({
 
     const changed = records.find((item) => item.id === result.playerId)
     const events = changed
-      ? [{ text: `${changed.name} 瀹屾垚浜嗘秷鏉换鍔★細${result.question || '鏈疆鎸戞垬'}` }, ...this.data.events].slice(0, 4)
+      ? [{ text: `${changed.name} 完成消杯：${result.question || ''}` }, ...this.data.events].slice(0, 4)
       : this.data.events
 
     wx.removeStorageSync(JUDGE_WHEEL_RESULT_KEY)
@@ -594,4 +594,3 @@ Page<LiveRecordState, LiveRecordMethods>({
 })
 
 export {}
-

@@ -668,22 +668,6 @@ export const searchRegisteredUsers = async (keyword: string): Promise<SearchUser
 
 export const getVisiblePokeThreads = async (): Promise<PokeThread[]> => (await bootstrapSocial()).pokeThreads
 
-const buildLocalThread = (sender: SocialProfile, receiver: SocialProfile, status: 'pending' | 'matched', updatedAt = Date.now()): PokeThread => ({
-  id: [sender.id, receiver.id].sort().join('__'),
-  senderId: sender.id,
-  senderName: sender.name,
-  senderAvatarUrl: '',
-  receiverId: receiver.id,
-  receiverName: receiver.name,
-  receiverAvatarUrl: '',
-  counterpartId: receiver.id,
-  counterpartName: receiver.name,
-  counterpartAvatarUrl: '',
-  actionState: status === 'matched' ? 'matched' : 'outgoing',
-  status,
-  updatedAt,
-})
-
 export const sendPokeToFriend = async (friendId: string): Promise<PokeThread | null> => {
   const profile = await ensureCurrentProfile()
   const remote = await request<PokeThread>('/social/pokes', 'POST', { ownerId: profile.id, friendshipId: friendId })
