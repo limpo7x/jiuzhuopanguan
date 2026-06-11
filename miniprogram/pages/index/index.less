@@ -1350,3 +1350,42 @@ page {
   font-weight: 700;
   line-height: 1.35;
 }
+
+/* 2026-06-11 real-device home action and auth overlay fix */
+.hero-button-wrap {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, auto) !important;
+  width: 100% !important;
+  gap: 8px !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+}
+.hero-button-wrap .primary-btn,
+.hero-button-wrap .secondary-join-btn {
+  width: auto !important;
+  min-width: 0 !important;
+  min-height: 46px !important;
+  height: 46px !important;
+  padding: 0 12px !important;
+  box-sizing: border-box !important;
+  font-size: 15px !important;
+  line-height: 46px !important;
+  white-space: nowrap !important;
+}
+.hero-button-wrap .primary-btn {
+  max-width: none !important;
+}
+.hero-button-wrap .secondary-join-btn {
+  min-width: 104px !important;
+  padding: 0 10px !important;
+  font-size: 14px !important;
+}
+.auth-panel-mask {
+  z-index: 9999 !important;
+  align-items: flex-end !important;
+  padding: 18px 18px calc(26px + env(safe-area-inset-bottom)) !important;
+}
+.auth-panel {
+  position: relative !important;
+  z-index: 10000 !important;
+}

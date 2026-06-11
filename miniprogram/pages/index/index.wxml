@@ -30,34 +30,6 @@
       </view>
     </view>
 
-    <view wx:if="{{authPanelVisible}}" class="auth-panel-mask" bindtap="closeAuthPanel">
-      <form class="auth-panel" catchtap="noop" bindsubmit="handleLoginSubmit">
-        <view class="auth-panel-head">
-          <text class="auth-panel-title">微信授权登录</text>
-          <text class="auth-panel-close" bindtap="closeAuthPanel">关闭</text>
-        </view>
-        <view class="auth-avatar-row">
-          <button class="auth-avatar-btn" open-type="chooseAvatar" bindchooseavatar="handleAuthAvatar">
-            <image wx:if="{{authAvatarUrl}}" class="auth-avatar" src="{{authAvatarUrl}}" mode="aspectFill"></image>
-            <view wx:else class="auth-avatar"></view>
-          </button>
-          <view class="auth-avatar-copy">
-            <text class="auth-avatar-title">点击头像授权</text>
-            <text class="auth-avatar-desc">用于酒局身份展示，不会使用默认图片占位。</text>
-          </view>
-        </view>
-        <input
-          class="auth-name-input"
-          name="nickname"
-          type="nickname"
-          placeholder="填写微信昵称"
-          value="{{authName}}"
-          bindinput="handleAuthNameInput"
-        />
-        <button class="auth-submit" form-type="submit" loading="{{authSubmitting}}">确认登录</button>
-      </form>
-    </view>
-
     <view class="home-search-box">
       <view class="search-glyph icon-search"></view>
       <text class="search-text">{{home.searchPlaceholder}}</text>
@@ -152,5 +124,33 @@
       <view class="bottom-icon nav-me"></view>
       <text class="bottom-label">我的</text>
     </view>
+  </view>
+
+  <view wx:if="{{authPanelVisible}}" class="auth-panel-mask" bindtap="closeAuthPanel">
+    <form class="auth-panel" catchtap="noop" bindsubmit="handleLoginSubmit">
+      <view class="auth-panel-head">
+        <text class="auth-panel-title">微信授权登录</text>
+        <text class="auth-panel-close" bindtap="closeAuthPanel">关闭</text>
+      </view>
+      <view class="auth-avatar-row">
+        <button class="auth-avatar-btn" open-type="chooseAvatar" bindchooseavatar="handleAuthAvatar">
+          <image wx:if="{{authAvatarUrl}}" class="auth-avatar" src="{{authAvatarUrl}}" mode="aspectFill"></image>
+          <view wx:else class="auth-avatar"></view>
+        </button>
+        <view class="auth-avatar-copy">
+          <text class="auth-avatar-title">点击头像授权</text>
+          <text class="auth-avatar-desc">用于酒局身份展示，不会使用默认图片占位。</text>
+        </view>
+      </view>
+      <input
+        class="auth-name-input"
+        name="nickname"
+        type="nickname"
+        placeholder="填写微信昵称"
+        value="{{authName}}"
+        bindinput="handleAuthNameInput"
+      />
+      <button class="auth-submit" form-type="submit" loading="{{authSubmitting}}">确认登录</button>
+    </form>
   </view>
 </view>
