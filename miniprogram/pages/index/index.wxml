@@ -80,6 +80,9 @@
             <text>去开一局</text>
             <view class="btn-glyph icon-flash"></view>
           </button>
+          <view class="secondary-join-btn" bindtap="handleJoinByCodeTap">
+            <text>输入口令加入</text>
+          </view>
         </view>
       </view>
     </view>

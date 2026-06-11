@@ -1,5 +1,5 @@
-<navigation-bar
-  title="分享预览"
+﻿<navigation-bar
+  title="邀请海报"
   back="{{true}}"
   color="#24160f"
   background="rgba(255,253,248,0.96)"
@@ -8,8 +8,8 @@
 
 <view class="share-page">
   <scroll-view class="share-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="share-chip-row">
-      <view class="share-chip {{!showJoinStatus ? 'share-chip-active' : ''}}" data-tab="preview" bindtap="handleTabTap">分享卡片预览</view>
+    <view class="share-tabs">
+      <view class="share-chip {{!showJoinStatus ? 'share-chip-active' : ''}}" data-tab="preview" bindtap="handleTabTap">邀请预览</view>
       <view class="share-chip {{showJoinStatus ? 'share-chip-active' : ''}}" data-tab="status" bindtap="handleTabTap">口令加入状态</view>
     </view>
 
@@ -18,50 +18,34 @@
         <text class="share-poster-title">这局快乐就完事了！</text>
         <text class="share-poster-subtitle">{{sessionName}}</text>
         <view class="share-poster-row">
-          <view class="share-avatar-stack">
-            <block wx:for="{{avatars}}" wx:key="index">
-              <image wx:if="{{item}}" class="share-avatar" src="{{item}}" mode="aspectFill"></image>
-              <view wx:else class="share-avatar"></view>
-            </block>
+          <view class="share-code-block">
+            <text class="share-code-label">加入口令</text>
+            <view class="share-code-box">{{inviteCode || '未生成'}}</view>
           </view>
           <text class="share-poster-count">{{joinedCount}}/{{playerCount}} 已加入</text>
         </view>
-        <view class="share-code-box">AB7K9Q</view>
       </view>
     </view>
+
     <view wx:else class="share-poster-card">
       <view class="share-poster-copy">
         <text class="share-poster-title">口令加入状态</text>
-        <text class="share-poster-subtitle">邀请码 AB7K9Q · 当前 {{joinedCount}}/{{playerCount}} 已加入</text>
+        <text class="share-poster-subtitle">邀请码 {{inviteCode || '未生成'}} · 当前 {{joinedCount}}/{{playerCount}} 已加入</text>
         <view class="share-status-list">
           <view wx:for="{{joinStatusPlayers}}" wx:key="name" class="share-status-item">
-            <view class="share-status-user">
-              <image wx:if="{{item.avatarUrl}}" class="share-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
-              <view wx:else class="share-avatar"></view>
-              <text class="share-status-name">{{item.name}}</text>
-            </view>
-            <text class="share-status-tag">{{item.status}}</text>
+            <image wx:if="{{item.avatarUrl}}" class="share-status-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <view wx:else class="share-status-avatar"></view>
+            <text class="share-status-name">{{item.name}}</text>
+            <view class="share-status-tag">{{item.status}}</view>
           </view>
         </view>
       </view>
     </view>
 
-    <view class="share-section-head">
-      <text class="share-section-title">可分享到</text>
-    </view>
-
-    <view class="share-grid">
-      <button
-        wx:for="{{shareItems}}"
-        wx:key="id"
-        class="share-item"
-        data-id="{{item.id}}"
-        data-name="{{item.name}}"
-        open-type="share"
-        bindtap="handleShareTap"
-      >
-        <view class="share-item-icon {{item.iconClass}}"></view>
-        <text class="share-item-label">{{item.name}}</text>
+    <view class="share-action-grid">
+      <button wx:for="{{shareItems}}" wx:key="id" class="share-action-item" open-type="share" data-id="{{item.id}}" bindtap="handleShareTap">
+        <view class="share-action-icon {{item.iconClass}}"></view>
+        <text class="share-action-label">{{item.name}}</text>
       </button>
     </view>
 

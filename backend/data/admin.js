@@ -1154,9 +1154,24 @@ const parseBoolean = (value, fallback = false) => {
   return fallback
 }
 
-const makeInviteCode = (seed = '') => {
-  const normalized = String(seed).replace(/[^a-z0-9]/gi, '').toUpperCase()
-  return `${normalized.slice(-2).padStart(2, 'A')}7K9Q`
+const makeInviteCode = () => {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = ''
+  for (let index = 0; index < 6; index += 1) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)]
+  }
+  return code
+}
+
+const makeUniqueInviteCode = (store) => {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const code = makeInviteCode()
+    const existed = (store.liveSessions || []).some((item) => String(item.inviteCode || '').trim().toUpperCase() === code)
+    if (!existed) {
+      return code
+    }
+  }
+  return crypto.randomBytes(4).toString('hex').slice(0, 6).toUpperCase()
 }
 
 const normalizeWheelHistoryItem = (item = {}) => ({
@@ -1255,7 +1270,7 @@ const normalizeLiveSession = (session = {}, index = 0) => {
     hostProfileId: String(session.hostProfileId || members.find((item) => item.isHost)?.profileId || '').trim(),
     hostAvatarUrl: String(session.hostAvatarUrl || members[0]?.avatarUrl || '').trim(),
     id: String(session.id || createId('session')).trim(),
-    inviteCode: String(session.inviteCode || makeInviteCode(session.id || `session-${index + 1}`)).trim() || makeInviteCode(session.id || `session-${index + 1}`),
+    inviteCode: String(session.inviteCode || makeInviteCode()).trim() || makeInviteCode(),
     joinedCount: Number(session.joinedCount) || members.filter((item) => item.status === '已加入').length,
     members,
   }
@@ -1332,7 +1347,7 @@ const createManagedSession = (payload = {}) => {
     template: String(payload.templateName || '经典欠酒版').trim() || '经典欠酒版',
     hostName: String(payload.hostName || '当前发起人').trim() || '当前发起人',
     hostProfileId: String(payload.hostProfileId || '').trim(),
-    inviteCode: String(payload.inviteCode || makeInviteCode(id)).trim() || makeInviteCode(id),
+    inviteCode: String(payload.inviteCode || makeUniqueInviteCode(store)).trim().toUpperCase() || makeUniqueInviteCode(store),
     hostAvatarUrl: String(payload.hostAvatarUrl || '').trim() || '',
     state: String(payload.state || '等待开局').trim() || '等待开局',
     source: String(payload.source || '直接创建').trim() || '直接创建',

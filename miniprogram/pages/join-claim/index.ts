@@ -11,45 +11,86 @@ interface JoinClaimState {
   sessionName: string
 }
 
+interface InviteInputDetail {
+  value?: string
+}
+
 interface JoinClaimMethods {
+  handleInviteInput: (event: WechatMiniprogram.CustomEvent<InviteInputDetail>) => void
   handleJoinTap: () => Promise<void>
+  handleLoadByCodeTap: () => Promise<void>
   loadSession: () => Promise<void>
 }
+
+const normalizeInviteCode = (value?: string) => String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12)
 
 Page<JoinClaimState, JoinClaimMethods>({
   data: {
     inviteCode: '',
     joinedCount: 0,
-    loading: true,
+    loading: false,
     playerCount: 6,
     sessionId: '',
-    sessionName: '今晚聚会不醉不归',
+    sessionName: '输入口令加入酒局',
   },
 
   async onLoad(query) {
     const runtime = getSessionRuntime()
-    const inviteCode = typeof query?.inviteCode === 'string' ? decodeURIComponent(query.inviteCode) : runtime.inviteCode || ''
+    const inviteCode = normalizeInviteCode(typeof query?.inviteCode === 'string' ? decodeURIComponent(query.inviteCode) : runtime.inviteCode || '')
     const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
     const redirect = `/pages/join-claim/index?inviteCode=${encodeURIComponent(inviteCode)}${sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : ''}`
     const profile = await ensureUserAuthorized(redirect)
     if (!profile) return
+
     this.setData({ inviteCode, sessionId })
+    if (inviteCode || sessionId) {
+      await this.loadSession()
+    }
+  },
+
+  handleInviteInput(event) {
+    this.setData({ inviteCode: normalizeInviteCode(event.detail?.value) })
+  },
+
+  async handleLoadByCodeTap() {
+    if (!this.data.inviteCode) {
+      wx.showToast({ title: '请输入酒桌口令', icon: 'none' })
+      return
+    }
     await this.loadSession()
   },
 
   async loadSession() {
-    const liveSession = await getManagedLiveSession(this.data.sessionId, this.data.inviteCode)
-    this.setData({
-      joinedCount: liveSession.joinedCount,
-      loading: false,
-      playerCount: liveSession.playerCount,
-      sessionId: liveSession.id,
-      sessionName: liveSession.sessionName,
-    })
+    if (!this.data.inviteCode && !this.data.sessionId) {
+      this.setData({ loading: false })
+      return
+    }
+
+    this.setData({ loading: true })
+    try {
+      const liveSession = await getManagedLiveSession(this.data.sessionId, this.data.inviteCode)
+      this.setData({
+        inviteCode: liveSession.inviteCode,
+        joinedCount: liveSession.joinedCount,
+        loading: false,
+        playerCount: liveSession.playerCount,
+        sessionId: liveSession.id,
+        sessionName: liveSession.sessionName,
+      })
+    } catch (error) {
+      this.setData({ loading: false })
+      wx.showToast({ title: error instanceof Error ? error.message : '未找到该酒局', icon: 'none' })
+    }
   },
 
   async handleJoinTap() {
+    if (!this.data.inviteCode) {
+      wx.showToast({ title: '请输入酒桌口令', icon: 'none' })
+      return
+    }
+
     try {
+      this.setData({ loading: true })
       const [profile, liveSession] = await Promise.all([getCurrentDisplayProfile(), joinManagedSession(this.data.inviteCode)])
       setSessionRuntime({
         currentUser: { id: profile.id, name: profile.name, avatarUrl: profile.avatarUrl },
@@ -75,13 +116,14 @@ Page<JoinClaimState, JoinClaimMethods>({
       await new Promise<void>((resolve) => {
         wx.showModal({
           title: notPlayer ? '您非本局玩家' : '加入失败',
-          content: notPlayer ? '当前邀请链接不属于你的本局玩家名单，即将返回首页。' : '当前无法加入本局，即将返回首页。',
+          content: notPlayer ? '当前口令对应的酒局名单中没有你的账号，请联系判官确认是否已添加你。' : '当前无法加入本局，请检查口令是否正确。',
           showCancel: false,
           success: () => resolve(),
           fail: () => resolve(),
         })
       })
-      wx.reLaunch({ url: '/pages/index/index' })
+    } finally {
+      this.setData({ loading: false })
     }
   },
 })

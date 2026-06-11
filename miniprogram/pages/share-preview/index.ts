@@ -1,4 +1,5 @@
-﻿import { getSessionRuntime } from '../../utils/session'
+﻿import { getManagedLiveSession } from '../../services/operations'
+import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
 
 interface SharePreviewItem {
   iconClass: string
@@ -15,6 +16,7 @@ interface SharePreviewState {
   joinStatusPlayers: Array<{ avatarUrl: string; name: string; status: string }>
   playerCount: number
   posterImagePath: string
+  sessionId: string
   sessionName: string
   shareItems: SharePreviewItem[]
   showJoinStatus: boolean
@@ -30,6 +32,7 @@ interface SharePreviewMethods {
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
   handleSaveTap: () => Promise<void>
   handleShareTap: (event: WechatMiniprogram.BaseEvent) => void
+  loadInviteSession: (query?: Record<string, string | undefined>) => Promise<void>
   openPage: (url: string) => void
   saveImageFile: (filePath: string) => Promise<void>
   showPreviewToast: (message: string) => void
@@ -37,26 +40,15 @@ interface SharePreviewMethods {
 
 Page<SharePreviewState, SharePreviewMethods>({
   data: {
-    avatars: [
-      '',
-      '',
-      '',
-      '',
-    ],
+    avatars: [],
     canvasHeight: 960,
     canvasWidth: 720,
-    inviteCode: 'AB7K9Q',
-    joinedCount: 4,
-    joinStatusPlayers: [
-      { name: '阿浩', avatarUrl: '', status: '已加入' },
-      { name: '小熊', avatarUrl: '', status: '已加入' },
-      { name: 'Mika', avatarUrl: '', status: '待确认' },
-      { name: '可可', avatarUrl: '', status: '已加入' },
-      { name: '阿乐', avatarUrl: '', status: '待加入' },
-      { name: 'Nina', avatarUrl: '', status: '待加入' },
-    ],
+    inviteCode: '',
+    joinedCount: 0,
+    joinStatusPlayers: [],
     playerCount: 6,
     posterImagePath: '',
+    sessionId: '',
     sessionName: '今晚聚会不醉不归',
     shareItems: [
       { id: 'friend', name: '分享给好友', iconClass: 'share-icon-wechat' },
@@ -65,39 +57,73 @@ Page<SharePreviewState, SharePreviewMethods>({
     showJoinStatus: false,
   },
 
-  onLoad() {
-    const runtime = getSessionRuntime()
-    const playerCount = Math.max(2, runtime.playerCount || 6)
-    const selectedPlayers = runtime.selectedPlayers?.length
-      ? runtime.selectedPlayers
-      : this.data.joinStatusPlayers.map((item) => ({
-          name: item.name,
-          avatarUrl: item.avatarUrl,
-        }))
-    const joinedCount = Math.min(playerCount, Math.min(selectedPlayers.length, 4))
-    const avatars = selectedPlayers.slice(0, joinedCount).map((item) => item.avatarUrl)
-    const joinStatusPlayers = selectedPlayers.slice(0, playerCount).map((item, index) => ({
-      ...item,
-      status: index < joinedCount ? '已加入' : '待加入',
-    }))
+  async onLoad(query) {
+    await this.loadInviteSession(query as Record<string, string | undefined>)
+  },
 
-    this.setData({
-      avatars,
-      joinedCount,
-      joinStatusPlayers,
-      inviteCode: runtime.inviteCode || this.data.inviteCode,
-      playerCount,
-      sessionName: runtime.sessionName,
-    })
+  async loadInviteSession(query) {
+    const runtime = getSessionRuntime()
+    const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
+    const inviteCode = typeof query?.inviteCode === 'string' ? decodeURIComponent(query.inviteCode) : runtime.inviteCode || ''
+
+    try {
+      const liveSession = await getManagedLiveSession(sessionId, inviteCode)
+      const playerCount = Math.max(2, liveSession.playerCount || 6)
+      const joinStatusPlayers = liveSession.joinStatusPlayers.slice(0, playerCount).map((item) => ({
+        avatarUrl: item.avatarUrl,
+        name: item.name,
+        status: item.status,
+      }))
+      const avatars = liveSession.joinedPlayers.slice(0, Math.min(liveSession.joinedCount, 4)).map((item) => item.avatarUrl)
+
+      setSessionRuntime({
+        inviteCode: liveSession.inviteCode,
+        playerCount,
+        selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
+          avatarUrl: item.avatarUrl,
+          name: item.name,
+          profileId: item.profileId,
+          status: item.status,
+        })),
+        sessionId: liveSession.id,
+        sessionName: liveSession.sessionName,
+        templateName: liveSession.templateName,
+      })
+
+      this.setData({
+        avatars,
+        inviteCode: liveSession.inviteCode,
+        joinedCount: liveSession.joinedCount,
+        joinStatusPlayers,
+        playerCount,
+        posterImagePath: '',
+        sessionId: liveSession.id,
+        sessionName: liveSession.sessionName || '今晚聚会不醉不归',
+      })
+    } catch {
+      const fallbackPlayers = runtime.selectedPlayers || []
+      const playerCount = Math.max(2, runtime.playerCount || fallbackPlayers.length || 6)
+      const joinedPlayers = fallbackPlayers.filter((item) => item.status === '已加入')
+      this.setData({
+        avatars: joinedPlayers.slice(0, 4).map((item) => item.avatarUrl),
+        inviteCode,
+        joinedCount: joinedPlayers.length,
+        joinStatusPlayers: fallbackPlayers.slice(0, playerCount).map((item) => ({
+          avatarUrl: item.avatarUrl,
+          name: item.name,
+          status: item.status || '待加入',
+        })),
+        playerCount,
+        sessionId,
+        sessionName: runtime.sessionName || '今晚聚会不醉不归',
+      })
+    }
   },
 
   onShareAppMessage() {
-    const runtime = getSessionRuntime()
-    const inviteCode = this.data.inviteCode || runtime.inviteCode || ''
-    const sessionId = runtime.sessionId || ''
     const query = [
-      inviteCode ? `inviteCode=${encodeURIComponent(inviteCode)}` : '',
-      sessionId ? `sessionId=${encodeURIComponent(sessionId)}` : '',
+      this.data.inviteCode ? `inviteCode=${encodeURIComponent(this.data.inviteCode)}` : '',
+      this.data.sessionId ? `sessionId=${encodeURIComponent(this.data.sessionId)}` : '',
     ].filter(Boolean).join('&')
 
     return {
@@ -109,10 +135,7 @@ Page<SharePreviewState, SharePreviewMethods>({
 
   handleTabTap(event) {
     const { tab } = event.currentTarget.dataset as { tab: 'preview' | 'status' }
-
-    this.setData({
-      showJoinStatus: tab === 'status',
-    })
+    this.setData({ showJoinStatus: tab === 'status' })
   },
 
   async handleSaveTap() {
@@ -139,18 +162,21 @@ Page<SharePreviewState, SharePreviewMethods>({
   drawCanvasToFile(width, height, drawer) {
     return new Promise((resolve, reject) => {
       this.setData({ canvasWidth: width, canvasHeight: height }, () => {
-        const ctx = wx.createCanvasContext('sharePreviewCanvas')
+        const ctx = wx.createCanvasContext('sharePreviewCanvas', this)
         drawer(ctx)
         ctx.draw(false, () => {
-          wx.canvasToTempFilePath({
-            canvasId: 'sharePreviewCanvas',
-            width,
-            height,
-            destWidth: width,
-            destHeight: height,
-            success: (result) => resolve(result.tempFilePath),
-            fail: reject,
-          })
+          wx.canvasToTempFilePath(
+            {
+              canvasId: 'sharePreviewCanvas',
+              width,
+              height,
+              destWidth: width,
+              destHeight: height,
+              success: (result) => resolve(result.tempFilePath),
+              fail: reject,
+            },
+            this,
+          )
         })
       })
     })
@@ -180,7 +206,7 @@ Page<SharePreviewState, SharePreviewMethods>({
       ctx.setFontSize(36)
       ctx.fillText('加入口令', 94, 340)
       ctx.setFontSize(70)
-      ctx.fillText(this.data.inviteCode || 'AB7K9Q', 94, 455)
+      ctx.fillText(this.data.inviteCode || '未生成', 94, 455)
       ctx.setFontSize(28)
       ctx.fillText(`${this.data.joinedCount}/${this.data.playerCount} 已加入`, 94, 530)
       ctx.setFontSize(24)
@@ -207,10 +233,7 @@ Page<SharePreviewState, SharePreviewMethods>({
   },
 
   showPreviewToast(message) {
-    wx.showToast({
-      title: message,
-      icon: 'none',
-    })
+    wx.showToast({ title: message, icon: 'none' })
   },
 
   openPage(url) {
@@ -224,4 +247,3 @@ Page<SharePreviewState, SharePreviewMethods>({
 })
 
 export {}
-

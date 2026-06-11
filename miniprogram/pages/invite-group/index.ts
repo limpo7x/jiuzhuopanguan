@@ -1,4 +1,5 @@
-﻿import { getSessionRuntime } from '../../utils/session'
+﻿import { getManagedLiveSession } from '../../services/operations'
+import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface ShareItem {
@@ -23,7 +24,7 @@ interface InviteGroupMethods {
 
 Page<InviteGroupState, InviteGroupMethods>({
   data: {
-    inviteCode: 'AB7K9Q',
+    inviteCode: '',
     sessionId: '',
     sessionName: '今晚聚会不醉不归',
     shareItems: [
@@ -38,7 +39,25 @@ Page<InviteGroupState, InviteGroupMethods>({
     const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
     const profile = await ensureUserAuthorized(`/pages/invite-group/index${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ''}`)
     if (!profile) return
-    this.setData({ inviteCode: runtime.inviteCode || 'AB7K9Q', sessionId, sessionName: runtime.sessionName || '今晚聚会不醉不归' })
+
+    try {
+      const liveSession = await getManagedLiveSession(sessionId, runtime.inviteCode)
+      setSessionRuntime({
+        inviteCode: liveSession.inviteCode,
+        playerCount: liveSession.playerCount,
+        selectedPlayers: liveSession.joinStatusPlayers,
+        sessionId: liveSession.id,
+        sessionName: liveSession.sessionName,
+        templateName: liveSession.templateName,
+      })
+      this.setData({
+        inviteCode: liveSession.inviteCode,
+        sessionId: liveSession.id,
+        sessionName: liveSession.sessionName,
+      })
+    } catch {
+      this.setData({ inviteCode: runtime.inviteCode || '', sessionId, sessionName: runtime.sessionName || '今晚聚会不醉不归' })
+    }
   },
 
   onShareAppMessage() {
@@ -50,11 +69,15 @@ Page<InviteGroupState, InviteGroupMethods>({
   },
 
   handleCopyTap() {
+    if (!this.data.inviteCode) {
+      wx.showToast({ title: '邀请码未生成', icon: 'none' })
+      return
+    }
     wx.setClipboardData({ data: this.data.inviteCode })
   },
 
   handlePreviewTap() {
-    this.openPage(`/pages/share-preview/index?sessionId=${encodeURIComponent(this.data.sessionId)}`)
+    this.openPage(`/pages/share-preview/index?sessionId=${encodeURIComponent(this.data.sessionId)}&inviteCode=${encodeURIComponent(this.data.inviteCode)}`)
   },
 
   handleNextTap() {

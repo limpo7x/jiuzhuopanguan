@@ -1,4 +1,4 @@
-<navigation-bar
+﻿<navigation-bar
   title="加入酒局"
   back="{{true}}"
   color="#24160f"
@@ -10,13 +10,20 @@
   <scroll-view class="join-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="join-center">
       <view class="join-goblet-icon"></view>
-      <text class="join-title">朋友邀请你来一局</text>
+      <text class="join-title">输入口令加入酒局</text>
       <text class="join-subtitle">{{sessionName}}</text>
     </view>
 
     <view class="join-field">
-      <text class="join-label">邀请码</text>
-      <view class="join-input">{{inviteCode}}</view>
+      <text class="join-label">酒桌口令</text>
+      <input
+        class="join-input join-code-input"
+        value="{{inviteCode}}"
+        maxlength="12"
+        placeholder="请输入判官发来的口令"
+        placeholder-class="join-placeholder"
+        bindinput="handleInviteInput"
+      />
     </view>
 
     <view class="join-field">
@@ -24,14 +31,18 @@
       <view class="join-input">{{joinedCount}} / {{playerCount}} 已加入</view>
     </view>
 
+    <view class="join-secondary" bindtap="handleLoadByCodeTap">
+      <text>{{loading ? '查询中...' : '查询酒局'}}</text>
+    </view>
+
     <view class="join-primary" bindtap="handleJoinTap">
-      <text>{{loading ? '加载中...' : '确认加入本局'}}</text>
+      <text>{{loading ? '处理中...' : '确认加入本局'}}</text>
       <view class="join-primary-icon"></view>
     </view>
 
     <view class="join-notice">
       <view class="join-notice-icon"></view>
-      <text>首次进入会先校验微信授权，确认你在本局名单内后再放行。</text>
+      <text>你可以通过分享链接进入，也可以手动输入判官发来的酒桌口令加入。</text>
     </view>
   </scroll-view>
 </view>

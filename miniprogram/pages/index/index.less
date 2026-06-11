@@ -302,7 +302,11 @@ page {
 }
 
 .hero-button-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin-top: 10px;
+  flex-wrap: wrap;
 }
 
 .primary-btn {
@@ -322,6 +326,22 @@ page {
 
 .full-btn {
   width: 178px;
+}
+
+.secondary-join-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1;
+  font-weight: 900;
+  backdrop-filter: blur(8px);
 }
 
 .btn-glyph {
@@ -616,6 +636,7 @@ page {
 .hero-subtitle { margin-top: 10px; font-size: 16px; line-height: 1.45; }
 .primary-btn { min-height: 52px; padding: 0 22px; font-size: 17px; }
 .full-btn { width: 210px; }
+.secondary-join-btn { min-height: 52px; padding: 0 18px; font-size: 16px; }
 .home-section-head { margin: 24px 0 12px; }
 .home-section-title { font-size: 20px; }
 .home-section-link { font-size: 14px; }

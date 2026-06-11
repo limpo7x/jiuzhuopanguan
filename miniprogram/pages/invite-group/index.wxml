@@ -1,4 +1,4 @@
-<navigation-bar
+﻿<navigation-bar
   title="邀请好友"
   back="{{true}}"
   color="#24160f"
@@ -40,18 +40,13 @@
     <view class="invite-card invite-form-card invite-copy-card">
       <text class="invite-label">复制邀请码</text>
       <view class="invite-row-between">
-        <text class="invite-code">{{inviteCode}}</text>
+        <text class="invite-code">{{inviteCode || '生成中'}}</text>
         <view class="invite-tag" bindtap="handleCopyTap">复制</view>
       </view>
     </view>
 
     <view class="invite-share-grid">
-      <button
-        wx:for="{{shareItems}}"
-        wx:key="id"
-        class="invite-share-item"
-        open-type="share"
-      >
+      <button wx:for="{{shareItems}}" wx:key="id" class="invite-share-item" open-type="share">
         <view class="invite-share-icon {{item.iconClass}}"></view>
         <text class="invite-share-label">{{item.name}}</text>
       </button>

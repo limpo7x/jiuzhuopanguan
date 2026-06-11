@@ -35,6 +35,7 @@ interface HomePageMethods {
   handleCheckIn: () => void
   handleLoginSubmit: (event: WechatMiniprogram.CustomEvent<{ value?: Record<string, string> }>) => Promise<void>
   handleLoginTextTap: () => void
+  handleJoinByCodeTap: () => Promise<void>
   handlePrimaryTap: () => Promise<void>
   handleQuickToolTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
@@ -202,6 +203,12 @@ Page<HomePageState, HomePageMethods>({
     const profile = await ensureUserAuthorized('/pages/create-session/index')
     if (!profile) return
     wx.navigateTo({ url: '/pages/create-session/index' })
+  },
+
+  async handleJoinByCodeTap() {
+    const profile = await ensureUserAuthorized('/pages/join-claim/index')
+    if (!profile) return
+    wx.navigateTo({ url: '/pages/join-claim/index' })
   },
 
   async handleCheckIn() {
