@@ -481,7 +481,6 @@ const getPaginationPages = (currentPage, pageCount) => {
 }
 
 const renderPagination = ({ pagerKey, pageSize, totalRows, currentPage, pageCount }) => {
-  if (pageCount <= 1) return ''
   const pages = getPaginationPages(currentPage, pageCount)
   const pageButtons = pages
     .map((page) => `<button class="pager-btn ${page === currentPage ? 'pager-btn-active' : ''}" type="button" data-action="table-page" data-table-key="${escapeHtml(pagerKey)}" data-page="${page}">${page}</button>`)

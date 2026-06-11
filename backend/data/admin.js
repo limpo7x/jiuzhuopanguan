@@ -1933,6 +1933,7 @@ const pageMap = {
       collection: {
         key: 'userProfiles',
         itemLabel: '用户',
+      pageSize: 15,
         fields: [
           { key: 'name', label: '昵称', type: 'text' },
           { key: 'identityTag', label: '身份标签', type: 'select', options: getIdentityTagOptions() },
