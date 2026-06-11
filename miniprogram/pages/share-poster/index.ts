@@ -1,7 +1,7 @@
 import { trackAnalyticsEvent } from '../../services/analytics'
 import { getManagedReport, getManagedShareConfig } from '../../services/operations'
 import { getApiBase } from '../../config/api'
-import { normalizeManagedAssetPath } from '../../config/assets'
+import { normalizeManagedAvatarPath } from '../../config/assets'
 import { resolveCachedManagedImagePath } from '../../utils/imageCache'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 
@@ -200,12 +200,12 @@ const downloadImageToTempFile = (src: string) =>
   })
 
 const resolveDrawableAvatarPath = async (avatarUrl?: string) => {
-  const source = normalizeManagedAssetPath(avatarUrl)
+  const source = normalizeManagedAvatarPath(avatarUrl)
   if (!source) {
     return ''
   }
 
-  if (/^(wxfile|file):\/\//i.test(source)) {
+  if (/^(wxfile|file):\/\//i.test(source) || /^https?:\/\/tmp\//i.test(source)) {
     try {
       const image = await getImageInfo(source)
       return image.path || source

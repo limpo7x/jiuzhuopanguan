@@ -837,7 +837,7 @@ const server = http.createServer((request, response) => {
       const payload = await readJsonBody(request)
       const created = createManagedSession({
         ...payload,
-        hostAvatarUrl: userSession.profile.avatarUrl,
+        hostAvatarUrl: userSession.profile.avatarUrl || payload.hostAvatarUrl || '',
         hostName: userSession.profile.name,
         hostPhone: userSession.profile.phone || '',
         hostProfileId: userSession.profile.id,

@@ -1,5 +1,5 @@
 import { getApiBase } from '../config/api'
-import { normalizeManagedAssetPath } from '../config/assets'
+import { normalizeManagedAssetPath, normalizeManagedAvatarPath } from '../config/assets'
 import { resolveCachedManagedImagePath, resolveCachedManagedImagePathQuick } from '../utils/imageCache'
 import { getUserAuthHeaders } from '../utils/social'
 import {
@@ -397,7 +397,7 @@ const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' 
   })
 
 const normalizeSessionPlayer = (player?: RemoteSessionPlayer): ManagedSessionPlayer => ({
-  avatarUrl: normalizeManagedAssetPath(player?.avatarUrl),
+  avatarUrl: normalizeManagedAvatarPath(player?.avatarUrl),
   clearedCount: Math.max(0, Number(player?.clearedCount) || 0),
   debtCount: Math.max(0, Number(player?.debtCount) || 0),
   drinkCount: Math.max(0, Number(player?.drinkCount) || 0),
@@ -562,7 +562,7 @@ const normalizeManagedReport = (report?: RemoteManagedReport): ManagedReportDeta
   playerCount: Number(report?.playerCount) || 0,
   ranks: Array.isArray(report?.ranks)
     ? report.ranks.map((item) => ({
-        avatarUrl: normalizeManagedAssetPath(item?.avatarUrl),
+        avatarUrl: normalizeManagedAvatarPath(item?.avatarUrl),
         name: item?.name || '',
         title: item?.title || '',
         value: item?.value || '',

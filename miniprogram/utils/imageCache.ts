@@ -1,11 +1,18 @@
 import { getApiBase } from '../config/api'
 
-const STORAGE_KEY = 'managed-image-cache-map-v1'
+const STORAGE_KEY = 'managed-image-cache-map-v2'
 const FAILED_CACHE_KEY = 'managed-image-cache-failures-v1'
 const DOWNLOAD_FAILURE_TTL_MS = 5 * 60 * 1000
 const MAX_DOWNLOAD_TIMEOUT_MS = 4000
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+const MAX_CACHE_ITEMS = 80
 
-let cacheMap: Record<string, string> | null = null
+interface CacheEntry {
+  path: string
+  savedAt: number
+}
+
+let cacheMap: Record<string, CacheEntry> | null = null
 let failureMap: Record<string, number> | null = null
 const inflightDownloads = new Map<string, Promise<string>>()
 
@@ -20,14 +27,7 @@ const getCacheMap = () => {
   }
 
   const stored = wx.getStorageSync(STORAGE_KEY)
-  cacheMap = stored && typeof stored === 'object' ? (stored as Record<string, string>) : {}
-  const currentCache = cacheMap
-  Object.keys(currentCache).forEach((key) => {
-    const value = currentCache[key] || ''
-    if (/^(wxfile|file):\/\//i.test(value) || /\/__store__\//i.test(value)) {
-      delete currentCache[key]
-    }
-  })
+  cacheMap = stored && typeof stored === 'object' ? (stored as Record<string, CacheEntry>) : {}
   return cacheMap
 }
 
@@ -73,8 +73,16 @@ const persistCacheMap = () => {
 
 const fileExists = (filePath: string) =>
   new Promise<boolean>((resolve) => {
-    void filePath
-    resolve(false)
+    if (!filePath) {
+      resolve(false)
+      return
+    }
+
+    wx.getFileSystemManager().access({
+      path: filePath,
+      success: () => resolve(true),
+      fail: () => resolve(false),
+    })
   })
 
 const isCacheableRemoteImage = (source: string) => {
@@ -114,7 +122,45 @@ const downloadAndPersist = async (source: string) => {
     })
   })
 
-  return downloaded.tempFilePath
+  return new Promise<string>((resolve, reject) => {
+    wx.saveFile({
+      tempFilePath: downloaded.tempFilePath,
+      success: (result) => {
+        resolve(result.savedFilePath)
+      },
+      fail: reject,
+    })
+  })
+}
+
+const removeSavedFile = (filePath: string) => {
+  if (!filePath) {
+    return
+  }
+
+  wx.getFileSystemManager().unlink({
+    filePath,
+    fail: () => undefined,
+  })
+}
+
+const pruneCacheMap = () => {
+  const currentCache = getCacheMap()
+  const now = Date.now()
+  Object.keys(currentCache).forEach((key) => {
+    const entry = currentCache[key]
+    if (!entry?.path || !entry.savedAt || now - entry.savedAt > CACHE_TTL_MS) {
+      removeSavedFile(entry?.path || '')
+      delete currentCache[key]
+    }
+  })
+
+  const entries = Object.entries(currentCache).sort((left, right) => Number(left[1].savedAt || 0) - Number(right[1].savedAt || 0))
+  while (entries.length > MAX_CACHE_ITEMS) {
+    const [key, entry] = entries.shift() as [string, CacheEntry]
+    removeSavedFile(entry.path)
+    delete currentCache[key]
+  }
 }
 
 export const resolveCachedManagedImagePath = async (source?: string) => {
@@ -128,12 +174,13 @@ export const resolveCachedManagedImagePath = async (source?: string) => {
   }
 
   const currentCache = getCacheMap()
-  const cachedPath = currentCache[normalized]
-  if (cachedPath && (await fileExists(cachedPath))) {
-    return cachedPath
+  const cachedEntry = currentCache[normalized]
+  if (cachedEntry?.path && Date.now() - Number(cachedEntry.savedAt || 0) <= CACHE_TTL_MS && (await fileExists(cachedEntry.path))) {
+    return cachedEntry.path
   }
 
-  if (cachedPath) {
+  if (cachedEntry) {
+    removeSavedFile(cachedEntry.path)
     delete currentCache[normalized]
     persistCacheMap()
   }
@@ -146,6 +193,12 @@ export const resolveCachedManagedImagePath = async (source?: string) => {
   const task = downloadAndPersist(normalized)
     .then((localPath) => {
       inflightDownloads.delete(normalized)
+      pruneCacheMap()
+      currentCache[normalized] = {
+        path: localPath,
+        savedAt: Date.now(),
+      }
+      persistCacheMap()
       return localPath
     })
     .catch(() => {

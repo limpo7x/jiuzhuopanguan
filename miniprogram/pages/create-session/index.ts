@@ -108,7 +108,9 @@ Page<CreateSessionState, CreateSessionMethods>({
       })
 
       const created = await createManagedSession({
+        hostAvatarUrl: profile.avatarUrl,
         hostName: profile.name,
+        hostProfileId: profile.id,
         playerCount: this.data.playerCount,
         sessionName: this.data.sessionName,
         source: '直接创建',

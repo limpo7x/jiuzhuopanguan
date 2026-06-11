@@ -100,17 +100,9 @@ const normalizeSocialAvatarUrl = (value?: string) => {
     /^\/static\/avatar-(?:host|\d+)\.png$/i.test(text) ||
     text.startsWith('/assets/avatars/') ||
     /^https?:\/\/127\.0\.0\.1(?::\d+)?\/__store__\//i.test(text) ||
-    /^https?:\/\/tmp\//i.test(text) ||
-    /^file:\/\//i.test(text) ||
     /\/__store__\//i.test(text) ||
     /\/__tmp__\//i.test(text)
   ) {
-    return ''
-  }
-  if (/^wxfile:\/\//i.test(text)) {
-    return ''
-  }
-  if (/\/tmp\//i.test(text)) {
     return ''
   }
   return text
@@ -304,7 +296,7 @@ const uploadWechatAvatarIfNeeded = async (avatarUrl: string): Promise<string> =>
     try {
       return normalizeSocialAvatarUrl(await uploadAvatarDataUrl(await readLocalFileAsDataUrl(raw)))
     } catch {
-      return ''
+      return normalizeSocialAvatarUrl(raw)
     }
   }
   const source = normalizeSocialAvatarUrl(raw)

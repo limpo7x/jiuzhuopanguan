@@ -66,3 +66,24 @@ export const normalizeManagedAssetPath = (path?: string) => {
 
   return path
 }
+
+export const normalizeManagedAvatarPath = (path?: string) => {
+  const text = String(path || '').trim()
+  if (!text) {
+    return ''
+  }
+
+  if (/^\/static\/avatar-(?:host|\d+)\.png$/i.test(text) || text.startsWith('/assets/avatars/')) {
+    return ''
+  }
+
+  if (/^(wxfile|file):\/\//i.test(text) || /^https?:\/\/tmp\//i.test(text)) {
+    return text
+  }
+
+  if (/^https?:\/\/127\.0\.0\.1(?::\d+)?\/__store__\//i.test(text) || /\/__tmp__\//i.test(text) || /\/__store__\//i.test(text)) {
+    return ''
+  }
+
+  return normalizeManagedAssetPath(text)
+}
