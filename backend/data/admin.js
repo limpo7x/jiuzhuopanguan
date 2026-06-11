@@ -134,11 +134,7 @@ const createDefaultStore = () => ({
   campaigns: [],
   baseConfigs: [],
   sensitiveWords: [],
-  auditQueue: [
-    { id: 'audit-1', target: '“连喝三杯再自拍发群”', source: '题库', reason: '过度饮酒导向', submittedAt: '今天 11:26', status: '待审核' },
-    { id: 'audit-2', target: '“喝到站不稳才算输”', source: '模板文案', reason: '违规饮酒引导', submittedAt: '今天 09:14', status: '待审核' },
-    { id: 'audit-3', target: '昵称“酒疯子xxx”', source: '用户昵称', reason: '负面引导', submittedAt: '今天 08:22', status: '已拦截' },
-  ],
+  auditQueue: [],
 })
 
 const getSessionContactsByProfile = (profileId) => {
@@ -184,14 +180,14 @@ const getSessionContactsByProfile = (profileId) => {
   return Array.from(contacts.values()).sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0))
 }
 
-const normalizeShareAsset = (item = {}, index = 0) => {
-  const exposureCount = Math.max(1, Number(item.exposureCount) || 1000)
-  const openCount = Math.max(0, Number(item.openCount) || seedCountFromRate(item.openRate, exposureCount, exposureCount))
-  const returnCount = Math.max(0, Number(item.returnCount) || seedCountFromRate(item.returnRate, openCount || exposureCount, openCount || exposureCount))
+const normalizeShareAsset = (item = {}) => {
+  const exposureCount = Math.max(0, Number(item.exposureCount) || 0)
+  const openCount = Math.max(0, Number(item.openCount) || 0)
+  const returnCount = Math.max(0, Number(item.returnCount) || 0)
   return {
     ...item,
-    id: String(item.id || `share-${index + 1}`).trim(),
-    name: String(item.name || `素材 ${index + 1}`).trim(),
+    id: String(item.id || '').trim(),
+    name: String(item.name || '').trim(),
     assetType: String(item.assetType || '').trim(),
     scene: String(item.scene || '').trim(),
     imageUrl: String(item.imageUrl || '').trim(),
@@ -199,19 +195,19 @@ const normalizeShareAsset = (item = {}, index = 0) => {
     openCount,
     returnCount,
     openRate: ratioPercent(openCount, exposureCount),
-    returnRate: ratioPercent(returnCount, openCount || exposureCount),
+    returnRate: ratioPercent(returnCount, openCount),
     status: String(item.status || '').trim(),
   }
 }
 
-const normalizeReportItem = (item = {}, index = 0) => {
-  const viewCount = Math.max(1, Number(item.viewCount) || 1000)
-  const shareCount = Math.max(0, Number(item.shareCount) || seedCountFromRate(item.shareRate, viewCount, viewCount))
-  const replayCount = Math.max(0, Number(item.replayCount) || seedCountFromRate(item.replayRate, viewCount, viewCount))
+const normalizeReportItem = (item = {}) => {
+  const viewCount = Math.max(0, Number(item.viewCount) || 0)
+  const shareCount = Math.max(0, Number(item.shareCount) || 0)
+  const replayCount = Math.max(0, Number(item.replayCount) || 0)
   return {
     ...item,
-    id: String(item.id || `report-${index + 1}`).trim(),
-    name: String(item.name || `战报 ${index + 1}`).trim(),
+    id: String(item.id || '').trim(),
+    name: String(item.name || '').trim(),
     template: String(item.template || '').trim(),
     title: String(item.title || '').trim(),
     scene: String(item.scene || '').trim(),
@@ -227,71 +223,72 @@ const normalizeReportItem = (item = {}, index = 0) => {
   }
 }
 
-const normalizeMembershipPlan = (item = {}, index = 0) => {
-  const exposureCount = Math.max(1, Number(item.exposureCount) || 1000)
-  const purchaseCount = Math.max(0, Number(item.purchaseCount) || seedCountFromRate(item.conversionRate, exposureCount, exposureCount))
-  const renewalCount = Math.max(0, Number(item.renewalCount) || seedCountFromRate(item.renewRate, purchaseCount || exposureCount, purchaseCount || exposureCount))
+const normalizeMembershipPlan = (item = {}) => {
+  const exposureCount = Math.max(0, Number(item.exposureCount) || 0)
+  const purchaseCount = Math.max(0, Number(item.purchaseCount) || 0)
+  const renewalCount = Math.max(0, Number(item.renewalCount) || 0)
   return {
     ...item,
-    id: String(item.id || `member-${index + 1}`).trim(),
-    name: String(item.name || `会员套餐 ${index + 1}`).trim(),
+    id: String(item.id || '').trim(),
+    name: String(item.name || '').trim(),
     price: String(item.price || '').trim(),
     duration: String(item.duration || '').trim(),
     exposureCount,
     purchaseCount,
     renewalCount,
     conversionRate: ratioPercent(purchaseCount, exposureCount),
-    renewRate: ratioPercent(renewalCount, purchaseCount || exposureCount),
+    renewRate: ratioPercent(renewalCount, purchaseCount),
     status: String(item.status || '').trim(),
   }
 }
 
-const normalizeAdSlot = (item = {}, index = 0) => {
-  const impressions = Math.max(1, Number(item.impressions) || 1000)
-  const completions = Math.max(0, Number(item.completions) || seedCountFromRate(item.completionRate, impressions, impressions))
+const normalizeAdSlot = (item = {}) => {
+  const impressions = Math.max(0, Number(item.impressions) || 0)
+  const completions = Math.max(0, Number(item.completions) || 0)
   const revenueValue = Number(item.revenueValue) || numberFromText(item.revenue)
   return {
     ...item,
-    id: String(item.id || `ad-${index + 1}`).trim(),
-    name: String(item.name || `广告位 ${index + 1}`).trim(),
+    id: String(item.id || '').trim(),
+    name: String(item.name || '').trim(),
     page: String(item.page || '').trim(),
     adType: String(item.adType || '').trim(),
     impressions,
     completions,
     revenueValue,
     completionRate: ratioPercent(completions, impressions),
-    revenue: `¥${Math.round(revenueValue).toLocaleString('en-US')}`,
+    revenue: revenueValue ? '?' + Math.round(revenueValue).toLocaleString('en-US') : '',
     status: String(item.status || '').trim(),
   }
 }
 
-const normalizeMerchant = (item = {}, index = 0) => {
+const normalizeMerchant = (item = {}) => {
   const claimCount = Math.max(0, Number(item.claimCount) || numberFromText(item.claimCount))
-  const verifiedCount = Math.max(0, Number(item.verifiedCount) || seedCountFromRate(item.verifyRate, claimCount || 1000, claimCount || 1000))
+  const verifiedCount = Math.max(0, Number(item.verifiedCount) || 0)
   return {
     ...item,
-    id: String(item.id || `merchant-${index + 1}`).trim(),
-    name: String(item.name || `商户 ${index + 1}`).trim(),
+    id: String(item.id || '').trim(),
+    name: String(item.name || '').trim(),
     category: String(item.category || '').trim(),
+    imageUrl: String(item.imageUrl || '').trim(),
     inventory: String(item.inventory || '').trim(),
-    claimCount: String(claimCount),
+    claimCount: claimCount ? String(claimCount) : '',
     verifiedCount,
-    verifyRate: ratioPercent(verifiedCount, claimCount || 1),
+    verifyRate: ratioPercent(verifiedCount, claimCount),
     status: String(item.status || '').trim(),
   }
 }
 
-const normalizeCampaign = (item = {}, index = 0) => {
+const normalizeCampaign = (item = {}) => {
   const participants = Math.max(0, Number(item.participants) || numberFromText(item.participants))
-  const returnCount = Math.max(0, Number(item.returnCount) || seedCountFromRate(item.returnRate, participants || 1000, participants || 1000))
+  const returnCount = Math.max(0, Number(item.returnCount) || 0)
   return {
     ...item,
-    id: String(item.id || `campaign-${index + 1}`).trim(),
-    name: String(item.name || `活动 ${index + 1}`).trim(),
+    id: String(item.id || '').trim(),
+    name: String(item.name || '').trim(),
     reward: String(item.reward || '').trim(),
-    participants: String(participants),
+    participants: participants ? String(participants) : '',
     returnCount,
-    returnRate: ratioPercent(returnCount, participants || 1),
+    returnRate: ratioPercent(returnCount, participants),
     status: String(item.status || '').trim(),
   }
 }
@@ -1029,13 +1026,10 @@ const getSystemConfigMetrics = () => {
 }
 
 const getComplianceMetrics = () => {
-  const store = readStore()
   const complianceCopy = getCompliance().copy || ''
   return [
-    { label: '合规文案字数', value: String(String(complianceCopy).length), trend: '当前前台使用文案', tone: 'up' },
-    { label: '前台生效项', value: '1', trend: '仅合规提示文案已联动前台', tone: 'up' },
-    { label: '未联动敏感词', value: String(store.sensitiveWords.length), trend: `高等级 ${countBy(store.sensitiveWords, (item) => String(item.level || '').includes('高'))} 个，仅后台展示`, tone: 'down' },
-    { label: '未联动审核队列', value: String(store.auditQueue.length), trend: `待审核 ${countBy(store.auditQueue, (item) => String(item.status || '').includes('待审核'))} 条，仅后台展示`, tone: 'down' },
+    { label: '??????', value: String(String(complianceCopy).length), trend: '?????????????', tone: 'up' },
+    { label: '??????', value: complianceCopy ? '1' : '0', trend: complianceCopy ? '?????????' : '???????', tone: complianceCopy ? 'up' : 'down' },
   ]
 }
 
@@ -2151,35 +2145,6 @@ const pageMap = {
       ],
     }
   },
-  'commerce-ads': () => {
-    const store = readStore()
-    return {
-      slug: 'commerce-ads',
-      title: '广告运营',
-      view: 'collection',
-      metrics: getAdsMetrics(),
-      collection: {
-        key: 'adSlots',
-        itemLabel: '广告位',
-        fields: [
-          { key: 'name', label: '广告位名称', type: 'text' },
-          { key: 'page', label: '页面', type: 'select', options: getAdPageOptions() },
-          { key: 'adType', label: '广告类型', type: 'select', options: getAdTypeOptions() },
-          { key: 'completionRate', label: '完成率 / 点击率', type: 'text' },
-          { key: 'revenue', label: '收益', type: 'text' },
-          { key: 'status', label: '状态', type: 'select', options: getAdStatusOptions() },
-        ],
-        columns: [
-          { key: 'name', label: '广告位' },
-          { key: 'page', label: '页面' },
-          { key: 'adType', label: '类型' },
-          { key: 'completionRate', label: '完成率' },
-          { key: 'status', label: '状态' },
-        ],
-        items: store.adSlots,
-      },
-    }
-  },
   'commerce-merchants': () => {
     const store = readStore()
     return {
@@ -2193,6 +2158,7 @@ const pageMap = {
         fields: [
           { key: 'name', label: '券 / 商户名称', type: 'text' },
           { key: 'category', label: '品类', type: 'select', options: getMerchantCategoryOptions() },
+          { key: 'imageUrl', label: 'imageUrl', type: 'image' },
           { key: 'inventory', label: '库存 / 有效期', type: 'text' },
           { key: 'claimCount', label: '领取量', type: 'text' },
           { key: 'verifyRate', label: '核销率', type: 'text' },
@@ -2209,52 +2175,6 @@ const pageMap = {
       },
     }
   },
-  'commerce-campaigns': () => {
-    const store = readStore()
-    return {
-      slug: 'commerce-campaigns',
-      title: '裂变活动',
-      view: 'collection',
-      metrics: getCampaignMetrics(),
-      collection: {
-        key: 'campaigns',
-        itemLabel: '活动',
-        fields: [
-          { key: 'name', label: '活动名称', type: 'text' },
-          { key: 'reward', label: '奖励 / 时间', type: 'text' },
-          { key: 'participants', label: '参与人数', type: 'text' },
-          { key: 'returnRate', label: '回流率', type: 'text' },
-          { key: 'status', label: '状态', type: 'select', options: getCampaignStatusOptions() },
-        ],
-        columns: [
-          { key: 'name', label: '活动名称' },
-          { key: 'reward', label: '奖励' },
-          { key: 'participants', label: '参与人数' },
-          { key: 'returnRate', label: '回流率' },
-          { key: 'status', label: '状态' },
-        ],
-        items: store.campaigns,
-      },
-    }
-  },
-  'data-users': () => ({
-    slug: 'data-users',
-    title: '????',
-    view: 'dashboard',
-    ...getUserAnalyticsPage(),
-  }),
-  'data-content': () => ({
-    slug: 'data-content',
-    title: '????',
-    view: 'dashboard',
-    ...getContentAnalyticsPage(),
-  }),
-  'data-business': () => ({
-    slug: 'data-business',
-    title: '????',
-    view: 'dashboard',
-    ...getBusinessAnalyticsPage(),
-  }),
   'system-permissions': () => {
     const store = readStore()
     return {
@@ -2358,63 +2278,6 @@ const pageMap = {
             { key: 'effect', label: '生效范围' },
           ],
           rows: runtimeRows,
-        },
-      ],
-    }
-  },
-  'system-compliance': () => {
-    const store = readStore()
-    return {
-      slug: 'system-compliance',
-      title: '合规风控',
-      view: 'multi-collection',
-      metrics: getComplianceMetrics(),
-      metaFields: [
-        { key: 'complianceCopy', label: '合规文案', type: 'textarea' },
-      ],
-      meta: {
-        complianceCopy: getCompliance().copy,
-      },
-      collections: [
-        {
-          key: 'sensitiveWords',
-          title: '敏感词策略（仅后台展示，暂未联动前台拦截）',
-          itemLabel: '敏感词',
-          readOnly: true,
-          fields: [
-            { key: 'word', label: '敏感词', type: 'text' },
-            { key: 'level', label: '等级', type: 'select', options: RISK_LEVEL_OPTIONS },
-            { key: 'scene', label: '场景', type: 'select', options: getSensitiveSceneOptions() },
-            { key: 'status', label: '状态', type: 'select', options: getSensitiveStatusOptions() },
-          ],
-          columns: [
-            { key: 'word', label: '敏感词' },
-            { key: 'level', label: '等级' },
-            { key: 'scene', label: '场景' },
-            { key: 'status', label: '状态' },
-          ],
-          items: store.sensitiveWords,
-        },
-        {
-          key: 'auditQueue',
-          title: '审核队列（仅后台展示，暂未联动前台审核流）',
-          itemLabel: '审核项',
-          readOnly: true,
-          fields: [
-            { key: 'target', label: '审核对象', type: 'textarea' },
-            { key: 'source', label: '来源', type: 'select', options: getAuditSourceOptions() },
-            { key: 'reason', label: '命中原因', type: 'textarea' },
-            { key: 'submittedAt', label: '提交时间', type: 'text' },
-            { key: 'status', label: '状态', type: 'select', options: getAuditStatusOptions() },
-          ],
-          columns: [
-            { key: 'target', label: '审核对象' },
-            { key: 'source', label: '来源' },
-            { key: 'reason', label: '命中原因' },
-            { key: 'submittedAt', label: '提交时间' },
-            { key: 'status', label: '状态' },
-          ],
-          items: store.auditQueue,
         },
       ],
     }
@@ -2859,20 +2722,8 @@ const savePageData = (slug, payload = {}) => {
     return getPageData(slug)
   }
 
-  if (slug === 'commerce-ads') {
-    adminStore.adSlots = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.adSlots)
-    writeStore(adminStore)
-    return getPageData(slug)
-  }
-
   if (slug === 'commerce-merchants') {
     adminStore.merchants = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.merchants)
-    writeStore(adminStore)
-    return getPageData(slug)
-  }
-
-  if (slug === 'commerce-campaigns') {
-    adminStore.campaigns = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.campaigns)
     writeStore(adminStore)
     return getPageData(slug)
   }
@@ -2902,13 +2753,6 @@ const savePageData = (slug, payload = {}) => {
       status: parseStatus(item.status, 'active'),
     }))
     writeStore(adminStore)
-    return getPageData(slug)
-  }
-
-  if (slug === 'system-compliance') {
-    updateCompliance({
-      copy: payload.meta.complianceCopy,
-    })
     return getPageData(slug)
   }
 

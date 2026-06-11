@@ -15,16 +15,13 @@ const slugs = [
   'reports',
   'commerce-points',
   'commerce-membership',
-  'commerce-ads',
   'commerce-merchants',
-  'commerce-campaigns',
   'data-users',
   'data-content',
   'data-business',
   'system-permissions',
-  'system-config',
-  'system-compliance',
-]
+  'system-config'
+  ]
 
 const makeShell = (slug) => `<!doctype html>
 <html lang="zh-CN">

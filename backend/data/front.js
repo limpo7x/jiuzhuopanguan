@@ -30,24 +30,6 @@ const TOOL_CATEGORY_LABEL_MAP = {
   share: '分享生成',
 }
 
-const MERCHANT_ICON_MAP = {
-  代驾: 'merchant-icon-taxi',
-  夜宵: 'merchant-icon-food',
-  娱乐: 'merchant-icon-mic',
-}
-
-const MERCHANT_TONE_MAP = {
-  代驾: 'merchant-tile-blue',
-  夜宵: 'merchant-tile-green',
-  娱乐: '',
-}
-
-const SHARE_ICON_MAP = {
-  分享码: 'share-icon-download',
-  战报海报: 'share-icon-wechat',
-  邀局卡: 'share-icon-group',
-}
-
 const normalizeToolId = (item = {}) => TOOL_ID_MAP[item.id] || item.id || ''
 const normalizeToolCategoryId = (value) => TOOL_CATEGORY_ID_MAP[value] || ''
 const isEnabledTool = (item) => !String(item?.status || '').includes('停用')
@@ -222,22 +204,34 @@ const listUsageRecords = () => {
   }))
 }
 
+const isEnabledRecord = (item) => !String(item?.status || '').includes('??') && !String(item?.status || '').includes('???')
+
 const getShareConfig = () => {
+  const store = getAdminStore()
   const compliance = getCompliance()
   const liveSession = getLiveSessionConfig()
-  const report = getFeaturedReport()
+  const assets = (store.shareAssets || []).filter(isEnabledRecord)
+  const poster = assets.find((item) => String(item.assetType || item.scene || '').includes('??') || String(item.assetType || item.scene || '').includes('???')) || null
+  const invite = assets.find((item) => String(item.assetType || item.scene || '').includes('?') || String(item.assetType || item.scene || '').includes('??')) || null
   return {
     notice: toText(compliance.copy),
     poster: {
-      imageUrl: '',
-      title: toText(report.title),
+      imageUrl: toText(poster?.imageUrl),
+      title: toText(poster?.name),
     },
     preview: {
       inviteCode: toText(liveSession.inviteCode),
-      imageUrl: '',
-      title: toText(liveSession.sessionName),
+      imageUrl: toText(invite?.imageUrl),
+      title: toText(invite?.name),
     },
-    shareItems: [],
+    shareItems: assets.map((item) => ({
+      id: toText(item.id),
+      name: toText(item.name),
+      scene: toText(item.scene),
+      assetType: toText(item.assetType),
+      imageUrl: toText(item.imageUrl),
+      status: toText(item.status),
+    })).filter((item) => item.id && item.name),
     helperScenes: {},
     performance: {
       bestOpenRate: '',
@@ -267,30 +261,30 @@ const getQuestionBankConfig = (type = '') => {
 
 const getMerchantPartnersConfig = () => {
   const store = getAdminStore()
-  const merchants = (store.merchants || []).filter((item) => !String(item.status || '').includes('停用'))
+  const merchants = (store.merchants || []).filter(isEnabledRecord)
   const categories = [...new Set(merchants.map((item) => item.category).filter(Boolean))]
   return {
     categories: categories.slice(0, 4).map((category) => ({
       name: category,
-      iconClass: MERCHANT_ICON_MAP[category] || '',
-      toneClass: MERCHANT_TONE_MAP[category] || '',
+      iconClass: '',
+      toneClass: '',
     })),
     shops: merchants.map((item) => ({
-      id: item.id,
-      imageUrl: '',
-      meta: [toText(item.category), item.claimCount ? `已领取 ${item.claimCount}` : '', item.verifyRate ? `核销率 ${item.verifyRate}` : '', toText(item.status)].filter(Boolean).join(' · '),
-      name: item.name,
+      id: toText(item.id),
+      imageUrl: toText(item.imageUrl),
+      meta: [toText(item.category), item.claimCount ? '??? ' + item.claimCount : '', item.verifyRate ? '??? ' + item.verifyRate : '', toText(item.status)].filter(Boolean).join(' ? '),
+      name: toText(item.name),
       status: toText(item.status),
-    })),
+    })).filter((item) => item.id && item.name),
     safeBack: merchants
-      .filter((item) => String(item.category || '').includes('代驾') || String(item.name || '').includes('车'))
+      .filter((item) => String(item.category || '').includes('??') || String(item.category || '').includes('???') || String(item.name || '').includes('?') || String(item.name || '').includes('?'))
       .slice(0, 3)
       .map((item) => ({
-        name: item.name,
-        iconClass: MERCHANT_ICON_MAP[item.category] || '',
-        toneClass: MERCHANT_TONE_MAP[item.category] || '',
+        name: toText(item.name),
+        iconClass: '',
+        toneClass: '',
       })),
-    notice: '商户数据来自后台商户合作页。',
+    notice: 'merchant data from admin config',
   }
 }
 

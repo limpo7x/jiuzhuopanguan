@@ -363,7 +363,7 @@ Page<TableModeState, TableModeMethods>({
         playerCount: this.data.rows.length,
         status: '',
         sessionState: '已结束',
-        sessionstatus: '',
+        sessionStatus: '',
         ranks,
         events,
       })

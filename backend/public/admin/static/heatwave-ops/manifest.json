@@ -25,14 +25,11 @@
     "reports.html",
     "commerce-points.html",
     "commerce-membership.html",
-    "commerce-ads.html",
     "commerce-merchants.html",
-    "commerce-campaigns.html",
     "data-users.html",
     "data-content.html",
     "data-business.html",
     "system-permissions.html",
-    "system-config.html",
-    "system-compliance.html"
+    "system-config.html"
   ]
 }

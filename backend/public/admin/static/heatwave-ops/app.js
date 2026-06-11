@@ -1,4 +1,4 @@
-﻿const navGroups = [
+const navGroups = [
   {
     key: 'overview',
     title: '概览台',
@@ -12,8 +12,8 @@
       { slug: 'content-templates', title: '酒局模板', icon: 'icon-template' },
       { slug: 'content-question-bank', title: '题库与任务', icon: 'icon-question' },
       { slug: 'content-share-assets', title: '分享素材', icon: 'icon-share' },
-      { slug: 'content-tools-ops', title: '工具箱运营', icon: 'icon-tool' },
-    ],
+      { slug: 'content-tools-ops', title: '工具箱运营', icon: 'icon-tool' }
+  ],
   },
   {
     key: 'community',
@@ -32,9 +32,7 @@
       { slug: 'commerce-points', title: '积分体系', icon: 'icon-points' },
       { slug: 'commerce-point-ledger', title: '积分变动记录', icon: 'icon-points' },
       { slug: 'commerce-membership', title: '会员体系', icon: 'icon-member' },
-      { slug: 'commerce-ads', title: '广告运营', icon: 'icon-ads' },
       { slug: 'commerce-merchants', title: '商户合作', icon: 'icon-store' },
-      { slug: 'commerce-campaigns', title: '裂变活动', icon: 'icon-share' },
     ],
   },
   {
@@ -53,7 +51,6 @@
       { slug: 'system-permissions', title: '账号权限', icon: 'icon-security' },
       { slug: 'system-operation-logs', title: '后台积分操作日志', icon: 'icon-security' },
       { slug: 'system-config', title: '基础配置', icon: 'icon-settings' },
-      { slug: 'system-compliance', title: '合规风控', icon: 'icon-alert' },
     ],
   },
 ]
