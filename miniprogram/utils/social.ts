@@ -493,12 +493,7 @@ export const ensureCurrentProfile = async (): Promise<SocialProfile> => {
     return restoredProfile
   }
 
-  try {
-    const profile = await request<SocialProfile>('/social/profile', 'PUT', local as WechatMiniprogram.IAnyObject)
-    return upsertLocalProfile(normalizeProfile(profile))
-  } catch {
-    return upsertLocalProfile(local)
-  }
+  return upsertLocalProfile(local)
 }
 
 export const getCurrentDisplayProfile = async (): Promise<SocialProfile> => resolveDisplayProfile(await ensureCurrentProfile())
@@ -550,6 +545,9 @@ export const saveCurrentProfile = async (patch: Partial<SocialProfile>): Promise
   const current = getLocalProfile()
   const uploadedAvatarUrl = typeof patch.avatarUrl === 'string' ? await uploadWechatAvatarIfNeeded(patch.avatarUrl) : patch.avatarUrl
   const nextProfile = normalizeProfile({ ...current, ...patch, avatarUrl: uploadedAvatarUrl || patch.avatarUrl || current.avatarUrl })
+  if (!getUserSessionToken()) {
+    return upsertLocalProfile(nextProfile)
+  }
   try {
     const remote = await request<SocialProfile>('/social/profile', 'PUT', nextProfile as WechatMiniprogram.IAnyObject)
     return upsertLocalProfile(normalizeProfile(remote))
@@ -577,6 +575,9 @@ const buildLocalBootstrap = (profile: SocialProfile): SocialBootstrapResponse =>
 
 export const bootstrapSocial = async (): Promise<SocialBootstrapResponse> => {
   const profile = await ensureCurrentProfile()
+  if (!getUserSessionToken()) {
+    return buildLocalBootstrap(profile)
+  }
   try {
     const result = await request<SocialBootstrapResponse>(`/social/bootstrap?profileId=${encodeURIComponent(profile.id)}`)
     const currentProfile = upsertLocalProfile(normalizeProfile(result.currentProfile))
