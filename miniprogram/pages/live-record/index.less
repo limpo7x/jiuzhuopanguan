@@ -630,3 +630,33 @@ page {
 .live-record-adjuster { justify-content: center; }
 .live-record-score-box { flex: 0 1 22px; min-width: 20px !important; }
 .live-adjust-btn { width: 20px !important; height: 20px !important; flex-basis: 20px !important; font-size: 14px !important; }
+
+/* 2026-06-12 restore finish match button */
+.live-bottom-actions {
+  position: fixed;
+  right: 18px;
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  left: 18px;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 10px;
+}
+.live-bottom-actions .live-primary {
+  width: 100%;
+  min-height: 58px;
+  margin-top: 0;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  font-size: 16px;
+  box-sizing: border-box;
+}
+.live-primary-secondary {
+  background: linear-gradient(135deg, #fffdf8, #fff0df);
+  color: #7d3a25;
+  box-shadow: 0 12px 24px rgba(126, 77, 31, 0.12);
+}
+.live-primary-finish {
+  background: linear-gradient(135deg, #ff5b3d, #ff7645);
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(255, 91, 61, 0.34);
+}

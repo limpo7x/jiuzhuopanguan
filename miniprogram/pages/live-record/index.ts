@@ -39,10 +39,12 @@ interface LiveSessionEvent {
 }
 
 interface LiveRecordState {
+  desktopModeLabel: string
   elapsedText: string
   exitGuardHandling: boolean
   exitGuardVisible: boolean
   events: LiveEvent[]
+  finishMatchLabel: string
   isJudge: boolean
   playerCount: number
   players: LivePlayer[]
@@ -58,6 +60,7 @@ interface LiveRecordMethods {
   handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleBackTap: () => Promise<void>
   handleExitGuardLeave: () => Promise<void>
+  handleFinishTap: () => Promise<void>
   handleNextRoundTap: () => void
   handleTimerTick: () => void
   openPage: (url: string) => void
@@ -163,11 +166,13 @@ const toPlayerStats = (records: LiveRecordItem[]): SessionPlayerStat[] =>
 
 Page<LiveRecordState, LiveRecordMethods>({
   data: {
+    desktopModeLabel: '\u684c\u9762\u6a21\u5f0f',
     elapsedText: '00:00:00',
     exitGuardHandling: false,
     exitGuardVisible: true,
     playerCount: 0,
     players: [],
+    finishMatchLabel: '\u5b8c\u6210\u5bf9\u5c40',
     isJudge: true,
     records: [],
     sessionName: '',
@@ -511,6 +516,19 @@ Page<LiveRecordState, LiveRecordMethods>({
     }
 
     this.openPage('/pages/table-mode/index')
+  },
+
+  async handleFinishTap() {
+    if (!this.data.isJudge) {
+      return
+    }
+
+    this.syncRecordsToRuntime(this.data.records)
+    if (!(await this.persistRecordsToManagedSession(this.data.records))) {
+      return
+    }
+
+    this.openPage('/pages/table-mode/index?finish=1')
   },
 
   async handleWheelTap(event) {

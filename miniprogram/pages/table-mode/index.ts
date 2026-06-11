@@ -24,6 +24,7 @@ interface ScoreRow {
 }
 
 interface TableModeState {
+  autoFinish: boolean
   elapsedText: string
   exitGuardHandling: boolean
   exitGuardVisible: boolean
@@ -156,6 +157,7 @@ const buildReportEvents = (sessionName: string, rows: ScoreRow[]): Array<{ text:
 
 Page<TableModeState, TableModeMethods>({
   data: {
+    autoFinish: false,
     elapsedText: '00:00:00',
     exitGuardHandling: false,
     exitGuardVisible: true,
@@ -164,16 +166,23 @@ Page<TableModeState, TableModeMethods>({
     sessionName: '酒桌判官酒局',
   },
 
-  onLoad() {
+  onLoad(query) {
     const runtime = getSessionRuntime()
+    const autoFinish = query?.finish === '1' && runtime.isJudge
 
     this.setData({
+      autoFinish,
       isJudge: runtime.isJudge,
       rows: buildRows(runtime),
       sessionName: runtime.sessionName,
     })
 
     this.handleTimerTick()
+    if (autoFinish) {
+      setTimeout(() => {
+        void this.handleFinishTap()
+      }, 80)
+    }
   },
 
   onShow() {
