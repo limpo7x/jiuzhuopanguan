@@ -1933,11 +1933,22 @@ const pageMap = {
   },
   'content-tools-ops': () => {
     const store = readStore()
+    const toolsHero = store.toolsHero || {}
     return {
       slug: 'content-tools-ops',
       title: '工具箱运营',
       view: 'collection',
       metrics: getToolOpsMetrics(),
+      metaFields: [
+        { key: 'heroTitle', label: '主视觉标题', type: 'text' },
+        { key: 'heroSubtitle', label: '主视觉副标题', type: 'text' },
+        { key: 'heroImageUrl', label: '主视觉图片', type: 'image' },
+      ],
+      meta: {
+        heroTitle: toolsHero.title || '工具箱',
+        heroSubtitle: toolsHero.subtitle || '高频、实用、可复用',
+        heroImageUrl: toolsHero.imageUrl || '',
+      },
       collection: {
         key: 'toolsCatalog',
         itemLabel: '工具',
@@ -2833,6 +2844,11 @@ const savePageData = (slug, payload = {}) => {
   }
 
   if (slug === 'content-tools-ops') {
+    adminStore.toolsHero = {
+      title: String(payload.meta?.heroTitle || '工具箱').trim(),
+      subtitle: String(payload.meta?.heroSubtitle || '高频、实用、可复用').trim(),
+      imageUrl: String(payload.meta?.heroImageUrl || '').trim(),
+    }
     adminStore.toolsCatalog = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.toolsCatalog)
     writeStore(adminStore)
     return getPageData(slug)

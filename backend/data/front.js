@@ -220,6 +220,7 @@ const getFeaturedReport = () => {
 
 const listFrontendTools = () => {
   const store = getAdminStore()
+  const toolsHero = store.toolsHero || {}
   const enabledTools = sortTools((store.toolsCatalog || []).filter(isEnabledTool))
   const tools = enabledTools.filter((item) => supportsPlacement(item, 'tools')).map((item) => {
     const toolId = normalizeToolId(item)
@@ -240,8 +241,8 @@ const listFrontendTools = () => {
       placement: item.placement || 'tools',
       iconClass: visual.iconClass,
       toneClass: visual.toneClass,
-      imageUrl: emptyImage(),
-      heroImage: emptyImage(),
+      imageUrl: item.imageUrl || emptyImage(),
+      heroImage: item.heroImage || item.imageUrl || emptyImage(),
       meta: `${item.target || '运营工具'} · 收藏率 ${item.favoriteRate || '0%'}`,
     }
   })
@@ -254,9 +255,9 @@ const listFrontendTools = () => {
   ]
   return {
     hero: {
-      imageUrl: emptyImage(),
-      subtitle: '高频、实用、可复用',
-      title: '工具箱',
+      imageUrl: toolsHero.imageUrl || emptyImage(),
+      subtitle: toolsHero.subtitle || '高频、实用、可复用',
+      title: toolsHero.title || '工具箱',
     },
     categories,
     popularTools: sortTools(tools.filter((item) => item.isHot === '是')).slice(0, 4),

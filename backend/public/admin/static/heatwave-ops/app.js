@@ -825,7 +825,7 @@ const buildPayload = () => {
   }
 
   if (state.page.view === 'collection') {
-    return { items: state.collections[state.page.collection.key] || [] }
+    return { meta: clone(state.meta), items: state.collections[state.page.collection.key] || [] }
   }
 
   if (state.page.view === 'multi-collection') {
