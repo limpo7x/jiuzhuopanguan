@@ -21,6 +21,15 @@ const cleanAvatar = (value = '') => {
   return text
 }
 
+const hasProfileIdentity = (profile = {}) =>
+  Boolean(
+    cleanText(profile.name) ||
+      cleanAvatar(profile.avatarUrl) ||
+      cleanText(profile.phone) ||
+      cleanText(profile.wechatOpenId) ||
+      cleanText(profile.wechatUnionId),
+  )
+
 const createDefaultStore = () => ({
   profiles: [],
   friendships: [],
@@ -49,7 +58,7 @@ const normalizeProfile = (profile = {}, fallback = {}) => {
 }
 
 const normalizeStore = (store = {}) => ({
-  profiles: Array.isArray(store.profiles) ? store.profiles.map((item) => normalizeProfile(item)) : [],
+  profiles: Array.isArray(store.profiles) ? store.profiles.map((item) => normalizeProfile(item)).filter(hasProfileIdentity) : [],
   friendships: Array.isArray(store.friendships)
     ? store.friendships.map((item, index) => ({
         id: cleanText(item.id || `friendship-${index + 1}`),
@@ -108,6 +117,9 @@ const getProfileByOpenId = (store, openId) => store.profiles.find((item) => item
 const upsertProfile = (store, profile) => {
   const existed = getProfileById(store, profile.id)
   const normalized = normalizeProfile(profile, existed || {})
+  if (!hasProfileIdentity(normalized)) {
+    throw new Error('empty profile is not allowed')
+  }
   if (existed) {
     store.profiles = store.profiles.map((item) => (item.id === normalized.id ? { ...item, ...normalized, createdAt: item.createdAt } : item))
   } else {

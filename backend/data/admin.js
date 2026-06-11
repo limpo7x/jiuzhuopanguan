@@ -449,8 +449,17 @@ const getMatchedThreadRowsByProfile = (socialStore = readSocialStore()) => {
   return result
 }
 
+const isVisibleUserProfile = (profile = {}) =>
+  Boolean(
+    String(profile.name || '').trim() ||
+      String(profile.phone || '').trim() ||
+      String(profile.wechatOpenId || '').trim() ||
+      String(profile.wechatUnionId || '').trim() ||
+      String(profile.avatarUrl || '').trim(),
+  )
+
 const buildUserProfileItems = (adminStore = readStore(), contentStore = readContentStore(), socialStore = readSocialStore()) =>
-  socialStore.profiles.map((profile) => {
+  socialStore.profiles.filter(isVisibleUserProfile).map((profile) => {
     const meta = adminStore.userOps.find((item) => item.id === profile.id) || { status: '', tags: [], note: '' }
     const commerce = getUserCommerceMap(contentStore)[profile.id] || {}
     const matchedThreads = getMatchedThreadRowsByProfile(socialStore)[profile.id] || []
@@ -463,17 +472,18 @@ const buildUserProfileItems = (adminStore = readStore(), contentStore = readCont
       loginCount: Number(profile.loginCount) || 0,
       lastLoginAt: profile.lastLoginAt || '',
       status: meta.status,
-      tagsText: Array.isArray(meta.tags) ? meta.tags.join('、') : '',
+      tagsText: Array.isArray(meta.tags) ? meta.tags.join(',') : '',
       note: meta.note || '',
       points: Number(commerce.points) || 0,
       matchedThreadCount: matchedThreads.length,
-      matchedThreadsText: matchedThreads.length ? `${matchedThreads.length} 条已配对` : '暂无配对',
+      matchedThreadsText: matchedThreads.length ? `${matchedThreads.length} matched` : '',
       matchedThreadsRows: matchedThreads,
     }
   })
 
 const buildUserPointsItems = (contentStore = readContentStore(), socialStore = readSocialStore()) =>
   socialStore.profiles
+    .filter(isVisibleUserProfile)
     .map((profile) => {
       const state = getUserCommerceMap(contentStore)[profile.id] || {}
       return {
@@ -2653,6 +2663,14 @@ const savePageData = (slug, payload = {}) => {
     const nextProfiles = []
     const nextUserOps = []
     ;(payload.items || []).forEach((item) => {
+      const hasIdentity =
+        String(item.name || '').trim() ||
+        String(item.phone || '').trim() ||
+        String(item.wechatOpenId || '').trim() ||
+        String(item.identityTag || '').trim()
+      if (!hasIdentity) {
+        return
+      }
       const existed = socialStore.profiles.find((profile) => profile.id === item.id) || { id: item.id }
       nextProfiles.push(
         ensureProfile({

@@ -64,6 +64,7 @@ const state = {
   selected: {},
   meta: {},
   navOpen: {},
+  tablePages: {},
   editor: null,
 }
 
@@ -455,11 +456,62 @@ const renderMetrics = () =>
     )
     .join('')
 
-const renderTable = (table, rows = table.rows || []) => `
+const DEFAULT_PAGE_SIZE = 15
+
+const getPageSize = (source = {}) => Math.max(1, Number(source.pageSize || DEFAULT_PAGE_SIZE) || DEFAULT_PAGE_SIZE)
+
+const getTableKey = (table = {}) => `table:${String(table.key || table.title || 'table')}`
+
+const getCollectionPagerKey = (collection = {}) =>
+  `collection:${String(collection.key || collection.title || collection.itemLabel || 'collection')}`
+
+const getCurrentPage = (pagerKey, pageCount) => {
+  const currentPage = Math.min(Math.max(Number(state.tablePages[pagerKey]) || 1, 1), pageCount)
+  state.tablePages[pagerKey] = currentPage
+  return currentPage
+}
+
+const getPaginationPages = (currentPage, pageCount) => {
+  const pages = new Set([1, pageCount, currentPage])
+  if (currentPage > 1) pages.add(currentPage - 1)
+  if (currentPage < pageCount) pages.add(currentPage + 1)
+  return Array.from(pages)
+    .filter((page) => page >= 1 && page <= pageCount)
+    .sort((a, b) => a - b)
+}
+
+const renderPagination = ({ pagerKey, pageSize, totalRows, currentPage, pageCount }) => {
+  if (pageCount <= 1) return ''
+  const pages = getPaginationPages(currentPage, pageCount)
+  const pageButtons = pages
+    .map((page) => `<button class="pager-btn ${page === currentPage ? 'pager-btn-active' : ''}" type="button" data-action="table-page" data-table-key="${escapeHtml(pagerKey)}" data-page="${page}">${page}</button>`)
+    .join('')
+  return `
+    <div class="table-pagination">
+      <div class="pager-summary">${totalRows} records · ${pageSize}/page · ${currentPage}/${pageCount}</div>
+      <div class="pager-actions">
+        <button class="pager-btn" type="button" data-action="table-page" data-table-key="${escapeHtml(pagerKey)}" data-page="1" ${currentPage <= 1 ? 'disabled' : ''}>&#39318;&#39029;</button>
+        <button class="pager-btn" type="button" data-action="table-page" data-table-key="${escapeHtml(pagerKey)}" data-page="${Math.max(1, currentPage - 1)}" ${currentPage <= 1 ? 'disabled' : ''}>&#19978;&#19968;&#39029;</button>
+        ${pageButtons}
+        <button class="pager-btn" type="button" data-action="table-page" data-table-key="${escapeHtml(pagerKey)}" data-page="${Math.min(pageCount, currentPage + 1)}" ${currentPage >= pageCount ? 'disabled' : ''}>&#19979;&#19968;&#39029;</button>
+      </div>
+    </div>`
+}
+
+const renderTable = (table, rows) => {
+  if (!table) return ''
+  const allRows = Array.isArray(rows) ? rows : []
+  const pageSize = getPageSize(table)
+  const pageCount = Math.max(1, Math.ceil(allRows.length / pageSize))
+  const tableKey = getTableKey(table)
+  const currentPage = getCurrentPage(tableKey, pageCount)
+  const start = (currentPage - 1) * pageSize
+  const displayRows = allRows.slice(start, start + pageSize)
+  return `
   <div class="table-card">
     <div class="table-head">
       <div>
-        <div class="section-title">${table.title || '列表'}</div>
+        <div class="section-title">${table.title || 'List'}</div>
       </div>
     </div>
     <div class="table-scroll">
@@ -469,8 +521,8 @@ const renderTable = (table, rows = table.rows || []) => `
         </thead>
         <tbody>
           ${
-            rows.length
-              ? rows
+            displayRows.length
+              ? displayRows
                   .map(
                     (row) => `
                 <tr>
@@ -480,13 +532,14 @@ const renderTable = (table, rows = table.rows || []) => `
                 </tr>`,
                   )
                   .join('')
-              : `<tr><td colspan="${table.columns.length}"><div class="empty-state">暂无数据</div></td></tr>`
+              : `<tr><td colspan="${table.columns.length}"><div class="empty-state">No data</div></td></tr>`
           }
         </tbody>
       </table>
     </div>
+    ${renderPagination({ pagerKey: tableKey, pageSize, totalRows: allRows.length, currentPage, pageCount })}
   </div>`
-
+}
 const renderAssetInput = (field, value, collectionKey, itemId) => `
   <div class="asset-field">
     <div class="asset-input-row">
@@ -595,11 +648,17 @@ const renderCollectionEditor = (collection, options = {}) => {
   const items = getCollectionState(collection)
   const readOnly = Boolean(options.readOnly)
   const customActions = Array.isArray(collection.customActions) ? collection.customActions : []
+  const pageSize = getPageSize(collection)
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize))
+  const pagerKey = getCollectionPagerKey(collection)
+  const currentPage = getCurrentPage(pagerKey, pageCount)
+  const start = (currentPage - 1) * pageSize
+  const displayItems = items.slice(start, start + pageSize)
   return `
     <section class="collection-card">
       <div class="collection-head">
-        <div class="section-title">${collection.title || collection.itemLabel || '列表'}</div>
-        ${readOnly ? '' : `<div class="inline-actions"><button class="mini-btn" data-action="add-item" data-collection="${collection.key}">新增${collection.itemLabel || '项'}</button></div>`}
+        <div class="section-title">${collection.title || collection.itemLabel || '&#21015;&#34920;'}</div>
+        ${readOnly ? '' : `<div class="inline-actions"><button class="mini-btn" data-action="add-item" data-collection="${collection.key}">&#26032;&#22686;${collection.itemLabel || '&#39033;'}</button></div>`}
       </div>
       <div class="collection-layout">
         <div class="table-card">
@@ -608,13 +667,13 @@ const renderCollectionEditor = (collection, options = {}) => {
               <thead>
                 <tr>
                   ${collection.columns.map((column) => `<th>${column.label}</th>`).join('')}
-                  ${readOnly ? '' : '<th>操作</th>'}
+                  ${readOnly ? '' : '<th>&#25805;&#20316;</th>'}
                 </tr>
               </thead>
               <tbody>
                 ${
-                  items.length
-                    ? items
+                  displayItems.length
+                    ? displayItems
                         .map(
                           (item) => `
                         <tr>
@@ -629,24 +688,24 @@ const renderCollectionEditor = (collection, options = {}) => {
                                         (action) => `<button class="mini-btn" type="button" data-action="custom-item-action" data-collection="${collection.key}" data-item-id="${item.id}" data-custom-action="${action.key}">${item[action.labelKey] || action.label}</button>`,
                                       )
                                       .join('')}
-                                    <button class="mini-btn" type="button" data-action="edit-item" data-collection="${collection.key}" data-item-id="${item.id}">编辑</button>
-                                    <button class="danger-inline" type="button" data-action="remove-item" data-collection="${collection.key}" data-item-id="${item.id}">删除</button>
+                                    <button class="mini-btn" type="button" data-action="edit-item" data-collection="${collection.key}" data-item-id="${item.id}">&#32534;&#36753;</button>
+                                    <button class="danger-inline" type="button" data-action="remove-item" data-collection="${collection.key}" data-item-id="${item.id}">&#21024;&#38500;</button>
                                   </div>
                                 </td>`
                           }
                         </tr>`,
                         )
                         .join('')
-                    : `<tr><td colspan="${collection.columns.length + (readOnly ? 0 : 1)}"><div class="empty-state">暂无${collection.itemLabel || '数据'}</div></td></tr>`
+                    : `<tr><td colspan="${collection.columns.length + (readOnly ? 0 : 1)}"><div class="empty-state">No data</div></td></tr>`
                 }
               </tbody>
             </table>
           </div>
+          ${renderPagination({ pagerKey, pageSize, totalRows: items.length, currentPage, pageCount })}
         </div>
       </div>
     </section>`
 }
-
 const renderMultiCollection = () => {
   ensureMetaState()
   return `
@@ -983,6 +1042,15 @@ const bindEvents = () => {
     })
   })
 
+  document.querySelectorAll('[data-action="table-page"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      if (node.disabled) {
+        return
+      }
+      state.tablePages[node.dataset.tableKey] = Number(node.dataset.page) || 1
+      render()
+    })
+  })
   document.querySelectorAll('[data-action="add-item"]').forEach((node) => {
     node.addEventListener('click', () => {
       const collection = getCollectionDefinition(node.dataset.collection)
