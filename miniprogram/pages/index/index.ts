@@ -293,6 +293,13 @@ Page<HomePageState, HomePageMethods>({
     }
     this.setData({ signingIn: true })
     try {
+      const latestState = await getUserCommerceState()
+      const latestSignInState = latestState.taskClaimStates?.['task-signin']
+      if (latestSignInState && !latestSignInState.canClaim) {
+        this.setData({ checkedIn: true })
+        this.announcePreview('今天已经签到过了')
+        return
+      }
       const state = await claimPointsTask('task-signin')
       const signInState = state.taskClaimStates?.['task-signin']
       const reward = signInState?.reward || 10

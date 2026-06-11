@@ -421,7 +421,10 @@ const claimPointsTask = (profileId, taskId) => {
   const taskState = normalizeTaskState(state.taskStates[taskId] || {}, taskId)
   const claimState = getTaskClaimState(profileId, taskId, taskState, adminStore, task)
   if (!claimState.canClaim) {
-    throw createHttpError(claimState.statusText || '任务条件未满足', 400)
+    if (taskId === 'task-signin') {
+      return serializeCommerceState(profileId)
+    }
+    throw createHttpError(claimState.statusText || 'task conditions not met', 400)
   }
 
   if (taskId === 'task-share-report') {
