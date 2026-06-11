@@ -63,7 +63,7 @@ Page<InviteGroupState, InviteGroupMethods>({
   onShareAppMessage() {
     return {
       title: `${this.data.sessionName} 邀请你入局`,
-      path: `/pages/join-claim/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,
+      path: `/pages/index/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,
       imageUrl: '',
     }
   },
@@ -90,3 +90,4 @@ Page<InviteGroupState, InviteGroupMethods>({
 })
 
 export {}
+

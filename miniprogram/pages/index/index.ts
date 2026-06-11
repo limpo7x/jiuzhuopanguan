@@ -1,6 +1,8 @@
 ﻿import { homePageMock, type HomePageData } from '../../mock/home'
 import { claimPointsTask, getUserCommerceState } from '../../services/content'
 import { getHomePageData } from '../../services/home'
+import { joinManagedSession } from '../../services/operations'
+import { setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import { ensureUserAuthorized, getCurrentDisplayProfile, getUserAuthSession, loginWithWechatProfile } from '../../utils/social'
 
 interface HomePageState {
@@ -36,6 +38,7 @@ interface HomePageMethods {
   handleLoginSubmit: (event: WechatMiniprogram.CustomEvent<{ value?: Record<string, string> }>) => Promise<void>
   handleLoginTextTap: () => void
   handleJoinByCodeTap: () => Promise<void>
+  joinByInviteCode: (inviteCode: string) => Promise<void>
   handlePrimaryTap: () => Promise<void>
   handleQuickToolTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
@@ -59,6 +62,7 @@ const normalizeName = (value?: string) => {
 }
 
 const normalizeAvatar = (value?: string) => String(value || '').trim()
+const normalizeInviteCode = (value?: string) => String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12)
 
 const persistAvatar = (avatarUrl: string) =>
   new Promise<string>((resolve) => {
@@ -83,9 +87,15 @@ Page<HomePageState, HomePageMethods>({
     userName: '未登录',
   },
 
-  onLoad() {
+  onLoad(query) {
     void this.syncAuthState()
     void this.loadHomePage()
+    const inviteCode = normalizeInviteCode(typeof query?.inviteCode === 'string' ? decodeURIComponent(query.inviteCode) : '')
+    if (inviteCode) {
+      setTimeout(() => {
+        void this.joinByInviteCode(inviteCode)
+      }, 350)
+    }
   },
 
   onShow() {
@@ -198,9 +208,71 @@ Page<HomePageState, HomePageMethods>({
   },
 
   async handleJoinByCodeTap() {
-    const profile = await ensureUserAuthorized('/pages/join-claim/index')
-    if (!profile) return
-    wx.navigateTo({ url: '/pages/join-claim/index' })
+    const profile = await ensureUserAuthorized('/pages/index/index')
+    if (!profile) {
+      this.handleLoginTextTap()
+      return
+    }
+    const inviteCode = await new Promise<string>((resolve) => {
+      wx.showModal({
+        title: '输入口令加入',
+        placeholderText: '请输入判官发来的酒桌口令',
+        editable: true,
+        confirmText: '加入',
+        cancelText: '取消',
+        success: (result) => resolve(result.confirm ? normalizeInviteCode(result.content) : ''),
+        fail: () => resolve(''),
+      } as WechatMiniprogram.ShowModalOption)
+    })
+    if (!inviteCode) return
+    await this.joinByInviteCode(inviteCode)
+  },
+
+  async joinByInviteCode(inviteCode) {
+    const normalizedCode = normalizeInviteCode(inviteCode)
+    if (!normalizedCode) {
+      wx.showToast({ title: '请输入酒桌口令', icon: 'none' })
+      return
+    }
+
+    const profile = await ensureUserAuthorized('/pages/index/index?inviteCode=' + encodeURIComponent(normalizedCode))
+    if (!profile) {
+      this.handleLoginTextTap()
+      return
+    }
+
+    try {
+      wx.showLoading({ title: '加入中', mask: true })
+      const liveSession = await joinManagedSession(normalizedCode)
+      setSessionRuntime({
+        currentUser: { id: profile.id, name: profile.name, avatarUrl: profile.avatarUrl },
+        inviteCode: liveSession.inviteCode,
+        isJudge: false,
+        playerCount: liveSession.playerCount,
+        playerStats: [],
+        selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
+          avatarUrl: item.avatarUrl,
+          name: item.name,
+          profileId: item.profileId,
+          status: item.status,
+        })),
+        sessionId: liveSession.id,
+        sessionName: liveSession.sessionName,
+        startedAt: 0,
+        templateName: liveSession.templateName,
+      })
+      wx.redirectTo({ url: '/pages/waiting-room/index?role=viewer&sessionId=' + encodeURIComponent(liveSession.id) })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'join failed'
+      const notPlayer = message.includes('not session player')
+      wx.showModal({
+        title: notPlayer ? '您非本局玩家' : '加入失败',
+        content: notPlayer ? '当前口令对应的酒局名单中没有你的账号，请联系判官确认是否已添加你。' : '当前无法加入本局，请检查口令是否正确。',
+        showCancel: false,
+      })
+    } finally {
+      wx.hideLoading()
+    }
   },
 
   async handleCheckIn() {
@@ -262,5 +334,7 @@ Page<HomePageState, HomePageMethods>({
 })
 
 export {}
+
+
 
 

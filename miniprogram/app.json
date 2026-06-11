@@ -1,4 +1,4 @@
-{
+﻿{
   "pages": [
     "pages/index/index",
     "pages/tools/index",
@@ -8,7 +8,6 @@
     "pages/session-rules/index",
     "pages/add-players/index",
     "pages/invite-group/index",
-    "pages/join-claim/index",
     "pages/share-preview/index",
     "pages/compliance-guide/index",
     "pages/flow-overview/index",
@@ -52,3 +51,4 @@
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"
 }
+

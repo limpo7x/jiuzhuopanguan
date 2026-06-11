@@ -128,7 +128,7 @@ Page<SharePreviewState, SharePreviewMethods>({
 
     return {
       title: `${this.data.sessionName}，来加入这局`,
-      path: `/pages/join-claim/index${query ? `?${query}` : ''}`,
+      path: `/pages/index/index${query ? `?${query}` : ''}`,
       imageUrl: this.data.posterImagePath || '',
     }
   },
@@ -247,3 +247,4 @@ Page<SharePreviewState, SharePreviewMethods>({
 })
 
 export {}
+
