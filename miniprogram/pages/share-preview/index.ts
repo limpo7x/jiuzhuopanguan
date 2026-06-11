@@ -177,43 +177,101 @@ Page<SharePreviewState, SharePreviewMethods>({
   buildInvitePoster() {
     const width = 720
     const height = 960
+    const textInvite = '\u9152\u684c\u5224\u5b98\u9080\u8bf7\u51fd'
+    const textHappyA = '\u8fd9\u5c40\u5feb\u4e50'
+    const textHappyB = '\u5c31\u5b8c\u4e8b\u4e86\uff01'
+    const textFallbackName = '\u597d\u53cb\u9152\u5c40'
+    const textJoinCode = '\u52a0\u5165\u53e3\u4ee4'
+    const textPending = '\u672a\u751f\u6210'
+    const textJoined = '\u5df2\u52a0\u5165'
+    const textJoinTip = '\u8f93\u5165\u53e3\u4ee4\u5373\u53ef\u5165\u5c40'
+    const textShareTip = '\u4fdd\u5b58\u540e\u53d1\u7ed9\u597d\u53cb\uff0c\u7b49\u4eba\u9f50\u5c31\u5f00\u5c40'
+    const textDrinkTip = '\u7406\u6027\u996e\u9152\uff0c\u91cf\u529b\u800c\u884c'
+
     return this.drawCanvasToFile(width, height, (ctx) => {
-      ctx.setFillStyle('#fff8ee')
+      const drawFitText = (value: string, x: number, y: number, maxWidth: number, fontSize: number, color: string) => {
+        let content = String(value || '').trim()
+        ctx.setFontSize(fontSize)
+        ctx.setFillStyle(color)
+        if (!content) {
+          return
+        }
+        while (content.length > 1 && ctx.measureText(content).width > maxWidth) {
+          content = content.slice(0, -2) + '...'
+        }
+        ctx.fillText(content, x, y)
+      }
+
+      const drawCenteredFitText = (value: string, centerX: number, y: number, maxWidth: number, fontSize: number, color: string) => {
+        let content = String(value || '').trim()
+        ctx.setFontSize(fontSize)
+        ctx.setFillStyle(color)
+        if (!content) {
+          return
+        }
+        while (content.length > 1 && ctx.measureText(content).width > maxWidth) {
+          content = content.slice(0, -2) + '...'
+        }
+        const metrics = ctx.measureText(content)
+        ctx.fillText(content, centerX - metrics.width / 2, y)
+      }
+
+      ctx.setFillStyle('#fff4e6')
       ctx.fillRect(0, 0, width, height)
-      const gradient = ctx.createLinearGradient(0, 0, width, height)
-      gradient.addColorStop(0, '#ff6b4d')
-      gradient.addColorStop(1, '#42b883')
-      ctx.setFillStyle(gradient)
-      ctx.fillRect(0, 0, width, 300)
 
-      ctx.setFillStyle('#ffffff')
-      ctx.setFontSize(48)
-      ctx.fillText('酒桌判官邀局', 64, 110)
-      ctx.setFontSize(30)
-      ctx.fillText(this.data.sessionName || '', 64, 168)
+      const bg = ctx.createLinearGradient(0, 0, width, height)
+      bg.addColorStop(0, '#ff6542')
+      bg.addColorStop(0.52, '#ff9147')
+      bg.addColorStop(1, '#22ad78')
+      ctx.setFillStyle(bg)
+      ctx.fillRect(36, 36, 648, 888)
 
-      ctx.setFillStyle('#ffffff')
-      ctx.fillRect(54, 250, 612, 560)
-      ctx.setFillStyle('#24160f')
-      ctx.setFontSize(36)
-      ctx.fillText('加入口令', 94, 340)
-      ctx.setFontSize(70)
-      ctx.fillText(this.data.inviteCode || '', 94, 455)
-      ctx.setFontSize(28)
-      ctx.fillText(`${this.data.joinedCount}/${this.data.playerCount} 已加入`, 94, 530)
-      ctx.setFontSize(24)
-      ctx.setFillStyle('#665447')
-      ctx.fillText('打开小程序后输入口令加入本局', 94, 600)
-      ctx.fillText('请理性饮酒，量力而行。', 94, 650)
+      ctx.setFillStyle('rgba(255,255,255,0.18)')
+      ctx.beginPath()
+      ctx.arc(610, 116, 92, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.setFillStyle('rgba(255,218,116,0.2)')
+      ctx.beginPath()
+      ctx.arc(96, 760, 72, 0, Math.PI * 2)
+      ctx.fill()
 
-      ctx.setFillStyle('#ff6b4d')
-      ctx.fillRect(94, 704, 532, 72)
+      ctx.setFillStyle('rgba(255,255,255,0.18)')
+      ctx.fillRect(78, 82, 214, 42)
+      ctx.setFontSize(22)
       ctx.setFillStyle('#ffffff')
-      ctx.setFontSize(28)
-      ctx.fillText('保存后即可分享给好友', 176, 750)
+      ctx.fillText(textInvite, 98, 110)
+
+      ctx.setFontSize(54)
+      ctx.setFillStyle('#ffffff')
+      ctx.fillText(textHappyA, 78, 206)
+      ctx.fillText(textHappyB, 78, 270)
+      drawFitText(this.data.sessionName || textFallbackName, 78, 326, 560, 30, 'rgba(255,255,255,0.92)')
+
+      ctx.setFillStyle('rgba(255,253,248,0.96)')
+      ctx.fillRect(78, 380, 564, 310)
+      ctx.setFillStyle('#8f6248')
+      ctx.setFontSize(26)
+      ctx.fillText(textJoinCode, 116, 438)
+      ctx.setFillStyle('#fff3e3')
+      ctx.fillRect(116, 470, 488, 112)
+      drawCenteredFitText(this.data.inviteCode || textPending, 360, 544, 430, 62, '#24160f')
+
+      ctx.setFillStyle('#fff8ee')
+      ctx.fillRect(116, 616, 226, 46)
+      drawCenteredFitText(`${this.data.joinedCount}/${this.data.playerCount || 0} ${textJoined}`, 229, 647, 190, 24, '#24160f')
+      ctx.setFillStyle('#fff8ee')
+      ctx.fillRect(362, 616, 242, 46)
+      drawCenteredFitText(textJoinTip, 483, 647, 210, 24, '#24160f')
+
+      ctx.setFillStyle('rgba(36,22,15,0.2)')
+      ctx.fillRect(78, 724, 564, 86)
+      drawCenteredFitText(textShareTip, 360, 778, 500, 30, '#ffffff')
+
+      ctx.setFillStyle('rgba(255,255,255,0.86)')
+      ctx.fillRect(78, 840, 564, 44)
+      drawCenteredFitText(textDrinkTip, 360, 870, 420, 22, '#5f4938')
     })
   },
-
   saveImageFile(filePath) {
     return new Promise<void>((resolve, reject) => {
       wx.saveImageToPhotosAlbum({

@@ -90,7 +90,7 @@
             <text class="tools-list-title">{{item.name}}</text>
             <text class="tools-list-meta">{{item.meta}}</text>
           </view>
-          <text class="tools-list-arrow">&gt;</text>
+          <text class="tools-list-arrow">></text>
         </view>
       </view>
       <view wx:if="{{!categoryCards.length}}" class="tools-empty tools-empty-soft">
@@ -119,7 +119,7 @@
             <text class="tools-list-title">{{item.name}}</text>
             <text class="tools-list-meta">{{item.meta}}</text>
           </view>
-          <text class="tools-list-arrow">&gt;</text>
+          <text class="tools-list-arrow">></text>
         </view>
       </view>
       <view wx:if="{{!filteredTools.length}}" class="tools-empty tools-empty-soft">

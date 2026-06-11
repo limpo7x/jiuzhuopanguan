@@ -14,7 +14,10 @@
     </view>
 
     <view wx:if="{{!showJoinStatus}}" class="share-poster-card">
+      <view class="share-poster-glow share-poster-glow-a"></view>
+      <view class="share-poster-glow share-poster-glow-b"></view>
       <view class="share-poster-copy">
+        <view class="share-poster-kicker">酒桌判官邀请函</view>
         <text class="share-poster-title">这局快乐就完事了！</text>
         <text class="share-poster-subtitle">{{sessionName}}</text>
         <view class="share-poster-row">
@@ -28,14 +31,19 @@
     </view>
 
     <view wx:else class="share-poster-card">
+      <view class="share-poster-glow share-poster-glow-a"></view>
+      <view class="share-poster-glow share-poster-glow-b"></view>
       <view class="share-poster-copy">
+        <view class="share-poster-kicker">成员入局进度</view>
         <text class="share-poster-title">口令加入状态</text>
         <text class="share-poster-subtitle">邀请码 {{inviteCode || '未生成'}} · 当前 {{joinedCount}}/{{playerCount}} 已加入</text>
         <view class="share-status-list">
           <view wx:for="{{joinStatusPlayers}}" wx:key="name" class="share-status-item">
-            <image wx:if="{{item.avatarUrl}}" class="share-status-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
-            <view wx:else class="share-status-avatar"></view>
-            <text class="share-status-name">{{item.name}}</text>
+            <view class="share-status-user">
+              <image wx:if="{{item.avatarUrl}}" class="share-status-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+              <view wx:else class="share-status-avatar"></view>
+              <text class="share-status-name">{{item.name}}</text>
+            </view>
             <view class="share-status-tag">{{item.status}}</view>
           </view>
         </view>

@@ -34,7 +34,13 @@ Page<CreateSessionState, CreateSessionMethods>({
   data: {
     playerCount: 2,
     sessionName: '',
-    sessionNamePresets: [],
+    sessionNamePresets: [
+      { name: '周五快乐局' },
+      { name: '同生共史局' },
+      { name: '周六快乐局' },
+      { name: '老友厮沙局' },
+      { name: '娱乐小美局' },
+    ],
     templates: [],
   },
 
