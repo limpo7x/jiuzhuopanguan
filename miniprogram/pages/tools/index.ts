@@ -64,6 +64,10 @@ Page<ToolsPageState, ToolsPageMethods>({
     void this.loadCatalog()
   },
 
+  onShow() {
+    void this.loadCatalog()
+  },
+
   async loadCatalog() {
     const catalog = await getManagedToolsCatalog()
     this.setData(
