@@ -18,10 +18,12 @@ interface ToolsPageState {
   allTools: ToolDescriptor[]
   categories: CategoryViewItem[]
   categoryCards: ToolCategoryCard[]
+  filteredTools: ToolDescriptor[]
   heroImageUrl: string
   heroSubtitle: string
   heroTitle: string
   popularTools: ToolDescriptor[]
+  activeCategoryName: string
   searchKeyword: string
 }
 
@@ -53,10 +55,12 @@ Page<ToolsPageState, ToolsPageMethods>({
     allTools: [],
     categories: [],
     categoryCards: [],
+    filteredTools: [],
     heroImageUrl: '',
     heroSubtitle: '高效 · 实用 · 有趣',
     heroTitle: '工具在手 生活不愁',
     popularTools: [],
+    activeCategoryName: '全部',
     searchKeyword: '',
   },
 
@@ -99,39 +103,26 @@ Page<ToolsPageState, ToolsPageMethods>({
     const sourcePopularTools = allPopularTools.length ? allPopularTools : sourceTools
     const sourceCards = allCategoryCards.length ? allCategoryCards : this.data.categoryCards
     const sourceCategories = categories.length ? categories : [{ id: 'all', name: '全部', active: true }]
+    const activeCategoryName = sourceCategories.find((item) => item.id === activeCategory)?.name || '全部'
+    const matchesKeyword = (text: string) => !keyword || text.toLowerCase().includes(keyword)
 
-    const visibleCards = sourceCards.filter((card) => {
-      if (activeCategory !== 'all' && card.id !== activeCategory) {
-        return false
-      }
+    const visibleCards = sourceCards.filter((card) => matchesKeyword(`${card.name} ${card.meta}`))
 
-      if (!keyword) {
-        return true
-      }
-
-      return `${card.name} ${card.meta}`.toLowerCase().includes(keyword)
-    })
-
-    const visiblePopularTools = sourcePopularTools.filter((tool) => {
+    const visiblePopularTools = sourcePopularTools.filter((tool) => matchesKeyword(`${tool.name} ${tool.meta}`))
+    const filteredTools = sourceTools.filter((tool) => {
       const matchCategory = activeCategory === 'all' || tool.categoryId === activeCategory
-      if (!matchCategory) {
-        return false
-      }
-
-      if (!keyword) {
-        return true
-      }
-
-      return `${tool.name} ${tool.meta}`.toLowerCase().includes(keyword)
+      return matchCategory && matchesKeyword(`${tool.name} ${tool.meta}`)
     })
 
     this.setData({
+      activeCategoryName,
       categories: sourceCategories.map((item) => ({
         id: item.id,
         name: item.name,
         active: item.id === activeCategory,
       })),
       categoryCards: visibleCards,
+      filteredTools,
       popularTools: visiblePopularTools,
     })
   },

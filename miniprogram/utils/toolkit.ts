@@ -44,6 +44,11 @@ export const TOOL_CATEGORIES: ToolCategory[] = [
 ]
 
 export const TOOL_ALIASES: Record<string, string> = {
+  'tool-compress': 'image-compress',
+  'tool-qr': 'qr-code',
+  'tool-loan': 'loan-calc',
+  'tool-currency': 'currency',
+  'tool-unit': 'unit',
   loan: 'loan-calc',
   'tool-9-grid': 'nine-grid',
   'tool-json': 'json',
