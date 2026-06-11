@@ -225,7 +225,8 @@ const request = <T>(
           resolve(payload.data)
           return
         }
-        reject(new Error(payload?.message || 'request failed'))
+        const fallbackMessage = response.statusCode === 502 ? '微信登录服务暂不可用，请检查服务器微信 AppID/AppSecret 配置' : 'request failed'
+        reject(new Error(payload?.message || fallbackMessage))
       },
       fail: (error) => {
         backendDownUntil = Date.now() + BACKEND_RETRY_INTERVAL

@@ -353,7 +353,20 @@ const getWechatSessionByCode = async (loginCode) => {
     `https://api.weixin.qq.com/sns/jscode2session?appid=${encodeURIComponent(wechatConfig.appId)}&secret=${encodeURIComponent(wechatConfig.appSecret)}&js_code=${encodeURIComponent(loginCode)}&grant_type=authorization_code`,
   )
   if (!payload.openid) {
-    throw Object.assign(new Error(payload.errmsg || 'failed to exchange wechat session'), { statusCode: 502 })
+    const errcode = Number(payload.errcode) || 0
+    const hintMap = {
+      40013: '微信 AppID 无效，请检查服务器 WECHAT_APP_ID 是否为当前小程序 AppID',
+      40029: '微信登录 code 无效或已过期，请重新点击登录，并确认开发工具 AppID 与服务器 WECHAT_APP_ID 一致',
+      40125: '微信 AppSecret 无效，请检查服务器 WECHAT_APP_SECRET',
+      40226: '微信账号登录受限，请检查小程序账号状态',
+    }
+    const hint = hintMap[errcode] || '微信登录凭证换取 OpenID 失败，请检查 AppID/AppSecret 与小程序主体配置'
+    console.error('wechat jscode2session failed', {
+      errcode: payload.errcode,
+      errmsg: payload.errmsg,
+      appIdTail: wechatConfig.appId ? wechatConfig.appId.slice(-6) : '',
+    })
+    throw Object.assign(new Error(`${hint}${payload.errmsg ? `：${payload.errmsg}` : ''}`), { statusCode: 502 })
   }
   return payload
 }
