@@ -7,8 +7,10 @@ export interface HomeHero {
 
 export interface QuickTool {
   id: string
+  imageUrl?: string
   name: string
   iconClass: string
+  route?: string
   toneClass: string
 }
 

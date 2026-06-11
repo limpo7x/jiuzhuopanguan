@@ -12,6 +12,7 @@ export interface ToolDescriptor {
   imageUrl: string
   heroImage: string
   meta: string
+  placement?: string
   subtitle: string
   summary: string
   tips: Array<{ label: string; value: string }>

@@ -252,6 +252,24 @@ const getProfile = () => readStore().profile
 const getCompliance = () => readStore().compliance
 const getToolHistory = () => readStore().toolHistory
 
+const recordToolUsage = (payload = {}) => {
+  const toolId = cleanText(payload.id || payload.toolId)
+  if (!toolId) {
+    return getToolHistory()
+  }
+  const store = readStore()
+  const nextItem = {
+    id: toolId,
+    usedAt: new Date().toISOString(),
+  }
+  store.toolHistory = [
+    nextItem,
+    ...cleanArray(store.toolHistory).filter((item) => cleanText(item?.id) !== toolId),
+  ].slice(0, 30)
+  writeStore(store)
+  return store.toolHistory
+}
+
 const updateHomeConfig = (payload = {}) => {
   const store = readStore()
   store.homeConfig = normalizeHomeConfig({
@@ -304,6 +322,7 @@ module.exports = {
   getToolHistory,
   initContentStore: storeAccessor.init,
   readContentStore: readStore,
+  recordToolUsage,
   updateCompliance,
   updateHomeConfig,
   updateHomeHero,

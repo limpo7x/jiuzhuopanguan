@@ -33,6 +33,7 @@ const {
   getProfile,
   getTemplateConfig,
   getToolHistory,
+  recordToolUsage,
   updateHomeHero,
   updatePointsConfig,
   updateTemplateConfig,
@@ -691,6 +692,12 @@ const server = http.createServer((request, response) => {
 
     if (request.method === 'GET' && pathname === '/api/v1/tools/history') {
       sendOk(response, getToolHistory())
+      return
+    }
+
+    if (request.method === 'POST' && pathname === '/api/v1/tools/history') {
+      const payload = await readJsonBody(request)
+      sendOk(response, recordToolUsage(payload))
       return
     }
 

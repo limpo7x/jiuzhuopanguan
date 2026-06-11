@@ -152,7 +152,7 @@ const listFrontendTools = () => {
   const store = getAdminStore()
   const toolsHero = store.toolsHero || {}
   const enabledTools = sortTools((store.toolsCatalog || []).filter(isEnabledTool))
-  const tools = enabledTools.filter((item) => supportsPlacement(item, 'tools')).map((item) => {
+  const tools = enabledTools.map((item) => {
     const toolId = normalizeToolId(item)
     const categoryId = normalizeToolCategoryId(item.category)
     return {

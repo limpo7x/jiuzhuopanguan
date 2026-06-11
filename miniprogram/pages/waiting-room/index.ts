@@ -7,6 +7,7 @@ interface JoinedPlayer {
   avatarUrl: string
   name: string
   profileId?: string
+  status?: string
 }
 
 interface WaitingRoomState {
@@ -33,6 +34,17 @@ interface WaitingRoomMethods {
   handleStartTap: () => Promise<void>
   openPage: (url: string) => void
   refreshSession: (showToast?: boolean) => Promise<void>
+}
+
+const mergeRuntimeAvatars = (players: JoinedPlayer[], runtime = getSessionRuntime()) => {
+  const avatarMap = new Map<string, string>()
+  if (runtime.currentUser?.id && runtime.currentUser.avatarUrl) {
+    avatarMap.set(runtime.currentUser.id, runtime.currentUser.avatarUrl)
+  }
+  ;(runtime.selectedPlayers || []).forEach((item) => {
+    if (item.profileId && item.avatarUrl) avatarMap.set(item.profileId, item.avatarUrl)
+  })
+  return players.map((item) => ({ ...item, avatarUrl: item.avatarUrl || (item.profileId ? avatarMap.get(item.profileId) || '' : '') }))
 }
 
 Page<WaitingRoomState, WaitingRoomMethods>({
@@ -97,7 +109,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     const runtime = getSessionRuntime()
     const sessionId = this.data.sessionId || runtime.sessionId || ''
     const liveSession = await getManagedLiveSession(sessionId, runtime.inviteCode)
-    const joinedPlayers = liveSession.joinedPlayers.slice(0, liveSession.playerCount)
+    const joinedPlayers = mergeRuntimeAvatars(liveSession.joinedPlayers.slice(0, liveSession.playerCount), runtime)
     const emptySeats = Array.from({ length: Math.max(liveSession.playerCount - joinedPlayers.length, 0) }, (_, index) => index + 1)
 
     this.setData({
@@ -114,7 +126,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     setSessionRuntime({
       inviteCode: liveSession.inviteCode,
       playerCount: liveSession.playerCount,
-      selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
+      selectedPlayers: mergeRuntimeAvatars(liveSession.joinStatusPlayers, runtime).map<SessionParticipant>((item) => ({
         avatarUrl: item.avatarUrl,
         name: item.name,
         profileId: item.profileId,

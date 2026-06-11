@@ -26,7 +26,13 @@
     <view class="create-card create-form-card">
       <view class="create-field">
         <text class="create-label">酒局名称</text>
-        <view class="create-input">{{sessionName}}</view>
+        <input
+          class="create-input"
+          value="{{sessionName}}"
+          placeholder="??????"
+          placeholder-class="create-input-placeholder"
+          bindinput="handleSessionNameInput"
+        />
       </view>
 
       <view class="create-pill-row">

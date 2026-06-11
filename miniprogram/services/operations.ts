@@ -434,6 +434,7 @@ const mergeToolDescriptor = async (remoteTool: RemoteToolItem): Promise<ToolDesc
     imageUrl: imageUrl || imageUrlSource,
     heroImage: heroImage || heroImageSource,
     meta: remoteTool.meta || '',
+    placement: remoteTool.placement || '',
     subtitle: remoteTool.target || '',
     summary: remoteTool.meta || '',
     tips: [],
@@ -737,4 +738,17 @@ export const getManagedJudgeStats = async (): Promise<ManagedJudgeStats> => {
     reportShareCount: Number(remote.reportShareCount) || 0,
     unsharedReportCount: Number(remote.unsharedReportCount) || 0,
   }
+}
+
+export const isToolVisibleInPlacement = (tool: Pick<ToolDescriptor, 'placement'>, placement: 'home' | 'tools') => {
+  const normalized = String(tool.placement || 'tools').trim().toLowerCase()
+  return normalized === 'both' || normalized === placement
+}
+
+export const recordManagedToolUsage = async (toolId: string): Promise<void> => {
+  const id = resolveToolId(toolId)
+  if (!id) {
+    return
+  }
+  await requestJson('/tools/history', 'POST', { id }).catch(() => undefined)
 }

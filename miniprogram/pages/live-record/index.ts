@@ -72,11 +72,18 @@ const JUDGE_WHEEL_RESULT_KEY = 'judge-wheel-result'
 const MAX_CLEAR_PER_PLAYER = 3
 let liveTimer = 0
 
+const mergeRuntimeAvatar = (profileId?: string, avatarUrl = '', runtime = getSessionRuntime()) => {
+  if (avatarUrl) return avatarUrl
+  if (profileId && runtime.currentUser?.id === profileId && runtime.currentUser.avatarUrl) return runtime.currentUser.avatarUrl
+  const matched = (runtime.selectedPlayers || []).find((item) => item.profileId === profileId)
+  return matched?.avatarUrl || ''
+}
+
 const buildPlayers = (runtime = getSessionRuntime()): LivePlayer[] =>
   resolveSessionParticipants(runtime)
     .slice(0, runtime.playerCount)
     .map((item) => ({
-      avatarUrl: item.avatarUrl,
+      avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
       name: item.name,
       profileId: item.profileId,
     }))
@@ -94,7 +101,7 @@ const buildRecords = (players: LivePlayer[], runtime = getSessionRuntime()): Liv
     const stat = statMap.get(player.profileId || player.name)
 
     return {
-      avatarUrl: player.avatarUrl,
+      avatarUrl: mergeRuntimeAvatar(player.profileId, player.avatarUrl),
       clearedCount: stat?.clearedCount || 0,
       debtCount: stat?.debtCount || 0,
       drinkCount: stat?.drinkCount || 0,
@@ -145,7 +152,7 @@ const buildInitialEvents = (sessionName: string, players: LivePlayer[]): LiveEve
 
 const toPlayerStats = (records: LiveRecordItem[]): SessionPlayerStat[] =>
   records.map((item) => ({
-    avatarUrl: item.avatarUrl,
+    avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
     clearedCount: item.clearedCount,
     debtCount: item.debtCount,
     drinkCount: item.drinkCount,
@@ -223,12 +230,12 @@ Page<LiveRecordState, LiveRecordMethods>({
     const players = liveSession.joinStatusPlayers
       .slice(0, liveSession.playerCount)
       .map((item) => ({
-        avatarUrl: item.avatarUrl,
+        avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
         name: item.name,
         profileId: item.profileId,
       }))
     const records = liveSession.joinStatusPlayers.slice(0, liveSession.playerCount).map((item, index) => ({
-      avatarUrl: item.avatarUrl,
+      avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
       clearedCount: item.clearedCount || 0,
       debtCount: item.debtCount || 0,
       drinkCount: item.drinkCount || 0,
@@ -244,7 +251,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       playerCount: liveSession.playerCount,
       playerStats: toPlayerStats(records),
       selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
-        avatarUrl: item.avatarUrl,
+        avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
         name: item.name,
         profileId: item.profileId,
         status: item.status,
@@ -286,13 +293,13 @@ Page<LiveRecordState, LiveRecordMethods>({
       const players = liveSession.joinStatusPlayers
         .slice(0, liveSession.playerCount)
         .map((item) => ({
-          avatarUrl: item.avatarUrl,
+          avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
           name: item.name,
           profileId: item.profileId,
         }))
 
       const records = liveSession.joinStatusPlayers.slice(0, liveSession.playerCount).map((item, index) => ({
-        avatarUrl: item.avatarUrl,
+        avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
         clearedCount: item.clearedCount || 0,
         debtCount: item.debtCount || 0,
         drinkCount: item.drinkCount || 0,
@@ -307,7 +314,7 @@ Page<LiveRecordState, LiveRecordMethods>({
         playerCount: liveSession.playerCount,
         playerStats: toPlayerStats(records),
         selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
-          avatarUrl: item.avatarUrl,
+          avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
           name: item.name,
           profileId: item.profileId,
           status: item.status,
@@ -382,7 +389,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     const selectedPlayers = resolveSessionParticipants(runtime).map((item) => {
       const record = records.find((current) => (current.profileId || current.name) === (item.profileId || item.name))
       return {
-        avatarUrl: item.avatarUrl,
+        avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
         clearedCount: record?.clearedCount || 0,
         debtCount: record?.debtCount || 0,
         drinkCount: record?.drinkCount || 0,

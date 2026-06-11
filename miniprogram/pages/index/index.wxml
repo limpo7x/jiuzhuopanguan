@@ -68,10 +68,12 @@
         class="quick-tool-tile {{item.toneClass ? 'quick-tool-tile-' + item.toneClass : ''}}"
         data-id="{{item.id}}"
         data-name="{{item.name}}"
+        data-route="{{item.route}}"
         bindtap="handleQuickToolTap"
       >
         <view class="quick-tool-icon">
-          <view class="quick-tool-icon-glyph {{item.iconClass}}"></view>
+          <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
+          <view wx:else class="quick-tool-icon-glyph {{item.iconClass}}"></view>
         </view>
         <text class="quick-tool-label">{{item.name}}</text>
       </view>

@@ -3,7 +3,7 @@
   type ToolCategoryCard,
   type ToolDescriptor,
 } from '../../utils/toolkit'
-import { getManagedToolsCatalog } from '../../services/operations'
+import { getManagedToolsCatalog, isToolVisibleInPlacement, recordManagedToolUsage } from '../../services/operations'
 
 interface CategoryViewItem {
   id: string
@@ -99,8 +99,8 @@ Page<ToolsPageState, ToolsPageMethods>({
   applyFilters() {
     const { activeCategory, allCategoryCards, allPopularTools, allTools, categories, searchKeyword } = this.data
     const keyword = normalizeKeyword(searchKeyword)
-    const sourceTools = allTools.length ? allTools : this.data.popularTools
-    const sourcePopularTools = allPopularTools.length ? allPopularTools : sourceTools
+    const sourceTools = (allTools.length ? allTools : this.data.popularTools).filter((tool) => isToolVisibleInPlacement(tool, 'tools'))
+    const sourcePopularTools = (allPopularTools.length ? allPopularTools : sourceTools).filter((tool) => isToolVisibleInPlacement(tool, 'tools'))
     const sourceCards = allCategoryCards.length ? allCategoryCards : this.data.categoryCards
     const sourceCategories = categories.length ? categories : [{ id: 'all', name: '全部', active: true }]
     const activeCategoryName = sourceCategories.find((item) => item.id === activeCategory)?.name || '全部'
@@ -179,6 +179,7 @@ Page<ToolsPageState, ToolsPageMethods>({
   handleToolTap(event) {
     const { id, name } = event.currentTarget.dataset as { id: string; name: string }
     const toolId = resolveToolId(id)
+    void recordManagedToolUsage(toolId)
     this.openPage(`/pages/tool-detail/index?id=${encodeURIComponent(toolId)}&name=${encodeURIComponent(name)}`)
   },
 

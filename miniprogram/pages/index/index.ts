@@ -1,7 +1,7 @@
 import { homePageMock, type HomePageData } from '../../mock/home'
 import { claimPointsTask, getUserCommerceState } from '../../services/content'
 import { getHomePageData } from '../../services/home'
-import { joinManagedSession } from '../../services/operations'
+import { joinManagedSession, recordManagedToolUsage } from '../../services/operations'
 import { setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import { ensureUserAuthorized, getCurrentDisplayProfile, getUserAuthSession, loginWithWechatProfile } from '../../utils/social'
 
@@ -315,12 +315,14 @@ Page<HomePageState, HomePageMethods>({
   },
 
   handleQuickToolTap(event) {
-    const { id, name } = event.currentTarget.dataset as { id: string; name: string }
-    this.openPage(`/pages/tool-detail/index?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`)
+    const { id, name, route } = event.currentTarget.dataset as { id: string; name: string; route?: string }
+    void recordManagedToolUsage(id)
+    this.openPage(route || `/pages/tool-detail/index?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`)
   },
 
   handleToolTap(event) {
     const { id, name, route } = event.currentTarget.dataset as { id: string; name: string; route?: string }
+    void recordManagedToolUsage(id)
     this.openPage(route || `/pages/tool-detail/index?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`)
   },
 

@@ -461,3 +461,12 @@ page {
 .wheel-avatar {
   background: linear-gradient(135deg, #6b625c, #3f3834);
 }
+
+/* 2026-06-11 keep wheel inside viewport */
+.wheel-scroll { overflow-x: hidden; }
+.wheel-stage { width: min(76vw, 560rpx) !important; height: min(76vw, 560rpx) !important; max-width: calc(100vw - 72px) !important; max-height: calc(100vw - 72px) !important; box-sizing: border-box; }
+.wheel-stage::before { inset: -8px !important; }
+.wheel-disc { box-sizing: border-box; border-width: 8px !important; }
+.wheel-center { width: 96px !important; height: 96px !important; }
+.wheel-center-main { font-size: 21px !important; }
+.wheel-name { width: 76px !important; font-size: 13px !important; }

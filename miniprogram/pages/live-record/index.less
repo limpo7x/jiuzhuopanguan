@@ -622,3 +622,11 @@ page {
   font-size: 12px !important;
   line-height: 32px;
 }
+
+/* 2026-06-11 prevent debt controls overflow */
+.live-record-item { grid-template-columns: minmax(68px, 0.82fr) minmax(0, 1.9fr) !important; }
+.live-record-stats { min-width: 0; }
+.live-record-stat-card { grid-template-columns: 22px minmax(0, 1fr) !important; }
+.live-record-adjuster { justify-content: center; }
+.live-record-score-box { flex: 0 1 22px; min-width: 20px !important; }
+.live-adjust-btn { width: 20px !important; height: 20px !important; flex-basis: 20px !important; font-size: 14px !important; }

@@ -23,6 +23,7 @@ interface CreateSessionState {
 
 interface CreateSessionMethods {
   handleMoreTemplatesTap: () => void
+  handleSessionNameInput: (event: WechatMiniprogram.Input) => void
   handleNextTap: () => Promise<void>
   handlePlayerCountTap: (event: WechatMiniprogram.BaseEvent) => void
   handlePresetTap: (event: WechatMiniprogram.BaseEvent) => void
@@ -31,7 +32,7 @@ interface CreateSessionMethods {
 
 Page<CreateSessionState, CreateSessionMethods>({
   data: {
-    playerCount: 0,
+    playerCount: 2,
     sessionName: '',
     sessionNamePresets: [],
     templates: [],
@@ -58,6 +59,10 @@ Page<CreateSessionState, CreateSessionMethods>({
       sessionName: `${decodedName}开局`,
       templates,
     })
+  },
+
+  handleSessionNameInput(event) {
+    this.setData({ sessionName: String(event.detail.value || '').trim() })
   },
 
   handlePresetTap(event) {
@@ -111,7 +116,7 @@ Page<CreateSessionState, CreateSessionMethods>({
         hostAvatarUrl: profile.avatarUrl,
         hostName: profile.name,
         hostProfileId: profile.id,
-        playerCount: this.data.playerCount,
+        playerCount: Math.max(2, this.data.playerCount || 2),
         sessionName: this.data.sessionName,
         source: '直接创建',
         state: '等待开局',
@@ -126,7 +131,7 @@ Page<CreateSessionState, CreateSessionMethods>({
         },
         inviteCode: created.inviteCode,
         isJudge: true,
-        playerCount: this.data.playerCount,
+        playerCount: Math.max(2, this.data.playerCount || 2),
         playerReactions: [],
         playerStats: [],
         reportId: '',

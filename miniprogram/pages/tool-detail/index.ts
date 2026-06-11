@@ -1,5 +1,6 @@
 import { getToolById, resolveToolId, type ToolDescriptor } from '../../utils/toolkit'
 import { getApiBase } from '../../config/api'
+import { recordManagedToolUsage } from '../../services/operations'
 
 interface ToolDetailState {
   compressQuality: number
@@ -287,6 +288,7 @@ Page<ToolDetailState, ToolDetailMethods>({
   onLoad(query) {
     const toolId = resolveToolId(decodeParam(query?.id))
     const tool = getToolById(toolId)
+    void recordManagedToolUsage(toolId)
     this.applyToolConfig(tool)
   },
 
