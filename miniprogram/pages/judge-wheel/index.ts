@@ -40,6 +40,7 @@ interface JudgeWheelState {
   currentPlayerAvatar: string
   currentPlayerId: string
   currentPlayerName: string
+  allowDirectBack: boolean
   exitGuardHandling: boolean
   exitGuardVisible: boolean
   currentTask: string
@@ -190,6 +191,7 @@ Page<JudgeWheelState, JudgeWheelMethods>({
     currentPlayerAvatar: pickDefaultPlayer().avatarUrl,
     currentPlayerId: pickDefaultPlayer().id,
     currentPlayerName: pickDefaultPlayer().name,
+    allowDirectBack: false,
     exitGuardHandling: false,
     exitGuardVisible: true,
     currentTask: '',
@@ -470,6 +472,10 @@ Page<JudgeWheelState, JudgeWheelMethods>({
         question: this.data.currentTask,
       })
 
+      this.setData({
+        allowDirectBack: true,
+        exitGuardVisible: false,
+      })
       wx.navigateBack({
         fail: () => {
           wx.redirectTo({
@@ -489,6 +495,10 @@ Page<JudgeWheelState, JudgeWheelMethods>({
   },
 
   async handleExitGuardLeave() {
+    if (this.data.allowDirectBack) {
+      return
+    }
+
     if (this.data.exitGuardHandling) {
       this.setData({ exitGuardVisible: true })
       return
