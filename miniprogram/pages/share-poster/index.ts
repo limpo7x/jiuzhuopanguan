@@ -317,7 +317,7 @@ Page<SharePosterState, SharePosterMethods>({
     reportId: '',
     secondaryRanks: [],
     sessionId: '',
-    sessionName: '本局战报',
+    sessionName: '',
     shareHeadline: SHARE_HEADLINE,
     shareItems: [],
   },
@@ -361,7 +361,7 @@ Page<SharePosterState, SharePosterMethods>({
             reportId: report.id,
             secondaryRanks,
             sessionId: report.sessionId || runtime.sessionId || '',
-            sessionName: report.sessionName || runtime.sessionName || '本局战报',
+            sessionName: report.sessionName || runtime.sessionName || '',
             shareItems: shareConfig.shareItems
               .filter((item) => item.id && item.id !== 'save')
               .map((item) => ({
@@ -505,7 +505,7 @@ Page<SharePosterState, SharePosterMethods>({
       ctx.setFontSize(48)
       ctx.fillText(this.data.shareHeadline, 90, 122)
       ctx.setFontSize(24)
-      ctx.fillText(this.data.sessionName || '本局战报', 90, 170)
+      ctx.fillText(this.data.sessionName || '', 90, 170)
       ctx.fillText(this.data.posterTitle || '这局快乐就完事了', 90, 208)
 
       fillRoundRect(ctx, 620, 116, 190, 72, 20, 'rgba(255,255,255,0.16)')
@@ -533,7 +533,7 @@ Page<SharePosterState, SharePosterMethods>({
         drawAvatar(ctx, avatarPaths[avatarOffset] || '', 126, currentY + 94, 84)
         ctx.setFillStyle('#ffffff')
         ctx.setFontSize(34)
-        ctx.fillText(rank.name || '未命名玩家', 236, currentY + 136)
+        ctx.fillText(rank.name || '', 236, currentY + 136)
         ctx.setFillStyle('#ffe0d5')
         ctx.setFontSize(24)
         ctx.fillText(rank.value || '-', 236, currentY + 176)
@@ -556,7 +556,7 @@ Page<SharePosterState, SharePosterMethods>({
         drawAvatar(ctx, avatarPaths[avatarOffset + index] || '', x + 26, y + 82, 62)
         ctx.setFillStyle('#24160f')
         ctx.setFontSize(24)
-        ctx.fillText(rank.name || '未命名玩家', x + 106, y + 116)
+        ctx.fillText(rank.name || '', x + 106, y + 116)
         ctx.setFillStyle('#ff5b3d')
         ctx.setFontSize(22)
         ctx.fillText(rank.value || '-', x + 106, y + 150)

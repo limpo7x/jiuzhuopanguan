@@ -95,7 +95,6 @@ interface ToolDetailMethods {
   saveImageFile: (filePath: string) => Promise<void>
 }
 
-const DEFAULT_TOOL = getToolById('image-compress') as ToolDescriptor
 
 const CURRENCY_OPTIONS = ['CNY', 'USD', 'EUR', 'HKD', 'JPY']
 const CURRENCY_RATE_MAP: Record<string, number> = {
@@ -232,12 +231,12 @@ Page<ToolDetailState, ToolDetailMethods>({
   data: {
     toolId: '',
     toolName: '工具详情',
-    toolMode: DEFAULT_TOOL.mode,
-    heroImage: DEFAULT_TOOL.heroImage,
-    subtitle: DEFAULT_TOOL.subtitle,
-    summary: DEFAULT_TOOL.summary,
-    tips: DEFAULT_TOOL.tips,
-    steps: DEFAULT_TOOL.steps,
+    toolMode: '',
+    heroImage: '',
+    subtitle: '',
+    summary: '',
+    tips: [],
+    steps: [],
     toolInput: '',
     toolOutput: '',
     toolError: '',
@@ -287,7 +286,7 @@ Page<ToolDetailState, ToolDetailMethods>({
 
   onLoad(query) {
     const toolId = resolveToolId(decodeParam(query?.id))
-    const tool = getToolById(toolId) || DEFAULT_TOOL
+    const tool = getToolById(toolId)
     this.applyToolConfig(tool)
   },
 

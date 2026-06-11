@@ -178,7 +178,7 @@ const buildFallbackPlayers = () => {
       meta: stat?.meta || item.status || '',
       name: item.name,
       profileId: item.profileId,
-      status: item.status || '待加入',
+      status: item.status || '',
       wheelHistory: [],
     }
   })

@@ -1,4 +1,4 @@
-﻿import { getApiBase } from '../config/api'
+import { getApiBase } from '../config/api'
 
 export interface SocialProfile {
   avatarUrl: string
@@ -158,8 +158,8 @@ const normalizeFriend = (friend?: Partial<WineFriend> | null): WineFriend => ({
   id: String(friend?.id || `local-friend-${randomId()}`).trim(),
   profileId: String(friend?.profileId || `local-profile-${randomId()}`).trim(),
   avatarUrl: normalizeSocialAvatarUrl(friend?.avatarUrl),
-  name: sanitizeSocialName(friend?.name) || String(friend?.name || '').trim() || '未命名用户',
-  meta: String(friend?.meta || '最近联系').trim(),
+  name: sanitizeSocialName(friend?.name) || String(friend?.name || '').trim(),
+  meta: String(friend?.meta || '').trim(),
   updatedAt: Number(friend?.updatedAt) || Date.now(),
 })
 
@@ -604,49 +604,30 @@ export const bootstrapSocial = async (): Promise<SocialBootstrapResponse> => {
 
 export const getWineFriends = async (): Promise<WineFriend[]> => (await bootstrapSocial()).wineFriends
 
-export const addWineFriend = async (name: string, meta = '最近添加'): Promise<WineFriend> => {
+export const addWineFriend = async (name: string, meta = ''): Promise<WineFriend> => {
   const profile = await ensureCurrentProfile()
   const trimmed = String(name || '').trim()
-  try {
-    const remote = await request<WineFriend>('/social/friends', 'POST', { ownerId: profile.id, friendName: trimmed, meta })
-    const friend = normalizeFriend(remote)
-    saveLocalWineFriends([friend, ...getLocalWineFriends().filter((item) => item.id !== friend.id)])
-    return friend
-  } catch {
-    const friend = normalizeFriend({ id: `local-friend-${randomId()}`, profileId: `local-profile-${randomId()}`, name: trimmed, meta })
-    saveLocalWineFriends([friend, ...getLocalWineFriends().filter((item) => item.profileId !== friend.profileId)])
-    saveLocalDirectory([normalizeProfile({ id: friend.profileId, name: friend.name }), ...getLocalDirectory()])
-    return friend
-  }
+  const remote = await request<WineFriend>('/social/friends', 'POST', { ownerId: profile.id, friendName: trimmed, meta })
+  const friend = normalizeFriend(remote)
+  saveLocalWineFriends([friend, ...getLocalWineFriends().filter((item) => item.id !== friend.id)])
+  return friend
 }
 
 export const addWineFriendByProfile = async (
   friendProfileId: string,
   friendName?: string,
-  meta = '最近添加',
+  meta = '',
 ): Promise<WineFriend> => {
   const profile = await ensureCurrentProfile()
-  try {
-    const remote = await request<WineFriend>('/social/friends', 'POST', {
-      ownerId: profile.id,
-      friendProfileId,
-      friendName: friendName?.trim() || '',
-      meta,
-    })
-    const friend = normalizeFriend(remote)
-    saveLocalWineFriends([friend, ...getLocalWineFriends().filter((item) => item.id !== friend.id)])
-    return friend
-  } catch {
-    const target = getLocalDirectory().find((item) => item.id === friendProfileId)
-    const friend = normalizeFriend({
-      id: `local-friend-${randomId()}`,
-      profileId: friendProfileId,
-      name: friendName?.trim() || target?.name || '未命名用户',
-      meta,
-    })
-    saveLocalWineFriends([friend, ...getLocalWineFriends().filter((item) => item.profileId !== friendProfileId)])
-    return friend
-  }
+  const remote = await request<WineFriend>('/social/friends', 'POST', {
+    ownerId: profile.id,
+    friendProfileId,
+    friendName: friendName?.trim() || '',
+    meta,
+  })
+  const friend = normalizeFriend(remote)
+  saveLocalWineFriends([friend, ...getLocalWineFriends().filter((item) => item.id !== friend.id)])
+  return friend
 }
 
 export const updateWineFriend = async (
@@ -654,51 +635,23 @@ export const updateWineFriend = async (
   patch: Partial<Pick<WineFriend, 'meta' | 'name'>>,
 ): Promise<WineFriend> => {
   const profile = await ensureCurrentProfile()
-  try {
-    const remote = await request<WineFriend>(`/social/friends/${encodeURIComponent(id)}`, 'PUT', { ownerId: profile.id, ...patch })
-    const friend = normalizeFriend(remote)
-    saveLocalWineFriends(getLocalWineFriends().map((item) => (item.id === id ? friend : item)))
-    return friend
-  } catch {
-    const next = getLocalWineFriends().map((item) =>
-      item.id === id ? normalizeFriend({ ...item, name: patch.name ?? item.name, meta: patch.meta ?? item.meta, updatedAt: Date.now() }) : item,
-    )
-    saveLocalWineFriends(next)
-    return next.find((item) => item.id === id) as WineFriend
-  }
+  const remote = await request<WineFriend>(`/social/friends/${encodeURIComponent(id)}`, 'PUT', { ownerId: profile.id, ...patch })
+  const friend = normalizeFriend(remote)
+  saveLocalWineFriends(getLocalWineFriends().map((item) => (item.id === id ? friend : item)))
+  return friend
 }
 
 export const removeWineFriend = async (id: string): Promise<WineFriend[]> => {
   const profile = await ensureCurrentProfile()
-  try {
-    const remote = await request<WineFriend[]>(`/social/friends/${encodeURIComponent(id)}?profileId=${encodeURIComponent(profile.id)}`, 'DELETE')
-    return saveLocalWineFriends((remote || []).map(normalizeFriend))
-  } catch {
-    return saveLocalWineFriends(getLocalWineFriends().filter((item) => item.id !== id))
-  }
+  const remote = await request<WineFriend[]>(`/social/friends/${encodeURIComponent(id)}?profileId=${encodeURIComponent(profile.id)}`, 'DELETE')
+  return saveLocalWineFriends((remote || []).map(normalizeFriend))
 }
 
 export const touchWineFriends = async (participants: Array<{ avatarUrl: string; name: string; profileId?: string }>): Promise<WineFriend[]> => {
   const profile = await ensureCurrentProfile()
   const normalizedParticipants = participants.map((item) => ({ ...item, avatarUrl: normalizeSocialAvatarUrl(item.avatarUrl) }))
-  try {
-    const remote = await request<WineFriend[]>('/social/friends/touch', 'POST', { ownerId: profile.id, participants: normalizedParticipants })
-    return saveLocalWineFriends((remote || []).map(normalizeFriend))
-  } catch {
-    let friends = getLocalWineFriends()
-    normalizedParticipants.forEach((item, index) => {
-      const existed = friends.find((friend) => friend.name === item.name)
-      const friend = normalizeFriend({
-        id: existed?.id || `local-friend-${randomId()}`,
-        profileId: item.profileId || existed?.profileId || `local-profile-${randomId()}`,
-        name: item.name,
-        meta: index < 2 ? '刚一起开过局' : '最近联系',
-        updatedAt: Date.now() + index,
-      })
-      friends = [friend, ...friends.filter((current) => current.id !== friend.id)]
-    })
-    return saveLocalWineFriends(friends)
-  }
+  const remote = await request<WineFriend[]>('/social/friends/touch', 'POST', { ownerId: profile.id, participants: normalizedParticipants })
+  return saveLocalWineFriends((remote || []).map(normalizeFriend))
 }
 
 export const searchRegisteredUsers = async (keyword: string): Promise<SearchUserResult[]> => {
@@ -707,19 +660,10 @@ export const searchRegisteredUsers = async (keyword: string): Promise<SearchUser
   if (!trimmed) {
     return []
   }
-  try {
-    const remote = await request<SearchUserResult[]>(
-      `/social/users/search?profileId=${encodeURIComponent(profile.id)}&keyword=${encodeURIComponent(trimmed)}`,
-    )
-    return (remote || []).map((item) => ({ ...item, avatarUrl: normalizeSocialAvatarUrl(item.avatarUrl) }))
-  } catch {
-    const friends = getLocalWineFriends()
-    return getLocalDirectory()
-      .filter((item) => item.id !== profile.id)
-      .filter((item) => [item.name, item.identityTag].join(' ').toLowerCase().includes(trimmed.toLowerCase()))
-      .slice(0, 8)
-      .map((item) => ({ id: item.id, name: item.name, avatarUrl: '', identityTag: item.identityTag, alreadyFriend: friends.some((friend) => friend.profileId === item.id) }))
-  }
+  const remote = await request<SearchUserResult[]>(
+    `/social/users/search?profileId=${encodeURIComponent(profile.id)}&keyword=${encodeURIComponent(trimmed)}`,
+  )
+  return (remote || []).map((item) => ({ ...item, avatarUrl: normalizeSocialAvatarUrl(item.avatarUrl) }))
 }
 
 export const getVisiblePokeThreads = async (): Promise<PokeThread[]> => (await bootstrapSocial()).pokeThreads
@@ -742,35 +686,16 @@ const buildLocalThread = (sender: SocialProfile, receiver: SocialProfile, status
 
 export const sendPokeToFriend = async (friendId: string): Promise<PokeThread | null> => {
   const profile = await ensureCurrentProfile()
-  try {
-    const remote = await request<PokeThread>('/social/pokes', 'POST', { ownerId: profile.id, friendshipId: friendId })
-    const thread = normalizePokeThread(remote)
-    saveLocalPokeThreads([thread, ...getLocalPokeThreads().filter((item) => item.id !== thread.id)])
-    return thread
-  } catch {
-    const friend = getLocalWineFriends().find((item) => item.id === friendId)
-    if (!friend || friend.profileId === profile.id) {
-      return null
-    }
-    const receiver = getLocalDirectory().find((item) => item.id === friend.profileId) || normalizeProfile({ id: friend.profileId, name: friend.name })
-    const threadId = [profile.id, receiver.id].sort().join('__')
-    const existed = getLocalPokeThreads().find((item) => item.id === threadId)
-    const next = existed && existed.status === 'pending' && existed.receiverId === profile.id
-      ? normalizePokeThread({ ...existed, status: 'matched', actionState: 'matched', updatedAt: Date.now() })
-      : buildLocalThread(profile, receiver, existed?.status === 'matched' ? 'matched' : 'pending', Date.now())
-    saveLocalPokeThreads([next, ...getLocalPokeThreads().filter((item) => item.id !== next.id)])
-    return next
-  }
+  const remote = await request<PokeThread>('/social/pokes', 'POST', { ownerId: profile.id, friendshipId: friendId })
+  const thread = normalizePokeThread(remote)
+  saveLocalPokeThreads([thread, ...getLocalPokeThreads().filter((item) => item.id !== thread.id)])
+  return thread
 }
 
 export const ignorePokeThread = async (threadId: string): Promise<PokeThread[]> => {
   const profile = await ensureCurrentProfile()
-  try {
-    const remote = await request<PokeThread[]>(`/social/pokes/${encodeURIComponent(threadId)}?profileId=${encodeURIComponent(profile.id)}`, 'DELETE')
-    return saveLocalPokeThreads((remote || []).map(normalizePokeThread))
-  } catch {
-    return saveLocalPokeThreads(getLocalPokeThreads().filter((item) => item.id !== threadId))
-  }
+  const remote = await request<PokeThread[]>(`/social/pokes/${encodeURIComponent(threadId)}?profileId=${encodeURIComponent(profile.id)}`, 'DELETE')
+  return saveLocalPokeThreads((remote || []).map(normalizePokeThread))
 }
 
 export const replyPokeThread = async (threadId: string): Promise<PokeThread | null> => {

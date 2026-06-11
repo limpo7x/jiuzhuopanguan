@@ -1,4 +1,4 @@
-﻿import { getManagedLiveSession } from '../../services/operations'
+import { getManagedLiveSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 import { ensureUserAuthorized } from '../../utils/social'
 
@@ -26,7 +26,7 @@ Page<InviteGroupState, InviteGroupMethods>({
   data: {
     inviteCode: '',
     sessionId: '',
-    sessionName: '今晚聚会不醉不归',
+    sessionName: '',
     shareItems: [
       { id: 'friend', name: '分享给好友', iconClass: 'invite-icon-wechat' },
       { id: 'group', name: '分享到群', iconClass: 'invite-icon-group' },
@@ -56,7 +56,7 @@ Page<InviteGroupState, InviteGroupMethods>({
         sessionName: liveSession.sessionName,
       })
     } catch {
-      this.setData({ inviteCode: runtime.inviteCode || '', sessionId, sessionName: runtime.sessionName || '今晚聚会不醉不归' })
+      this.setData({ inviteCode: runtime.inviteCode || '', sessionId, sessionName: runtime.sessionName || '' })
     }
   },
 

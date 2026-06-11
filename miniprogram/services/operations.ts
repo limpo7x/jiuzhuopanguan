@@ -355,7 +355,6 @@ export interface ManagedJudgeStats {
   unsharedReportCount: number
 }
 
-const DEFAULT_AVATAR = ''
 const TOOLS_CATALOG_CACHE_TTL = 10000
 const REPORT_HISTORY_CACHE_TTL = 45000
 const SHARE_CONFIG_CACHE_TTL = 60000
@@ -399,14 +398,14 @@ const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' 
   })
 
 const normalizeSessionPlayer = (player?: RemoteSessionPlayer): ManagedSessionPlayer => ({
-  avatarUrl: normalizeManagedAssetPath(player?.avatarUrl) || DEFAULT_AVATAR,
+  avatarUrl: normalizeManagedAssetPath(player?.avatarUrl),
   clearedCount: Math.max(0, Number(player?.clearedCount) || 0),
   debtCount: Math.max(0, Number(player?.debtCount) || 0),
   drinkCount: Math.max(0, Number(player?.drinkCount) || 0),
   meta: player?.meta || '',
-  name: player?.name || '未命名玩家',
+  name: player?.name || '',
   profileId: player?.profileId || '',
-  status: player?.status || '待加入',
+  status: player?.status || '',
   wheelHistory: Array.isArray(player?.wheelHistory)
     ? player.wheelHistory
         .map((item) => ({
@@ -505,29 +504,29 @@ export const getManagedLiveSession = async (sessionId?: string, inviteCode?: str
   const remote = await requestJson<RemoteLiveSession>(`/sessions/live${query ? `?${query}` : ''}`)
   const runtime = getSessionRuntime()
   const runtimePlayers = resolveSessionParticipants(runtime).map((item) => ({
-    avatarUrl: normalizeManagedAssetPath(item.avatarUrl) || DEFAULT_AVATAR,
+    avatarUrl: normalizeManagedAssetPath(item.avatarUrl),
     name: item.name,
     profileId: item.profileId || '',
-    status: item.status || '待加入',
+    status: item.status || '',
   }))
-  const joinedPlayers = remote.joinedPlayers?.length ? remote.joinedPlayers.map(normalizeSessionPlayer) : runtimePlayers
-  const joinStatusPlayers = remote.joinStatusPlayers?.length ? remote.joinStatusPlayers.map(normalizeSessionPlayer) : joinedPlayers
+  const joinedPlayers = remote.joinedPlayers?.length ? remote.joinedPlayers.map(normalizeSessionPlayer) : []
+  const joinStatusPlayers = remote.joinStatusPlayers?.length ? remote.joinStatusPlayers.map(normalizeSessionPlayer) : []
 
   return {
-    hostName: remote.hostName || runtime.currentUser?.name || '',
+    hostName: remote.hostName || '',
     hostProfileId: remote.hostProfileId || '',
-    id: remote.id || runtime.sessionId || '',
-    inviteCode: remote.inviteCode || runtime.inviteCode || '',
-    joinedCount: Number(remote.joinedCount) || joinedPlayers.length,
+    id: remote.id || '',
+    inviteCode: remote.inviteCode || '',
+    joinedCount: Number(remote.joinedCount) || 0,
     joinedPlayers,
     joinStatusPlayers,
-    playerCount: Number(remote.playerCount) || runtime.playerCount || Math.max(joinStatusPlayers.length, 2),
-    sessionName: remote.sessionName || runtime.sessionName || '',
+    playerCount: Number(remote.playerCount) || 0,
+    sessionName: remote.sessionName || '',
     source: remote.source || '',
     stateText: remote.stateText || '',
     status: remote.status || '',
     subtitle: remote.subtitle || '',
-    templateName: remote.templateName || runtime.templateName || '',
+    templateName: remote.templateName || '',
     title: remote.title || '',
   }
 }
@@ -571,17 +570,17 @@ const normalizeManagedReport = (report?: RemoteManagedReport): ManagedReportDeta
   playerCount: Number(report?.playerCount) || 0,
   ranks: Array.isArray(report?.ranks)
     ? report.ranks.map((item) => ({
-        avatarUrl: normalizeManagedAssetPath(item?.avatarUrl) || DEFAULT_AVATAR,
+        avatarUrl: normalizeManagedAssetPath(item?.avatarUrl),
         name: item?.name || '',
         title: item?.title || '',
         value: item?.value || '',
       }))
     : [],
-  replayRate: report?.replayRate || '0%',
+  replayRate: report?.replayRate || '',
   scene: report?.scene || '',
   sessionId: report?.sessionId || '',
   sessionName: report?.sessionName || '',
-  shareRate: report?.shareRate || '0%',
+  shareRate: report?.shareRate || '',
   status: report?.status || '',
   templateName: report?.templateName || '',
   title: report?.title || '',
@@ -614,7 +613,7 @@ export const getManagedReportHistory = async (mode = 'all'): Promise<ManagedRepo
       role: item.role === 'host' ? 'host' : 'member',
       sessionId: item.sessionId || '',
       sessionName: item.sessionName || '',
-      shareRate: item.shareRate || '0%',
+      shareRate: item.shareRate || '',
       status: item.status || '',
       title: item.title || item.sessionName || '',
     })),
@@ -638,25 +637,25 @@ export const getManagedShareConfig = async (): Promise<ManagedShareConfig> => {
   const next: ManagedShareConfig = {
     notice: remote.notice || '',
     performance: {
-      bestOpenRate: remote.performance?.bestOpenRate || '0%',
-      bestReturnRate: remote.performance?.bestReturnRate || '0%',
+      bestOpenRate: remote.performance?.bestOpenRate || '',
+      bestReturnRate: remote.performance?.bestReturnRate || '',
     },
     poster: {
       imageUrl:
         (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remote.poster?.imageUrl))) || '',
-      title: remote.poster?.title || '这局快乐就完事了！',
+      title: remote.poster?.title || '',
     },
     preview: {
       imageUrl:
         (await resolveCachedManagedImagePath(normalizeManagedAssetPath(remote.preview?.imageUrl))) || '',
       inviteCode: remote.preview?.inviteCode || '',
-      title: remote.preview?.title || '快来加入这一局',
+      title: remote.preview?.title || '',
     },
     shareItems: Array.isArray(remote.shareItems)
       ? remote.shareItems.map((item) => ({
-          iconClass: item?.iconClass || 'share-icon-more',
+          iconClass: item?.iconClass || '',
           id: item?.id || '',
-          name: item?.name || '更多',
+          name: item?.name || '',
           scene: item?.scene || '',
         }))
       : [],
@@ -695,7 +694,7 @@ export const getManagedMerchantCatalog = async (): Promise<ManagedMerchantCatalo
   const next: ManagedMerchantCatalog = {
     categories: Array.isArray(remote.categories)
       ? remote.categories.map((item) => ({
-          iconClass: item?.iconClass || 'merchant-icon-briefcase',
+          iconClass: item?.iconClass || '',
           name: item?.name || '',
           toneClass: item?.toneClass || '',
         }))
@@ -703,7 +702,7 @@ export const getManagedMerchantCatalog = async (): Promise<ManagedMerchantCatalo
     notice: remote.notice || '',
     safeBack: Array.isArray(remote.safeBack)
       ? remote.safeBack.map((item) => ({
-          iconClass: item?.iconClass || 'merchant-icon-coupon',
+          iconClass: item?.iconClass || '',
           name: item?.name || '',
           toneClass: item?.toneClass || '',
         }))

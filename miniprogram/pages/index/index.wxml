@@ -1,4 +1,4 @@
-﻿<navigation-bar
+<navigation-bar
   title="首页"
   back="{{false}}"
   color="#24160f"
@@ -43,7 +43,7 @@
       <view class="hero-overlay"></view>
       <view class="hero-content">
         <view class="hero-title-wrap">
-          <text class="hero-title">今晚聚会主推</text>
+          <text class="hero-title"></text>
           <text class="hero-title">{{home.hero.title}}</text>
         </view>
         <text class="hero-subtitle">{{home.hero.subtitle}}</text>

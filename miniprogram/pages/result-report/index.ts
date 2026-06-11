@@ -38,7 +38,7 @@ Page<ResultReportState, ResultReportMethods>({
     reportId: '',
     reportTitle: '这局快乐就完事了！',
     secondaryRanks: [],
-    sessionName: '本局战报',
+    sessionName: '',
   },
 
   async onLoad(query) {
@@ -71,13 +71,13 @@ Page<ResultReportState, ResultReportMethods>({
       })
 
       this.setData({
-        events: report.events.length ? report.events : [{ text: '本局暂无可展示的战报事件。' }],
+        events: report.events,
         featuredRank: featuredRank || null,
         metaText: `${report.sessionName} · ${report.playerCount} 人局`,
         reportId: report.id,
         reportTitle: report.title || '这局快乐就完事了！',
         secondaryRanks,
-        sessionName: report.sessionName || '本局战报',
+        sessionName: report.sessionName || '',
       })
 
       trackAnalyticsEvent({
@@ -96,7 +96,7 @@ Page<ResultReportState, ResultReportMethods>({
         reportId: '',
         reportTitle: '战报暂不可用',
         secondaryRanks: [],
-        sessionName: '本局战报',
+        sessionName: '',
       })
       wx.showToast({
         title: error instanceof Error ? error.message : '战报加载失败',

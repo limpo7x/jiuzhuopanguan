@@ -1,4 +1,4 @@
-﻿export interface SessionParticipant {
+export interface SessionParticipant {
   avatarUrl: string
   name: string
   profileId?: string
@@ -61,14 +61,14 @@ export const SESSION_REPORT_KEY = 'session-report'
 const DEFAULT_SESSION_RUNTIME: SessionRuntime = {
   currentUser: null,
   inviteCode: '',
-  isJudge: true,
-  playerCount: 6,
+  isJudge: false,
+  playerCount: 0,
   playerReactions: [],
   playerStats: [],
   reportId: '',
   selectedPlayers: [],
   sessionId: '',
-  sessionName: '今晚聚会不醉不归',
+  sessionName: '',
   startedAt: 0,
   templateName: '',
 }
@@ -153,7 +153,7 @@ export const resolveSessionParticipants = (runtime = getSessionRuntime()): Sessi
     : []
   if (selectedPlayers.length) return selectedPlayers
   if (runtime.currentUser?.name) {
-    return [{ avatarUrl: normalizeAvatarUrl(runtime.currentUser.avatarUrl), name: runtime.currentUser.name, profileId: runtime.currentUser.id, status: '已加入' }]
+    return [{ avatarUrl: normalizeAvatarUrl(runtime.currentUser.avatarUrl), name: runtime.currentUser.name, profileId: runtime.currentUser.id, status: '' }]
   }
   return []
 }

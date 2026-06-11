@@ -120,68 +120,20 @@ const createDefaultStore = () => ({
   sessions: [],
   operationLogs: [],
   analyticsEvents: [],
-  userOps: [
-    { id: 'user-1001', status: '高活跃', tags: ['模板偏好', '战报分享'], note: '最近 7 天连续开局' },
-    { id: 'user-1002', status: '普通', tags: ['工具用户'], note: '二维码与图片工具使用较高' },
-    { id: 'user-1003', status: '高价值', tags: ['会员', '深夜场景'], note: '会员套餐转化概率高' },
-  ],
-  questionBank: [
-    { id: 'q-1', content: '给左手边玩家唱一句祝酒词', type: '互动', difficulty: '简单', template: '生日专属', riskLevel: '低', status: '待审核' },
-    { id: 'q-2', content: '分享一张本周最尴尬照片', type: '惩罚', difficulty: '中等', template: '整活大挑战', riskLevel: '中', status: '待审核' },
-    { id: 'q-3', content: '让全场投票你今晚最像谁', type: '问答', difficulty: '简单', template: '友情互损', riskLevel: '低', status: '上线中' },
-  ],
-  shareAssets: [
-    { id: 'share-1', name: '热场局战报海报 A', assetType: '战报海报', scene: '战报分享', imageUrl: '/static/report-poster.png', openRate: '52.1%', returnRate: '11.6%', status: '上线中' },
-    { id: 'share-2', name: '好友邀局卡 B', assetType: '邀局卡', scene: '邀请好友', imageUrl: '/static/party-hero.png', openRate: '36.8%', returnRate: '8.1%', status: '上线中' },
-    { id: 'share-3', name: '群分享二维码卡片', assetType: '分享码', scene: '群邀请', imageUrl: '/static/report-poster.png', openRate: '29.4%', returnRate: '14.3%', status: '上线中' },
-  ],
+  userOps: [],
+  questionBank: [],
+  shareAssets: [],
   toolsCatalog: normalizeToolsCatalog(DEFAULT_TOOLS_CATALOG),
-  liveSessions: [
-    { id: 'session-1', name: '周五热场局', players: 6, template: '友情互损', hostName: '阿浩', inviteCode: 'A17K9Q', state: '进行中 26 分钟', source: '群分享', status: '正常' },
-    { id: 'session-2', name: '生日专属局', players: 8, template: '生日专属', hostName: 'Mika', inviteCode: 'N27K9Q', state: '已结束', source: '好友邀请', status: '正常' },
-    { id: 'session-3', name: '午夜整活场', players: 5, template: '午夜热场局', hostName: '可可', inviteCode: 'N37K9Q', state: '等待开局', source: '二维码加入', status: '待观察' },
-  ],
-  reports: [
-    { id: 'report-1', name: '周五热场局战报', template: '友情互损', title: '这局一开口就停不下来', scene: '常规局', highlight1: '阿浩 连续被点名，直接坐实欠酒大王', highlight2: '小熊 跑调版《孤勇者》成了本局名场面', highlight3: '全场在最后一轮临时加赛，笑点拉满', shareRate: '46.8%', replayRate: '18.2%', status: '正常' },
-    { id: 'report-2', name: '生日专属局战报', template: '生日专属', title: '这局快乐就完事了！', scene: '生日局', highlight1: '寿星开局被全员围攻，气氛直接起飞', highlight2: 'Mika 的临场加题把全桌带进爆笑节奏', highlight3: '战报转发到 3 个群后继续带来回流', shareRate: '52.1%', replayRate: '22.7%', status: '爆发' },
-    { id: 'report-3', name: '午夜整活局战报', template: '午夜热场局', title: '夜场这波整活值回票价', scene: '夜场', highlight1: '可可 主动加赛海草舞，现场彻底放开', highlight2: '阿乐 的口头禅被挖出来，全场接龙', highlight3: '最后一轮回看战报时，又拉回一局', shareRate: '37.6%', replayRate: '15.1%', status: '正常' },
-  ],
-  membershipPlans: [
-    { id: 'member-1', name: '闪享月卡', price: '¥18', duration: '30 天', conversionRate: '4.2%', renewRate: '38.4%', status: '上线中' },
-    { id: 'member-2', name: '闪享季卡', price: '¥48', duration: '90 天', conversionRate: '2.6%', renewRate: '46.3%', status: '上线中' },
-    { id: 'member-3', name: '闪享年卡', price: '¥158', duration: '365 天', conversionRate: '0.8%', renewRate: '61.7%', status: '上线中' },
-  ],
-  membershipBenefits: [
-    { id: 'benefit-1', name: '模板无限看', scope: '高级模板页', status: '启用', note: '会员专享模板全量可见' },
-    { id: 'benefit-2', name: '战报导出免广告', scope: '分享战报页', status: '启用', note: '跳过激励视频' },
-    { id: 'benefit-3', name: '会员专属海报', scope: '海报模板', status: '启用', note: '品牌角标与高级背景' },
-  ],
-  membershipEnabled: true,
-  adSlots: [
-    { id: 'ad-1', name: '模板解锁视频', page: '高级模板', adType: '激励视频', completionRate: '71.8%', revenue: '¥4,820', status: '启用' },
-    { id: 'ad-2', name: '战报导出视频', page: '分享战报', adType: '激励视频', completionRate: '74.2%', revenue: '¥3,912', status: '启用' },
-    { id: 'ad-3', name: '工具详情 Banner', page: '工具详情', adType: 'Banner', completionRate: 'CTR 3.8%', revenue: '¥1,106', status: '启用' },
-  ],
-  merchants: [
-    { id: 'merchant-1', name: '代驾优惠券', category: '代驾', inventory: '2400 / 7 天', claimCount: '5202', verifyRate: '21.9%', status: '上线中' },
-    { id: 'merchant-2', name: '夜宵满减券', category: '夜宵', inventory: '1800 / 5 天', claimCount: '4116', verifyRate: '17.4%', status: '上线中' },
-    { id: 'merchant-3', name: 'KTV 拼局券', category: '娱乐', inventory: '920 / 14 天', claimCount: '1486', verifyRate: '12.8%', status: '灰度' },
-  ],
-  campaigns: [
-    { id: 'campaign-1', name: '邀请 3 位新朋友解锁模板', reward: '模板包 / 7 天', participants: '4612', returnRate: '18.4%', status: '进行中' },
-    { id: 'campaign-2', name: '生日季专属局裂变', reward: '海报 + 券包 / 10 天', participants: '3286', returnRate: '21.7%', status: '进行中' },
-    { id: 'campaign-3', name: '周末夜场冲刺', reward: '积分 + 代驾券 / 3 天', participants: '1924', returnRate: '16.3%', status: '灰度' },
-  ],
-  baseConfigs: [
-    { id: 'cfg-1', key: 'REMOTE_API_BASE', value: 'https://api.pomer.cn/api/v1', scope: '生产 / 全局', updatedAt: '今天 09:30', status: '已生效' },
-    { id: 'cfg-2', key: 'SHARE_DEFAULT_COPY', value: '欠酒互怼 · 整活不断', scope: '生产 / 分享', updatedAt: '昨天 18:10', status: '已生效' },
-    { id: 'cfg-3', key: 'HOME_BIRTHDAY_BANNER', value: '生日季热场周', scope: '灰度 / 首页', updatedAt: '待 20:00', status: '待发布' },
-  ],
-  sensitiveWords: [
-    { id: 'word-1', word: '未成年也能玩', level: '高', scene: '活动文案', status: '启用' },
-    { id: 'word-2', word: '喝到站不稳', level: '高', scene: '模板文案', status: '启用' },
-    { id: 'word-3', word: '连喝三杯', level: '中', scene: '题库', status: '启用' },
-  ],
+  liveSessions: [],
+  reports: [],
+  membershipPlans: [],
+  membershipBenefits: [],
+  membershipEnabled: false,
+  adSlots: [],
+  merchants: [],
+  campaigns: [],
+  baseConfigs: [],
+  sensitiveWords: [],
   auditQueue: [
     { id: 'audit-1', target: '“连喝三杯再自拍发群”', source: '题库', reason: '过度饮酒导向', submittedAt: '今天 11:26', status: '待审核' },
     { id: 'audit-2', target: '“喝到站不稳才算输”', source: '模板文案', reason: '违规饮酒引导', submittedAt: '今天 09:14', status: '待审核' },
@@ -240,15 +192,15 @@ const normalizeShareAsset = (item = {}, index = 0) => {
     ...item,
     id: String(item.id || `share-${index + 1}`).trim(),
     name: String(item.name || `素材 ${index + 1}`).trim(),
-    assetType: String(item.assetType || '战报海报').trim(),
-    scene: String(item.scene || '战报分享').trim(),
-    imageUrl: String(item.imageUrl || '/static/report-poster.png').trim(),
+    assetType: String(item.assetType || '').trim(),
+    scene: String(item.scene || '').trim(),
+    imageUrl: String(item.imageUrl || '').trim(),
     exposureCount,
     openCount,
     returnCount,
     openRate: ratioPercent(openCount, exposureCount),
     returnRate: ratioPercent(returnCount, openCount || exposureCount),
-    status: String(item.status || '上线中').trim(),
+    status: String(item.status || '').trim(),
   }
 }
 
@@ -262,7 +214,7 @@ const normalizeReportItem = (item = {}, index = 0) => {
     name: String(item.name || `战报 ${index + 1}`).trim(),
     template: String(item.template || '').trim(),
     title: String(item.title || '').trim(),
-    scene: String(item.scene || '常规局').trim(),
+    scene: String(item.scene || '').trim(),
     highlight1: String(item.highlight1 || '').trim(),
     highlight2: String(item.highlight2 || '').trim(),
     highlight3: String(item.highlight3 || '').trim(),
@@ -271,7 +223,7 @@ const normalizeReportItem = (item = {}, index = 0) => {
     replayCount,
     shareRate: ratioPercent(shareCount, viewCount),
     replayRate: ratioPercent(replayCount, viewCount),
-    status: String(item.status || '正常').trim(),
+    status: String(item.status || '').trim(),
   }
 }
 
@@ -290,7 +242,7 @@ const normalizeMembershipPlan = (item = {}, index = 0) => {
     renewalCount,
     conversionRate: ratioPercent(purchaseCount, exposureCount),
     renewRate: ratioPercent(renewalCount, purchaseCount || exposureCount),
-    status: String(item.status || '上线中').trim(),
+    status: String(item.status || '').trim(),
   }
 }
 
@@ -303,13 +255,13 @@ const normalizeAdSlot = (item = {}, index = 0) => {
     id: String(item.id || `ad-${index + 1}`).trim(),
     name: String(item.name || `广告位 ${index + 1}`).trim(),
     page: String(item.page || '').trim(),
-    adType: String(item.adType || '激励视频').trim(),
+    adType: String(item.adType || '').trim(),
     impressions,
     completions,
     revenueValue,
     completionRate: ratioPercent(completions, impressions),
     revenue: `¥${Math.round(revenueValue).toLocaleString('en-US')}`,
-    status: String(item.status || '启用').trim(),
+    status: String(item.status || '').trim(),
   }
 }
 
@@ -320,12 +272,12 @@ const normalizeMerchant = (item = {}, index = 0) => {
     ...item,
     id: String(item.id || `merchant-${index + 1}`).trim(),
     name: String(item.name || `商户 ${index + 1}`).trim(),
-    category: String(item.category || '代驾').trim(),
+    category: String(item.category || '').trim(),
     inventory: String(item.inventory || '').trim(),
     claimCount: String(claimCount),
     verifiedCount,
     verifyRate: ratioPercent(verifiedCount, claimCount || 1),
-    status: String(item.status || '上线中').trim(),
+    status: String(item.status || '').trim(),
   }
 }
 
@@ -340,7 +292,7 @@ const normalizeCampaign = (item = {}, index = 0) => {
     participants: String(participants),
     returnCount,
     returnRate: ratioPercent(returnCount, participants || 1),
-    status: String(item.status || '进行中').trim(),
+    status: String(item.status || '').trim(),
   }
 }
 
@@ -569,7 +521,7 @@ const buildUserLoginLogRows = (socialStore = readSocialStore()) => {
       phone: entry.phone || profileMap.get(entry.profileId)?.phone || '',
       wechatOpenId: entry.wechatOpenId || profileMap.get(entry.profileId)?.wechatOpenId || '',
       loginAt: entry.loginAt || '',
-      source: entry.source || 'wechat-miniapp',
+      source: entry.source || '',
     }))
     .sort((left, right) => String(right.loginAt).localeCompare(String(left.loginAt)))
 }
@@ -957,17 +909,17 @@ const getContentAnalyticsPage = () => {
     name: item.name,
     type: '工具',
     primary: formatNumber(item.usageCount),
-    secondary: item.favoriteRate || '0%',
-    status: item.status || '启用',
+    secondary: item.favoriteRate || '',
+    status: item.status || '',
     sortValue: Number(item.usageCount) || 0,
   }))
   const shareRows = adminStore.shareAssets.map((item) => ({
     id: `share-${item.id}`,
     name: item.name,
     type: '素材',
-    primary: item.openRate || '0%',
-    secondary: item.returnRate || '0%',
-    status: item.status || '上线中',
+    primary: item.openRate || '',
+    secondary: item.returnRate || '',
+    status: item.status || '',
     sortValue: numberFromText(item.openRate),
   }))
   const rows = [...toolRows, ...shareRows, ...templateRows]
@@ -1003,28 +955,28 @@ const getBusinessAnalyticsPage = () => {
     ...adminStore.membershipPlans.map((item) => ({
       id: `member-${item.id}`,
       name: item.name,
-      conversion: item.conversionRate || '0%',
+      conversion: item.conversionRate || '',
       amount: item.price || '¥0',
-      repurchase: item.renewRate || '0%',
-      status: item.status || '上线中',
+      repurchase: item.renewRate || '',
+      status: item.status || '',
       sortValue: numberFromText(item.conversionRate),
     })),
     ...adminStore.adSlots.map((item) => ({
       id: `ad-${item.id}`,
       name: item.name,
-      conversion: item.completionRate || '0%',
+      conversion: item.completionRate || '',
       amount: item.revenue || '¥0',
       repurchase: '即时',
-      status: item.status || '启用',
+      status: item.status || '',
       sortValue: numberFromText(item.revenue),
     })),
     ...adminStore.merchants.map((item) => ({
       id: `merchant-${item.id}`,
       name: item.name,
-      conversion: item.verifyRate || '0%',
+      conversion: item.verifyRate || '',
       amount: item.claimCount || '0',
       repurchase: item.inventory || '--',
-      status: item.status || '上线中',
+      status: item.status || '',
       sortValue: numberFromText(item.claimCount),
     })),
   ]
@@ -1093,9 +1045,9 @@ const makeHomeFormData = () => {
     heroTitle: config.hero.title,
     heroSubtitle: config.hero.subtitle,
     heroImageUrl: config.hero.imageUrl,
-    judgeHeroTitle: config.judge?.title || '酒桌判官',
-    judgeHeroSubtitle: config.judge?.subtitle || '远一点也能看清，开局、记分、出战报都更直接。',
-    judgeHeroImageUrl: config.judge?.imageUrl || '/static/party-hero.png',
+    judgeHeroTitle: config.judge?.title || '',
+    judgeHeroSubtitle: config.judge?.subtitle || '',
+    judgeHeroImageUrl: config.judge?.imageUrl || '',
     bannerTitle: config.banner.title,
     bannerImageUrl: config.banner.imageUrl,
     quickToolsText: config.quickTools.map((item) => `${item.id}|${item.name}`).join('\n'),
@@ -1115,7 +1067,7 @@ const parseQuickToolsText = (text = '') =>
       }
     })
 
-const parseStatus = (value, fallback = '启用') => {
+const parseStatus = (value, fallback = '') => {
   return typeof value === 'string' && value.trim() ? value.trim() : fallback
 }
 
@@ -1170,7 +1122,7 @@ const normalizeSessionMember = (member = {}, index = 0) => ({
   name: String(member.name || `玩家${index + 1}`).trim(),
   phone: String(member.phone || '').trim(),
   profileId: String(member.profileId || '').trim(),
-  status: String(member.status || (member.isHost ? '已加入' : '待加入')).trim(),
+  status: String(member.status || '').trim(),
   wheelHistory: Array.isArray(member.wheelHistory)
     ? member.wheelHistory.map((item) => normalizeWheelHistoryItem(item)).filter((item) => item.text)
     : [],
@@ -1178,7 +1130,7 @@ const normalizeSessionMember = (member = {}, index = 0) => ({
 
 const buildSessionMembers = (payload = {}, existingMembers = []) => {
   const hostProfileId = String(payload.hostProfileId || '').trim()
-  const hostName = String(payload.hostName || '当前发起人').trim() || '当前发起人'
+  const hostName = String(payload.hostName || '').trim()
   const hostAvatarUrl = String(payload.hostAvatarUrl || existingMembers.find((item) => item.isHost)?.avatarUrl || '').trim()
   const hostPhone = String(payload.hostPhone || '').trim()
   const selectedPlayers = Array.isArray(payload.selectedPlayers) ? payload.selectedPlayers : []
@@ -1222,7 +1174,7 @@ const buildSessionMembers = (payload = {}, existingMembers = []) => {
           name: item.name || existed?.name,
           phone: item.phone || existed?.phone,
           profileId,
-          status: existed?.status === '已加入' ? '已加入' : '待加入',
+          status: item.status || existed?.status || '',
         },
         index + 1,
       ),
@@ -1321,16 +1273,16 @@ const createManagedSession = (payload = {}) => {
   const session = {
     id,
     createdAt: iso(),
-    name: String(payload.sessionName || '今晚聚会不醉不归').trim() || '今晚聚会不醉不归',
-    players: Math.max(2, Number(payload.playerCount) || 6),
-    template: String(payload.templateName || '经典欠酒版').trim() || '经典欠酒版',
-    hostName: String(payload.hostName || '当前发起人').trim() || '当前发起人',
+    name: String(payload.sessionName || '').trim(),
+    players: Number(payload.playerCount) || 0,
+    template: String(payload.templateName || '').trim(),
+    hostName: String(payload.hostName || '').trim(),
     hostProfileId: String(payload.hostProfileId || '').trim(),
     inviteCode: String(payload.inviteCode || makeUniqueInviteCode(store)).trim().toUpperCase() || makeUniqueInviteCode(store),
     hostAvatarUrl: String(payload.hostAvatarUrl || '').trim() || '',
-    state: String(payload.state || '等待开局').trim() || '等待开局',
-    source: String(payload.source || '直接创建').trim() || '直接创建',
-    status: String(payload.status || '正常').trim() || '正常',
+    state: String(payload.state || '').trim(),
+    source: String(payload.source || '').trim(),
+    status: String(payload.status || '').trim(),
     members: buildSessionMembers(payload, []),
   }
   store.liveSessions = [session, ...store.liveSessions.filter((item) => item.id !== id)].slice(0, 50)
@@ -1424,8 +1376,8 @@ const finishManagedSession = (payload = {}) => {
   const store = readStore()
   const sessionId = String(payload.sessionId || '').trim()
   const relatedSession = store.liveSessions.find((item) => item.id === sessionId)
-  const sessionName = String(payload.sessionName || relatedSession?.name || '本局战报').trim() || '本局战报'
-  const templateName = String(payload.templateName || relatedSession?.template || '经典欠酒版').trim() || '经典欠酒版'
+  const sessionName = String(payload.sessionName || relatedSession?.name || '').trim()
+  const templateName = String(payload.templateName || relatedSession?.template || '').trim()
   const playerCount = Math.max(2, Number(payload.playerCount) || Number(relatedSession?.players) || 6)
   const events = Array.isArray(payload.events) ? payload.events.filter((item) => item && item.text).slice(0, 5) : []
   const report = {
@@ -1433,11 +1385,11 @@ const finishManagedSession = (payload = {}) => {
     sessionId,
     name: `${sessionName}战报`,
     template: templateName,
-    title: String(payload.title || '这局快乐就完事了！').trim() || '这局快乐就完事了！',
+    title: String(payload.title || '').trim(),
     scene: String(payload.scene || (templateName.includes('生日') ? '生日局' : templateName.includes('夜') ? '夜场' : '常规局')).trim(),
     highlight1: events[0]?.text || `${sessionName} 本局已结束，自动生成战报`,
     highlight2: events[1]?.text || `${playerCount} 位玩家参与了本局`,
-    highlight3: events[2]?.text || '可继续分享战报或直接再开一局',
+    highlight3: events[2]?.text || '',
     viewCount: Math.max(Number(payload.viewCount) || 0, playerCount),
     shareCount: Math.max(0, Number(payload.shareCount) || 0),
     replayCount: Math.max(0, Number(payload.replayCount) || 0),
@@ -1445,7 +1397,7 @@ const finishManagedSession = (payload = {}) => {
     playerCount,
     ranks: Array.isArray(payload.ranks) ? payload.ranks.slice(0, 5) : [],
     events,
-    status: String(payload.status || '正常').trim() || '正常',
+    status: String(payload.status || '').trim(),
   }
 
   const normalizedReport = normalizeReportItem(report, 0)
@@ -1464,8 +1416,8 @@ const finishManagedSession = (payload = {}) => {
       item.id === sessionId
         ? {
             ...item,
-            state: payload.sessionState || '已结束',
-            status: payload.sessionStatus || '正常',
+            state: payload.sessionState || '',
+            status: payload.sessionStatus || '',
           }
         : item,
     )
@@ -1481,7 +1433,7 @@ const buildManagedReportDetail = (report) => {
 
   const store = readStore()
   const relatedSession = report.sessionId ? store.liveSessions.find((item) => item.id === report.sessionId) : null
-  const sessionName = String(report.name || report.title || '本局战报').replace(/战报$/, '')
+  const sessionName = String(report.name || report.title || '').replace(/战报$/, '')
   const sessionMembers = Array.isArray(relatedSession?.members) ? relatedSession.members : []
   const ranks = Array.isArray(report.ranks)
     ? report.ranks.map((rank) => {
@@ -1504,15 +1456,15 @@ const buildManagedReportDetail = (report) => {
     id: report.id,
     sessionId: report.sessionId || '',
     sessionName,
-    title: report.title || '本局战报',
+    title: report.title || '',
     templateName: report.template || '',
-    scene: report.scene || '常规局',
-    status: report.status || '正常',
+    scene: report.scene || '',
+    status: report.status || '',
     createdAt: report.createdAt || '',
     playerCount: Number(report.playerCount) || Number(relatedSession?.players) || 0,
     inviteCode: relatedSession?.inviteCode || '',
-    shareRate: report.shareRate || '0%',
-    replayRate: report.replayRate || '0%',
+    shareRate: report.shareRate || '',
+    replayRate: report.replayRate || '',
     ranks,
     events:
       Array.isArray(report.events) && report.events.length
@@ -1630,15 +1582,15 @@ const listManagedReports = (profileId = '', mode = 'all') => {
       reportId: report?.id || '',
       role: isSessionHost(session, normalizedProfileId) ? 'host' : 'member',
       sessionId: String(session.id || ''),
-      sessionName: report ? String(report.name || report.title || '本局战报').replace(/战报$/, '') : String(session.name || '本局酒局'),
-      title: report?.title || String(session.name || '本局酒局'),
+      sessionName: report ? String(report.name || report.title || '').replace(/战报$/, '') : String(session.name || ''),
+      title: report?.title || String(session.name || ''),
       hostName: String(host?.name || session.hostName || '').trim(),
       hostProfileId: String(host?.profileId || session.hostProfileId || '').trim(),
-      imageUrl: report ? '/static/report-poster.png' : '/static/party-hero.png',
+      imageUrl: '',
       status,
-      meta: `${Number(report?.playerCount) || Number(session?.players) || 0}人 · ${report?.template || session?.template || '常规局'} · ${createdAt}`.replace(/\s+/g, ' ').trim(),
+      meta: `${Number(report?.playerCount) || Number(session?.players) || 0}人 · ${report?.template || session?.template || ''} · ${createdAt}`.replace(/\s+/g, ' ').trim(),
       createdAt,
-      shareRate: report?.shareRate || '0%',
+      shareRate: report?.shareRate || '',
     }
   })
 

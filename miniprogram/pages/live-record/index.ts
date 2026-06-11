@@ -1,4 +1,4 @@
-﻿import {
+import {
   formatElapsed,
   getSessionRuntime,
   resolveSessionParticipants,
@@ -159,7 +159,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     elapsedText: '00:00:00',
     exitGuardHandling: false,
     exitGuardVisible: true,
-    playerCount: 6,
+    playerCount: 0,
     players: [],
     isJudge: true,
     records: [],
@@ -389,7 +389,7 @@ Page<LiveRecordState, LiveRecordMethods>({
         meta: record?.meta || item.status || '',
         name: item.name,
         profileId: item.profileId,
-        status: item.status || '待加入',
+        status: item.status || '',
       }
     })
 

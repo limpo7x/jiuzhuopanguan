@@ -45,9 +45,9 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     joinedCount: 0,
     joinedPlayers: [],
     loading: true,
-    playerCount: 6,
+    playerCount: 0,
     sessionId: '',
-    sessionName: '今晚聚会不醉不归',
+    sessionName: '',
   },
 
   async onLoad(query) {
@@ -211,7 +211,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
       if (this.data.sessionId) {
         await updateManagedSession(this.data.sessionId, {
           state: '进行中',
-          status: '正常',
+          status: '',
         })
       }
 

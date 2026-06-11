@@ -1,4 +1,4 @@
-﻿import { homePageMock, type HomePageData } from '../../mock/home'
+import { homePageMock, type HomePageData } from '../../mock/home'
 import { claimPointsTask, getUserCommerceState } from '../../services/content'
 import { getHomePageData } from '../../services/home'
 import { joinManagedSession } from '../../services/operations'
@@ -118,12 +118,9 @@ Page<HomePageState, HomePageMethods>({
   },
 
   loadHomePage() {
-    if (!this.data.lastLoadedAt) {
-      this.setData({ home: homePageMock, loading: false })
-    }
-    return getHomePageData()
+        return getHomePageData()
       .then((home) => this.setData({ home, lastLoadedAt: Date.now(), loading: false }))
-      .catch(() => this.setData({ home: homePageMock, lastLoadedAt: Date.now(), loading: false }))
+      .catch(() => this.setData({ lastLoadedAt: Date.now(), loading: false }))
   },
 
   async syncAuthState() {

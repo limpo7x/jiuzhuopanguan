@@ -1,4 +1,4 @@
-﻿import { getManagedLiveSession } from '../../services/operations'
+import { getManagedLiveSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
 
 interface SharePreviewItem {
@@ -46,10 +46,10 @@ Page<SharePreviewState, SharePreviewMethods>({
     inviteCode: '',
     joinedCount: 0,
     joinStatusPlayers: [],
-    playerCount: 6,
+    playerCount: 0,
     posterImagePath: '',
     sessionId: '',
-    sessionName: '今晚聚会不醉不归',
+    sessionName: '',
     shareItems: [
       { id: 'friend', name: '分享给好友', iconClass: 'share-icon-wechat' },
       { id: 'group', name: '分享到群', iconClass: 'share-icon-group' },
@@ -68,7 +68,7 @@ Page<SharePreviewState, SharePreviewMethods>({
 
     try {
       const liveSession = await getManagedLiveSession(sessionId, inviteCode)
-      const playerCount = Math.max(2, liveSession.playerCount || 6)
+      const playerCount = Number(liveSession.playerCount) || 0
       const joinStatusPlayers = liveSession.joinStatusPlayers.slice(0, playerCount).map((item) => ({
         avatarUrl: item.avatarUrl,
         name: item.name,
@@ -98,24 +98,16 @@ Page<SharePreviewState, SharePreviewMethods>({
         playerCount,
         posterImagePath: '',
         sessionId: liveSession.id,
-        sessionName: liveSession.sessionName || '今晚聚会不醉不归',
-      })
-    } catch {
-      const fallbackPlayers = runtime.selectedPlayers || []
-      const playerCount = Math.max(2, runtime.playerCount || fallbackPlayers.length || 6)
-      const joinedPlayers = fallbackPlayers.filter((item) => item.status === '已加入')
+        sessionName: liveSession.sessionName || '',
+      })    } catch {
       this.setData({
-        avatars: joinedPlayers.slice(0, 4).map((item) => item.avatarUrl),
+        avatars: [],
         inviteCode,
-        joinedCount: joinedPlayers.length,
-        joinStatusPlayers: fallbackPlayers.slice(0, playerCount).map((item) => ({
-          avatarUrl: item.avatarUrl,
-          name: item.name,
-          status: item.status || '待加入',
-        })),
-        playerCount,
+        joinedCount: 0,
+        joinStatusPlayers: [],
+        playerCount: 0,
         sessionId,
-        sessionName: runtime.sessionName || '今晚聚会不醉不归',
+        sessionName: '',
       })
     }
   },
@@ -198,7 +190,7 @@ Page<SharePreviewState, SharePreviewMethods>({
       ctx.setFontSize(48)
       ctx.fillText('酒桌判官邀局', 64, 110)
       ctx.setFontSize(30)
-      ctx.fillText(this.data.sessionName || '今晚聚会不醉不归', 64, 168)
+      ctx.fillText(this.data.sessionName || '', 64, 168)
 
       ctx.setFillStyle('#ffffff')
       ctx.fillRect(54, 250, 612, 560)
@@ -206,7 +198,7 @@ Page<SharePreviewState, SharePreviewMethods>({
       ctx.setFontSize(36)
       ctx.fillText('加入口令', 94, 340)
       ctx.setFontSize(70)
-      ctx.fillText(this.data.inviteCode || '未生成', 94, 455)
+      ctx.fillText(this.data.inviteCode || '', 94, 455)
       ctx.setFontSize(28)
       ctx.fillText(`${this.data.joinedCount}/${this.data.playerCount} 已加入`, 94, 530)
       ctx.setFontSize(24)

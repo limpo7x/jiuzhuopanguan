@@ -361,9 +361,9 @@ Page<TableModeState, TableModeMethods>({
         sessionName: this.data.sessionName,
         templateName: runtime.templateName || '',
         playerCount: this.data.rows.length,
-        status: '正常',
+        status: '',
         sessionState: '已结束',
-        sessionStatus: '正常',
+        sessionstatus: '',
         ranks,
         events,
       })

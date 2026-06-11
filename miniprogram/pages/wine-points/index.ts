@@ -53,25 +53,16 @@ const TABS: PointsTab[] = [
   { id: 'mall', name: '积分商城' },
 ]
 
-const DEFAULT_TASKS: PointsTask[] = [
-  { id: 'task-signin', title: '每日签到', value: 10, iconClass: 'points-icon-coin' },
-  { id: 'task-share-report', title: '分享战报', value: 20, iconClass: 'points-icon-share' },
-  { id: 'task-reopen', title: '完整结束一场聚会', value: 20, iconClass: 'points-icon-refresh' },
-]
+const DEFAULT_TASKS: PointsTask[] = []
 
-const DEFAULT_REWARDS: PointsReward[] = [
-  { id: 'reward-noads', title: '免广告特权（7天）', subtitle: '解锁工具页和战报页纯净模式', cost: 600, iconClass: 'points-icon-shield' },
-  { id: 'reward-poster-pack', title: '高级海报模板包', subtitle: '扩展分享海报和邀局模板样式', cost: 800, iconClass: 'points-icon-image' },
-  { id: 'reward-merchant-coupon', title: '商户优惠券', subtitle: '兑换合作商户的到店优惠券', cost: 500, iconClass: 'points-icon-coupon' },
-  { id: 'reward-avatar-frame', title: '专属头像框（30天）', subtitle: '限时点亮酒局身份展示效果', cost: 300, iconClass: 'points-icon-crown' },
-]
+const DEFAULT_REWARDS: PointsReward[] = []
 
 const DEFAULT_BANNER_IMAGE_URL = ''
 
 Page<WinePointsState, WinePointsMethods>({
   data: {
     activeTab: 'tasks',
-    balance: 168,
+    balance: 0,
     bannerImageUrl: DEFAULT_BANNER_IMAGE_URL,
     taskClaimStates: {},
     claimedTaskIds: [],
@@ -99,11 +90,11 @@ Page<WinePointsState, WinePointsMethods>({
   async loadRemoteConfig() {
     try {
       const config = await getPointsConfig()
-      const tasks = config.tasks?.length ? config.tasks : DEFAULT_TASKS
+      const tasks = config.tasks || []
       const bannerImageUrl = config.bannerImageUrl || DEFAULT_BANNER_IMAGE_URL
       this.setData({
         bannerImageUrl,
-        rewards: config.rewards?.length ? config.rewards : DEFAULT_REWARDS,
+        rewards: config.rewards || [],
         tasks: this.resolveTaskViews(tasks, this.data.taskClaimStates, this.data.claimedTaskIds),
       })
     } catch {

@@ -34,32 +34,22 @@ interface PremiumTemplatesMethods {
   loadMembershipConfig: () => Promise<void>
 }
 
-const DEFAULT_FILTERS: ProFilter[] = [
-  { id: 'all', name: '全部', active: true },
-  { id: 'friendship', name: '友情题材' },
-  { id: 'classic', name: '经典模板' },
-  { id: 'party', name: '酒局场景' },
-]
+const DEFAULT_FILTERS: ProFilter[] = []
 
-const DEFAULT_TEMPLATES: TemplateItem[] = [
-  { id: 'tpl-friendship', filterId: 'friendship', title: '友情题材', meta: '28 个局例 · 2 位主创', cost: 800, imageUrl: '' },
-  { id: 'tpl-classic', filterId: 'classic', title: '经典局', meta: '26 个局例 · 适合新手入门', cost: 800, imageUrl: '' },
-  { id: 'tpl-party', filterId: 'party', title: '欢快氛围', meta: '32 个局例 · 轻松开场', cost: 800, imageUrl: '' },
-  { id: 'tpl-birthday', filterId: 'party', title: '生日聚局', meta: '18 个局例 · 热闹有礼', cost: 800, imageUrl: '' },
-]
+const DEFAULT_TEMPLATES: TemplateItem[] = []
 
 Page<PremiumTemplatesState, PremiumTemplatesMethods>({
   data: {
     activeFilterId: 'all',
     filters: DEFAULT_FILTERS,
     membershipActive: false,
-    membershipEnabled: true,
+    membershipEnabled: false,
     pendingTemplateId: '',
     templates: DEFAULT_TEMPLATES,
     templateUnlockProgress: {},
-    templateUnlockRequiredViews: 3,
-    unlockProgressText: '0/3',
-    unlockTitle: '会员 PRO 模板',
+    templateUnlockRequiredViews: 0,
+    unlockProgressText: '',
+    unlockTitle: '',
     unlockedTemplateIds: [],
     visibleTemplates: DEFAULT_TEMPLATES.map((item) => ({
       ...item,
@@ -75,7 +65,7 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
   async loadRemoteConfig() {
     try {
       const config = await getTemplateConfig()
-      const filters = (config.filters?.length ? config.filters : DEFAULT_FILTERS).map((item, index) => ({
+      const filters = (config.filters || []).map((item, index) => ({
         ...item,
         active: index === 0,
       }))
@@ -84,9 +74,9 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
         {
           activeFilterId: filters[0]?.id || 'all',
           filters,
-          templates: config.templates?.length ? config.templates : DEFAULT_TEMPLATES,
-          unlockProgressText: config.unlockCard?.progressText || '0/3',
-          unlockTitle: config.unlockCard?.title || '会员 PRO 模板',
+          templates: config.templates || [],
+          unlockProgressText: config.unlockCard?.progressText || '',
+          unlockTitle: config.unlockCard?.title || '',
         },
         this.applyVisibleTemplates,
       )
@@ -107,7 +97,7 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
         {
           membershipActive: Boolean(state.membership?.active),
           templateUnlockProgress: state.templateUnlockProgress || {},
-          templateUnlockRequiredViews: state.templateUnlockRequiredViews || 3,
+          templateUnlockRequiredViews: state.templateUnlockRequiredViews || 0,
           unlockProgressText: `${maxProgress}/${state.templateUnlockRequiredViews || 3}`,
           unlockedTemplateIds: state.unlockedTemplateIds || [],
         },
@@ -124,7 +114,7 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
       this.setData({ membershipEnabled: catalog.membershipEnabled !== false }, this.applyVisibleTemplates)
     } catch {
       // 默认保持开启
-      this.setData({ membershipEnabled: true }, this.applyVisibleTemplates)
+      this.setData({ membershipEnabled: false }, this.applyVisibleTemplates)
     }
   },
 
@@ -196,7 +186,7 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
           membershipActive: Boolean(state.membership?.active),
           pendingTemplateId: '',
           templateUnlockProgress: state.templateUnlockProgress || {},
-          templateUnlockRequiredViews: state.templateUnlockRequiredViews || 3,
+          templateUnlockRequiredViews: state.templateUnlockRequiredViews || 0,
           unlockProgressText: `${maxProgress}/${state.templateUnlockRequiredViews || 3}`,
           unlockedTemplateIds: state.unlockedTemplateIds || [],
         },

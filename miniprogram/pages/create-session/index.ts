@@ -31,14 +31,10 @@ interface CreateSessionMethods {
 
 Page<CreateSessionState, CreateSessionMethods>({
   data: {
-    playerCount: 6,
-    sessionName: '今晚聚会不醉不归',
-    sessionNamePresets: [{ name: '推荐', active: true }, { name: '今晚什么局' }, { name: '周五快乐局' }, { name: '生日局' }],
-    templates: [
-      { id: 'classic', name: '经典喝酒版', imageUrl: '', active: true },
-      { id: 'report', name: '战报分享版', imageUrl: '' },
-      { id: 'toolbox', name: '轻松整活版', imageUrl: '' },
-    ],
+    playerCount: 0,
+    sessionName: '',
+    sessionNamePresets: [],
+    templates: [],
   },
 
   async onLoad(query) {
@@ -72,7 +68,7 @@ Page<CreateSessionState, CreateSessionMethods>({
     }))
 
     this.setData({
-      sessionName: name === '推荐' ? '今晚聚会不醉不归' : name,
+      sessionName: name,
       sessionNamePresets,
     })
   },
@@ -117,7 +113,7 @@ Page<CreateSessionState, CreateSessionMethods>({
         sessionName: this.data.sessionName,
         source: '直接创建',
         state: '等待开局',
-        templateName: activeTemplate?.name || '经典喝酒版',
+        templateName: activeTemplate?.name || '',
       })
 
       setSessionRuntime({

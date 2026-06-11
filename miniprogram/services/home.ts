@@ -1,9 +1,8 @@
-import { homePageMock, type HomePageData } from '../mock/home'
+import { type HomePageData } from '../mock/home'
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath } from '../config/assets'
 import { resolveCachedManagedImagePathQuick } from '../utils/imageCache'
 import { getUserAuthHeaders } from '../utils/social'
-import { resolveToolId } from '../utils/toolkit'
 
 interface ApiResponse<T> {
   code: number
@@ -41,169 +40,78 @@ interface ToolHistoryResponseItem {
   usedAt?: string
 }
 
-const BACKEND_RETRY_INTERVAL = 30000
 const HOME_CACHE_TTL = 45000
-let backendDownUntil = 0
 let homePageCache: { expiresAt: number; value: HomePageData } | null = null
-
-const QUICK_TOOL_VISUALS: Record<string, { iconClass: string; toneClass: string }> = {
-  'image-compress': { iconClass: 'icon-compress', toneClass: 'green' },
-  'text-count': { iconClass: 'icon-text', toneClass: '' },
-  'qr-code': { iconClass: 'icon-qr', toneClass: '' },
-  'loan-calc': { iconClass: 'icon-home', toneClass: '' },
-}
-
-const RECENT_TOOL_ASSET_BY_CATEGORY: Record<string, { badgeClass: string; badgeText: string; imageUrl: string }> = {
-  分享生成: { badgeClass: '', badgeText: '分享', imageUrl: '' },
-  图片工具: { badgeClass: 'green', badgeText: '图片', imageUrl: '' },
-  图片处理: { badgeClass: 'green', badgeText: '图片', imageUrl: '' },
-  开发工具: { badgeClass: '', badgeText: '工具', imageUrl: '' },
-  计算工具: { badgeClass: '', badgeText: '计算', imageUrl: '' },
-}
-
-const RECENT_TOOL_ID_BY_NAME: Record<string, string> = {
-  二维码生成: 'qr-code',
-  二维码: 'qr-code',
-  九宫格切图: 'nine-grid',
-  单位换算: 'unit',
-  图片去水印: 'watermark',
-  图片压缩: 'image-compress',
-  房贷计算: 'loan-calc',
-  JSON格式化: 'json',
-  'JSON 格式化': 'json',
-  汇率换算: 'currency',
-  文字计数: 'text-count',
-}
-
-const normalizeRecentToolId = (item?: ToolHistoryResponseItem, fallbackId?: string) => {
-  const directId = resolveToolId(item?.id || '')
-  if (directId) {
-    return directId
-  }
-
-  const mappedId = RECENT_TOOL_ID_BY_NAME[String(item?.name || '').trim()]
-  if (mappedId) {
-    return mappedId
-  }
-
-  return resolveToolId(fallbackId || '') || fallbackId || 'image-compress'
-}
-
-const mergeQuickTools = (quickTools?: HomeConfigResponse['quickTools']) => {
-  if (!quickTools?.length) {
-    return homePageMock.quickTools
-  }
-
-  return quickTools.map((tool, index) => {
-    const fallback = homePageMock.quickTools[index]
-    const visuals =
-      (tool.id && QUICK_TOOL_VISUALS[tool.id]) ||
-      (fallback
-        ? {
-            iconClass: fallback.iconClass,
-            toneClass: fallback.toneClass,
-          }
-        : { iconClass: 'icon-grid', toneClass: '' })
-
-    return {
-      id: tool.id || fallback?.id || `tool-${index}`,
-      name: tool.name || fallback?.name || '工具',
-      iconClass: visuals.iconClass,
-      toneClass: visuals.toneClass,
-    }
-  })
-}
-
-const mapRecentTools = async (items?: ToolHistoryResponseItem[]) => {
-  if (!items?.length) {
-    return homePageMock.recentTools
-  }
-
-  return Promise.all(
-    items.slice(0, 3).map(async (item, index) => {
-      const fallback = homePageMock.recentTools[index] || homePageMock.recentTools[0]
-      const visual = RECENT_TOOL_ASSET_BY_CATEGORY[item.category || ''] || {
-        badgeClass: fallback.badgeClass,
-        badgeText: fallback.badgeText,
-        imageUrl: fallback.imageUrl,
-      }
-
-      return {
-        id: normalizeRecentToolId(item, fallback.id),
-        name: item.name || fallback.name || '工具',
-        usedAt: item.usedAt || fallback.usedAt || '刚刚使用',
-        imageUrl: visual.imageUrl ? await resolveCachedManagedImagePathQuick(visual.imageUrl, 800) : '',
-        badgeText: visual.badgeText,
-        badgeClass: visual.badgeClass,
-        route: item.route || fallback.route || '',
-      }
-    }),
-  )
-}
 
 const request = <T>(path: string): Promise<T> =>
   new Promise((resolve, reject) => {
-    if (backendDownUntil > Date.now()) {
-      reject(new Error('backend unavailable'))
-      return
-    }
-
     wx.request({
       url: `${getApiBase()}${path}`,
       header: getUserAuthHeaders(),
-      timeout: 2500,
+      timeout: 5000,
       success: (response) => {
         const payload = response.data as ApiResponse<T>
-
         if (response.statusCode >= 200 && response.statusCode < 300 && payload.code === 0) {
-          backendDownUntil = 0
           resolve(payload.data)
           return
         }
-
         reject(new Error(payload.message || 'request failed'))
       },
-      fail: (error) => {
-        backendDownUntil = Date.now() + BACKEND_RETRY_INTERVAL
-        reject(error)
-      },
+      fail: reject,
     })
   })
+
+const mapQuickTools = (quickTools?: HomeConfigResponse['quickTools']) =>
+  (quickTools || []).map((tool) => ({
+    id: tool.id || '',
+    name: tool.name || '',
+    iconClass: '',
+    toneClass: '',
+  })).filter((item) => item.id || item.name)
+
+const mapRecentTools = async (items?: ToolHistoryResponseItem[]) =>
+  Promise.all(
+    (items || []).slice(0, 3).map(async (item) => ({
+      id: item.id || '',
+      name: item.name || '',
+      usedAt: item.usedAt || '',
+      imageUrl: '',
+      badgeText: item.category || '',
+      badgeClass: '',
+      route: item.route || '',
+    })),
+  )
 
 export const getHomePageData = async (): Promise<HomePageData> => {
   if (homePageCache && homePageCache.expiresAt > Date.now()) {
     return homePageCache.value
   }
 
-  try {
-    const [homeConfig, compliance, profile, toolHistory] = await Promise.all([
-      request<HomeConfigResponse>('/config/home').catch<HomeConfigResponse>(() => ({})),
-      request<ComplianceResponse>('/config/compliance').catch<ComplianceResponse>(() => ({ copy: '' })),
-      request<UserProfileResponse>('/user/profile').catch<UserProfileResponse>(() => ({ points: undefined })),
-      request<ToolHistoryResponseItem[]>('/tools/history').catch<ToolHistoryResponseItem[]>(() => []),
-    ])
+  const [homeConfig, compliance, profile, toolHistory] = await Promise.all([
+    request<HomeConfigResponse>('/config/home'),
+    request<ComplianceResponse>('/config/compliance'),
+    request<UserProfileResponse>('/user/profile'),
+    request<ToolHistoryResponseItem[]>('/tools/history'),
+  ])
 
-    const next: HomePageData = {
-      ...homePageMock,
-      points: typeof profile.points === 'number' ? profile.points : homePageMock.points,
-      hero: {
-        ...homePageMock.hero,
-        ...homeConfig.hero,
-        imageUrl:
-          (await resolveCachedManagedImagePathQuick(normalizeManagedAssetPath(homeConfig.hero?.imageUrl), 800)) || '',
-      },
-      quickTools: mergeQuickTools(homeConfig.quickTools),
-      recentTools: await mapRecentTools(toolHistory),
-      complianceCopy: compliance.copy || homePageMock.complianceCopy,
-    }
-
-    homePageCache = {
-      expiresAt: Date.now() + HOME_CACHE_TTL,
-      value: next,
-    }
-
-    return next
-  } catch {
-    return homePageMock
+  const next: HomePageData = {
+    points: typeof profile.points === 'number' ? profile.points : 0,
+    searchPlaceholder: '',
+    hero: {
+      title: homeConfig.hero?.title || '',
+      subtitle: homeConfig.hero?.subtitle || '',
+      imageUrl: (await resolveCachedManagedImagePathQuick(normalizeManagedAssetPath(homeConfig.hero?.imageUrl), 800)) || '',
+      shareTitle: homeConfig.hero?.title || '',
+    },
+    quickTools: mapQuickTools(homeConfig.quickTools),
+    recentTools: await mapRecentTools(toolHistory),
+    complianceCopy: compliance.copy || '',
   }
+
+  homePageCache = {
+    expiresAt: Date.now() + HOME_CACHE_TTL,
+    value: next,
+  }
+
+  return next
 }

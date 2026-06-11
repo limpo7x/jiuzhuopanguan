@@ -1,4 +1,4 @@
-﻿const crypto = require('crypto')
+const crypto = require('crypto')
 const path = require('path')
 const { createStoreAccessor } = require('./store-accessor')
 
@@ -56,7 +56,7 @@ const normalizeStore = (store = {}) => ({
         ownerId: cleanText(item.ownerId),
         friendId: cleanText(item.friendId),
         alias: cleanText(item.alias),
-        meta: cleanText(item.meta || '最近联系'),
+        meta: cleanText(item.meta),
         updatedAt: Number(item.updatedAt) || now(),
       }))
     : [],
@@ -67,7 +67,7 @@ const normalizeStore = (store = {}) => ({
         phone: cleanText(item.phone),
         wechatOpenId: cleanText(item.wechatOpenId),
         loginAt: cleanText(item.loginAt),
-        source: cleanText(item.source || 'wechat-miniapp'),
+        source: cleanText(item.source),
       }))
     : [],
   pokes: Array.isArray(store.pokes)
@@ -191,8 +191,8 @@ const serializeFriend = (store, friendship) => {
     profileId: friendship.friendId,
     ownerId: friendship.ownerId,
     avatarUrl: cleanAvatar(profile?.avatarUrl),
-    name: friendship.alias || profile?.name || '未命名用户',
-    meta: friendship.meta || '最近联系',
+    name: friendship.alias || profile?.name || '',
+    meta: friendship.meta || '',
     updatedAt: friendship.updatedAt,
   }
 }
@@ -214,7 +214,7 @@ const getOrCreatePlaceholderProfile = (store, name) => {
   return upsertProfile(store, { id: randomId('user'), name: trimmed, avatarUrl: '', identityTag: '好友' })
 }
 
-const addFriend = ({ ownerId, friendName, friendProfileId, meta = '最近添加' }) => {
+const addFriend = ({ ownerId, friendName, friendProfileId, meta = '' }) => {
   const store = readStore()
   const normalizedOwnerId = cleanText(ownerId)
   if (!normalizedOwnerId) {
@@ -245,7 +245,7 @@ const addFriend = ({ ownerId, friendName, friendProfileId, meta = '最近添加'
     ownerId: normalizedOwnerId,
     friendId: targetProfile.id,
     alias: cleanText(friendName),
-    meta: cleanText(meta) || '最近添加',
+    meta: cleanText(meta),
     updatedAt,
   }
   store.friendships.unshift(friendship)
@@ -278,7 +278,7 @@ const touchFriends = ({ ownerId, participants = [] }) => {
       return
     }
     try {
-      addFriend({ ownerId, friendName: item?.name || '', friendProfileId: item?.profileId || '', meta: item?.meta || '酒局联系人' })
+      addFriend({ ownerId, friendName: item?.name || '', friendProfileId: item?.profileId || '', meta: item?.meta || '' })
     } catch {
       void 0
     }

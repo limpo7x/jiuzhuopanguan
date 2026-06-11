@@ -268,7 +268,7 @@ Page<AddPlayersState, AddPlayersMethods>({
         name: item.name,
         avatarUrl: item.avatarUrl,
         profileId: item.profileId,
-        status: '待加入',
+        status: '',
       }))
 
     await touchWineFriends(selectedPlayers)
