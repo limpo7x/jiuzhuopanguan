@@ -224,7 +224,10 @@ Page<HomePageState, HomePageMethods>({
         fail: () => resolve(''),
       } as WechatMiniprogram.ShowModalOption)
     })
-    if (!inviteCode) return
+    if (!inviteCode) {
+      wx.showToast({ title: '请输入酒桌口令', icon: 'none' })
+      return
+    }
     await this.joinByInviteCode(inviteCode)
   },
 
