@@ -286,10 +286,9 @@ button.poster-share-item::after {
 }
 
 .poster-hidden-canvas {
-  position: absolute;
-  left: 0;
-  top: 0;
-  z-index: -1;
+  position: fixed;
+  left: -9999px;
+  top: -9999px;
   pointer-events: none;
   opacity: 0;
 }
@@ -304,6 +303,10 @@ button.poster-share-item::after {
 
 .poster-icon-group {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M16 11C17.7 11 19 9.7 19 8C19 6.3 17.7 5 16 5C14.3 5 13 6.3 13 8C13 9.7 14.3 11 16 11ZM8 11C9.7 11 11 9.7 11 8C11 6.3 9.7 5 8 5C6.3 5 5 6.3 5 8C5 9.7 6.3 11 8 11ZM8 13C5.8 13 1.5 14.1 1.5 16.3V19H14.5V16.3C14.5 14.1 10.2 13 8 13ZM16 13C15.7 13 15.3 13 14.9 13.1C16 13.9 16.5 15 16.5 16.3V19H22.5V16.3C22.5 14.1 18.2 13 16 13Z' fill='%2342b883'/%3E%3C/svg%3E");
+}
+
+.poster-icon-timeline {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.5C6.8 2.5 2.5 6.8 2.5 12S6.8 21.5 12 21.5 21.5 17.2 21.5 12 17.2 2.5 12 2.5ZM12 5.2C13.2 5.2 14.2 6.2 14.2 7.4S13.2 9.6 12 9.6 9.8 8.6 9.8 7.4 10.8 5.2 12 5.2ZM7.1 14.4C7.1 12.3 9.3 11 12 11S16.9 12.3 16.9 14.4V15.2H7.1V14.4ZM6.7 17H17.3V18.6H6.7V17Z' fill='%2342b883'/%3E%3C/svg%3E");
 }
 
 .poster-icon-more {

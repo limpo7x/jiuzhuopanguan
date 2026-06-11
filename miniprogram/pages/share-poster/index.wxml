@@ -53,10 +53,21 @@
     </view>
 
     <view class="poster-share-grid">
-      <button wx:for="{{shareItems}}" wx:key="id" class="poster-share-item" open-type="share">
-        <view class="poster-share-icon {{item.iconClass}}"></view>
-        <text class="poster-share-label">{{item.name}}</text>
-      </button>
+      <block wx:for="{{shareItems}}" wx:key="id">
+        <button
+          wx:if="{{item.id !== 'timeline'}}"
+          class="poster-share-item"
+          open-type="share"
+          data-id="{{item.id}}"
+        >
+          <view class="poster-share-icon {{item.iconClass}}"></view>
+          <text class="poster-share-label">{{item.name}}</text>
+        </button>
+        <view wx:else class="poster-share-item" data-id="{{item.id}}" bindtap="handleTimelineTap">
+          <view class="poster-share-icon {{item.iconClass}}"></view>
+          <text class="poster-share-label">{{item.name}}</text>
+        </view>
+      </block>
     </view>
 
     <view class="poster-primary" bindtap="handleSaveTap">

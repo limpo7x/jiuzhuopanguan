@@ -14,7 +14,7 @@ interface PosterRank {
 
 interface PosterShareItem {
   iconClass: string
-  id: string
+  id: 'friend' | 'group' | 'timeline'
   name: string
 }
 
@@ -50,13 +50,27 @@ interface SharePosterMethods {
   handleBackTap: () => void
   handleCreateTap: () => void
   handleSaveTap: () => Promise<void>
+  handleTimelineTap: () => void
   saveImageFile: (filePath: string) => Promise<void>
   showPreviewToast: (message: string) => void
 }
 
 const SHARE_HEADLINE = '查看谁是今晚欠酒王？'
+const REPORT_SHARE_ITEMS: PosterShareItem[] = [
+  { id: 'friend', name: '\u5206\u4eab\u7ed9\u597d\u53cb', iconClass: 'poster-icon-wechat' },
+  { id: 'group', name: '\u5206\u4eab\u5230\u7fa4', iconClass: 'poster-icon-group' },
+  { id: 'timeline', name: '\u5206\u4eab\u5230\u670b\u53cb\u5708', iconClass: 'poster-icon-timeline' },
+]
+
 const CANVAS_WIDTH = 900
 const CARD_WIDTH = 820
+
+const enableShareMenus = () => {
+  wx.showShareMenu({
+    withShareTicket: true,
+    menus: ['shareAppMessage', 'shareTimeline'],
+  })
+}
 
 const getImageInfo = (src: string) =>
   new Promise<WechatMiniprogram.GetImageInfoSuccessCallbackResult>((resolve, reject) => {
@@ -319,10 +333,15 @@ Page<SharePosterState, SharePosterMethods>({
     sessionId: '',
     sessionName: '',
     shareHeadline: SHARE_HEADLINE,
-    shareItems: [],
+    shareItems: REPORT_SHARE_ITEMS,
+  },
+
+  onShow() {
+    enableShareMenus()
   },
 
   async onLoad(query) {
+    enableShareMenus()
     const runtime = getSessionRuntime()
     const reportId = typeof query?.reportId === 'string' ? decodeURIComponent(query.reportId) : runtime.reportId || ''
 
@@ -362,13 +381,7 @@ Page<SharePosterState, SharePosterMethods>({
             secondaryRanks,
             sessionId: report.sessionId || runtime.sessionId || '',
             sessionName: report.sessionName || runtime.sessionName || '',
-            shareItems: shareConfig.shareItems
-              .filter((item) => item.id && item.id !== 'save')
-              .map((item) => ({
-                id: item.id,
-                name: item.name,
-                iconClass: item.iconClass.replace(/^share-/, 'poster-'),
-              })),
+            shareItems: REPORT_SHARE_ITEMS,
           },
           () => resolve(),
         )
@@ -399,6 +412,29 @@ Page<SharePosterState, SharePosterMethods>({
       path: `/pages/result-report/index?reportId=${encodeURIComponent(this.data.reportId)}`,
       imageUrl: this.data.posterImagePath || this.data.posterImageUrl,
     }
+  },
+
+  onShareTimeline() {
+    trackAnalyticsEvent({
+      type: 'report_share',
+      assetId: 'share-1',
+      reportId: this.data.reportId,
+      meta: {
+        sessionId: this.data.sessionId,
+        channel: 'share-timeline',
+      },
+    })
+
+    return {
+      title: SHARE_HEADLINE,
+      query: `reportId=${encodeURIComponent(this.data.reportId)}`,
+      imageUrl: this.data.posterImagePath || this.data.posterImageUrl,
+    }
+  },
+
+  handleTimelineTap() {
+    enableShareMenus()
+    this.showPreviewToast('\u8bf7\u70b9\u51fb\u53f3\u4e0a\u89d2\u83dc\u5355\u5206\u4eab\u5230\u670b\u53cb\u5708')
   },
 
   async handleSaveTap() {
