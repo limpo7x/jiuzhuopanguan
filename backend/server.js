@@ -5,6 +5,7 @@ const http = require('http')
 const https = require('https')
 const path = require('path')
 const QRCode = require('qrcode')
+const sharp = require('sharp')
 const url = require('url')
 const { initAssetsManifest, listAdminAssets, saveAdminImage } = require('./data/assets')
 const {
@@ -82,6 +83,7 @@ const heatwaveDir = path.join(publicDir, 'admin', 'static', 'heatwave-ops')
 const assetsDir = path.join(__dirname, '..', 'miniprogram', 'assets')
 const publicStaticDir = path.join(publicDir, 'static')
 const uploadsDir = path.join(publicDir, 'uploads')
+const sharePosterMiniappCodePath = path.join(__dirname, '..', 'miniprogram', 'pages', 'share-poster', 'assets', 'share', 'share-poster-miniapp-code.png')
 const sessionCookieName = 'jiuzhuopanguan_admin_session'
 const userSessionHeaderName = 'x-jzp-user-token'
 const wechatConfig = {
@@ -173,10 +175,115 @@ const sendBinary = (response, buffer, contentType, statusCode = 200) => {
     'Content-Type': contentType,
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-JZP-User-Token',
     'Cache-Control': 'no-store',
   })
   response.end(buffer)
+}
+
+const escapeXml = (value = '') =>
+  String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
+const trimText = (value = '', maxLength = 18) => {
+  const text = String(value || '').trim()
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text
+}
+
+const buildReportPosterSvg = async (report) => {
+  const width = 900
+  const ranks = Array.isArray(report.ranks) ? report.ranks.slice(0, 5) : []
+  const events = Array.isArray(report.events) ? report.events.slice(0, 4) : []
+  const secondaryRanks = ranks.slice(1)
+  const secondaryRows = Math.ceil(secondaryRanks.length / 2)
+  const eventRows = Math.max(events.length, 1)
+  const height = 610 + (ranks[0] ? 250 : 0) + secondaryRows * 210 + eventRows * 44 + 220
+  const inviteCode = trimText(report.inviteCode || '已结算', 12)
+  const qrDataUri = fs.existsSync(sharePosterMiniappCodePath)
+    ? `data:image/png;base64,${fs.readFileSync(sharePosterMiniappCodePath).toString('base64')}`
+    : ''
+  const eventsY = 318 + (ranks[0] ? 236 : 0) + secondaryRows * 210 + 20
+  const eventItems = (events.length ? events : [{ text: '本局暂未记录精彩事件' }])
+    .map((event, index) => `<text x="122" y="${eventsY + 88 + index * 42}" font-size="22" fill="#7b3926">· ${escapeXml(trimText(event.text, 32))}</text>`)
+    .join('')
+  const rankCards = secondaryRanks
+    .map((rank, index) => {
+      const col = index % 2
+      const row = Math.floor(index / 2)
+      const x = 90 + col * 364
+      const y = 318 + (ranks[0] ? 236 : 0) + row * 210
+      const bg = index % 2 === 0 ? '#fff8f0' : '#f8fbff'
+      const tagBg = index % 2 === 0 ? '#fff0dc' : '#edf4ff'
+      const tagColor = index % 2 === 0 ? '#ff6b42' : '#3b6cff'
+      return `
+        <rect x="${x}" y="${y}" width="336" height="184" rx="24" fill="${bg}"/>
+        <rect x="${x + 18}" y="${y + 18}" width="118" height="38" rx="19" fill="${tagBg}"/>
+        <text x="${x + 77}" y="${y + 44}" text-anchor="middle" font-size="20" font-weight="700" fill="${tagColor}">${escapeXml(trimText(rank.title || `榜单 ${index + 2}`, 7))}</text>
+        <circle cx="${x + 57}" cy="${y + 113}" r="31" fill="#ffd7c4"/>
+        <text x="${x + 106}" y="${y + 116}" font-size="24" font-weight="800" fill="#24160f">${escapeXml(trimText(rank.name, 8))}</text>
+        <text x="${x + 106}" y="${y + 150}" font-size="22" font-weight="700" fill="#ff5b3d">${escapeXml(trimText(rank.value || '-', 12))}</text>
+      `
+    })
+    .join('')
+  const featured = ranks[0]
+    ? `
+      <rect x="90" y="318" width="720" height="206" rx="28" fill="#7b1f17"/>
+      <rect x="118" y="342" width="180" height="44" rx="22" fill="#ffefcd" fill-opacity="0.16"/>
+      <text x="208" y="372" text-anchor="middle" font-size="24" font-weight="800" fill="#ffe5b3">${escapeXml(trimText(ranks[0].title || '欠酒大王', 8))}</text>
+      <rect x="640" y="342" width="140" height="44" rx="22" fill="#ffffff" fill-opacity="0.14"/>
+      <text x="710" y="372" text-anchor="middle" font-size="22" font-weight="800" fill="#ffffff">全场焦点</text>
+      <circle cx="168" cy="454" r="42" fill="#ffd7c4"/>
+      <text x="236" y="454" font-size="34" font-weight="900" fill="#ffffff">${escapeXml(trimText(ranks[0].name, 10))}</text>
+      <text x="236" y="494" font-size="24" font-weight="700" fill="#ffe0d5">${escapeXml(trimText(ranks[0].value || '-', 18))}</text>
+    `
+    : ''
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#4f120d"/>
+          <stop offset="0.45" stop-color="#8d2418"/>
+          <stop offset="1" stop-color="#ff8b4d"/>
+        </linearGradient>
+        <linearGradient id="header" x1="0" y1="40" x2="0" y2="280">
+          <stop offset="0" stop-color="#ff7e4d"/>
+          <stop offset="0.58" stop-color="#d83e28"/>
+          <stop offset="1" stop-color="#7d1f16"/>
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#bg)"/>
+      <circle cx="120" cy="140" r="150" fill="#ffe19e" fill-opacity="0.14"/>
+      <circle cx="760" cy="180" r="180" fill="#ffe19e" fill-opacity="0.14"/>
+      <rect x="40" y="40" width="820" height="${height - 80}" rx="34" fill="#fff3e8"/>
+      <rect x="40" y="40" width="820" height="240" rx="34" fill="url(#header)"/>
+      <rect x="40" y="140" width="820" height="140" fill="url(#header)"/>
+      <circle cx="168" cy="98" r="72" fill="#ffffff" fill-opacity="0.12"/>
+      <circle cx="742" cy="118" r="84" fill="#ffffff" fill-opacity="0.12"/>
+      <text x="90" y="122" font-size="48" font-weight="900" fill="#fff">查看谁是今晚欠酒王？</text>
+      <text x="90" y="170" font-size="24" font-weight="700" fill="#fff">${escapeXml(trimText(report.sessionName || '', 20))}</text>
+      <text x="90" y="208" font-size="24" font-weight="700" fill="#fff">${escapeXml(trimText(report.title || '这局快乐就完事了', 20))}</text>
+      <rect x="620" y="116" width="190" height="72" rx="20" fill="#ffffff" fill-opacity="0.16"/>
+      <text x="715" y="160" text-anchor="middle" font-size="28" font-weight="900" fill="#fff">${escapeXml(inviteCode)}</text>
+      ${featured}
+      ${rankCards}
+      <rect x="90" y="${eventsY}" width="720" height="${70 + eventRows * 42}" rx="24" fill="#fff8f0"/>
+      <text x="122" y="${eventsY + 44}" font-size="28" font-weight="900" fill="#24160f">本局精彩事件</text>
+      ${eventItems}
+      <rect x="652" y="${height - 212}" width="134" height="170" rx="24" fill="#fffaf4"/>
+      ${qrDataUri ? `<image href="${qrDataUri}" x="666" y="${height - 198}" width="106" height="106"/>` : ''}
+      <text x="719" y="${height - 60}" text-anchor="middle" font-size="18" font-weight="700" fill="#7b3926">扫一扫看看怎么个事</text>
+      <text x="90" y="${height - 128}" font-size="22" font-weight="700" fill="#8f7f6d">分享图仅保留展示数据，不包含按钮与操作入口</text>
+    </svg>
+  `
+}
+
+const renderReportPosterPng = async (report) => {
+  const svg = await buildReportPosterSvg(report)
+  return sharp(Buffer.from(svg)).png().toBuffer()
 }
 
 const buildEtag = (stats) => `W/"${stats.size}-${Number(stats.mtimeMs || 0).toString(16)}"`
@@ -806,6 +913,21 @@ const server = http.createServer((request, response) => {
         return
       }
       sendOk(response, listManagedReports(userSession.profile.id, String(query.mode || 'all')))
+      return
+    }
+
+    if (request.method === 'GET' && pathname && pathname.startsWith('/api/v1/reports/') && pathname.endsWith('/poster.png')) {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const reportId = pathname.replace('/api/v1/reports/', '').replace('/poster.png', '').replace(/^\/+|\/+$/g, '')
+      const report = getManagedReportById(reportId)
+      if (!report) {
+        sendError(response, 404, 'report not found')
+        return
+      }
+      sendBinary(response, await renderReportPosterPng(report), 'image/png')
       return
     }
 
