@@ -92,17 +92,9 @@
     </view>
   </scroll-view>
 
-  <page-container
-    show="{{exitGuardVisible}}"
-    overlay="{{false}}"
-    position="center"
-    duration="{{0}}"
-    custom-style="width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;"
-    bindbeforeleave="handleExitGuardLeave"
-  ></page-container>
-
   <canvas
-    canvas-id="sharePosterCanvas"
+    id="sharePosterCanvas"
+    type="2d"
     class="poster-hidden-canvas"
     style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
   ></canvas>

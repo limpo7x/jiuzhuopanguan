@@ -370,6 +370,10 @@ let reportHistoryCache: { expiresAt: number; key: string; value: ManagedReportSu
 let shareConfigCache: { expiresAt: number; value: ManagedShareConfig } | null = null
 let merchantCatalogCache: { expiresAt: number; value: ManagedMerchantCatalog } | null = null
 
+const invalidateManagedReportHistoryCache = () => {
+  reportHistoryCache = null
+}
+
 const DEFAULT_TOOLS_CATALOG: ManagedToolCatalog = {
   categories: [],
   categoryCards: [],
@@ -587,8 +591,11 @@ const normalizeManagedReport = (report?: RemoteManagedReport): ManagedReportDeta
   title: report?.title || '',
 })
 
-export const createManagedReport = async (payload: Record<string, unknown>): Promise<ManagedReportDetail> =>
-  normalizeManagedReport(await requestJson<RemoteManagedReport>('/reports', 'POST', payload))
+export const createManagedReport = async (payload: Record<string, unknown>): Promise<ManagedReportDetail> => {
+  const report = normalizeManagedReport(await requestJson<RemoteManagedReport>('/reports', 'POST', payload))
+  invalidateManagedReportHistoryCache()
+  return report
+}
 
 export const getManagedReport = async (reportId: string): Promise<ManagedReportDetail> =>
   normalizeManagedReport(await requestJson<RemoteManagedReport>(`/reports/${encodeURIComponent(reportId)}`))

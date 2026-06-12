@@ -2,6 +2,8 @@ const { getAdminStore, getManagedSessionById, getManagedSessionByInviteCode } = 
 const { getCompliance, getToolHistory } = require('./content')
 
 const toText = (value, fallback = '') => String(value || fallback || '').trim()
+const normalizeTemplateImageUrl = (value = '') =>
+  toText(value).replace(/^\/static\/templates\/(.+)\.svg$/i, '/static/templates/$1.png')
 
 const TOOL_ID_MAP = {
   'tool-compress': 'image-compress',
@@ -110,7 +112,7 @@ const formatLiveSession = (session = {}) => {
     stateText: toText(session?.state),
     status: toText(session?.status),
     subtitle: '',
-    templateImageUrl: toText(session?.templateImageUrl),
+    templateImageUrl: normalizeTemplateImageUrl(session?.templateImageUrl),
     templateName: toText(session?.template || session?.templateName),
     title: '',
   }

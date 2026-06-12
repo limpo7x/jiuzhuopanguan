@@ -85,11 +85,11 @@ const AUTO_COMPUTED_FIELD_KEYS = new Set([
   'verifyRate',
 ])
 const FREE_TEMPLATE_PRESETS = [
-  { id: 'free-happy-friday', filterId: 'free', title: '周五快乐局', meta: '轻松开局，朋友小聚，适合 2-8 人快速开玩。', cost: 0, imageUrl: '/static/templates/free-happy-friday.svg' },
-  { id: 'free-friend-party', filterId: 'free', title: '老友热闹局', meta: '熟人酒桌热闹局，主打互损、调侃和氛围破冰。', cost: 0, imageUrl: '/static/templates/free-friend-party.svg' },
-  { id: 'free-weekend-party', filterId: 'free', title: '周末放松局', meta: '周末聚会放松玩法，节奏轻，适合新老朋友混局。', cost: 0, imageUrl: '/static/templates/free-weekend-party.svg' },
-  { id: 'free-fun-challenge', filterId: 'free', title: '整活挑战局', meta: '互动整活不冷场，适合希望酒桌更热闹的场景。', cost: 0, imageUrl: '/static/templates/free-fun-challenge.svg' },
-  { id: 'free-casual-table', filterId: 'free', title: '随便喝两杯', meta: '低压轻量，新手友好，适合临时开局和轻松记录。', cost: 0, imageUrl: '/static/templates/free-casual-table.svg' },
+  { id: 'free-happy-friday', filterId: 'free', title: '周五快乐局', meta: '轻松开局，朋友小聚，适合 2-8 人快速开玩。', cost: 0, imageUrl: '/static/templates/free-happy-friday.png' },
+  { id: 'free-friend-party', filterId: 'free', title: '老友热闹局', meta: '熟人酒桌热闹局，主打互损、调侃和氛围破冰。', cost: 0, imageUrl: '/static/templates/free-friend-party.png' },
+  { id: 'free-weekend-party', filterId: 'free', title: '周末放松局', meta: '周末聚会放松玩法，节奏轻，适合新老朋友混局。', cost: 0, imageUrl: '/static/templates/free-weekend-party.png' },
+  { id: 'free-fun-challenge', filterId: 'free', title: '整活挑战局', meta: '互动整活不冷场，适合希望酒桌更热闹的场景。', cost: 0, imageUrl: '/static/templates/free-fun-challenge.png' },
+  { id: 'free-casual-table', filterId: 'free', title: '随便喝两杯', meta: '低压轻量，新手友好，适合临时开局和轻松记录。', cost: 0, imageUrl: '/static/templates/free-casual-table.png' },
 ]
 const escapeHtml = (value = '') =>
   String(value)

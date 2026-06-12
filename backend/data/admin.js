@@ -43,6 +43,8 @@ const formatPercent = (value, digits = 1) =>
   `${Number(value || 0).toFixed(digits).replace(/\.0$/, '').replace(/(\.\d*[1-9])0+$/, '$1')}%`
 const ratioPercent = (numerator, denominator, digits = 1) =>
   formatPercent(denominator ? (Number(numerator || 0) / Number(denominator || 0)) * 100 : 0, digits)
+const normalizeTemplateImageUrl = (value = '') =>
+  String(value || '').trim().replace(/^\/static\/templates\/(.+)\.svg$/i, '/static/templates/$1.png')
 const seedCountFromRate = (rateText, denominator, fallbackBase = 1000) => {
   const rateValue = Math.max(0, numberFromText(rateText))
   const base = Math.max(1, Number(denominator) || fallbackBase)
@@ -1280,7 +1282,7 @@ const createManagedSession = (payload = {}) => {
     name: String(payload.sessionName || '').trim(),
     players: Number(payload.playerCount) || 0,
     template: String(payload.templateName || '').trim(),
-    templateImageUrl: String(payload.templateImageUrl || '').trim(),
+    templateImageUrl: normalizeTemplateImageUrl(payload.templateImageUrl),
     hostName: String(payload.hostName || '').trim(),
     hostProfileId: String(payload.hostProfileId || '').trim(),
     inviteCode: String(payload.inviteCode || makeUniqueInviteCode(store)).trim().toUpperCase() || makeUniqueInviteCode(store),
@@ -1315,7 +1317,7 @@ const updateManagedSession = (sessionId, payload = {}) => {
       name: payload.sessionName || item.name,
       players: Number(payload.playerCount) || item.players,
       template: payload.templateName || item.template,
-      templateImageUrl: payload.templateImageUrl || item.templateImageUrl,
+      templateImageUrl: normalizeTemplateImageUrl(payload.templateImageUrl || item.templateImageUrl),
       hostName: payload.hostName || item.hostName,
       hostProfileId: payload.hostProfileId || item.hostProfileId,
       hostAvatarUrl: payload.hostAvatarUrl || item.hostAvatarUrl,
@@ -1384,7 +1386,7 @@ const finishManagedSession = (payload = {}) => {
   const relatedSession = store.liveSessions.find((item) => item.id === sessionId)
   const sessionName = String(payload.sessionName || relatedSession?.name || '').trim()
   const templateName = String(payload.templateName || relatedSession?.template || '').trim()
-  const templateImageUrl = String(payload.templateImageUrl || relatedSession?.templateImageUrl || '').trim()
+  const templateImageUrl = normalizeTemplateImageUrl(payload.templateImageUrl || relatedSession?.templateImageUrl || '')
   const playerCount = Math.max(2, Number(payload.playerCount) || Number(relatedSession?.players) || 6)
   const events = Array.isArray(payload.events) ? payload.events.filter((item) => item && item.text).slice(0, 5) : []
   const report = {
@@ -1462,7 +1464,7 @@ const buildManagedReportDetail = (report) => {
 
   return {
     id: report.id,
-    imageUrl: report.imageUrl || relatedSession?.templateImageUrl || '',
+    imageUrl: normalizeTemplateImageUrl(report.imageUrl || relatedSession?.templateImageUrl || ''),
     sessionId: report.sessionId || '',
     sessionName,
     title: report.title || '',
@@ -1604,7 +1606,7 @@ const listManagedReports = (profileId = '', mode = 'all') => {
       templateName,
       hostName: String(host?.name || session.hostName || '').trim(),
       hostProfileId: String(host?.profileId || session.hostProfileId || '').trim(),
-      imageUrl: String(report?.imageUrl || session?.templateImageUrl || session?.imageUrl || template?.imageUrl || '').trim(),
+      imageUrl: normalizeTemplateImageUrl(report?.imageUrl || session?.templateImageUrl || session?.imageUrl || template?.imageUrl || ''),
       status,
       meta: `${Number(report?.playerCount) || Number(session?.players) || 0}人 · ${templateName} · ${createdAt}`.replace(/\s+/g, ' ').trim(),
       createdAt,

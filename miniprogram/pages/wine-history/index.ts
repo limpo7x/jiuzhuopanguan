@@ -40,6 +40,7 @@ interface WineHistoryMethods {
   handleCreateTap: () => void
   handleFilterTap: (event: WechatMiniprogram.BaseEvent) => void
   handleSessionTap: (event: WechatMiniprogram.BaseEvent) => void
+  loadSessions: () => Promise<void>
   openPage: (url: string) => void
 }
 
@@ -100,7 +101,20 @@ Page<WineHistoryState, WineHistoryMethods>({
       showCreateButton: config.showCreateButton,
     })
 
+    await this.loadSessions()
+  },
+
+  async onShow() {
+    if (this.data.loading) {
+      return
+    }
+
+    await this.loadSessions()
+  },
+
+  async loadSessions() {
     try {
+      const mode = this.data.mode
       wx.showLoading({ title: '加载酒局中', mask: true })
       const rows = await getManagedReportHistory(mode)
       const sessions = rows.map<HistorySession>((item) => ({
@@ -120,7 +134,7 @@ Page<WineHistoryState, WineHistoryMethods>({
       }))
 
       this.setData({ loading: false, sessions })
-      this.applyFilter('全部')
+      this.applyFilter(this.data.activeFilter || '全部')
     } catch (error) {
       this.setData({ loading: false, sessions: [], visibleSessions: [] })
       wx.showToast({ title: error instanceof Error ? error.message : '历史酒局加载失败', icon: 'none' })

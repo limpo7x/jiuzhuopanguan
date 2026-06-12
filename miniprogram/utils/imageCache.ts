@@ -90,6 +90,10 @@ const isCacheableRemoteImage = (source: string) => {
     return false
   }
 
+  if (/\.svg(?:[?#].*)?$/i.test(source)) {
+    return false
+  }
+
   const origin = getApiOrigin()
   if (!origin || !source.startsWith(origin)) {
     return false
@@ -123,7 +127,7 @@ const downloadAndPersist = async (source: string) => {
   })
 
   return new Promise<string>((resolve, reject) => {
-    wx.saveFile({
+    wx.getFileSystemManager().saveFile({
       tempFilePath: downloaded.tempFilePath,
       success: (result) => {
         resolve(result.savedFilePath)

@@ -222,7 +222,9 @@ const main = async () => {
     const history = await api('/api/v1/reports/history', {
       token: hostSession.token,
     })
-    assert(history.some((item) => item.id === report.id || item.reportId === report.id), 'history should contain created report')
+    const historyReport = history.find((item) => item.id === report.id || item.reportId === report.id)
+    assert(historyReport, 'history should contain created report')
+    assert(historyReport.status === '已结束', `history report status expected 已结束, got ${historyReport.status}`)
 
     await api('/api/v1/analytics/events', {
       method: 'POST',
@@ -254,7 +256,9 @@ const main = async () => {
       token: hostSession.token,
     })
     assert(persistedReport.id === report.id, 'report should still exist after restart')
-    assert(persistedHistory.some((item) => item.id === report.id || item.reportId === report.id), 'history should persist after restart')
+    const persistedHistoryReport = persistedHistory.find((item) => item.id === report.id || item.reportId === report.id)
+    assert(persistedHistoryReport, 'history should persist after restart')
+    assert(persistedHistoryReport.status === '已结束', `persisted history status expected 已结束, got ${persistedHistoryReport.status}`)
 
     cleanupSmokeData({
       profileIds: createdProfileIds,

@@ -6,6 +6,8 @@ const storePath = path.join(__dirname, 'content-store.json')
 const cleanText = (value = '') => String(value || '').trim()
 const cleanArray = (value) => (Array.isArray(value) ? value : [])
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value)
+const normalizeTemplateImageUrl = (value = '') =>
+  cleanText(value).replace(/^\/static\/templates\/(.+)\.svg$/i, '/static/templates/$1.png')
 
 const createDefaultCommerce = () => ({
   claimedTaskIds: [],
@@ -126,7 +128,7 @@ const normalizeTemplateItem = (item = {}) => ({
   title: cleanText(item.title),
   meta: cleanText(item.meta),
   cost: Number(item.cost) || 0,
-  imageUrl: cleanText(item.imageUrl),
+  imageUrl: normalizeTemplateImageUrl(item.imageUrl),
 })
 
 const normalizeTaskState = (taskState = {}) => {

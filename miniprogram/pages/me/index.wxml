@@ -76,7 +76,13 @@
         <text class="auth-panel-close" bindtap="closeAuthPanel">关闭</text>
       </view>
       <view class="auth-avatar-row">
-        <button class="auth-avatar-btn" open-type="chooseAvatar" bindchooseavatar="handleAuthAvatar">
+        <button
+          class="auth-avatar-btn"
+          open-type="chooseAvatar"
+          disabled="{{authAvatarChoosing || authSubmitting}}"
+          bindtap="handleAuthAvatarTap"
+          bindchooseavatar="handleAuthAvatar"
+        >
           <image wx:if="{{authAvatarUrl}}" class="auth-avatar" src="{{authAvatarUrl}}" mode="aspectFill"></image>
           <view wx:else class="auth-avatar"></view>
         </button>

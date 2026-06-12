@@ -24,6 +24,7 @@ interface ChooseAvatarDetail {
 interface MePageState {
   assetStats: StatItem[]
   authAvatarUrl: string
+  authAvatarChoosing: boolean
   authName: string
   authPanelVisible: boolean
   authSubmitting: boolean
@@ -38,6 +39,7 @@ interface MePageMethods {
   closeAuthPanel: () => void
   handleAssetTap: (event: WechatMiniprogram.BaseEvent) => void
   handleAuthAvatar: (event: WechatMiniprogram.CustomEvent<ChooseAvatarDetail>) => Promise<void>
+  handleAuthAvatarTap: () => void
   handleAuthNameInput: (event: WechatMiniprogram.CustomEvent<NicknameInputDetail>) => void
   handleFeatureTap: (event: WechatMiniprogram.BaseEvent) => void
   handleLoginSubmit: (event: WechatMiniprogram.CustomEvent<{ value?: Record<string, string> }>) => Promise<void>
@@ -107,6 +109,7 @@ Page<MePageState, MePageMethods>({
   data: {
     assetStats: DEFAULT_ASSET_STATS,
     authAvatarUrl: '',
+    authAvatarChoosing: false,
     authName: '',
     authPanelVisible: false,
     authSubmitting: false,
@@ -158,7 +161,23 @@ Page<MePageState, MePageMethods>({
   },
 
   async handleAuthAvatar(event) {
-    this.setData({ authAvatarUrl: await persistAvatar(event.detail?.avatarUrl || '') })
+    this.setData({
+      authAvatarChoosing: false,
+      authAvatarUrl: await persistAvatar(event.detail?.avatarUrl || ''),
+    })
+  },
+
+  handleAuthAvatarTap() {
+    if (this.data.authAvatarChoosing || this.data.authSubmitting) {
+      return
+    }
+
+    this.setData({ authAvatarChoosing: true })
+    setTimeout(() => {
+      if (this.data.authAvatarChoosing) {
+        this.setData({ authAvatarChoosing: false })
+      }
+    }, 1800)
   },
 
   handleAuthNameInput(event) {
