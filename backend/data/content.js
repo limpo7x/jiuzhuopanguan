@@ -6,8 +6,13 @@ const storePath = path.join(__dirname, 'content-store.json')
 const cleanText = (value = '') => String(value || '').trim()
 const cleanArray = (value) => (Array.isArray(value) ? value : [])
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value)
-const normalizeTemplateImageUrl = (value = '') =>
-  cleanText(value).replace(/^\/static\/templates\/(.+)\.svg$/i, '/static/templates/$1.png')
+const normalizeTemplateImageUrl = (value = '') => {
+  const text = cleanText(value)
+  if (/^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(text) || /\/__store__\//i.test(text) || /\/__tmp__\//i.test(text)) {
+    return ''
+  }
+  return text.replace(/^\/static\/templates\/(.+)\.svg$/i, '/static/templates/$1.png')
+}
 
 const createDefaultCommerce = () => ({
   claimedTaskIds: [],

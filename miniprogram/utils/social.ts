@@ -99,7 +99,7 @@ const normalizeSocialAvatarUrl = (value?: string) => {
   if (
     /^\/static\/avatar-(?:host|\d+)\.png$/i.test(text) ||
     text.startsWith('/assets/avatars/') ||
-    /^https?:\/\/127\.0\.0\.1(?::\d+)?\/__store__\//i.test(text) ||
+    /^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(text) ||
     /\/__store__\//i.test(text) ||
     /\/__tmp__\//i.test(text)
   ) {

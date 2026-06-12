@@ -43,8 +43,13 @@ const formatPercent = (value, digits = 1) =>
   `${Number(value || 0).toFixed(digits).replace(/\.0$/, '').replace(/(\.\d*[1-9])0+$/, '$1')}%`
 const ratioPercent = (numerator, denominator, digits = 1) =>
   formatPercent(denominator ? (Number(numerator || 0) / Number(denominator || 0)) * 100 : 0, digits)
-const normalizeTemplateImageUrl = (value = '') =>
-  String(value || '').trim().replace(/^\/static\/templates\/(.+)\.svg$/i, '/static/templates/$1.png')
+const normalizeTemplateImageUrl = (value = '') => {
+  const text = String(value || '').trim()
+  if (/^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(text) || /\/__store__\//i.test(text) || /\/__tmp__\//i.test(text)) {
+    return ''
+  }
+  return text.replace(/^\/static\/templates\/(.+)\.svg$/i, '/static/templates/$1.png')
+}
 const seedCountFromRate = (rateText, denominator, fallbackBase = 1000) => {
   const rateValue = Math.max(0, numberFromText(rateText))
   const base = Math.max(1, Number(denominator) || fallbackBase)

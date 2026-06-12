@@ -2,8 +2,13 @@ const { getAdminStore, getManagedSessionById, getManagedSessionByInviteCode } = 
 const { getCompliance, getToolHistory } = require('./content')
 
 const toText = (value, fallback = '') => String(value || fallback || '').trim()
-const normalizeTemplateImageUrl = (value = '') =>
-  toText(value).replace(/^\/static\/templates\/(.+)\.svg$/i, '/static/templates/$1.png')
+const normalizeTemplateImageUrl = (value = '') => {
+  const text = toText(value)
+  if (/^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(text) || /\/__store__\//i.test(text) || /\/__tmp__\//i.test(text)) {
+    return ''
+  }
+  return text.replace(/^\/static\/templates\/(.+)\.svg$/i, '/static/templates/$1.png')
+}
 
 const TOOL_ID_MAP = {
   'tool-compress': 'image-compress',

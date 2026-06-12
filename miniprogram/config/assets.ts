@@ -20,7 +20,7 @@ export const normalizeManagedAssetPath = (path?: string) => {
     return ''
   }
 
-  if (/^(wxfile|file):\/\//i.test(path) || /^https?:\/\/127\.0\.0\.1(?::\d+)?\/__store__\//i.test(path) || /\/__store__\//i.test(path) || /\/__tmp__\//i.test(path) || /\/tmp\//i.test(path)) {
+  if (/^(wxfile|file):\/\//i.test(path) || /^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(path) || /\/__store__\//i.test(path) || /\/__tmp__\//i.test(path) || /\/tmp\//i.test(path)) {
     return ''
   }
 
@@ -81,7 +81,7 @@ export const normalizeManagedAvatarPath = (path?: string) => {
     return text
   }
 
-  if (/^https?:\/\/127\.0\.0\.1(?::\d+)?\/__store__\//i.test(text) || /\/__tmp__\//i.test(text) || /\/__store__\//i.test(text)) {
+  if (/^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(text) || /\/__tmp__\//i.test(text) || /\/__store__\//i.test(text)) {
     return ''
   }
 
