@@ -1241,27 +1241,50 @@ const joinManagedSession = ({ inviteCode, profile }) => {
   }
 
   const profileId = String(profile?.id || '').trim()
-  const memberIndex = Array.isArray(target.members) ? target.members.findIndex((item) => item.profileId && item.profileId === profileId) : -1
-  if (memberIndex === -1) {
+  const members = Array.isArray(target.members) ? target.members : []
+  const memberIndex = members.findIndex((item) => item.profileId && item.profileId === profileId)
+  if (memberIndex === -1 && members.filter((item) => item.status === '已加入').length >= Math.max(2, Number(target.players) || 0)) {
+    const error = new Error('session full')
+    error.code = 'SESSION_FULL'
+    throw error
+  }
+  if (memberIndex === -1 && !profileId) {
     const error = new Error('not session player')
     error.code = 'NOT_SESSION_PLAYER'
     throw error
   }
 
-  target.members = target.members.map((item, index) =>
-    index === memberIndex
-      ? normalizeSessionMember(
-          {
-            ...item,
-            avatarUrl: profile.avatarUrl || item.avatarUrl,
-            name: profile.name || item.name,
-            phone: profile.phone || item.phone,
-            status: '已加入',
-          },
-          index,
-        )
-      : item,
-  )
+  if (memberIndex === -1) {
+    target.members = [
+      ...members,
+      normalizeSessionMember(
+        {
+          avatarUrl: profile.avatarUrl || '',
+          isHost: false,
+          name: profile.name || '',
+          phone: profile.phone || '',
+          profileId,
+          status: '已加入',
+        },
+        members.length,
+      ),
+    ]
+  } else {
+    target.members = members.map((item, index) =>
+      index === memberIndex
+        ? normalizeSessionMember(
+            {
+              ...item,
+              avatarUrl: profile.avatarUrl || item.avatarUrl,
+              name: profile.name || item.name,
+              phone: profile.phone || item.phone,
+              status: '已加入',
+            },
+            index,
+          )
+        : item,
+    )
+  }
   target.joinedCount = target.members.filter((item) => item.status === '已加入').length
   pushAnalyticsEvent(store, {
     type: 'session_joined',

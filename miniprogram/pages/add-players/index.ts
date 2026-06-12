@@ -90,7 +90,6 @@ Page<AddPlayersState, AddPlayersMethods>({
     const inviteLimit = Math.max(1, playerLimit - 1)
     const friendList = await getWineFriends()
     if (!friendList.length) {
-      this.showToast('请搜索并添加已注册用户')
       this.setData({
         createCandidateName: this.resolveCreateCandidate(this.data.searchKeyword, this.data.searchMatches),
         favoritePlayers: [],
@@ -228,8 +227,8 @@ Page<AddPlayersState, AddPlayersMethods>({
   },
 
   async handleNextTap() {
-    if (this.data.selectedCount !== this.data.inviteLimit) {
-      this.showToast(`需要邀请 ${this.data.inviteLimit} 位玩家`)
+    if (this.data.selectedCount > this.data.inviteLimit) {
+      this.showToast(`最多预选 ${this.data.inviteLimit} 位玩家`)
       return
     }
 
