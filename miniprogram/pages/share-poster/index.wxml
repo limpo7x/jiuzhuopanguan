@@ -56,14 +56,14 @@
       <block wx:for="{{shareItems}}" wx:key="id">
         <button
           wx:if="{{item.id !== 'timeline'}}"
-          class="poster-share-item"
+          class="poster-share-item poster-share-item-{{item.id}}"
           open-type="share"
           data-id="{{item.id}}"
         >
           <view class="poster-share-icon {{item.iconClass}}"></view>
           <text class="poster-share-label">{{item.name}}</text>
         </button>
-        <view wx:else class="poster-share-item" data-id="{{item.id}}" bindtap="handleTimelineTap">
+        <view wx:else class="poster-share-item poster-share-item-{{item.id}}" data-id="{{item.id}}" bindtap="handleTimelineTap">
           <view class="poster-share-icon {{item.iconClass}}"></view>
           <text class="poster-share-label">{{item.name}}</text>
         </view>

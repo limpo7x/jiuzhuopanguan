@@ -399,24 +399,36 @@ button.poster-share-item::after {
 }
 
 
-/* 2026-06-12 share cards in-bound */
+/* 2026-06-13 share cards readable in narrow viewports */
 .poster-share-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 100%;
   box-sizing: border-box;
 }
 .poster-share-item {
   width: 100%;
   min-width: 0;
-  padding: 0 6px;
+  min-height: 82px;
+  padding: 10px 8px;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
+  line-height: 1.25;
+}
+.poster-share-item-timeline {
+  grid-column: 1 / -1;
 }
 .poster-share-label {
+  display: block;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  line-height: 1.25;
+}
+button.poster-share-item {
+  height: auto;
+  min-height: 82px;
 }
 .poster-primary-disabled {
   opacity: 0.58;
