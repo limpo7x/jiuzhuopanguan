@@ -194,9 +194,69 @@ const trimText = (value = '', maxLength = 18) => {
   return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text
 }
 
+const getImageMimeType = (filePath = '') => {
+  const ext = path.extname(filePath).toLowerCase()
+  if (ext === '.jpg' || ext === '.jpeg') return 'image/jpeg'
+  if (ext === '.webp') return 'image/webp'
+  if (ext === '.svg') return 'image/svg+xml'
+  return 'image/png'
+}
+
+const resolvePosterLocalImagePath = (imageUrl = '') => {
+  const text = String(imageUrl || '').trim()
+  if (!text) return ''
+  if (/^(wxfile|file):\/\//i.test(text) || /^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(text) || /\/__store__\//i.test(text) || /\/__tmp__\//i.test(text)) {
+    return ''
+  }
+
+  let pathname = text
+  if (/^https?:\/\//i.test(text)) {
+    try {
+      pathname = new URL(text).pathname
+    } catch {
+      return ''
+    }
+  }
+
+  if (staticAssetMap[pathname]) {
+    return staticAssetMap[pathname]
+  }
+
+  if (pathname.startsWith('/uploads/')) {
+    return sanitizePathWithin(uploadsDir, pathname.replace('/uploads/', '')) || ''
+  }
+
+  if (pathname.startsWith('/static/')) {
+    return sanitizePathWithin(publicStaticDir, pathname.replace('/static/', '')) || ''
+  }
+
+  return ''
+}
+
+const resolvePosterImageDataUri = (imageUrl = '') => {
+  const imagePath = resolvePosterLocalImagePath(imageUrl)
+  if (!imagePath || !fs.existsSync(imagePath)) return ''
+  return `data:${getImageMimeType(imagePath)};base64,${fs.readFileSync(imagePath).toString('base64')}`
+}
+
+const renderPosterAvatar = ({ dataUri, id, cx, cy, radius }) => {
+  if (!dataUri) {
+    return `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="#ffd7c4"/>`
+  }
+
+  const size = radius * 2
+  return `
+    <clipPath id="${id}">
+      <circle cx="${cx}" cy="${cy}" r="${radius}"/>
+    </clipPath>
+    <image href="${dataUri}" x="${cx - radius}" y="${cy - radius}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>
+  `
+}
+
 const buildReportPosterSvg = async (report) => {
   const width = 900
   const ranks = Array.isArray(report.ranks) ? report.ranks.slice(0, 5) : []
+  const avatarDataUris = await Promise.all(ranks.map((rank) => Promise.resolve(resolvePosterImageDataUri(rank?.avatarUrl))))
   const events = Array.isArray(report.events) ? report.events.slice(0, 4) : []
   const secondaryRanks = ranks.slice(1)
   const secondaryRows = Math.ceil(secondaryRanks.length / 2)
@@ -223,7 +283,7 @@ const buildReportPosterSvg = async (report) => {
         <rect x="${x}" y="${y}" width="336" height="184" rx="24" fill="${bg}"/>
         <rect x="${x + 18}" y="${y + 18}" width="118" height="38" rx="19" fill="${tagBg}"/>
         <text x="${x + 77}" y="${y + 44}" text-anchor="middle" font-size="20" font-weight="700" fill="${tagColor}">${escapeXml(trimText(rank.title || `榜单 ${index + 2}`, 7))}</text>
-        <circle cx="${x + 57}" cy="${y + 113}" r="31" fill="#ffd7c4"/>
+        ${renderPosterAvatar({ dataUri: avatarDataUris[index + 1] || '', id: `avatar-${index + 1}`, cx: x + 57, cy: y + 113, radius: 31 })}
         <text x="${x + 106}" y="${y + 116}" font-size="24" font-weight="800" fill="#24160f">${escapeXml(trimText(rank.name, 8))}</text>
         <text x="${x + 106}" y="${y + 150}" font-size="22" font-weight="700" fill="#ff5b3d">${escapeXml(trimText(rank.value || '-', 12))}</text>
       `
@@ -236,14 +296,17 @@ const buildReportPosterSvg = async (report) => {
       <text x="208" y="372" text-anchor="middle" font-size="24" font-weight="800" fill="#ffe5b3">${escapeXml(trimText(ranks[0].title || '欠酒大王', 8))}</text>
       <rect x="640" y="342" width="140" height="44" rx="22" fill="#ffffff" fill-opacity="0.14"/>
       <text x="710" y="372" text-anchor="middle" font-size="22" font-weight="800" fill="#ffffff">全场焦点</text>
-      <circle cx="168" cy="454" r="42" fill="#ffd7c4"/>
+      ${renderPosterAvatar({ dataUri: avatarDataUris[0] || '', id: 'avatar-featured', cx: 168, cy: 454, radius: 42 })}
       <text x="236" y="454" font-size="34" font-weight="900" fill="#ffffff">${escapeXml(trimText(ranks[0].name, 10))}</text>
       <text x="236" y="494" font-size="24" font-weight="700" fill="#ffe0d5">${escapeXml(trimText(ranks[0].value || '-', 18))}</text>
     `
     : ''
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', 'Noto Sans CJK SC', sans-serif">
       <defs>
+        <style>
+          text { font-family: 'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', 'Noto Sans CJK SC', sans-serif; }
+        </style>
         <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stop-color="#4f120d"/>
           <stop offset="0.45" stop-color="#8d2418"/>
