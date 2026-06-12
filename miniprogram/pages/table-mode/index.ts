@@ -20,6 +20,7 @@ interface ScoreRow {
   likeCount: number
   likedByMe: boolean
   name: string
+  profileId: string
   total: number
   weakCount: number
   weakedByMe: boolean
@@ -81,6 +82,7 @@ const buildRows = (runtime: SessionRuntime): ScoreRow[] => {
       likeCount: reaction?.likeVoters.length || 0,
       likedByMe: voterName ? reaction?.likeVoters.includes(voterName) || false : false,
       name: item.name,
+      profileId: item.profileId || '',
       total: item.debtCount + item.drinkCount,
       weakCount: reaction?.weakVoters.length || 0,
       weakedByMe: voterName ? reaction?.weakVoters.includes(voterName) || false : false,
@@ -341,30 +343,35 @@ Page<TableModeState, TableModeMethods>({
           title: '欠酒大王',
           name: rowsByDebt[0]?.name || '暂无',
           avatarUrl: rowsByDebt[0]?.avatarUrl || '',
+          profileId: rowsByDebt[0]?.profileId || '',
           value: `欠了 ${rowsByDebt[0]?.debt || 0} 杯`,
         },
         {
           title: '干杯王',
           name: rowsByDrink[0]?.name || '暂无',
           avatarUrl: rowsByDrink[0]?.avatarUrl || '',
+          profileId: rowsByDrink[0]?.profileId || '',
           value: `已喝 ${rowsByDrink[0]?.drink || 0} 杯`,
         },
         {
           title: '消杯王',
           name: rowsByCleared[0]?.name || '暂无',
           avatarUrl: rowsByCleared[0]?.avatarUrl || '',
+          profileId: rowsByCleared[0]?.profileId || '',
           value: `消了 ${rowsByCleared[0]?.cleared || 0} 杯`,
         },
         {
           title: '最受欢迎',
           name: topLikeRow?.name || '暂无',
           avatarUrl: topLikeRow?.avatarUrl || '',
+          profileId: topLikeRow?.profileId || '',
           value: topLikeRow ? `收到了 ${topLikeRow.likeCount} 次点赞` : '本局暂无点赞记录',
         },
         {
           title: '全场记忆点',
           name: topWeakRow?.name || '暂无',
           avatarUrl: topWeakRow?.avatarUrl || '',
+          profileId: topWeakRow?.profileId || '',
           value: topWeakRow ? `被点了 ${topWeakRow.weakCount} 次小拇指` : '本局暂无互评记录',
         },
       ]

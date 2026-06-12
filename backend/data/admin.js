@@ -1394,6 +1394,23 @@ const finishManagedSession = (payload = {}) => {
   const templateImageUrl = normalizeTemplateImageUrl(payload.templateImageUrl || relatedSession?.templateImageUrl || '')
   const playerCount = Math.max(2, Number(payload.playerCount) || Number(relatedSession?.players) || 6)
   const events = Array.isArray(payload.events) ? payload.events.filter((item) => item && item.text).slice(0, 5) : []
+  const sessionMembers = Array.isArray(relatedSession?.members) ? relatedSession.members : []
+  const ranks = Array.isArray(payload.ranks)
+    ? payload.ranks.slice(0, 5).map((rank) => {
+        const profileId = String(rank?.profileId || '').trim()
+        const name = String(rank?.name || '').trim()
+        const matchedMember = sessionMembers.find(
+          (member) =>
+            (profileId && String(member?.profileId || '').trim() === profileId) ||
+            (name && String(member?.name || '').trim() === name),
+        )
+        return {
+          ...rank,
+          avatarUrl: String(rank?.avatarUrl || matchedMember?.avatarUrl || '').trim(),
+          profileId,
+        }
+      })
+    : []
   const report = {
     id: createId('report'),
     sessionId,
@@ -1410,7 +1427,7 @@ const finishManagedSession = (payload = {}) => {
     replayCount: Math.max(0, Number(payload.replayCount) || 0),
     createdAt: iso(),
     playerCount,
-    ranks: Array.isArray(payload.ranks) ? payload.ranks.slice(0, 5) : [],
+    ranks,
     events,
     status: String(payload.status || '').trim(),
   }

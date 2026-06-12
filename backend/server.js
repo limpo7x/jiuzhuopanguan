@@ -345,6 +345,15 @@ const buildReportPosterSvg = async (report) => {
 }
 
 const renderReportPosterPng = async (report) => {
+  const missingAvatarNames = (Array.isArray(report?.ranks) ? report.ranks : [])
+    .filter((rank) => rank?.avatarUrl && !resolvePosterImageDataUri(rank.avatarUrl))
+    .map((rank) => rank.name || rank.title || 'unknown')
+  if (missingAvatarNames.length) {
+    console.warn('[share-poster] rank avatar not readable', {
+      reportId: report?.id || '',
+      names: missingAvatarNames,
+    })
+  }
   const svg = await buildReportPosterSvg(report)
   return sharp(Buffer.from(svg)).png().toBuffer()
 }
