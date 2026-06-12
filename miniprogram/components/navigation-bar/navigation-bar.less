@@ -32,9 +32,10 @@
   padding-left: var(--left);
   display: flex;
   flex-direction: row;
-  align-items: flex-start;
+  align-items: center;
   height: 100%;
   box-sizing: border-box;
+  flex: none;
 }
 
 .weui-navigation-bar__btn_goback_wrapper {
@@ -68,6 +69,23 @@
   font-weight: bold;
   flex: 1;
   height: 100%;
+  min-width: 0;
+}
+
+.weui-navigation-bar__center text {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weui-navigation-bar__right {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-start;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .weui-navigation-bar__loading {

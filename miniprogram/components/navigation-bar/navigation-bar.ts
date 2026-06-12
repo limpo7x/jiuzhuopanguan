@@ -67,12 +67,17 @@ Component({
       wx.getSystemInfo({
         success: (res) => {
           const isAndroid = res.platform === 'android'
-          const isDevtools = res.platform === 'devtools'
+          const statusBarHeight = Number(res.statusBarHeight || res.safeArea?.top || 0)
+          const menuTop = Number(rect.top || statusBarHeight + 4)
+          const menuHeight = Number(rect.height || 32)
+          const menuLeft = Number(rect.left || res.windowWidth - 96)
+          const navHeight = menuTop + menuHeight
+          const capsuleReserveWidth = Math.max(88, res.windowWidth - menuLeft)
           this.setData({
             ios: !isAndroid,
-            innerPaddingRight: `padding-right: ${res.windowWidth - rect.left}px`,
-            leftWidth: `width: ${res.windowWidth - rect.left }px`,
-            safeAreaTop: isDevtools || isAndroid ? `height: calc(var(--height) + ${res.safeArea.top}px); padding-top: ${res.safeArea.top}px` : ``
+            leftWidth: `width: ${capsuleReserveWidth}px`,
+            rightWidth: `width: ${capsuleReserveWidth}px`,
+            safeAreaTop: `height: ${navHeight}px; padding-top: ${menuTop}px; --height: ${menuHeight}px;`,
           })
         }
       })
