@@ -404,36 +404,36 @@ button.poster-share-item::after {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   width: 100%;
   box-sizing: border-box;
-  gap: 8px;
+  gap: 6px;
 }
 .poster-share-item {
   width: 100%;
   min-width: 0;
-  min-height: 66px;
-  padding: 8px 4px;
+  min-height: 52px;
+  padding: 5px 2px;
   box-sizing: border-box;
-  overflow: visible;
-  gap: 3px;
-  border-radius: 14px;
-  font-size: 11px;
-  line-height: 1.15;
+  overflow: hidden;
+  gap: 2px;
+  border-radius: 10px;
+  font-size: 10px;
+  line-height: 1.1;
 }
 .poster-share-label {
   display: block;
   max-width: 100%;
-  overflow: visible;
-  white-space: normal;
+  overflow: hidden;
+  white-space: nowrap;
   word-break: keep-all;
-  overflow-wrap: break-word;
-  line-height: 1.15;
+  text-overflow: clip;
+  line-height: 1.1;
 }
 .poster-share-icon {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
 }
 button.poster-share-item {
   height: auto;
-  min-height: 66px;
+  min-height: 52px;
 }
 .poster-primary-disabled {
   opacity: 0.58;
