@@ -8,7 +8,7 @@ import {
   type SessionPlayerStat,
   type SessionRuntime,
 } from '../../utils/session'
-import { disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
+import { confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { persistShareAvatarUrl } from '../../utils/social'
 
 interface ScoreRow {
@@ -280,17 +280,13 @@ Page<TableModeState, TableModeMethods>({
 
   navigateBackToSession() {
     const runtime = getSessionRuntime()
-    const fallbackUrl = `/pages/live-record/index?role=${runtime.isJudge ? 'judge' : 'viewer'}&sessionName=${encodeURIComponent(runtime.sessionName || '')}`
-    disableSessionLeaveAlert()
-    wx.navigateBack({
-      fail: () => {
-        wx.redirectTo({
-          url: fallbackUrl,
-          fail: () => {
-            wx.reLaunch({ url: fallbackUrl })
-          },
-        })
-      },
+    const fallbackUrl = `/pages/live-record/index?role=${runtime.isJudge ? 'judge' : 'viewer'}&sessionId=${encodeURIComponent(runtime.sessionId || '')}&sessionName=${encodeURIComponent(runtime.sessionName || '')}`
+    void confirmLeaveSessionPage({
+      cancelText: '留在桌面',
+      confirmText: '返回记录',
+      content: '返回记录页继续调整本局数据，当前酒局不会结束。',
+      redirectUrl: fallbackUrl,
+      title: '返回记录页',
     })
   },
 

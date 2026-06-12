@@ -1,6 +1,6 @@
 import { getManagedLiveSession, updateManagedSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
-import { confirmAndExitSession, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
+import { confirmAndExitSession, confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface JoinedPlayer {
@@ -165,7 +165,14 @@ Page<WaitingRoomState, WaitingRoomMethods>({
   },
 
   async handleBackTap() {
-    await confirmAndExitSession()
+    if (this.data.isJudge) {
+      await confirmAndExitSession()
+      return
+    }
+    await confirmLeaveSessionPage({
+      clearRuntime: true,
+      content: '离开后可从参与场次重新进入当前酒局。',
+    })
   },
 
   async handleRefreshTap() {
@@ -215,7 +222,14 @@ Page<WaitingRoomState, WaitingRoomMethods>({
         startedAt: getSessionRuntime().startedAt || Date.now(),
       })
 
-      this.openPage(`/pages/live-record/index?role=${this.data.isJudge ? 'judge' : 'viewer'}&sessionName=${encodeURIComponent(runtime.sessionName)}`)
+      const url = `/pages/live-record/index?role=${this.data.isJudge ? 'judge' : 'viewer'}&sessionId=${encodeURIComponent(this.data.sessionId)}&sessionName=${encodeURIComponent(runtime.sessionName)}`
+      disableSessionLeaveAlert()
+      wx.redirectTo({
+        url,
+        fail: () => {
+          wx.reLaunch({ url })
+        },
+      })
     } catch (error) {
       wx.showToast({
         title: error instanceof Error ? error.message : '开局失败',

@@ -24,8 +24,11 @@ Page<FlowOverviewState, FlowOverviewMethods>({
   },
 
   handleEnterTap() {
-    wx.navigateTo({
+    wx.redirectTo({
       url: '/pages/live-record/index',
+      fail: () => {
+        wx.reLaunch({ url: '/pages/live-record/index' })
+      },
     })
   },
 })

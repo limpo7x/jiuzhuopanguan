@@ -7,7 +7,7 @@ import {
   type SessionPlayerStat,
 } from '../../utils/session'
 import { getManagedLiveSession, updateManagedSession } from '../../services/operations'
-import { confirmAndExitSession, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
+import { confirmAndExitSession, confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface LivePlayer {
@@ -572,7 +572,10 @@ Page<LiveRecordState, LiveRecordMethods>({
 
   async handleBackTap() {
     if (!this.data.isJudge) {
-      wx.navigateBack()
+      await confirmLeaveSessionPage({
+        clearRuntime: true,
+        content: '离开后可从参与场次重新进入当前酒局。',
+      })
       return
     }
 
@@ -588,6 +591,15 @@ Page<LiveRecordState, LiveRecordMethods>({
 
   openPage(url) {
     disableSessionLeaveAlert()
+    if (url.startsWith('/pages/table-mode/index')) {
+      wx.redirectTo({
+        url,
+        fail: () => {
+          wx.reLaunch({ url })
+        },
+      })
+      return
+    }
     wx.navigateTo({
       url,
       fail: () => {

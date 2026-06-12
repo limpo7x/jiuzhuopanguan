@@ -205,7 +205,13 @@ Page<WineHistoryState, WineHistoryMethods>({
     }
 
     if (status === '进行中' && sessionId) {
-      this.openPage(`/pages/live-record/index?sessionId=${encodeURIComponent(sessionId)}&role=${encodeURIComponent(role === 'host' ? 'judge' : 'viewer')}`)
+      const url = `/pages/live-record/index?sessionId=${encodeURIComponent(sessionId)}&role=${encodeURIComponent(role === 'host' ? 'judge' : 'viewer')}`
+      wx.redirectTo({
+        url,
+        fail: () => {
+          wx.reLaunch({ url })
+        },
+      })
       return
     }
 

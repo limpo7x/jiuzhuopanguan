@@ -291,8 +291,11 @@ Page<AddPlayersState, AddPlayersMethods>({
       selectedPlayers,
     })
 
-    wx.navigateTo({
+    wx.redirectTo({
       url: '/pages/invite-group/index',
+      fail: () => {
+        wx.reLaunch({ url: '/pages/invite-group/index' })
+      },
     })
   },
 

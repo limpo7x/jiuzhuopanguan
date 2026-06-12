@@ -81,7 +81,13 @@ Page<InviteGroupState, InviteGroupMethods>({
   },
 
   handleNextTap() {
-    this.openPage(`/pages/waiting-room/index?sessionId=${encodeURIComponent(this.data.sessionId)}`)
+    const url = `/pages/waiting-room/index?sessionId=${encodeURIComponent(this.data.sessionId)}`
+    wx.redirectTo({
+      url,
+      fail: () => {
+        wx.reLaunch({ url })
+      },
+    })
   },
 
   openPage(url) {

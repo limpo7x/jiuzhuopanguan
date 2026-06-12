@@ -83,8 +83,11 @@ Page<SessionRulesState, SessionRulesMethods>({
   },
 
   handleNextTap() {
-    wx.navigateTo({
+    wx.redirectTo({
       url: '/pages/add-players/index',
+      fail: () => {
+        wx.reLaunch({ url: '/pages/add-players/index' })
+      },
     })
   },
 })

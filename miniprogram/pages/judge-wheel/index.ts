@@ -7,7 +7,7 @@ import {
   type ManagedWheelHistoryItem,
 } from '../../services/operations'
 import { getSessionRuntime, resolveSessionParticipants } from '../../utils/session'
-import { confirmAndExitSession, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
+import { confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 
 type QuestionType = '互动' | '惩罚' | '问答'
 
@@ -471,11 +471,12 @@ Page<JudgeWheelState, JudgeWheelMethods>({
         question: this.data.currentTask,
       })
 
+      const returnUrl = `/pages/live-record/index?role=${runtime.isJudge ? 'judge' : 'viewer'}&sessionId=${encodeURIComponent(sessionId)}`
       disableSessionLeaveAlert()
       wx.navigateBack({
         fail: () => {
           wx.redirectTo({
-            url: '/pages/live-record/index',
+            url: returnUrl,
           })
         },
       })
@@ -487,7 +488,14 @@ Page<JudgeWheelState, JudgeWheelMethods>({
   },
 
   async handleBackTap() {
-    await confirmAndExitSession()
+    const runtime = getSessionRuntime()
+    await confirmLeaveSessionPage({
+      cancelText: '继续转盘',
+      confirmText: '返回记录',
+      content: '返回记录页继续当前酒局，当前转盘结果不会自动保存。',
+      redirectUrl: `/pages/live-record/index?role=${runtime.isJudge ? 'judge' : 'viewer'}&sessionId=${encodeURIComponent(runtime.sessionId || this.data.sessionId || '')}`,
+      title: '返回记录页',
+    })
   },
 
   showPreviewToast(message) {

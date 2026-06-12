@@ -190,8 +190,11 @@ Page<CreateSessionState, CreateSessionMethods>({
         templateName: activeTemplate?.name || '',
       })
 
-      wx.navigateTo({
+      wx.redirectTo({
         url: '/pages/session-rules/index',
+        fail: () => {
+          wx.reLaunch({ url: '/pages/session-rules/index' })
+        },
       })
     } catch (error) {
       wx.showToast({
