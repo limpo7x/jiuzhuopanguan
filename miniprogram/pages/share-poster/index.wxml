@@ -92,9 +92,4 @@
     </view>
   </scroll-view>
 
-  <canvas
-    canvas-id="sharePosterCanvas"
-    class="poster-hidden-canvas"
-    style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
-  ></canvas>
 </view>

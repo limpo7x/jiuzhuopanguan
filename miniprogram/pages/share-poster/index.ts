@@ -26,8 +26,6 @@ interface SharePosterState {
   savePosterLabel: string
   createSessionLabel: string
   finishShareLabel: string
-  canvasHeight: number
-  canvasWidth: number
   events: PosterEvent[]
   featuredRank: PosterRank | null
   inviteCode: string
@@ -69,6 +67,7 @@ const REPORT_SHARE_ITEMS: PosterShareItem[] = [
 const CANVAS_WIDTH = 900
 const CARD_WIDTH = 820
 const SHARE_POSTER_MINIAPP_CODE = '/assets/share/share-poster-miniapp-code.png'
+let canvasImageMap: Record<string, any> = {}
 
 const enableShareMenus = () => {
   wx.showShareMenu({
@@ -316,14 +315,84 @@ const drawPartyBackdrop = (ctx: WechatMiniprogram.CanvasContext, width: number, 
   drawGlass(width - 96, 124, 0.9, 18)
 }
 
+const createCanvas2dAdapter = (ctx: any): WechatMiniprogram.CanvasContext => {
+  const target = ctx
+  return {
+    arc: (...args: any[]) => target.arc(...args),
+    arcTo: (...args: any[]) => target.arcTo(...args),
+    beginPath: () => target.beginPath(),
+    clearRect: (...args: any[]) => target.clearRect(...args),
+    clip: () => target.clip(),
+    closePath: () => target.closePath(),
+    createLinearGradient: (...args: any[]) => target.createLinearGradient(...args),
+    draw: (_reserve?: boolean, callback?: () => void) => {
+      if (callback) callback()
+    },
+    drawImage: (imageResource: string, dx: number, dy: number, dWidth?: number, dHeight?: number) => {
+      const image = typeof imageResource === 'string' ? canvasImageMap[imageResource] : imageResource
+      if (!image) {
+        return
+      }
+      if (typeof dWidth === 'number' && typeof dHeight === 'number') {
+        target.drawImage(image, dx, dy, dWidth, dHeight)
+        return
+      }
+      target.drawImage(image, dx, dy)
+    },
+    fill: () => target.fill(),
+    fillRect: (...args: any[]) => target.fillRect(...args),
+    fillText: (text: string, x: number, y: number, maxWidth?: number) => {
+      if (typeof maxWidth === 'number') {
+        target.fillText(text, x, y, maxWidth)
+        return
+      }
+      target.fillText(text, x, y)
+    },
+    lineTo: (...args: any[]) => target.lineTo(...args),
+    moveTo: (...args: any[]) => target.moveTo(...args),
+    restore: () => target.restore(),
+    rotate: (...args: any[]) => target.rotate(...args),
+    save: () => target.save(),
+    setFillStyle: (color: string | any) => {
+      target.fillStyle = color
+    },
+    setFontSize: (fontSize: number) => {
+      target.font = `${fontSize}px sans-serif`
+    },
+    setLineWidth: (lineWidth: number) => {
+      target.lineWidth = lineWidth
+    },
+    setStrokeStyle: (color: string | any) => {
+      target.strokeStyle = color
+    },
+    setTextAlign: (align: any) => {
+      target.textAlign = align
+    },
+    stroke: () => target.stroke(),
+    strokeRect: (...args: any[]) => target.strokeRect(...args),
+    translate: (...args: any[]) => target.translate(...args),
+  } as unknown as WechatMiniprogram.CanvasContext
+}
+
+const preloadCanvasImage = (canvas: any, source: string) =>
+  new Promise<any | null>((resolve) => {
+    if (!source || typeof canvas?.createImage !== 'function') {
+      resolve(null)
+      return
+    }
+
+    const image = canvas.createImage()
+    image.onload = () => resolve(image)
+    image.onerror = () => resolve(null)
+    image.src = source
+  })
+
 Page<SharePosterState, SharePosterMethods>({
   data: {
     posterSaved: false,
     savePosterLabel: '\u4fdd\u5b58\u6218\u62a5\u5206\u4eab\u56fe',
     createSessionLabel: '\u6211\u4e5f\u5f00\u4e00\u5c40',
     finishShareLabel: '\u7ed3\u675f\u5206\u4eab',
-    canvasHeight: 1320,
-    canvasWidth: CANVAS_WIDTH,
     events: [],
     featuredRank: null,
     inviteCode: '',
@@ -457,7 +526,8 @@ Page<SharePosterState, SharePosterMethods>({
         },
       })
       this.showPreviewToast('战报分享图已保存')
-    } catch {
+    } catch (error) {
+      console.warn('[share-poster] save poster failed', error)
       this.showPreviewToast('保存失败，请检查相册权限')
     }
   },
@@ -474,30 +544,43 @@ Page<SharePosterState, SharePosterMethods>({
 
   drawCanvasToFile(width, height, drawer) {
     return new Promise((resolve, reject) => {
-      this.setData(
-        {
-          canvasWidth: width,
-          canvasHeight: height,
-        },
-        () => {
-          const ctx = wx.createCanvasContext('sharePosterCanvas', this)
-          drawer(ctx)
-          ctx.draw(false, () => {
-            wx.canvasToTempFilePath(
-              {
-                canvasId: 'sharePosterCanvas',
-                width,
-                height,
-                destWidth: width,
-                destHeight: height,
-                success: (result) => resolve(result.tempFilePath),
-                fail: reject,
-              },
-              this,
-            )
+      try {
+        const canvas = wx.createOffscreenCanvas() as any
+        const pixelRatio = wx.getSystemInfoSync().pixelRatio || 1
+        canvas.width = width * pixelRatio
+        canvas.height = height * pixelRatio
+        const context = canvas.getContext('2d')
+        if (!context) {
+          reject(new Error('share poster offscreen canvas context not found'))
+          return
+        }
+        context.scale(pixelRatio, pixelRatio)
+        const sources = Object.keys(canvasImageMap)
+        Promise.all(sources.map((source) => preloadCanvasImage(canvas, source)))
+          .then((loadedImages) => {
+            canvasImageMap = sources.reduce<Record<string, any>>((next, source, index) => {
+              const image = loadedImages[index]
+              if (image) {
+                next[source] = image
+              }
+              return next
+            }, {})
+            drawer(createCanvas2dAdapter(context))
+            wx.canvasToTempFilePath({
+              canvas,
+              width,
+              height,
+              destWidth: width,
+              destHeight: height,
+              fileType: 'png',
+              success: (result) => resolve(result.tempFilePath),
+              fail: reject,
+            })
           })
-        },
-      )
+          .catch(reject)
+      } catch (error) {
+        reject(error)
+      }
     })
   },
 
@@ -517,6 +600,12 @@ Page<SharePosterState, SharePosterMethods>({
       : this.data.secondaryRanks
     const qrPath = await resolveMiniappQrPath()
     const avatarPaths = await Promise.all(rankPool.map((item) => resolveDrawableAvatarPath(item.avatarUrl)))
+    canvasImageMap = [qrPath, ...avatarPaths]
+      .filter(Boolean)
+      .reduce<Record<string, any>>((next, source) => {
+        next[source] = null
+        return next
+      }, {})
 
     const secondaryCount = Math.max(this.data.secondaryRanks.length, 0)
     const secondaryRows = Math.ceil(secondaryCount / 2)
