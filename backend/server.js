@@ -234,10 +234,19 @@ const resolvePosterLocalImagePath = (imageUrl = '') => {
   return ''
 }
 
-const resolvePosterImageDataUri = (imageUrl = '') => {
+const resolvePosterImageDataUri = async (imageUrl = '') => {
   const imagePath = resolvePosterLocalImagePath(imageUrl)
   if (!imagePath || !fs.existsSync(imagePath)) return ''
-  return `data:${getImageMimeType(imagePath)};base64,${fs.readFileSync(imagePath).toString('base64')}`
+  try {
+    const pngBuffer = await sharp(imagePath).png().toBuffer()
+    return `data:image/png;base64,${pngBuffer.toString('base64')}`
+  } catch (error) {
+    console.warn('[share-poster] avatar transcode failed', {
+      imageUrl,
+      message: error instanceof Error ? error.message : String(error),
+    })
+    return ''
+  }
 }
 
 const renderPosterAvatar = ({ dataUri, id, cx, cy, radius }) => {
@@ -250,14 +259,14 @@ const renderPosterAvatar = ({ dataUri, id, cx, cy, radius }) => {
     <clipPath id="${id}">
       <circle cx="${cx}" cy="${cy}" r="${radius}"/>
     </clipPath>
-    <image href="${dataUri}" x="${cx - radius}" y="${cy - radius}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>
+    <image href="${dataUri}" xlink:href="${dataUri}" x="${cx - radius}" y="${cy - radius}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${id})"/>
   `
 }
 
 const buildReportPosterSvg = async (report) => {
   const width = 900
   const ranks = Array.isArray(report.ranks) ? report.ranks.slice(0, 5) : []
-  const avatarDataUris = await Promise.all(ranks.map((rank) => Promise.resolve(resolvePosterImageDataUri(rank?.avatarUrl))))
+  const avatarDataUris = await Promise.all(ranks.map((rank) => resolvePosterImageDataUri(rank?.avatarUrl)))
   const events = Array.isArray(report.events) ? report.events.slice(0, 4) : []
   const secondaryRanks = ranks.slice(1)
   const secondaryRows = Math.ceil(secondaryRanks.length / 2)
@@ -303,7 +312,7 @@ const buildReportPosterSvg = async (report) => {
     `
     : ''
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', 'Noto Sans CJK SC', sans-serif">
+    <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', 'Noto Sans CJK SC', sans-serif">
       <defs>
         <style>
           text { font-family: 'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', 'Noto Sans CJK SC', sans-serif; }
@@ -368,9 +377,14 @@ const enrichReportPosterAvatars = (report = {}) => {
 
 const renderReportPosterPng = async (report) => {
   const resolvedReport = enrichReportPosterAvatars(report)
-  const missingAvatarNames = (Array.isArray(resolvedReport?.ranks) ? resolvedReport.ranks : [])
-    .filter((rank) => rank?.avatarUrl && !resolvePosterImageDataUri(rank.avatarUrl))
-    .map((rank) => rank.name || rank.title || 'unknown')
+  const avatarChecks = await Promise.all(
+    (Array.isArray(resolvedReport?.ranks) ? resolvedReport.ranks : []).map(async (rank) => ({
+      name: rank?.name || rank?.title || 'unknown',
+      url: rank?.avatarUrl || '',
+      readable: rank?.avatarUrl ? Boolean(await resolvePosterImageDataUri(rank.avatarUrl)) : true,
+    })),
+  )
+  const missingAvatarNames = avatarChecks.filter((item) => item.url && !item.readable).map((item) => item.name)
   if (missingAvatarNames.length) {
     console.warn('[share-poster] rank avatar not readable', {
       reportId: resolvedReport?.id || '',
