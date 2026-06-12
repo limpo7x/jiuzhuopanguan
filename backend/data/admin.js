@@ -1038,8 +1038,8 @@ const getSystemConfigMetrics = () => {
 const getComplianceMetrics = () => {
   const complianceCopy = getCompliance().copy || ''
   return [
-    { label: '??????', value: String(String(complianceCopy).length), trend: '?????????????', tone: 'up' },
-    { label: '??????', value: complianceCopy ? '1' : '0', trend: complianceCopy ? '?????????' : '???????', tone: complianceCopy ? 'up' : 'down' },
+    { label: '合规文案字数', value: String(String(complianceCopy).length), trend: '前端展示文案来自后台', tone: 'up' },
+    { label: '合规文案状态', value: complianceCopy ? '1' : '0', trend: complianceCopy ? '已配置合规提示' : '未配置合规提示', tone: complianceCopy ? 'up' : 'down' },
   ]
 }
 

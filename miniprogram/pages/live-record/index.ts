@@ -337,7 +337,7 @@ Page<LiveRecordState, LiveRecordMethods>({
         events: buildSessionEvents(liveSession.sessionName, players, liveSession.joinStatusPlayers),
       })
 
-      this.showPreviewToast('鍒锋柊鎴愬姛')
+      this.showPreviewToast('\u5237\u65b0\u6210\u529f')
     } catch (error) {
       this.showPreviewToast(error instanceof Error ? error.message : '酒局记录保存失败')
     } finally {

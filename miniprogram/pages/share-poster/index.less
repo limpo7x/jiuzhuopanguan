@@ -388,3 +388,46 @@ button.poster-share-item::after {
   line-height: 1.35;
   font-weight: 700;
 }
+
+
+/* 2026-06-12 share flow close actions */
+.poster-close-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.poster-close-row .poster-primary {
+  margin-top: 0;
+  min-width: 0;
+}
+.poster-primary-finish {
+  background: linear-gradient(135deg, #24160f, #5a3826);
+  box-shadow: 0 12px 28px rgba(36, 22, 15, 0.18);
+}
+
+
+/* 2026-06-12 share cards in-bound */
+.poster-share-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  box-sizing: border-box;
+}
+.poster-share-item {
+  width: 100%;
+  min-width: 0;
+  padding: 0 6px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.poster-share-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.poster-primary-disabled {
+  opacity: 0.58;
+  background: linear-gradient(135deg, #c9b8a6, #a99582);
+  box-shadow: none;
+}

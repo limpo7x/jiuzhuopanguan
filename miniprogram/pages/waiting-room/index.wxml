@@ -55,9 +55,10 @@
       <view wx:if="{{isJudge && joinedCount < playerCount}}" class="waiting-ghost" bindtap="handleInviteTap">提醒好友</view>
       <view class="waiting-ghost" bindtap="handleCodeTap">查看邀请卡</view>
     </view>
-
-    <view class="waiting-primary" bindtap="handleStartTap">进入本局</view>
   </scroll-view>
+
+  <!-- waiting fixed primary action -->
+  <view class="waiting-primary" bindtap="handleStartTap">进入本局</view>
 
   <page-container
     show="{{exitGuardVisible}}"

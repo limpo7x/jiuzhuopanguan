@@ -198,21 +198,21 @@ const listUsageRecords = () => {
   const history = getToolHistory()
   return history.slice(0, 6).map((item) => ({
     name: toText(item.name),
-    meta: `${item.usedAt || '今天'} · ${item.category || '工具'}`,
+    meta: `${item.usedAt || '\u4eca\u5929'} \u00b7 ${item.category || '\u5de5\u5177'}`,
     tag: toText(item.category),
     route: item.id ? `/pages/tool-detail/index?id=${encodeURIComponent(normalizeToolId(item))}` : '/pages/tools/index',
   }))
 }
 
-const isEnabledRecord = (item) => !String(item?.status || '').includes('??') && !String(item?.status || '').includes('???')
+const isEnabledRecord = (item) => !['\u4e0b\u7ebf', '\u505c\u7528', 'disabled', 'offline'].some((word) => String(item?.status || '').includes(word))
 
 const getShareConfig = () => {
   const store = getAdminStore()
   const compliance = getCompliance()
   const liveSession = getLiveSessionConfig()
   const assets = (store.shareAssets || []).filter(isEnabledRecord)
-  const poster = assets.find((item) => String(item.assetType || item.scene || '').includes('??') || String(item.assetType || item.scene || '').includes('???')) || null
-  const invite = assets.find((item) => String(item.assetType || item.scene || '').includes('?') || String(item.assetType || item.scene || '').includes('??')) || null
+  const poster = assets.find((item) => ['\u6218\u62a5', '\u5206\u4eab'].some((word) => String(item.assetType || item.scene || '').includes(word))) || null
+  const invite = assets.find((item) => ['\u9080\u8bf7', '\u6d77\u62a5'].some((word) => String(item.assetType || item.scene || '').includes(word))) || null
   return {
     notice: toText(compliance.copy),
     poster: {
@@ -244,7 +244,7 @@ const getQuestionBankConfig = (type = '') => {
   const store = getAdminStore()
   const normalizedType = String(type || '').trim()
   const onlineQuestions = (store.questionBank || []).filter(
-    (item) => String(item.status || '').includes('上线') && (!normalizedType || String(item.type || '').trim() === normalizedType),
+    (item) => String(item.status || '').includes('\u4e0a\u7ebf') && (!normalizedType || String(item.type || '').trim() === normalizedType),
   )
   return {
     questions: onlineQuestions.map((item, index) => ({
@@ -272,12 +272,12 @@ const getMerchantPartnersConfig = () => {
     shops: merchants.map((item) => ({
       id: toText(item.id),
       imageUrl: toText(item.imageUrl),
-      meta: [toText(item.category), item.claimCount ? '??? ' + item.claimCount : '', item.verifyRate ? '??? ' + item.verifyRate : '', toText(item.status)].filter(Boolean).join(' ? '),
+      meta: [toText(item.category), item.claimCount ? '\u9886\u53d6 ' + item.claimCount : '', item.verifyRate ? '\u6838\u9500 ' + item.verifyRate : '', toText(item.status)].filter(Boolean).join(' \u00b7 '),
       name: toText(item.name),
       status: toText(item.status),
     })).filter((item) => item.id && item.name),
     safeBack: merchants
-      .filter((item) => String(item.category || '').includes('??') || String(item.category || '').includes('???') || String(item.name || '').includes('?') || String(item.name || '').includes('?'))
+      .filter((item) => ['\u5b89\u5168', '\u8fd4\u573a', '\u4ee3\u9a7e', '\u9910\u996e'].some((word) => String(item.category || '').includes(word) || String(item.name || '').includes(word)))
       .slice(0, 3)
       .map((item) => ({
         name: toText(item.name),

@@ -61,4 +61,13 @@
       <text>理性饮酒，适量玩局，未成年人禁止饮酒。</text>
     </view>
   </scroll-view>
+
+  <page-container
+    show="{{exitGuardVisible}}"
+    overlay="{{false}}"
+    position="center"
+    duration="{{0}}"
+    custom-style="width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;"
+    bindbeforeleave="handleExitGuardLeave"
+  ></page-container>
 </view>

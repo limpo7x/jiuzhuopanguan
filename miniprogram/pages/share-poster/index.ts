@@ -1,6 +1,5 @@
 import { trackAnalyticsEvent } from '../../services/analytics'
 import { getManagedReport, getManagedShareConfig } from '../../services/operations'
-import { getApiBase } from '../../config/api'
 import { normalizeManagedAvatarPath } from '../../config/assets'
 import { resolveCachedManagedImagePath } from '../../utils/imageCache'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
@@ -23,6 +22,11 @@ interface PosterEvent {
 }
 
 interface SharePosterState {
+  posterSaved: boolean
+  savePosterLabel: string
+  createSessionLabel: string
+  finishShareLabel: string
+  exitGuardVisible: boolean
   canvasHeight: number
   canvasWidth: number
   events: PosterEvent[]
@@ -49,6 +53,8 @@ interface SharePosterMethods {
   ensurePosterImage: () => Promise<string>
   handleBackTap: () => void
   handleCreateTap: () => void
+  handleExitGuardLeave: () => void
+  handleFinishShareTap: () => void
   handleSaveTap: () => Promise<void>
   handleTimelineTap: () => void
   saveImageFile: (filePath: string) => Promise<void>
@@ -64,6 +70,7 @@ const REPORT_SHARE_ITEMS: PosterShareItem[] = [
 
 const CANVAS_WIDTH = 900
 const CARD_WIDTH = 820
+const SHARE_POSTER_MINIAPP_CODE = '/assets/share/share-poster-miniapp-code.png'
 
 const enableShareMenus = () => {
   wx.showShareMenu({
@@ -183,19 +190,12 @@ const drawQrPanel = (
 }
 
 const resolveMiniappQrPath = async () => {
-  const target = '/pages/index/index'
-  const candidates: string[] = [
-    `${getApiBase()}/tools/qr-code.png?text=${encodeURIComponent(target)}&ts=${Date.now()}`,
-  ]
-  for (const candidate of candidates) {
-    try {
-      const image = await getImageInfo(candidate)
-      return image.path
-    } catch {
-      continue
-    }
+  try {
+    const image = await getImageInfo(SHARE_POSTER_MINIAPP_CODE)
+    return image.path || SHARE_POSTER_MINIAPP_CODE
+  } catch {
+    return ''
   }
-  return ''
 }
 
 const downloadImageToTempFile = (src: string) =>
@@ -320,6 +320,11 @@ const drawPartyBackdrop = (ctx: WechatMiniprogram.CanvasContext, width: number, 
 
 Page<SharePosterState, SharePosterMethods>({
   data: {
+    posterSaved: false,
+    savePosterLabel: '\u4fdd\u5b58\u6218\u62a5\u5206\u4eab\u56fe',
+    createSessionLabel: '\u6211\u4e5f\u5f00\u4e00\u5c40',
+    finishShareLabel: '\u7ed3\u675f\u5206\u4eab',
+    exitGuardVisible: true,
     canvasHeight: 1320,
     canvasWidth: CANVAS_WIDTH,
     events: [],
@@ -438,6 +443,10 @@ Page<SharePosterState, SharePosterMethods>({
   },
 
   async handleSaveTap() {
+    if (this.data.posterSaved) {
+      return
+    }
+
     try {
       const tempFilePath = await this.ensurePosterImage()
       await this.saveImageFile(tempFilePath)
@@ -618,6 +627,18 @@ Page<SharePosterState, SharePosterMethods>({
   },
 
   handleBackTap() {
+    wx.reLaunch({
+      url: '/pages/index/index',
+    })
+  },
+
+  handleExitGuardLeave() {
+    wx.reLaunch({
+      url: '/pages/index/index',
+    })
+  },
+
+  handleFinishShareTap() {
     wx.reLaunch({
       url: '/pages/index/index',
     })

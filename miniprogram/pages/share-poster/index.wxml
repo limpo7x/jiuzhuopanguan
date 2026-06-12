@@ -1,4 +1,4 @@
-﻿<navigation-bar
+<navigation-bar
   title="分享战报"
   back="{{true}}"
   customBack="{{true}}"
@@ -70,14 +70,20 @@
       </block>
     </view>
 
-    <view class="poster-primary" bindtap="handleSaveTap">
-      <text>保存战报分享图</text>
+    <view class="poster-primary {{posterSaved ? 'poster-primary-disabled' : ''}}" bindtap="handleSaveTap">
+      <text>{{savePosterLabel}}</text>
       <view class="poster-primary-icon"></view>
     </view>
 
-    <view class="poster-primary" bindtap="handleCreateTap">
-      <text>我也开一局</text>
-      <view class="poster-primary-icon"></view>
+    <view class="poster-close-row">
+      <view class="poster-primary poster-primary-half" bindtap="handleCreateTap">
+        <text>{{createSessionLabel}}</text>
+        <view class="poster-primary-icon"></view>
+      </view>
+      <view class="poster-primary poster-primary-half poster-primary-finish" bindtap="handleFinishShareTap">
+        <text>{{finishShareLabel}}</text>
+        <view class="poster-primary-icon"></view>
+      </view>
     </view>
 
     <view class="poster-notice">
@@ -85,6 +91,15 @@
       <text>分享图仅保留展示数据，不包含按钮与操作入口</text>
     </view>
   </scroll-view>
+
+  <page-container
+    show="{{exitGuardVisible}}"
+    overlay="{{false}}"
+    position="center"
+    duration="{{0}}"
+    custom-style="width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;"
+    bindbeforeleave="handleExitGuardLeave"
+  ></page-container>
 
   <canvas
     canvas-id="sharePosterCanvas"

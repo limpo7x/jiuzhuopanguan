@@ -88,17 +88,18 @@
       </view>
     </view>
 
-    <view wx:if="{{isJudge}}" class="live-bottom-actions">
-      <view class="live-primary live-primary-secondary" bindtap="handleSaveTap">{{desktopModeLabel}}</view>
-      <view class="live-primary live-primary-finish" bindtap="handleFinishTap">{{finishMatchLabel}}</view>
-    </view>
-    <view wx:else class="live-primary live-primary-full" bindtap="handleSaveTap">{{desktopModeLabel}}</view>
-
     <view class="live-notice">
       <view class="live-notice-icon"></view>
       <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
     </view>
   </scroll-view>
+
+  <!-- live fixed bottom actions -->
+  <view wx:if="{{isJudge}}" class="live-bottom-actions">
+      <view class="live-primary live-primary-secondary" bindtap="handleSaveTap">{{desktopModeLabel}}</view>
+      <view class="live-primary live-primary-finish" bindtap="handleFinishTap">{{finishMatchLabel}}</view>
+    </view>
+    <view wx:else class="live-primary live-primary-full" bindtap="handleSaveTap">{{desktopModeLabel}}</view>
 
   <page-container
     show="{{exitGuardVisible}}"
