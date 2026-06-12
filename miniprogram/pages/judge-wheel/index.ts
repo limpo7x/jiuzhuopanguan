@@ -206,6 +206,7 @@ Page<JudgeWheelState, JudgeWheelMethods>({
   },
 
   async onLoad(query) {
+    enableSessionLeaveAlert()
     const defaults = pickDefaultPlayer()
     const runtime = getSessionRuntime()
     const sessionId = query?.sessionId ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''

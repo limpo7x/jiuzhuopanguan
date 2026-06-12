@@ -11,11 +11,21 @@ const SESSION_LEAVE_ALERT_MESSAGE = '酒局正在进行中，确定要离开吗�
 export const enableSessionLeaveAlert = () => {
   wx.enableAlertBeforeUnload({
     message: SESSION_LEAVE_ALERT_MESSAGE,
+    fail: (error) => {
+      console.warn('[session-exit] enableAlertBeforeUnload failed', error)
+    },
+    success: () => {
+      console.info('[session-exit] enableAlertBeforeUnload enabled')
+    },
   })
 }
 
 export const disableSessionLeaveAlert = () => {
-  wx.disableAlertBeforeUnload()
+  wx.disableAlertBeforeUnload({
+    fail: (error) => {
+      console.warn('[session-exit] disableAlertBeforeUnload failed', error)
+    },
+  })
 }
 
 export const confirmAndExitSession = async (options: ConfirmExitOptions = {}) => {

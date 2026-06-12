@@ -163,6 +163,7 @@ Page<TableModeState, TableModeMethods>({
   },
 
   onLoad(query) {
+    enableSessionLeaveAlert()
     const runtime = getSessionRuntime()
     const autoFinish = query?.finish === '1' && runtime.isJudge
 

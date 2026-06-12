@@ -175,6 +175,7 @@ Page<LiveRecordState, LiveRecordMethods>({
   },
 
   async onLoad(query) {
+    enableSessionLeaveAlert()
     const sessionIdFromQuery = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : ''
     const roleFromQuery = typeof query?.role === 'string' ? decodeURIComponent(query.role) : ''
     const redirect = `/pages/live-record/index${sessionIdFromQuery ? `?sessionId=${encodeURIComponent(sessionIdFromQuery)}${roleFromQuery ? `&role=${encodeURIComponent(roleFromQuery)}` : ''}` : ''}`

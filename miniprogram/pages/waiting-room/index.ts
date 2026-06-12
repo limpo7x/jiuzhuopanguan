@@ -58,6 +58,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
   },
 
   async onLoad(query) {
+    enableSessionLeaveAlert()
     const runtime = getSessionRuntime()
     const isJudge = query?.role === 'viewer' ? false : runtime.isJudge
     const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
