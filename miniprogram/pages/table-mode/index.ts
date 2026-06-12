@@ -368,6 +368,7 @@ Page<TableModeState, TableModeMethods>({
       const report = await createManagedReport({
         sessionId: runtime.sessionId || '',
         sessionName: this.data.sessionName,
+        templateImageUrl: runtime.templateImageUrl || '',
         templateName: runtime.templateName || '',
         playerCount: this.data.rows.length,
         status: '',
@@ -383,6 +384,7 @@ Page<TableModeState, TableModeMethods>({
         sessionId: report.sessionId || runtime.sessionId || '',
         sessionName: report.sessionName || this.data.sessionName,
         startedAt: 0,
+        templateImageUrl: runtime.templateImageUrl || '',
         templateName: report.templateName || runtime.templateName || '',
       })
 

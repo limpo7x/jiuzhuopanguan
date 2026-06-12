@@ -1157,6 +1157,13 @@ a {
   color: var(--danger);
 }
 
+.mini-btn-hot {
+  border-color: rgba(255, 91, 61, 0.24);
+  background: linear-gradient(135deg, var(--brand), var(--brand-strong));
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(255, 91, 61, 0.18);
+}
+
 .editor-overlay-shell {
   position: fixed;
   inset: 0;

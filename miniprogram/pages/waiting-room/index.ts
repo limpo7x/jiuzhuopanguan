@@ -134,6 +134,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
       })),
       sessionId: liveSession.id,
       sessionName: liveSession.sessionName,
+      templateImageUrl: liveSession.templateImageUrl || runtime.templateImageUrl || '',
       templateName: liveSession.templateName,
     })
 

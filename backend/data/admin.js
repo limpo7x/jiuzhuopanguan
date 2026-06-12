@@ -1280,6 +1280,7 @@ const createManagedSession = (payload = {}) => {
     name: String(payload.sessionName || '').trim(),
     players: Number(payload.playerCount) || 0,
     template: String(payload.templateName || '').trim(),
+    templateImageUrl: String(payload.templateImageUrl || '').trim(),
     hostName: String(payload.hostName || '').trim(),
     hostProfileId: String(payload.hostProfileId || '').trim(),
     inviteCode: String(payload.inviteCode || makeUniqueInviteCode(store)).trim().toUpperCase() || makeUniqueInviteCode(store),
@@ -1314,6 +1315,7 @@ const updateManagedSession = (sessionId, payload = {}) => {
       name: payload.sessionName || item.name,
       players: Number(payload.playerCount) || item.players,
       template: payload.templateName || item.template,
+      templateImageUrl: payload.templateImageUrl || item.templateImageUrl,
       hostName: payload.hostName || item.hostName,
       hostProfileId: payload.hostProfileId || item.hostProfileId,
       hostAvatarUrl: payload.hostAvatarUrl || item.hostAvatarUrl,
@@ -1382,6 +1384,7 @@ const finishManagedSession = (payload = {}) => {
   const relatedSession = store.liveSessions.find((item) => item.id === sessionId)
   const sessionName = String(payload.sessionName || relatedSession?.name || '').trim()
   const templateName = String(payload.templateName || relatedSession?.template || '').trim()
+  const templateImageUrl = String(payload.templateImageUrl || relatedSession?.templateImageUrl || '').trim()
   const playerCount = Math.max(2, Number(payload.playerCount) || Number(relatedSession?.players) || 6)
   const events = Array.isArray(payload.events) ? payload.events.filter((item) => item && item.text).slice(0, 5) : []
   const report = {
@@ -1389,6 +1392,7 @@ const finishManagedSession = (payload = {}) => {
     sessionId,
     name: `${sessionName}战报`,
     template: templateName,
+    imageUrl: templateImageUrl,
     title: String(payload.title || '').trim(),
     scene: String(payload.scene || (templateName.includes('生日') ? '生日局' : templateName.includes('夜') ? '夜场' : '常规局')).trim(),
     highlight1: events[0]?.text || `${sessionName} 本局已结束，自动生成战报`,
@@ -1458,6 +1462,7 @@ const buildManagedReportDetail = (report) => {
 
   return {
     id: report.id,
+    imageUrl: report.imageUrl || relatedSession?.templateImageUrl || '',
     sessionId: report.sessionId || '',
     sessionName,
     title: report.title || '',
@@ -1574,12 +1579,20 @@ const listManagedReports = (profileId = '', mode = 'all') => {
       .filter((report) => report?.sessionId)
       .map((report) => [String(report.sessionId), report]),
   )
+  const templateConfig = getTemplateConfig()
+  const templateByName = new Map(
+    (Array.isArray(templateConfig?.templates) ? templateConfig.templates : [])
+      .flatMap((template) => [template?.title, template?.name, template?.id].map((key) => [String(key || '').trim(), template]))
+      .filter(([key]) => key),
+  )
 
   const rows = sessions.map((session) => {
     const report = reportBySessionId.get(String(session.id || ''))
     const status = resolveHistoryStatus(session, report)
     const host = getSessionHost(session)
     const createdAt = report?.createdAt || session?.createdAt || ''
+    const templateName = String(report?.template || session?.template || session?.templateName || '').trim()
+    const template = templateByName.get(templateName) || null
     return {
       id: report?.id || `session:${session.id}`,
       recordType: report ? 'report' : 'session',
@@ -1588,11 +1601,12 @@ const listManagedReports = (profileId = '', mode = 'all') => {
       sessionId: String(session.id || ''),
       sessionName: report ? String(report.name || report.title || '').replace(/战报$/, '') : String(session.name || ''),
       title: report?.title || String(session.name || ''),
+      templateName,
       hostName: String(host?.name || session.hostName || '').trim(),
       hostProfileId: String(host?.profileId || session.hostProfileId || '').trim(),
-      imageUrl: '',
+      imageUrl: String(report?.imageUrl || session?.templateImageUrl || session?.imageUrl || template?.imageUrl || '').trim(),
       status,
-      meta: `${Number(report?.playerCount) || Number(session?.players) || 0}人 · ${report?.template || session?.template || ''} · ${createdAt}`.replace(/\s+/g, ' ').trim(),
+      meta: `${Number(report?.playerCount) || Number(session?.players) || 0}人 · ${templateName} · ${createdAt}`.replace(/\s+/g, ' ').trim(),
       createdAt,
       shareRate: report?.shareRate || '',
     }

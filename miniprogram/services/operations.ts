@@ -79,6 +79,7 @@ interface RemoteLiveSession {
   stateText?: string
   status?: string
   subtitle?: string
+  templateImageUrl?: string
   templateName?: string
   title?: string
 }
@@ -108,6 +109,7 @@ interface RemoteManagedReport {
   shareRate?: string
   status?: string
   role?: 'host' | 'member'
+  templateImageUrl?: string
   templateName?: string
   title?: string
 }
@@ -223,6 +225,7 @@ export interface ManagedLiveSession {
   stateText: string
   status: string
   subtitle: string
+  templateImageUrl: string
   templateName: string
   title: string
 }
@@ -238,6 +241,7 @@ export interface ManagedSessionMutationPayload {
   source?: string
   state?: string
   status?: string
+  templateImageUrl?: string
   templateName?: string
 }
 
@@ -256,6 +260,7 @@ export interface ManagedReportDetail {
   createdAt: string
   events: ManagedReportEvent[]
   id: string
+  imageUrl: string
   inviteCode: string
   playerCount: number
   ranks: ManagedReportRank[]
@@ -283,6 +288,7 @@ export interface ManagedReportSummary {
   sessionName: string
   shareRate: string
   status: string
+  templateName: string
   title: string
 }
 
@@ -519,6 +525,7 @@ export const getManagedLiveSession = async (sessionId?: string, inviteCode?: str
     stateText: remote.stateText || '',
     status: remote.status || '',
     subtitle: remote.subtitle || '',
+    templateImageUrl: normalizeManagedAssetPath(remote.templateImageUrl),
     templateName: remote.templateName || '',
     title: remote.title || '',
   }
@@ -559,6 +566,7 @@ const normalizeManagedReport = (report?: RemoteManagedReport): ManagedReportDeta
   createdAt: report?.createdAt || '',
   events: Array.isArray(report?.events) ? report.events.map((item) => ({ text: item?.text || '' })).filter((item) => item.text) : [],
   id: report?.id || '',
+  imageUrl: report?.imageUrl || '',
   inviteCode: report?.inviteCode || '',
   playerCount: Number(report?.playerCount) || 0,
   ranks: Array.isArray(report?.ranks)
@@ -608,6 +616,7 @@ export const getManagedReportHistory = async (mode = 'all'): Promise<ManagedRepo
       sessionName: item.sessionName || '',
       shareRate: item.shareRate || '',
       status: item.status || '',
+      templateName: item.templateName || '',
       title: item.title || item.sessionName || '',
     })),
   )

@@ -52,6 +52,7 @@ export interface SessionRuntime {
   sessionId?: string
   sessionName: string
   startedAt: number
+  templateImageUrl?: string
   templateName?: string
 }
 
@@ -70,6 +71,7 @@ const DEFAULT_SESSION_RUNTIME: SessionRuntime = {
   sessionId: '',
   sessionName: '',
   startedAt: 0,
+  templateImageUrl: '',
   templateName: '',
 }
 

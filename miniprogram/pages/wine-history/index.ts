@@ -18,6 +18,7 @@ interface HistorySession {
   sessionId: string
   status: string
   tag: string
+  templateName: string
 }
 
 interface WineHistoryState {
@@ -115,6 +116,7 @@ Page<WineHistoryState, WineHistoryMethods>({
         sessionId: item.sessionId,
         status: item.status || '进行中',
         tag: item.status || '进行中',
+        templateName: item.templateName,
       }))
 
       this.setData({ loading: false, sessions })

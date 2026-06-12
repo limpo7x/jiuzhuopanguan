@@ -128,11 +128,12 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
 
     this.setData({
       visibleTemplates: visibleTemplates.map((item) => {
-        const unlocked = effectiveMembershipActive || this.data.unlockedTemplateIds.includes(item.id)
+        const isFree = Number(item.cost) === 0
+        const unlocked = isFree || effectiveMembershipActive || this.data.unlockedTemplateIds.includes(item.id)
         const progress = this.data.templateUnlockProgress[item.id] || 0
         return {
           ...item,
-          accessText: unlocked ? '可用' : `${progress}/${this.data.templateUnlockRequiredViews} 次开局`,
+          accessText: isFree ? '免费可用' : unlocked ? '可用' : `${progress}/${this.data.templateUnlockRequiredViews} 次开局`,
           locked: !unlocked,
         }
       }),

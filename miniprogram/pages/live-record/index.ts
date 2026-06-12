@@ -264,6 +264,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       sessionId: liveSession.id,
       sessionName: liveSession.sessionName,
       startedAt: runtime.startedAt || Date.now(),
+      templateImageUrl: liveSession.templateImageUrl || runtime.templateImageUrl || '',
       templateName: liveSession.templateName,
     })
 

@@ -84,6 +84,13 @@ const AUTO_COMPUTED_FIELD_KEYS = new Set([
   'completionRate',
   'verifyRate',
 ])
+const FREE_TEMPLATE_PRESETS = [
+  { id: 'free-happy-friday', filterId: 'free', title: '周五快乐局', meta: '轻松开局，朋友小聚，适合 2-8 人快速开玩。', cost: 0, imageUrl: '/static/templates/free-happy-friday.svg' },
+  { id: 'free-friend-party', filterId: 'free', title: '老友热闹局', meta: '熟人酒桌热闹局，主打互损、调侃和氛围破冰。', cost: 0, imageUrl: '/static/templates/free-friend-party.svg' },
+  { id: 'free-weekend-party', filterId: 'free', title: '周末放松局', meta: '周末聚会放松玩法，节奏轻，适合新老朋友混局。', cost: 0, imageUrl: '/static/templates/free-weekend-party.svg' },
+  { id: 'free-fun-challenge', filterId: 'free', title: '整活挑战局', meta: '互动整活不冷场，适合希望酒桌更热闹的场景。', cost: 0, imageUrl: '/static/templates/free-fun-challenge.svg' },
+  { id: 'free-casual-table', filterId: 'free', title: '随便喝两杯', meta: '低压轻量，新手友好，适合临时开局和轻松记录。', cost: 0, imageUrl: '/static/templates/free-casual-table.svg' },
+]
 const escapeHtml = (value = '') =>
   String(value)
     .replace(/&/g, '&amp;')
@@ -643,6 +650,29 @@ const buildBlankItem = (collection) => {
   return blank
 }
 
+const generateFreeTemplates = () => {
+  if (state.slug !== 'content-templates') {
+    return
+  }
+  const filters = state.collections.filters || []
+  if (!filters.some((item) => item.id === 'free')) {
+    filters.unshift({ id: 'free', name: '免费模板' })
+    state.collections.filters = filters
+  }
+  const templates = state.collections.templates || []
+  const byId = new Map(templates.map((item) => [item.id, item]))
+  FREE_TEMPLATE_PRESETS.forEach((preset) => {
+    byId.set(preset.id, {
+      ...(byId.get(preset.id) || {}),
+      ...preset,
+    })
+  })
+  state.collections.templates = Array.from(byId.values())
+  state.selected.templates = FREE_TEMPLATE_PRESETS[0].id
+  setStatus('已生成免费模板，点击保存修改后同步到后台', 'success')
+  render()
+}
+
 const renderCollectionEditor = (collection, options = {}) => {
   const items = getCollectionState(collection)
   const readOnly = Boolean(options.readOnly)
@@ -657,7 +687,14 @@ const renderCollectionEditor = (collection, options = {}) => {
     <section class="collection-card">
       <div class="collection-head">
         <div class="section-title">${collection.title || collection.itemLabel || '&#21015;&#34920;'}</div>
-        ${readOnly ? '' : `<div class="inline-actions"><button class="mini-btn" data-action="add-item" data-collection="${collection.key}">&#26032;&#22686;${collection.itemLabel || '&#39033;'}</button></div>`}
+        ${
+          readOnly
+            ? ''
+            : `<div class="inline-actions">
+                ${state.slug === 'content-templates' && collection.key === 'templates' ? '<button class="mini-btn mini-btn-hot" data-action="generate-free-templates">生成免费模板</button>' : ''}
+                <button class="mini-btn" data-action="add-item" data-collection="${collection.key}">&#26032;&#22686;${collection.itemLabel || '&#39033;'}</button>
+              </div>`
+        }
       </div>
       <div class="collection-layout">
         <div class="table-card">
@@ -1032,6 +1069,8 @@ const bindEvents = () => {
   })
 
   document.querySelector('[data-action="save-page"]')?.addEventListener('click', savePage)
+
+  document.querySelector('[data-action="generate-free-templates"]')?.addEventListener('click', generateFreeTemplates)
 
   document.querySelectorAll('[data-action="toggle-nav-group"]').forEach((node) => {
     node.addEventListener('click', () => {

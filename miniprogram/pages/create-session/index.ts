@@ -1,4 +1,5 @@
 import { createManagedSession } from '../../services/operations'
+import { getTemplateConfig } from '../../services/content'
 import { setSessionRuntime } from '../../utils/session'
 import { ensureUserAuthorized } from '../../utils/social'
 
@@ -23,6 +24,7 @@ interface CreateSessionState {
 
 interface CreateSessionMethods {
   handleMoreTemplatesTap: () => void
+  loadTemplates: (selectedName?: string) => Promise<void>
   handleSessionNameInput: (event: WechatMiniprogram.Input) => void
   handleNextTap: () => Promise<void>
   handlePlayerCountTap: (event: WechatMiniprogram.BaseEvent) => void
@@ -51,20 +53,29 @@ Page<CreateSessionState, CreateSessionMethods>({
     }
 
     const templateName = query?.template
-    if (!templateName) {
-      return
+    const decodedName = templateName ? decodeURIComponent(templateName) : ''
+    await this.loadTemplates(decodedName)
+    if (decodedName) {
+      this.setData({
+        sessionName: `${decodedName}开局`,
+      })
     }
+  },
 
-    const decodedName = decodeURIComponent(templateName)
-    const templates = this.data.templates.map((item) => ({
-      ...item,
-      active: item.name === decodedName,
-    }))
-
-    this.setData({
-      sessionName: `${decodedName}开局`,
-      templates,
-    })
+  async loadTemplates(selectedName = '') {
+    try {
+      const config = await getTemplateConfig()
+      const freeTemplates = (config.templates || []).filter((item) => Number(item.cost) === 0)
+      const templates = freeTemplates.slice(0, 6).map<TemplateItem>((item, index) => ({
+        id: item.id || `template-${index + 1}`,
+        imageUrl: item.imageUrl || '',
+        name: item.title || item.id || `模板 ${index + 1}`,
+        active: selectedName ? item.title === selectedName : index === 0,
+      }))
+      this.setData({ templates })
+    } catch {
+      this.setData({ templates: [] })
+    }
   },
 
   handleSessionNameInput(event) {
@@ -126,6 +137,7 @@ Page<CreateSessionState, CreateSessionMethods>({
         sessionName: this.data.sessionName,
         source: '直接创建',
         state: '等待开局',
+        templateImageUrl: activeTemplate?.imageUrl || '',
         templateName: activeTemplate?.name || '',
       })
 
@@ -145,6 +157,7 @@ Page<CreateSessionState, CreateSessionMethods>({
         sessionId: created.id,
         sessionName: created.sessionName,
         startedAt: 0,
+        templateImageUrl: activeTemplate?.imageUrl || created.templateImageUrl || '',
         templateName: activeTemplate?.name || '',
       })
 

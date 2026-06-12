@@ -110,6 +110,7 @@ const formatLiveSession = (session = {}) => {
     stateText: toText(session?.state),
     status: toText(session?.status),
     subtitle: '',
+    templateImageUrl: toText(session?.templateImageUrl),
     templateName: toText(session?.template || session?.templateName),
     title: '',
   }
