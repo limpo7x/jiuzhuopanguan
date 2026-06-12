@@ -577,6 +577,14 @@ const renderAssetInput = (field, value, collectionKey, itemId) => `
     ${renderFieldMeta(field)}
   </div>`
 
+const renderTableCell = (column, item) => {
+  const value = item[column.key] ?? ''
+  if (column.type === 'image' || isAssetField(column)) {
+    return value ? `<span class="table-avatar-cell"><img src="${escapeHtml(value)}" alt="${escapeHtml(column.label || '')}" /></span>` : ''
+  }
+  return escapeHtml(value)
+}
+
 const renderSelectField = (field, value, common) => {
   const options = Array.isArray(field?.options) ? field.options : []
   const currentValue = value == null ? '' : String(value)
@@ -713,7 +721,7 @@ const renderCollectionEditor = (collection, options = {}) => {
                         .map(
                           (item) => `
                         <tr>
-                          ${collection.columns.map((column) => `<td>${item[column.key] ?? ''}</td>`).join('')}
+                          ${collection.columns.map((column) => `<td>${renderTableCell(column, item)}</td>`).join('')}
                           ${
                             readOnly
                               ? ''

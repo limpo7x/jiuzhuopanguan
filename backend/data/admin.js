@@ -470,6 +470,7 @@ const buildUserProfileItems = (adminStore = readStore(), contentStore = readCont
     return {
       id: profile.id,
       name: profile.name,
+      avatarUrl: profile.avatarUrl || '',
       identityTag: profile.identityTag,
       phone: profile.phone || '',
       wechatOpenId: profile.wechatOpenId || '',
@@ -2350,6 +2351,7 @@ pageMap['user-profiles'] = () => {
       itemLabel: '用户',
       fields: [
         { key: 'name', label: '昵称', type: 'text' },
+        { key: 'avatarUrl', label: '微信授权头像', type: 'image' },
         { key: 'phone', label: '手机号（可选绑定）', type: 'text' },
         { key: 'wechatOpenId', label: '微信 OpenID（唯一标识）', type: 'text' },
         { key: 'identityTag', label: '身份标签', type: 'select', options: getIdentityTagOptions() },
@@ -2359,6 +2361,7 @@ pageMap['user-profiles'] = () => {
         { key: 'note', label: '运营备注', type: 'textarea' },
       ],
         columns: [
+          { key: 'avatarUrl', label: '头像', type: 'image' },
           { key: 'name', label: '用户' },
           { key: 'wechatOpenId', label: 'OpenID' },
           { key: 'phone', label: '手机号' },
@@ -2716,7 +2719,7 @@ const savePageData = (slug, payload = {}) => {
           wechatUnionId: existed.wechatUnionId || '',
           identityTag: item.identityTag,
           signature: existed.signature || '',
-          avatarUrl: existed.avatarUrl || '',
+          avatarUrl: item.avatarUrl || existed.avatarUrl || '',
           phoneBoundAt: existed.phoneBoundAt || '',
           lastLoginAt: existed.lastLoginAt || '',
           loginCount: existed.loginCount || 0,

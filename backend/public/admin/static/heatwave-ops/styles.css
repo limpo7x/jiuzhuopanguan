@@ -636,6 +636,23 @@ a {
   border-bottom: 0;
 }
 
+.table-avatar-cell {
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  overflow: hidden;
+  border: 1px solid rgba(104, 71, 46, 0.12);
+  border-radius: 50%;
+  background: var(--bg-soft);
+  vertical-align: middle;
+}
+
+.table-avatar-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .cell-title {
   font-weight: 800;
 }
