@@ -23,7 +23,7 @@
       </view>
     </view>
 
-    <text class="players-heading">添加玩家（{{selectedCount}}/{{playerLimit}}）</text>
+    <text class="players-heading">邀请玩家（{{selectedCount}}/{{inviteLimit}}，判官本人已在局内）</text>
 
     <view class="players-search">
       <view class="players-search-icon players-icon-search"></view>
@@ -61,12 +61,11 @@
       </view>
     </view>
 
-    <view wx:if="{{createCandidateName}}" class="players-create-card" bindtap="handleAddCandidateTap">
+    <view wx:if="{{createCandidateName}}" class="players-create-card">
       <view class="players-create-copy">
-        <text class="players-create-title">添加玩家 “{{createCandidateName}}”</text>
-        <text class="players-create-meta">未搜到已注册用户，可手动加入这次酒局并写入最近联系人</text>
+        <text class="players-create-title">未找到 “{{createCandidateName}}”</text>
+        <text class="players-create-meta">只能邀请已授权登录的真实用户，请让对方先登录或换个昵称搜索</text>
       </view>
-      <view class="players-create-action">添加</view>
     </view>
 
     <view class="players-section-head">
@@ -106,12 +105,12 @@
 
     <view wx:if="{{!filteredPlayers.length && !createCandidateName}}" class="players-empty">
       <text class="players-empty-title">没有找到这个酒友</text>
-      <text class="players-empty-meta">换个昵称试试，或者直接输入完整姓名后新增</text>
+      <text class="players-empty-meta">换个昵称试试；未授权登录的用户不会出现在可邀请列表</text>
     </view>
 
     <view class="players-footer-row">
       <view class="players-ghost" bindtap="handleSelectAllTap">全选</view>
-      <view class="players-primary" bindtap="handleNextTap">邀请他们（{{selectedCount}}）</view>
+      <view class="players-primary" bindtap="handleNextTap">去分享邀请（{{selectedCount}}/{{inviteLimit}}）</view>
     </view>
   </scroll-view>
 </view>

@@ -1,7 +1,6 @@
 import { createManagedSession, updateManagedSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import {
-  addWineFriend,
   addWineFriendByProfile,
   ensureUserAuthorized,
   getWineFriends,
@@ -30,6 +29,7 @@ interface AddPlayersState {
   createCandidateName: string
   favoritePlayers: FavoritePlayer[]
   filteredPlayers: PlayerItem[]
+  inviteLimit: number
   playerLimit: number
   players: PlayerItem[]
   searchMatches: SearchUserResult[]
@@ -39,13 +39,12 @@ interface AddPlayersState {
 
 interface AddPlayersMethods {
   filterPlayers: (players: PlayerItem[], keyword: string) => PlayerItem[]
-  handleAddCandidateTap: () => void
   handleAddRegisteredTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleNextTap: () => void
   handlePlayerToggle: (event: WechatMiniprogram.BaseEvent) => void
   handleSearchInput: (event: WechatMiniprogram.Input) => Promise<void>
   handleSelectAllTap: () => void
-  resolveCreateCandidate: (keyword: string, players: PlayerItem[], searchMatches: SearchUserResult[]) => string
+  resolveCreateCandidate: (keyword: string, searchMatches: SearchUserResult[]) => string
   showToast: (message: string) => void
   syncPlayers: () => void
 }
@@ -65,11 +64,12 @@ Page<AddPlayersState, AddPlayersMethods>({
     createCandidateName: '',
     favoritePlayers: [],
     filteredPlayers: [],
+    inviteLimit: 1,
     playerLimit: 6,
     players: [],
     searchMatches: [],
     searchKeyword: '',
-    selectedCount: 4,
+    selectedCount: 0,
   },
 
   async onLoad() {
@@ -87,13 +87,15 @@ Page<AddPlayersState, AddPlayersMethods>({
   async syncPlayers() {
     const runtime = getSessionRuntime()
     const playerLimit = Math.max(2, runtime.playerCount || 6)
+    const inviteLimit = Math.max(1, playerLimit - 1)
     const friendList = await getWineFriends()
     if (!friendList.length) {
-      this.showToast('暂无常用玩家，请搜索注册用户或输入昵称添加')
+      this.showToast('请搜索并添加已注册用户')
       this.setData({
-        createCandidateName: this.resolveCreateCandidate(this.data.searchKeyword, [], this.data.searchMatches),
+        createCandidateName: this.resolveCreateCandidate(this.data.searchKeyword, this.data.searchMatches),
         favoritePlayers: [],
         filteredPlayers: [],
+        inviteLimit,
         playerLimit,
         players: [],
         selectedCount: 0,
@@ -104,11 +106,11 @@ Page<AddPlayersState, AddPlayersMethods>({
     const runtimeSelectedNames = runtime.selectedPlayers.map((item) => item.name)
     const preferredSelectedNames = previousSelectedNames.length ? previousSelectedNames : runtimeSelectedNames
     const selectedNameSet = new Set(
-      preferredSelectedNames.length ? preferredSelectedNames : friendList.slice(0, playerLimit).map((item) => item.name),
+      preferredSelectedNames.length ? preferredSelectedNames : friendList.slice(0, inviteLimit).map((item) => item.name),
     )
     const players = friendList.map((item) => toPlayerItem(item, selectedNameSet.has(item.name)))
     const normalizedPlayers = players.map((item, index, list) => {
-      const selected = item.selected && countSelected(list.slice(0, index).concat({ ...item, selected: true })) <= playerLimit
+      const selected = item.selected && countSelected(list.slice(0, index).concat({ ...item, selected: true })) <= inviteLimit
       return {
         ...item,
         selected,
@@ -117,7 +119,7 @@ Page<AddPlayersState, AddPlayersMethods>({
 
     const selectedPlayers = normalizedPlayers
       .filter((item) => item.selected)
-      .slice(0, playerLimit)
+      .slice(0, inviteLimit)
       .map((item) => item.name)
     const strictSelectedSet = new Set(selectedPlayers)
     const strictPlayers = normalizedPlayers.map((item) => ({
@@ -127,13 +129,14 @@ Page<AddPlayersState, AddPlayersMethods>({
     const filteredPlayers = this.filterPlayers(strictPlayers, this.data.searchKeyword)
 
     this.setData({
-      createCandidateName: this.resolveCreateCandidate(this.data.searchKeyword, strictPlayers, this.data.searchMatches),
+      createCandidateName: this.resolveCreateCandidate(this.data.searchKeyword, this.data.searchMatches),
       favoritePlayers: strictPlayers.slice(0, 5).map((item) => ({
         id: item.id,
         name: item.name,
         avatarUrl: item.avatarUrl,
       })),
       filteredPlayers,
+      inviteLimit,
       playerLimit,
       players: strictPlayers,
       selectedCount: countSelected(strictPlayers),
@@ -148,8 +151,8 @@ Page<AddPlayersState, AddPlayersMethods>({
       return
     }
 
-    if (!current.selected && this.data.selectedCount >= this.data.playerLimit) {
-      this.showToast(`最多选择 ${this.data.playerLimit} 位玩家`)
+    if (!current.selected && this.data.selectedCount >= this.data.inviteLimit) {
+      this.showToast(`还需邀请 ${this.data.inviteLimit} 位玩家`)
       return
     }
 
@@ -158,7 +161,7 @@ Page<AddPlayersState, AddPlayersMethods>({
     )
 
     this.setData({
-      createCandidateName: this.resolveCreateCandidate(this.data.searchKeyword, players, this.data.searchMatches),
+      createCandidateName: this.resolveCreateCandidate(this.data.searchKeyword, this.data.searchMatches),
       filteredPlayers: this.filterPlayers(players, this.data.searchKeyword),
       players,
       selectedCount: countSelected(players),
@@ -170,7 +173,7 @@ Page<AddPlayersState, AddPlayersMethods>({
     const searchMatches = searchKeyword.trim() ? await searchRegisteredUsers(searchKeyword) : []
 
     this.setData({
-      createCandidateName: this.resolveCreateCandidate(searchKeyword, this.data.players, searchMatches),
+      createCandidateName: this.resolveCreateCandidate(searchKeyword, searchMatches),
       filteredPlayers: this.filterPlayers(this.data.players, searchKeyword),
       searchMatches,
       searchKeyword,
@@ -180,7 +183,7 @@ Page<AddPlayersState, AddPlayersMethods>({
   async handleAddRegisteredTap(event) {
     const { profileId, name } = event.currentTarget.dataset as { name: string; profileId: string }
     const created = await addWineFriendByProfile(profileId, name, '已从注册用户添加')
-    const canSelect = this.data.selectedCount < this.data.playerLimit
+    const canSelect = this.data.selectedCount < this.data.inviteLimit
     const players = [
       {
         id: created.id,
@@ -197,7 +200,7 @@ Page<AddPlayersState, AddPlayersMethods>({
     )
 
     this.setData({
-      createCandidateName: '',
+      createCandidateName: this.resolveCreateCandidate(this.data.searchKeyword, searchMatches),
       favoritePlayers: players.slice(0, 5).map((item) => ({
         id: item.id,
         name: item.name,
@@ -210,51 +213,14 @@ Page<AddPlayersState, AddPlayersMethods>({
     })
   },
 
-  async handleAddCandidateTap() {
-    const candidate = this.data.createCandidateName.trim()
-
-    if (!candidate) {
-      return
-    }
-
-    const created = await addWineFriend(candidate)
-    const canSelect = this.data.selectedCount < this.data.playerLimit
-    const players = [
-      {
-        id: created.id,
-        name: created.name,
-        avatarUrl: created.avatarUrl,
-        meta: '最近添加',
-        profileId: created.profileId,
-        selected: canSelect,
-      },
-      ...this.data.players.filter((item) => item.name !== created.name),
-    ]
-
-    this.setData({
-      createCandidateName: '',
-      favoritePlayers: players.slice(0, 5).map((item) => ({
-        id: item.id,
-        name: item.name,
-        avatarUrl: item.avatarUrl,
-      })),
-      filteredPlayers: this.filterPlayers(players, ''),
-      players,
-      searchKeyword: '',
-      selectedCount: countSelected(players),
-    })
-
-    this.showToast(`${created.name} 已加入最近联系人`)
-  },
-
   handleSelectAllTap() {
     const players = this.data.players.map((item, index) => ({
       ...item,
-      selected: index < this.data.playerLimit,
+      selected: index < this.data.inviteLimit,
     }))
 
     this.setData({
-      createCandidateName: this.resolveCreateCandidate(this.data.searchKeyword, players, this.data.searchMatches),
+      createCandidateName: this.resolveCreateCandidate(this.data.searchKeyword, this.data.searchMatches),
       filteredPlayers: this.filterPlayers(players, this.data.searchKeyword),
       players,
       selectedCount: countSelected(players),
@@ -262,8 +228,8 @@ Page<AddPlayersState, AddPlayersMethods>({
   },
 
   async handleNextTap() {
-    if (this.data.selectedCount !== this.data.playerLimit) {
-      this.showToast(`需要选择 ${this.data.playerLimit} 位玩家`)
+    if (this.data.selectedCount !== this.data.inviteLimit) {
+      this.showToast(`需要邀请 ${this.data.inviteLimit} 位玩家`)
       return
     }
 
@@ -378,15 +344,14 @@ Page<AddPlayersState, AddPlayersMethods>({
     return players.filter((item) => item.name.toLowerCase().includes(trimmed))
   },
 
-  resolveCreateCandidate(keyword: string, players: PlayerItem[], searchMatches: SearchUserResult[]) {
+  resolveCreateCandidate(keyword: string, searchMatches: SearchUserResult[]) {
     const trimmed = keyword.trim()
 
     if (!trimmed) {
       return ''
     }
 
-    const existed = players.some((item) => item.name.toLowerCase() === trimmed.toLowerCase())
-    return existed || searchMatches.length ? '' : trimmed
+    return searchMatches.length ? '' : trimmed
   },
 })
 

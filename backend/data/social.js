@@ -30,6 +30,9 @@ const hasProfileIdentity = (profile = {}) =>
       cleanText(profile.wechatUnionId),
   )
 
+const isRegisteredProfile = (profile = {}) =>
+  Boolean(cleanText(profile.wechatOpenId) || cleanText(profile.wechatUnionId) || cleanText(profile.phone))
+
 const createDefaultStore = () => ({
   profiles: [],
   friendships: [],
@@ -198,6 +201,9 @@ const getMiniUserSession = (token) => {
 
 const serializeFriend = (store, friendship) => {
   const profile = getProfileById(store, friendship.friendId)
+  if (!profile || !isRegisteredProfile(profile)) {
+    return null
+  }
   return {
     id: friendship.id,
     profileId: friendship.friendId,
@@ -215,15 +221,7 @@ const listFriends = (profileId) => {
     .filter((item) => item.ownerId === profileId)
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .map((item) => serializeFriend(store, item))
-}
-
-const getOrCreatePlaceholderProfile = (store, name) => {
-  const trimmed = cleanText(name)
-  const existed = store.profiles.find((item) => item.name.toLowerCase() === trimmed.toLowerCase())
-  if (existed) {
-    return existed
-  }
-  return upsertProfile(store, { id: randomId('user'), name: trimmed, avatarUrl: '', identityTag: '好友' })
+    .filter(Boolean)
 }
 
 const addFriend = ({ ownerId, friendName, friendProfileId, meta = '' }) => {
@@ -232,11 +230,8 @@ const addFriend = ({ ownerId, friendName, friendProfileId, meta = '' }) => {
   if (!normalizedOwnerId) {
     throw new Error('missing ownerId')
   }
-  let targetProfile = friendProfileId ? getProfileById(store, cleanText(friendProfileId)) : null
-  if (!targetProfile && friendName) {
-    targetProfile = getOrCreatePlaceholderProfile(store, friendName)
-  }
-  if (!targetProfile) {
+  const targetProfile = friendProfileId ? getProfileById(store, cleanText(friendProfileId)) : null
+  if (!targetProfile || !isRegisteredProfile(targetProfile)) {
     throw new Error('friend not found')
   }
   if (targetProfile.id === normalizedOwnerId) {
@@ -303,7 +298,7 @@ const syncSessionContacts = ({ ownerId, participants = [] }) => touchFriends({ o
 const listProfiles = () => readStore().profiles.map((item) => ({ ...item, avatarUrl: cleanAvatar(item.avatarUrl) }))
 const listFriendships = () => {
   const store = readStore()
-  return store.friendships.map((item) => serializeFriend(store, item))
+  return store.friendships.map((item) => serializeFriend(store, item)).filter(Boolean)
 }
 
 const searchProfiles = ({ ownerId, keyword = '' }) => {
@@ -315,6 +310,7 @@ const searchProfiles = ({ ownerId, keyword = '' }) => {
   const friendIds = new Set(store.friendships.filter((item) => item.ownerId === ownerId).map((item) => item.friendId))
   return store.profiles
     .filter((item) => item.id !== ownerId)
+    .filter((item) => isRegisteredProfile(item))
     .filter((item) => [item.name, item.identityTag].join(' ').toLowerCase().includes(trimmed))
     .slice(0, 8)
     .map((item) => ({ id: item.id, name: item.name, avatarUrl: cleanAvatar(item.avatarUrl), identityTag: item.identityTag, alreadyFriend: friendIds.has(item.id) }))

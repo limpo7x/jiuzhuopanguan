@@ -608,15 +608,6 @@ export const bootstrapSocial = async (): Promise<SocialBootstrapResponse> => {
 
 export const getWineFriends = async (): Promise<WineFriend[]> => (await bootstrapSocial()).wineFriends
 
-export const addWineFriend = async (name: string, meta = ''): Promise<WineFriend> => {
-  const profile = await ensureCurrentProfile()
-  const trimmed = String(name || '').trim()
-  const remote = await request<WineFriend>('/social/friends', 'POST', { ownerId: profile.id, friendName: trimmed, meta })
-  const friend = normalizeFriend(remote)
-  saveLocalWineFriends([friend, ...getLocalWineFriends().filter((item) => item.id !== friend.id)])
-  return friend
-}
-
 export const addWineFriendByProfile = async (
   friendProfileId: string,
   friendName?: string,
