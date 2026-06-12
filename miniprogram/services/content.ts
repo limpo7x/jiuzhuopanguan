@@ -187,6 +187,14 @@ const normalizeTemplateConfig = async (config: TemplateConfig): Promise<Template
   ),
 })
 
+const normalizeTemplateConfigFast = (config: TemplateConfig): TemplateConfig => ({
+  ...config,
+  templates: (config.templates || []).map((item) => ({
+    ...item,
+    imageUrl: normalizeManagedAssetPath(item.imageUrl),
+  })),
+})
+
 const normalizeHomeConfig = async (config: HomeAdminConfig): Promise<HomeAdminConfig> => ({
   ...config,
   hero: {
@@ -205,6 +213,8 @@ export const getPublicHomeConfig = async () =>
 export const getPointsConfig = async () => normalizePointsConfig(await request<PointsConfig>('/config/points'))
 
 export const getTemplateConfig = async () => normalizeTemplateConfig(await request<TemplateConfig>('/config/templates'))
+
+export const getTemplateConfigFast = async () => normalizeTemplateConfigFast(await request<TemplateConfig>('/config/templates'))
 
 export const getAdminHomeConfig = async () =>
   normalizeHomeConfig(await request<HomeAdminConfig>('/admin/config/home'))

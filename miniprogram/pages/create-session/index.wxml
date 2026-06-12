@@ -59,22 +59,42 @@
     </view>
 
     <view class="create-section-head">
-      <text class="create-section-title">选择玩法模板</text>
-      <text class="create-section-link" bindtap="handleMoreTemplatesTap">更多模板</text>
+      <view class="create-section-copy">
+        <text class="create-section-title">选择玩法模板</text>
+        <text class="create-section-subtitle">先选氛围，后面再细调规则</text>
+      </view>
+      <view class="create-section-link" bindtap="handleMoreTemplatesTap">更多模板</view>
     </view>
 
-    <view class="create-template-grid">
-      <view
-        wx:for="{{templates}}"
-        wx:key="id"
-        class="create-template-card {{item.active ? 'create-template-card-active' : ''}}"
-        data-id="{{item.id}}"
-        bindtap="handleTemplateTap"
-      >
-        <image wx:if="{{item.imageUrl}}" class="create-template-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
-        <view wx:else class="create-template-image"></view>
-        <text class="create-template-name">{{item.name}}</text>
+    <view wx:if="{{templatesLoading && !templates.length}}" class="create-template-skeletons">
+      <view class="create-template-skeleton"></view>
+      <view class="create-template-skeleton"></view>
+    </view>
+
+    <scroll-view wx:elif="{{templates.length}}" class="create-template-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="create-template-row">
+        <view
+          wx:for="{{templates}}"
+          wx:key="id"
+          class="create-template-card {{item.active ? 'create-template-card-active' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="handleTemplateTap"
+        >
+          <image wx:if="{{item.imageUrl}}" class="create-template-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
+          <view wx:else class="create-template-image"></view>
+          <view class="create-template-body">
+            <view class="create-template-topline">
+              <text class="create-template-name">{{item.name}}</text>
+              <text class="create-template-status">{{item.active ? '已选' : '免费'}}</text>
+            </view>
+            <text class="create-template-meta">{{item.meta}}</text>
+          </view>
+        </view>
       </view>
+    </scroll-view>
+
+    <view wx:else class="create-template-empty">
+      <text>模板暂时加载失败，请稍后重试</text>
     </view>
 
     <view class="create-notice">
