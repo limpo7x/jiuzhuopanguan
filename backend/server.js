@@ -48,6 +48,7 @@ const {
   getMiniUserSession,
   initSocialStore,
   ignorePoke,
+  listProfiles,
   replyPoke,
   searchProfiles,
   syncSessionContacts,
@@ -344,17 +345,39 @@ const buildReportPosterSvg = async (report) => {
   `
 }
 
+const enrichReportPosterAvatars = (report = {}) => {
+  const profileMap = new Map(listProfiles().map((profile) => [String(profile.id || '').trim(), profile]))
+  const ranks = Array.isArray(report.ranks)
+    ? report.ranks.map((rank) => {
+        if (rank?.avatarUrl) {
+          return rank
+        }
+        const profileId = String(rank?.profileId || '').trim()
+        const profileAvatarUrl = profileId ? String(profileMap.get(profileId)?.avatarUrl || '').trim() : ''
+        return {
+          ...rank,
+          avatarUrl: profileAvatarUrl,
+        }
+      })
+    : []
+  return {
+    ...report,
+    ranks,
+  }
+}
+
 const renderReportPosterPng = async (report) => {
-  const missingAvatarNames = (Array.isArray(report?.ranks) ? report.ranks : [])
+  const resolvedReport = enrichReportPosterAvatars(report)
+  const missingAvatarNames = (Array.isArray(resolvedReport?.ranks) ? resolvedReport.ranks : [])
     .filter((rank) => rank?.avatarUrl && !resolvePosterImageDataUri(rank.avatarUrl))
     .map((rank) => rank.name || rank.title || 'unknown')
   if (missingAvatarNames.length) {
     console.warn('[share-poster] rank avatar not readable', {
-      reportId: report?.id || '',
+      reportId: resolvedReport?.id || '',
       names: missingAvatarNames,
     })
   }
-  const svg = await buildReportPosterSvg(report)
+  const svg = await buildReportPosterSvg(resolvedReport)
   return sharp(Buffer.from(svg)).png().toBuffer()
 }
 
