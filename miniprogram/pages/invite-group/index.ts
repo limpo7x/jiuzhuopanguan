@@ -1,5 +1,6 @@
 import { getManagedLiveSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
+import { confirmAndExitSession, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface ShareItem {
@@ -16,6 +17,7 @@ interface InviteGroupState {
 }
 
 interface InviteGroupMethods {
+  handleBackTap: () => Promise<void>
   handleCopyTap: () => void
   handleNextTap: () => void
   handlePreviewTap: () => void
@@ -55,9 +57,17 @@ Page<InviteGroupState, InviteGroupMethods>({
         sessionId: liveSession.id,
         sessionName: liveSession.sessionName,
       })
+      enableSessionLeaveAlert()
     } catch {
       this.setData({ inviteCode: runtime.inviteCode || '', sessionId, sessionName: runtime.sessionName || '' })
+      if (sessionId || runtime.sessionId) {
+        enableSessionLeaveAlert()
+      }
     }
+  },
+
+  onUnload() {
+    disableSessionLeaveAlert()
   },
 
   onShareAppMessage() {
@@ -80,8 +90,13 @@ Page<InviteGroupState, InviteGroupMethods>({
     this.openPage(`/pages/share-preview/index?sessionId=${encodeURIComponent(this.data.sessionId)}&inviteCode=${encodeURIComponent(this.data.inviteCode)}`)
   },
 
+  async handleBackTap() {
+    await confirmAndExitSession()
+  },
+
   handleNextTap() {
     const url = `/pages/waiting-room/index?sessionId=${encodeURIComponent(this.data.sessionId)}`
+    disableSessionLeaveAlert()
     wx.redirectTo({
       url,
       fail: () => {

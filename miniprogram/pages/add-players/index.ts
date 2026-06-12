@@ -1,5 +1,5 @@
-import { updateManagedSession } from '../../services/operations'
-import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
+import { createManagedSession, updateManagedSession } from '../../services/operations'
+import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import {
   addWineFriend,
   addWineFriendByProfile,
@@ -89,9 +89,14 @@ Page<AddPlayersState, AddPlayersMethods>({
     const playerLimit = Math.max(2, runtime.playerCount || 6)
     const friendList = await getWineFriends()
     if (!friendList.length) {
-      this.showToast('暂无常用玩家和最近联系人，先去邀请好友')
-      wx.redirectTo({
-        url: '/pages/invite-group/index',
+      this.showToast('暂无常用玩家，请搜索注册用户或输入昵称添加')
+      this.setData({
+        createCandidateName: this.resolveCreateCandidate(this.data.searchKeyword, [], this.data.searchMatches),
+        favoritePlayers: [],
+        filteredPlayers: [],
+        playerLimit,
+        players: [],
+        selectedCount: 0,
       })
       return
     }
@@ -271,32 +276,89 @@ Page<AddPlayersState, AddPlayersMethods>({
         status: '',
       }))
 
-    await touchWineFriends(selectedPlayers)
+    try {
+      wx.showLoading({
+        title: '正在生成酒局',
+        mask: true,
+      })
 
-    const runtime = getSessionRuntime()
-    if (runtime.sessionId) {
-      await updateManagedSession(runtime.sessionId, {
-        hostAvatarUrl: runtime.currentUser?.avatarUrl,
-        hostName: runtime.currentUser?.name,
-        hostProfileId: runtime.currentUser?.id,
+      await touchWineFriends(selectedPlayers)
+
+      const runtime = getSessionRuntime()
+      let nextRuntimePatch: {
+        inviteCode: string
+        playerCount: number
+        selectedPlayers: SessionParticipant[]
+        sessionId: string
+        sessionName: string
+        templateImageUrl: string
+        templateName: string
+      } = {
+        inviteCode: runtime.inviteCode || '',
         playerCount: this.data.playerLimit,
         selectedPlayers,
+        sessionId: runtime.sessionId || '',
         sessionName: runtime.sessionName,
-        templateName: runtime.templateName,
-      }).catch(() => null)
+        templateImageUrl: runtime.templateImageUrl || '',
+        templateName: runtime.templateName || '',
+      }
+
+      if (runtime.sessionId) {
+        await updateManagedSession(runtime.sessionId, {
+          hostAvatarUrl: runtime.currentUser?.avatarUrl,
+          hostName: runtime.currentUser?.name,
+          hostProfileId: runtime.currentUser?.id,
+          playerCount: this.data.playerLimit,
+          selectedPlayers,
+          sessionName: runtime.sessionName,
+          templateImageUrl: runtime.templateImageUrl,
+          templateName: runtime.templateName,
+        })
+      } else {
+        const created = await createManagedSession({
+          hostAvatarUrl: runtime.currentUser?.avatarUrl,
+          hostName: runtime.currentUser?.name,
+          hostProfileId: runtime.currentUser?.id,
+          playerCount: this.data.playerLimit,
+          selectedPlayers,
+          sessionName: runtime.sessionName,
+          source: '直接创建',
+          state: '等待开局',
+          templateImageUrl: runtime.templateImageUrl,
+          templateName: runtime.templateName,
+        })
+        nextRuntimePatch = {
+          inviteCode: created.inviteCode,
+          playerCount: created.playerCount,
+          selectedPlayers: created.joinStatusPlayers.map((item) => ({
+            avatarUrl: item.avatarUrl,
+            name: item.name,
+            profileId: item.profileId || '',
+            status: item.status || '',
+          })),
+          sessionId: created.id,
+          sessionName: created.sessionName,
+          templateImageUrl: created.templateImageUrl || runtime.templateImageUrl || '',
+          templateName: created.templateName || runtime.templateName || '',
+        }
+      }
+
+      setSessionRuntime(nextRuntimePatch)
+
+      wx.redirectTo({
+        url: '/pages/invite-group/index',
+        fail: () => {
+          wx.reLaunch({ url: '/pages/invite-group/index' })
+        },
+      })
+    } catch (error) {
+      wx.showToast({
+        title: error instanceof Error ? error.message : '酒局生成失败',
+        icon: 'none',
+      })
+    } finally {
+      wx.hideLoading()
     }
-
-    setSessionRuntime({
-      playerCount: this.data.playerLimit,
-      selectedPlayers,
-    })
-
-    wx.redirectTo({
-      url: '/pages/invite-group/index',
-      fail: () => {
-        wx.reLaunch({ url: '/pages/invite-group/index' })
-      },
-    })
   },
 
   showToast(message: string) {

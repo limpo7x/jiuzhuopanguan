@@ -1,6 +1,8 @@
 ﻿<navigation-bar
   title="邀请好友"
   back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
   color="#24160f"
   background="rgba(255,253,248,0.96)"
   ext-class="invite-nav"

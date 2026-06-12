@@ -1,6 +1,5 @@
-import { createManagedSession } from '../../services/operations'
 import { getTemplateConfigFast } from '../../services/content'
-import { setSessionRuntime } from '../../utils/session'
+import { clearSessionRuntime, setSessionRuntime } from '../../utils/session'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface NamePreset {
@@ -158,35 +157,24 @@ Page<CreateSessionState, CreateSessionMethods>({
         mask: true,
       })
 
-      const created = await createManagedSession({
-        hostAvatarUrl: profile.avatarUrl,
-        hostName: profile.name,
-        hostProfileId: profile.id,
-        playerCount: Math.max(2, this.data.playerCount || 2),
-        sessionName: this.data.sessionName,
-        source: '直接创建',
-        state: '等待开局',
-        templateImageUrl: activeTemplate?.imageUrl || '',
-        templateName: activeTemplate?.name || '',
-      })
-
+      clearSessionRuntime()
       setSessionRuntime({
         currentUser: {
           avatarUrl: profile.avatarUrl,
           id: profile.id,
           name: profile.name,
         },
-        inviteCode: created.inviteCode,
+        inviteCode: '',
         isJudge: true,
         playerCount: Math.max(2, this.data.playerCount || 2),
         playerReactions: [],
         playerStats: [],
         reportId: '',
-        selectedPlayers: created.joinStatusPlayers,
-        sessionId: created.id,
-        sessionName: created.sessionName,
+        selectedPlayers: [],
+        sessionId: '',
+        sessionName: this.data.sessionName || activeTemplate?.name || '我的酒局',
         startedAt: 0,
-        templateImageUrl: activeTemplate?.imageUrl || created.templateImageUrl || '',
+        templateImageUrl: activeTemplate?.imageUrl || '',
         templateName: activeTemplate?.name || '',
       })
 
