@@ -1,6 +1,6 @@
 import { getManagedLiveSession, updateManagedSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
-import { confirmAndExitSession } from '../../utils/session-exit'
+import { confirmAndExitSession, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface JoinedPlayer {
@@ -86,8 +86,11 @@ Page<WaitingRoomState, WaitingRoomMethods>({
 
   async onShow() {
     if (!this.data.sessionId && !getSessionRuntime().sessionId) {
+      disableSessionLeaveAlert()
       return
     }
+
+    enableSessionLeaveAlert()
 
     try {
       await this.refreshSession()
@@ -98,6 +101,10 @@ Page<WaitingRoomState, WaitingRoomMethods>({
         icon: 'none',
       })
     }
+  },
+
+  onUnload() {
+    disableSessionLeaveAlert()
   },
 
   async refreshSession(showToast = false) {
@@ -219,6 +226,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
   },
 
   openPage(url) {
+    disableSessionLeaveAlert()
     wx.navigateTo({
       url,
       fail: () => {

@@ -7,7 +7,7 @@ import {
   type ManagedWheelHistoryItem,
 } from '../../services/operations'
 import { getSessionRuntime, resolveSessionParticipants } from '../../utils/session'
-import { confirmAndExitSession } from '../../utils/session-exit'
+import { confirmAndExitSession, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 
 type QuestionType = '互动' | '惩罚' | '问答'
 
@@ -286,11 +286,16 @@ Page<JudgeWheelState, JudgeWheelMethods>({
     }
   },
 
+  onShow() {
+    enableSessionLeaveAlert()
+  },
+
   onUnload() {
     if (spinTimer) {
       clearTimeout(spinTimer)
       spinTimer = 0
     }
+    disableSessionLeaveAlert()
   },
 
   applyQuestionType(type) {
@@ -465,6 +470,7 @@ Page<JudgeWheelState, JudgeWheelMethods>({
         question: this.data.currentTask,
       })
 
+      disableSessionLeaveAlert()
       wx.navigateBack({
         fail: () => {
           wx.redirectTo({

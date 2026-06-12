@@ -6,6 +6,17 @@ interface ConfirmExitOptions {
 }
 
 const DEFAULT_REDIRECT_URL = '/pages/judge/index'
+const SESSION_LEAVE_ALERT_MESSAGE = '酒局正在进行中，确定要离开吗？'
+
+export const enableSessionLeaveAlert = () => {
+  wx.enableAlertBeforeUnload({
+    message: SESSION_LEAVE_ALERT_MESSAGE,
+  })
+}
+
+export const disableSessionLeaveAlert = () => {
+  wx.disableAlertBeforeUnload()
+}
 
 export const confirmAndExitSession = async (options: ConfirmExitOptions = {}) => {
   const runtime = getSessionRuntime()
@@ -37,6 +48,7 @@ export const confirmAndExitSession = async (options: ConfirmExitOptions = {}) =>
   try {
     await deleteManagedSession(sessionId)
     clearSessionRuntime()
+    disableSessionLeaveAlert()
     const redirectUrl = options.redirectUrl || DEFAULT_REDIRECT_URL
     wx.redirectTo({
       url: redirectUrl,

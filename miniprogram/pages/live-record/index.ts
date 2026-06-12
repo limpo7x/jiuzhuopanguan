@@ -7,7 +7,7 @@ import {
   type SessionPlayerStat,
 } from '../../utils/session'
 import { getManagedLiveSession, updateManagedSession } from '../../services/operations'
-import { confirmAndExitSession } from '../../utils/session-exit'
+import { confirmAndExitSession, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface LivePlayer {
@@ -342,6 +342,12 @@ Page<LiveRecordState, LiveRecordMethods>({
   },
 
   onShow() {
+    if (this.data.isJudge) {
+      enableSessionLeaveAlert()
+    } else {
+      disableSessionLeaveAlert()
+    }
+
     this.applyWheelResult()
 
     if (liveTimer) {
@@ -365,6 +371,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       clearInterval(liveTimer)
       liveTimer = 0
     }
+    disableSessionLeaveAlert()
   },
 
   handleTimerTick() {
@@ -579,6 +586,7 @@ Page<LiveRecordState, LiveRecordMethods>({
   },
 
   openPage(url) {
+    disableSessionLeaveAlert()
     wx.navigateTo({
       url,
       fail: () => {

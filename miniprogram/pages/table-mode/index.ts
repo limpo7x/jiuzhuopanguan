@@ -8,6 +8,7 @@ import {
   type SessionPlayerStat,
   type SessionRuntime,
 } from '../../utils/session'
+import { disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 
 interface ScoreRow {
   avatarUrl: string
@@ -181,6 +182,8 @@ Page<TableModeState, TableModeMethods>({
   },
 
   onShow() {
+    enableSessionLeaveAlert()
+
     if (tableTimer) {
       clearInterval(tableTimer)
     }
@@ -202,6 +205,7 @@ Page<TableModeState, TableModeMethods>({
       clearInterval(tableTimer)
       tableTimer = 0
     }
+    disableSessionLeaveAlert()
   },
 
   handleTimerTick() {
@@ -273,6 +277,7 @@ Page<TableModeState, TableModeMethods>({
   navigateBackToSession() {
     const runtime = getSessionRuntime()
     const fallbackUrl = `/pages/live-record/index?role=${runtime.isJudge ? 'judge' : 'viewer'}&sessionName=${encodeURIComponent(runtime.sessionName || '')}`
+    disableSessionLeaveAlert()
     wx.navigateBack({
       fail: () => {
         wx.redirectTo({
@@ -379,6 +384,7 @@ Page<TableModeState, TableModeMethods>({
         templateName: report.templateName || runtime.templateName || '',
       })
 
+      disableSessionLeaveAlert()
       wx.redirectTo({
         url: `/pages/result-report/index?reportId=${encodeURIComponent(report.id)}`,
       })
@@ -400,6 +406,7 @@ Page<TableModeState, TableModeMethods>({
   },
 
   openPage(url) {
+    disableSessionLeaveAlert()
     wx.navigateTo({
       url,
       fail: () => {
