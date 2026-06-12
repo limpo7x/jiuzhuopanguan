@@ -459,10 +459,7 @@ const getMatchedThreadRowsByProfile = (socialStore = readSocialStore()) => {
 const isVisibleUserProfile = (profile = {}) =>
   Boolean(
     String(profile.name || '').trim() ||
-      String(profile.phone || '').trim() ||
-      String(profile.wechatOpenId || '').trim() ||
-      String(profile.wechatUnionId || '').trim() ||
-      String(profile.avatarUrl || '').trim(),
+      String(profile.phone || '').trim(),
   )
 
 const buildUserProfileItems = (adminStore = readStore(), contentStore = readContentStore(), socialStore = readSocialStore()) =>
@@ -2702,12 +2699,10 @@ const savePageData = (slug, payload = {}) => {
     const nextProfiles = []
     const nextUserOps = []
     ;(payload.items || []).forEach((item) => {
-      const hasIdentity =
+      const hasVisibleIdentity =
         String(item.name || '').trim() ||
-        String(item.phone || '').trim() ||
-        String(item.wechatOpenId || '').trim() ||
-        String(item.identityTag || '').trim()
-      if (!hasIdentity) {
+        String(item.phone || '').trim()
+      if (!hasVisibleIdentity) {
         return
       }
       const existed = socialStore.profiles.find((profile) => profile.id === item.id) || { id: item.id }
