@@ -401,21 +401,24 @@ button.poster-share-item::after {
 
 /* 2026-06-13 compact share cards in one row */
 .poster-share-grid {
-  grid-template-columns: repeat(3, 76px);
+  display: flex;
+  align-items: center;
   justify-content: center;
   width: 100%;
   box-sizing: border-box;
-  gap: 6px;
+  gap: 14px;
 }
 .poster-share-item {
-  width: 76px;
+  flex: 0 0 72px;
+  width: 72px;
   min-width: 0;
-  min-height: 52px;
-  padding: 5px 2px;
+  min-height: 54px;
+  margin: 0;
+  padding: 6px 3px;
   box-sizing: border-box;
   overflow: hidden;
-  gap: 2px;
-  border-radius: 10px;
+  gap: 3px;
+  border-radius: 12px;
   font-size: 10px;
   line-height: 1.1;
 }
@@ -434,7 +437,8 @@ button.poster-share-item::after {
 }
 button.poster-share-item {
   height: auto;
-  min-height: 52px;
+  min-height: 54px;
+  margin: 0;
 }
 .poster-primary-disabled {
   opacity: 0.58;
