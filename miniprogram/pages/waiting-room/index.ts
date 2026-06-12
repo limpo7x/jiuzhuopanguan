@@ -12,8 +12,6 @@ interface JoinedPlayer {
 
 interface WaitingRoomState {
   emptySeats: number[]
-  exitGuardHandling: boolean
-  exitGuardVisible: boolean
   inviteCode: string
   isJudge: boolean
   joinedCount: number
@@ -27,7 +25,6 @@ interface WaitingRoomState {
 interface WaitingRoomMethods {
   handleBackTap: () => Promise<void>
   handleCodeTap: () => void
-  handleExitGuardLeave: () => Promise<void>
   handleInviteTap: () => void
   handleOverviewTap: () => void
   handleRefreshTap: () => Promise<void>
@@ -50,8 +47,6 @@ const mergeRuntimeAvatars = (players: JoinedPlayer[], runtime = getSessionRuntim
 Page<WaitingRoomState, WaitingRoomMethods>({
   data: {
     emptySeats: [1, 2],
-    exitGuardHandling: false,
-    exitGuardVisible: true,
     inviteCode: '',
     isJudge: true,
     joinedCount: 0,
@@ -163,27 +158,6 @@ Page<WaitingRoomState, WaitingRoomMethods>({
 
   async handleBackTap() {
     await confirmAndExitSession()
-  },
-
-  async handleExitGuardLeave() {
-    if (this.data.exitGuardHandling) {
-      this.setData({ exitGuardVisible: true })
-      return
-    }
-
-    this.setData({
-      exitGuardHandling: true,
-      exitGuardVisible: true,
-    })
-
-    try {
-      await confirmAndExitSession()
-    } finally {
-      this.setData({
-        exitGuardHandling: false,
-        exitGuardVisible: true,
-      })
-    }
   },
 
   async handleRefreshTap() {

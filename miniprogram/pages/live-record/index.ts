@@ -41,8 +41,6 @@ interface LiveSessionEvent {
 interface LiveRecordState {
   desktopModeLabel: string
   elapsedText: string
-  exitGuardHandling: boolean
-  exitGuardVisible: boolean
   events: LiveEvent[]
   finishMatchLabel: string
   isJudge: boolean
@@ -59,7 +57,6 @@ interface LiveRecordMethods {
   handleAddPlayerTap: () => void
   handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleBackTap: () => Promise<void>
-  handleExitGuardLeave: () => Promise<void>
   handleFinishTap: () => Promise<void>
   handleNextRoundTap: () => void
   handleTimerTick: () => void
@@ -168,8 +165,6 @@ Page<LiveRecordState, LiveRecordMethods>({
   data: {
     desktopModeLabel: '\u684c\u9762\u6a21\u5f0f',
     elapsedText: '00:00:00',
-    exitGuardHandling: false,
-    exitGuardVisible: true,
     playerCount: 0,
     players: [],
     finishMatchLabel: '\u5b8c\u6210\u5bf9\u5c40',
@@ -574,32 +569,6 @@ Page<LiveRecordState, LiveRecordMethods>({
     }
 
     await confirmAndExitSession()
-  },
-
-  async handleExitGuardLeave() {
-    if (!this.data.isJudge) {
-      wx.navigateBack()
-      return
-    }
-
-    if (this.data.exitGuardHandling) {
-      this.setData({ exitGuardVisible: true })
-      return
-    }
-
-    this.setData({
-      exitGuardHandling: true,
-      exitGuardVisible: true,
-    })
-
-    try {
-      await confirmAndExitSession()
-    } finally {
-      this.setData({
-        exitGuardHandling: false,
-        exitGuardVisible: true,
-      })
-    }
   },
 
   showPreviewToast(message) {

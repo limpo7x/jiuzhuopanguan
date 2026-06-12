@@ -60,12 +60,4 @@
   <!-- waiting fixed primary action -->
   <view class="waiting-primary" bindtap="handleStartTap">进入本局</view>
 
-  <page-container
-    show="{{exitGuardVisible}}"
-    overlay="{{false}}"
-    position="center"
-    duration="{{0}}"
-    custom-style="width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;"
-    bindbeforeleave="handleExitGuardLeave"
-  ></page-container>
 </view>

@@ -14,7 +14,6 @@ interface ReportEvent {
 }
 
 interface ResultReportState {
-  exitGuardVisible: boolean
   events: ReportEvent[]
   featuredRank: ReportRank | null
   metaText: string
@@ -26,7 +25,6 @@ interface ResultReportState {
 
 interface ResultReportMethods {
   handleBackTap: () => void
-  handleExitGuardLeave: () => void
   handleRestartTap: () => void
   handleShareTap: () => void
   openPage: (url: string) => void
@@ -34,7 +32,6 @@ interface ResultReportMethods {
 
 Page<ResultReportState, ResultReportMethods>({
   data: {
-    exitGuardVisible: true,
     events: [],
     featuredRank: null,
     metaText: '',
@@ -123,12 +120,6 @@ Page<ResultReportState, ResultReportMethods>({
   },
 
   handleBackTap() {
-    wx.reLaunch({
-      url: '/pages/index/index',
-    })
-  },
-
-  handleExitGuardLeave() {
     wx.reLaunch({
       url: '/pages/index/index',
     })

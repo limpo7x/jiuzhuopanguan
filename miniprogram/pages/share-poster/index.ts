@@ -26,7 +26,6 @@ interface SharePosterState {
   savePosterLabel: string
   createSessionLabel: string
   finishShareLabel: string
-  exitGuardVisible: boolean
   canvasHeight: number
   canvasWidth: number
   events: PosterEvent[]
@@ -53,7 +52,6 @@ interface SharePosterMethods {
   ensurePosterImage: () => Promise<string>
   handleBackTap: () => void
   handleCreateTap: () => void
-  handleExitGuardLeave: () => void
   handleFinishShareTap: () => void
   handleSaveTap: () => Promise<void>
   handleTimelineTap: () => void
@@ -324,7 +322,6 @@ Page<SharePosterState, SharePosterMethods>({
     savePosterLabel: '\u4fdd\u5b58\u6218\u62a5\u5206\u4eab\u56fe',
     createSessionLabel: '\u6211\u4e5f\u5f00\u4e00\u5c40',
     finishShareLabel: '\u7ed3\u675f\u5206\u4eab',
-    exitGuardVisible: true,
     canvasHeight: 1320,
     canvasWidth: CANVAS_WIDTH,
     events: [],
@@ -627,12 +624,6 @@ Page<SharePosterState, SharePosterMethods>({
   },
 
   handleBackTap() {
-    wx.reLaunch({
-      url: '/pages/index/index',
-    })
-  },
-
-  handleExitGuardLeave() {
     wx.reLaunch({
       url: '/pages/index/index',
     })

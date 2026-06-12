@@ -26,8 +26,6 @@ interface ScoreRow {
 interface TableModeState {
   autoFinish: boolean
   elapsedText: string
-  exitGuardHandling: boolean
-  exitGuardVisible: boolean
   isJudge: boolean
   rows: ScoreRow[]
   sessionName: string
@@ -35,7 +33,6 @@ interface TableModeState {
 
 interface TableModeMethods {
   handleBackTap: () => Promise<void>
-  handleExitGuardLeave: () => Promise<void>
   handleFinishTap: () => Promise<void>
   handleRefreshTap: () => Promise<void>
   handleReactionTap: (event: WechatMiniprogram.BaseEvent) => void
@@ -159,8 +156,6 @@ Page<TableModeState, TableModeMethods>({
   data: {
     autoFinish: false,
     elapsedText: '00:00:00',
-    exitGuardHandling: false,
-    exitGuardVisible: true,
     isJudge: true,
     rows: [],
     sessionName: '酒桌判官酒局',
@@ -218,10 +213,6 @@ Page<TableModeState, TableModeMethods>({
   },
 
   async handleBackTap() {
-    this.navigateBackToSession()
-  },
-
-  async handleExitGuardLeave() {
     this.navigateBackToSession()
   },
 
