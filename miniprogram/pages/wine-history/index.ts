@@ -39,6 +39,7 @@ interface WineHistoryMethods {
   applyFilter: (filterName?: string) => void
   handleCreateTap: () => void
   handleFilterTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleImageError: (event: WechatMiniprogram.CustomEvent) => void
   handleSessionTap: (event: WechatMiniprogram.BaseEvent) => void
   loadSessions: () => Promise<void>
   openPage: (url: string) => void
@@ -153,6 +154,28 @@ Page<WineHistoryState, WineHistoryMethods>({
   handleFilterTap(event) {
     const { name } = event.currentTarget.dataset as { name: string }
     this.applyFilter(name)
+  },
+
+  handleImageError(event) {
+    const { id, imageUrl, name, reportId, sessionId, status, templateName } = event.currentTarget.dataset as {
+      id?: string
+      imageUrl?: string
+      name?: string
+      reportId?: string
+      sessionId?: string
+      status?: string
+      templateName?: string
+    }
+    console.warn('[wine-history] session image failed to load', {
+      error: event.detail,
+      id,
+      imageUrl,
+      name,
+      reportId,
+      sessionId,
+      status,
+      templateName,
+    })
   },
 
   handleSessionTap(event) {

@@ -33,7 +33,19 @@
         bindtap="handleSessionTap"
       >
         <view class="history-thumb">
-          <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
+          <image
+            wx:if="{{item.imageUrl}}"
+            src="{{item.imageUrl}}"
+            mode="aspectFill"
+            data-id="{{item.id}}"
+            data-image-url="{{item.imageUrl}}"
+            data-name="{{item.name}}"
+            data-report-id="{{item.reportId}}"
+            data-session-id="{{item.sessionId}}"
+            data-status="{{item.status}}"
+            data-template-name="{{item.templateName}}"
+            binderror="handleImageError"
+          ></image>
         </view>
         <view class="history-copy">
           <text class="history-title">{{item.name}}</text>
