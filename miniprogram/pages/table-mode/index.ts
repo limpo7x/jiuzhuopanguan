@@ -9,6 +9,7 @@ import {
   type SessionRuntime,
 } from '../../utils/session'
 import { disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
+import { persistShareAvatarUrl } from '../../utils/social'
 
 interface ScoreRow {
   avatarUrl: string
@@ -315,52 +316,59 @@ Page<TableModeState, TableModeMethods>({
 
   async handleFinishTap() {
     const runtime = getSessionRuntime()
-    const rowsByDebt = [...this.data.rows].sort((a, b) => b.debt - a.debt)
-    const rowsByDrink = [...this.data.rows].sort((a, b) => b.drink - a.drink)
-    const rowsByCleared = [...this.data.rows].sort((a, b) => b.cleared - a.cleared)
-    const rowsByLikes = [...this.data.rows].sort((a, b) => b.likeCount - a.likeCount)
-    const rowsByWeak = [...this.data.rows].sort((a, b) => b.weakCount - a.weakCount)
-    const topLikeRow = rowsByLikes[0]?.likeCount ? rowsByLikes[0] : null
-    const topWeakRow = rowsByWeak[0]?.weakCount ? rowsByWeak[0] : null
-    const ranks = [
-      {
-        title: '欠酒大王',
-        name: rowsByDebt[0]?.name || '暂无',
-        avatarUrl: rowsByDebt[0]?.avatarUrl || '',
-        value: `欠了 ${rowsByDebt[0]?.debt || 0} 杯`,
-      },
-      {
-        title: '干杯王',
-        name: rowsByDrink[0]?.name || '暂无',
-        avatarUrl: rowsByDrink[0]?.avatarUrl || '',
-        value: `已喝 ${rowsByDrink[0]?.drink || 0} 杯`,
-      },
-      {
-        title: '消杯王',
-        name: rowsByCleared[0]?.name || '暂无',
-        avatarUrl: rowsByCleared[0]?.avatarUrl || '',
-        value: `消了 ${rowsByCleared[0]?.cleared || 0} 杯`,
-      },
-      {
-        title: '最受欢迎',
-        name: topLikeRow?.name || '暂无',
-        avatarUrl: topLikeRow?.avatarUrl || '',
-        value: topLikeRow ? `收到了 ${topLikeRow.likeCount} 次点赞` : '本局暂无点赞记录',
-      },
-      {
-        title: '全场记忆点',
-        name: topWeakRow?.name || '暂无',
-        avatarUrl: topWeakRow?.avatarUrl || '',
-        value: topWeakRow ? `被点了 ${topWeakRow.weakCount} 次小拇指` : '本局暂无互评记录',
-      },
-    ]
-    const events = buildReportEvents(this.data.sessionName, this.data.rows)
 
     try {
       wx.showLoading({
         title: '生成战报中',
         mask: true,
       })
+
+      const persistedRows = await Promise.all(
+        this.data.rows.map(async (row) => ({
+          ...row,
+          avatarUrl: await persistShareAvatarUrl(row.avatarUrl),
+        })),
+      )
+      const rowsByDebt = [...persistedRows].sort((a, b) => b.debt - a.debt)
+      const rowsByDrink = [...persistedRows].sort((a, b) => b.drink - a.drink)
+      const rowsByCleared = [...persistedRows].sort((a, b) => b.cleared - a.cleared)
+      const rowsByLikes = [...persistedRows].sort((a, b) => b.likeCount - a.likeCount)
+      const rowsByWeak = [...persistedRows].sort((a, b) => b.weakCount - a.weakCount)
+      const topLikeRow = rowsByLikes[0]?.likeCount ? rowsByLikes[0] : null
+      const topWeakRow = rowsByWeak[0]?.weakCount ? rowsByWeak[0] : null
+      const ranks = [
+        {
+          title: '欠酒大王',
+          name: rowsByDebt[0]?.name || '暂无',
+          avatarUrl: rowsByDebt[0]?.avatarUrl || '',
+          value: `欠了 ${rowsByDebt[0]?.debt || 0} 杯`,
+        },
+        {
+          title: '干杯王',
+          name: rowsByDrink[0]?.name || '暂无',
+          avatarUrl: rowsByDrink[0]?.avatarUrl || '',
+          value: `已喝 ${rowsByDrink[0]?.drink || 0} 杯`,
+        },
+        {
+          title: '消杯王',
+          name: rowsByCleared[0]?.name || '暂无',
+          avatarUrl: rowsByCleared[0]?.avatarUrl || '',
+          value: `消了 ${rowsByCleared[0]?.cleared || 0} 杯`,
+        },
+        {
+          title: '最受欢迎',
+          name: topLikeRow?.name || '暂无',
+          avatarUrl: topLikeRow?.avatarUrl || '',
+          value: topLikeRow ? `收到了 ${topLikeRow.likeCount} 次点赞` : '本局暂无点赞记录',
+        },
+        {
+          title: '全场记忆点',
+          name: topWeakRow?.name || '暂无',
+          avatarUrl: topWeakRow?.avatarUrl || '',
+          value: topWeakRow ? `被点了 ${topWeakRow.weakCount} 次小拇指` : '本局暂无互评记录',
+        },
+      ]
+      const events = buildReportEvents(this.data.sessionName, persistedRows)
 
       const report = await createManagedReport({
         sessionId: runtime.sessionId || '',

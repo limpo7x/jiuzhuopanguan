@@ -304,6 +304,18 @@ const uploadWechatAvatarIfNeeded = async (avatarUrl: string): Promise<string> =>
   return source
 }
 
+export const persistShareAvatarUrl = async (avatarUrl: string): Promise<string> => {
+  const raw = String(avatarUrl || '').trim()
+  if (!raw) {
+    return ''
+  }
+  const persisted = await uploadWechatAvatarIfNeeded(raw)
+  if (!persisted || isTempWechatAvatar(persisted)) {
+    return ''
+  }
+  return persisted
+}
+
 const normalizeAuthorizedWechatProfile = (value: Partial<AuthorizedWechatProfile> | null | undefined): AuthorizedWechatProfile | null => {
   const name = sanitizeSocialName(value?.name)
   const avatarUrl = normalizeSocialAvatarUrl(value?.avatarUrl)
