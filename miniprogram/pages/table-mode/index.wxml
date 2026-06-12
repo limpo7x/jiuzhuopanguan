@@ -9,6 +9,8 @@
 ></navigation-bar>
 
 <view class="table-page">
+  <image class="table-bg-image" src="/assets/home/table-party-bg.jpg" mode="aspectFill"></image>
+  <view class="table-bg-mask"></view>
   <scroll-view class="table-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="table-center">
       <text class="table-title">{{sessionName}}</text>
