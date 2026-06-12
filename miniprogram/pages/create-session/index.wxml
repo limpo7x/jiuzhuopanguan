@@ -1,5 +1,5 @@
 <navigation-bar
-  title="&#21019;&#24314;&#37202;&#23616;"
+  title="创建酒局"
   back="{{true}}"
   color="#24160f"
   background="rgba(255,253,248,0.96)"
@@ -11,25 +11,25 @@
     <view class="create-progress">
       <view class="create-progress-step create-progress-step-active">
         <text class="create-progress-dot">1</text>
-        <text>&#21019;&#24314;&#37202;&#23616;</text>
+        <text>创建酒局</text>
       </view>
       <view class="create-progress-step">
         <text class="create-progress-dot">2</text>
-        <text>&#29609;&#27861;&#35774;&#32622;</text>
+        <text>玩法设置</text>
       </view>
       <view class="create-progress-step">
         <text class="create-progress-dot">3</text>
-        <text>&#36992;&#35831;&#24320;&#23616;</text>
+        <text>邀请开局</text>
       </view>
     </view>
 
     <view class="create-card create-form-card">
       <view class="create-field">
-        <text class="create-label">&#37202;&#23616;&#21517;&#31216;</text>
+        <text class="create-label">酒局名称</text>
         <input
           class="create-input"
           value="{{sessionName}}"
-          placeholder="&#35831;&#36755;&#20837;&#37202;&#23616;&#21517;&#31216;"
+          placeholder="请输入酒局名称"
           placeholder-class="create-input-placeholder"
           bindinput="handleSessionNameInput"
         />

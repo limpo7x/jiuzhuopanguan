@@ -19,11 +19,12 @@ scanRoots.forEach(walk)
 const offenders = []
 for (const file of files) {
   const text = fs.readFileSync(file, 'utf8').replace(/^\uFEFF/, '')
-  const bad = mojibakeChars.some((char) => text.includes(char)) || mojibakePattern.test(text) || /\?{3,}/.test(text)
+  const entityPattern = /\.(?:wxml|html)$/.test(file) ? /&#\d+;/ : null
+  const bad = mojibakeChars.some((char) => text.includes(char)) || mojibakePattern.test(text) || /\?{3,}/.test(text) || Boolean(entityPattern?.test(text))
   if (bad) {
-    const lineNumber = text.split(/\r?\n/).findIndex((line) => mojibakeChars.some((char) => line.includes(char)) || mojibakePattern.test(line) || /\?{3,}/.test(line)) + 1
+    const lineNumber = text.split(/\r?\n/).findIndex((line) => mojibakeChars.some((char) => line.includes(char)) || mojibakePattern.test(line) || /\?{3,}/.test(line) || Boolean(entityPattern?.test(line))) + 1
     const line = text.split(/\r?\n/)[lineNumber - 1] || ''
-    const match = line.match(mojibakePattern) || line.match(/\?{3,}/) || mojibakeChars.find((char) => line.includes(char))
+    const match = line.match(mojibakePattern) || line.match(/\?{3,}/) || line.match(/&#\d+;/) || mojibakeChars.find((char) => line.includes(char))
     offenders.push({ file, lineNumber, match: Array.isArray(match) ? match[0] : match })
   }
 }
