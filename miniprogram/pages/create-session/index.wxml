@@ -77,14 +77,16 @@
       </view>
     </view>
 
-    <view class="create-primary" bindtap="handleNextTap">
-      <text>下一步 设置玩法</text>
-      <view class="create-primary-icon create-icon-arrow"></view>
-    </view>
-
     <view class="create-notice">
       <view class="create-notice-icon create-icon-shield"></view>
       <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
     </view>
   </scroll-view>
+
+  <view class="create-bottom-bar">
+    <view class="create-primary" bindtap="handleNextTap">
+      <text>下一步 设置玩法</text>
+      <view class="create-primary-icon create-icon-arrow"></view>
+    </view>
+  </view>
 </view>
