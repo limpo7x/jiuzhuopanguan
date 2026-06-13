@@ -12,6 +12,8 @@ const isoNow = () => new Date().toISOString()
 const createId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
 const createHttpError = (message, statusCode) => Object.assign(new Error(message), { statusCode })
 const CLAIM_TASK_TIMEZONE = 'Asia/Shanghai'
+const FIRST_LOGIN_TASK_ID = 'task-first-login'
+const FIRST_LOGIN_BONUS_POINTS = 500
 
 const getDateYmd = (value = Date.now()) =>
   new Intl.DateTimeFormat('en-CA', {
@@ -57,6 +59,7 @@ const normalizeTaskStates = (taskStates = {}) => {
   }
 
   return {
+    [FIRST_LOGIN_TASK_ID]: normalizeTaskState(taskStates[FIRST_LOGIN_TASK_ID], FIRST_LOGIN_TASK_ID),
     'task-signin': normalizeTaskState(taskStates['task-signin'], 'task-signin'),
     'task-share-report': normalizeTaskState(taskStates['task-share-report'], 'task-share-report'),
     'task-reopen': normalizeTaskState(taskStates['task-reopen'], 'task-reopen'),
@@ -141,6 +144,18 @@ const getTodayShareReportCount = (adminStore, profileId = '') => {
 const getTaskClaimState = (profileId, taskId, taskState, adminStore, taskMeta = {}, userState = {}) => {
   const taskValue = Number(taskMeta.value) || 0
   const today = getDateYmd()
+
+  if (taskId === FIRST_LOGIN_TASK_ID) {
+    const hasGranted = (userState.pointsLedger || []).some((entry) => entry.sourceId === FIRST_LOGIN_TASK_ID)
+    return {
+      canClaim: false,
+      buttonText: hasGranted ? '已发放' : '自动发放',
+      statusText: hasGranted ? '首次登录奖励已到账' : '首次登录后自动到账',
+      remaining: hasGranted ? 0 : 1,
+      max: 1,
+      reward: taskValue || FIRST_LOGIN_BONUS_POINTS,
+    }
+  }
 
   if (taskId === 'task-signin') {
     const claimedDate = taskState.lastClaimAt ? getDateYmd(taskState.lastClaimAt) : ''
@@ -278,11 +293,7 @@ const ensureUserCommerceState = (store, profileId) => {
     throw createHttpError('missing profileId', 400)
   }
   if (!store.userCommerce[profileId]) {
-    const defaults = createDefaultUserCommerceState()
-    store.userCommerce[profileId] = {
-      ...defaults,
-      points: Number(store.profile?.points) >= 0 ? Number(store.profile.points) : defaults.points,
-    }
+    store.userCommerce[profileId] = createDefaultUserCommerceState()
   }
   ensureTaskStates(store.userCommerce[profileId])
   return store.userCommerce[profileId]
@@ -296,6 +307,35 @@ const createLedgerEntry = ({ delta, kind, sourceId, title }) => ({
   kind,
   sourceId,
 })
+
+const grantFirstLoginBonus = (profileId) => {
+  const normalizedProfileId = String(profileId || '').trim()
+  if (!normalizedProfileId) {
+    return null
+  }
+
+  const contentStore = readContentStore()
+  const state = ensureUserCommerceState(contentStore, normalizedProfileId)
+  const hasGranted = (state.pointsLedger || []).some((entry) => entry.sourceId === FIRST_LOGIN_TASK_ID)
+  if (hasGranted) {
+    return serializeCommerceState(normalizedProfileId)
+  }
+
+  state.points = Number(state.points || 0) + FIRST_LOGIN_BONUS_POINTS
+  if (!state.claimedTaskIds.includes(FIRST_LOGIN_TASK_ID)) {
+    state.claimedTaskIds.unshift(FIRST_LOGIN_TASK_ID)
+  }
+  state.pointsLedger.unshift(
+    createLedgerEntry({
+      delta: FIRST_LOGIN_BONUS_POINTS,
+      kind: 'task',
+      sourceId: FIRST_LOGIN_TASK_ID,
+      title: '首次登录赠送',
+    }),
+  )
+  writeContentStore(contentStore)
+  return serializeCommerceState(normalizedProfileId)
+}
 
 const serializeCommerceState = (profileId) => {
   if (!profileId) {
@@ -616,6 +656,7 @@ module.exports = {
   activateMembershipPlan,
   adjustUserPointsByAdmin,
   claimPointsTask,
+  grantFirstLoginBonus,
   getAllUserCommerceStates,
   getMembershipCatalog,
   getUserCommerceState: serializeCommerceState,

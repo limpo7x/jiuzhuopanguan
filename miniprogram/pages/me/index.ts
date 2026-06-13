@@ -1,5 +1,6 @@
 ﻿import { getMembershipCatalog, getUserCommerceState } from '../../services/content'
 import { getManagedJudgeStats } from '../../services/operations'
+import { showFirstLoginBonusModal } from '../../utils/firstLoginBonus'
 import { getCurrentDisplayProfile, getUserAuthSession, getWineFriends, loginWithWechatProfile, type SocialProfile } from '../../utils/social'
 
 interface StatItem {
@@ -214,8 +215,11 @@ Page<MePageState, MePageMethods>({
         currentProfile: { ...profile, avatarUrl: normalizeAvatar(profile.avatarUrl) || avatarUrl, name: normalizeName(profile.name) || name },
         loggedIn: true,
       })
-      wx.showToast({ title: '登录成功', icon: 'success' })
       await this.loadSocialData()
+      const bonusShown = await showFirstLoginBonusModal(profile)
+      if (!bonusShown) {
+        wx.showToast({ title: '登录成功', icon: 'success' })
+      }
     } catch (error) {
       wx.showToast({ title: error instanceof Error ? error.message : '微信登录失败', icon: 'none' })
     } finally {

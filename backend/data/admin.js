@@ -1716,6 +1716,13 @@ const TOOL_PLACEMENT_OPTIONS = [toOption('home'), toOption('tools'), toOption('b
 const USER_STATUS_OPTIONS = [toOption('高活跃'), toOption('普通'), toOption('高价值'), toOption('沉默')]
 const ADMIN_STATUS_OPTIONS = [toOption('active', '启用'), toOption('disabled', '停用')]
 const POINT_ICON_OPTIONS = [
+  toOption('points-icon-coin'),
+  toOption('points-icon-share'),
+  toOption('points-icon-refresh'),
+  toOption('points-icon-shield'),
+  toOption('points-icon-image'),
+  toOption('points-icon-coupon'),
+  toOption('points-icon-crown'),
   toOption('icon-signin'),
   toOption('icon-video'),
   toOption('icon-share'),
@@ -2103,11 +2110,9 @@ const pageMap = {
       view: 'multi-collection',
       metrics: getPointsMetrics(),
       metaFields: [
-        { key: 'balance', label: '展示积分余额', type: 'number' },
         { key: 'bannerImageUrl', label: '横幅图片地址', type: 'image' },
       ],
       meta: {
-        balance: pointsConfig.balance,
         bannerImageUrl: pointsConfig.bannerImageUrl,
       },
       collections: [
@@ -2421,11 +2426,9 @@ pageMap['commerce-points'] = () => {
     view: 'multi-collection',
     metrics: getManagedPointsMetrics(),
     metaFields: [
-      { key: 'balance', label: '展示积分余额', type: 'number' },
-        { key: 'bannerImageUrl', label: '横幅图片地址', type: 'image' },
+      { key: 'bannerImageUrl', label: '横幅图片地址', type: 'image' },
     ],
     meta: {
-      balance: pointsConfig.balance,
       bannerImageUrl: pointsConfig.bannerImageUrl,
     },
     collections: [
@@ -2781,7 +2784,6 @@ const savePageData = (slug, payload = {}) => {
 
   if (slug === 'commerce-points') {
     updatePointsConfig({
-      balance: Number(payload.meta.balance) || 0,
       bannerImageUrl: payload.meta.bannerImageUrl || '',
       tasks: payload.collections.tasks,
       rewards: payload.collections.rewards,

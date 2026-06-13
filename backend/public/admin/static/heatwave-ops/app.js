@@ -66,6 +66,7 @@ const state = {
   navOpen: {},
   tablePages: {},
   editor: null,
+  editorReturnFocus: '',
 }
 
 const icon = (id, cls = 'ui-icon') => `<svg class="${cls}" aria-hidden="true"><use href="/admin/static/heatwave-ops/icons.svg#${id}"></use></svg>`
@@ -98,6 +99,43 @@ const escapeHtml = (value = '') =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+
+const slugify = (value = '') =>
+  String(value)
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase()
+
+const getFieldDomId = (field, collectionKey = 'form', itemId = '') =>
+  `field-${slugify(collectionKey || 'form')}-${slugify(itemId || 'root')}-${slugify(field?.key || field?.label || 'value')}`
+
+const getAutocomplete = (field) => {
+  const key = String(field?.key || '').toLowerCase()
+  if (key.includes('email')) return 'email'
+  if (key.includes('phone') || key.includes('tel')) return 'tel'
+  if (key.includes('url') || key.includes('link') || key.includes('path')) return 'off'
+  if (key.includes('name') || key.includes('title')) return 'off'
+  return 'off'
+}
+
+const getInputType = (field) => {
+  const key = String(field?.key || '').toLowerCase()
+  if (field?.type === 'number') return 'number'
+  if (key.includes('email')) return 'email'
+  if (key.includes('phone') || key.includes('tel')) return 'tel'
+  if (key.includes('url') || key.includes('link')) return 'url'
+  return 'text'
+}
+
+const getImageAttrs = (field = {}) => {
+  const key = String(field?.key || '').toLowerCase()
+  if (key.includes('avatar')) return 'width="512" height="512" loading="lazy"'
+  if (state.slug === 'content-share-assets') return 'width="1080" height="1920" loading="lazy"'
+  if (state.slug === 'content-home-ops' && key.includes('banner')) return 'width="1125" height="360" loading="lazy"'
+  if (state.slug === 'content-tools-ops') return 'width="640" height="640" loading="lazy"'
+  if (state.slug === 'commerce-points') return 'width="750" height="420" loading="lazy"'
+  return 'width="960" height="540" loading="lazy"'
+}
 
 const isAssetField = (field) => field?.type === 'image' || /(?:image|avatar)url$/i.test(field?.key || '')
 
@@ -342,7 +380,7 @@ const getDisplayValue = (field, value) => {
   if (isAssetField(field)) {
     return `
       <div class="readonly-asset">
-        <img src="${value}" alt="${escapeHtml(field.label)}" />
+        <img src="${escapeHtml(value)}" alt="${escapeHtml(field.label)}" ${getImageAttrs(field)} />
         <div class="readonly-asset-url">${escapeHtml(String(value))}</div>
       </div>`
   }
@@ -371,8 +409,28 @@ const closeEditor = () => {
       state.collections[current.collectionKey] = items.filter((entry) => entry.id !== current.itemId)
     }
   }
+  const returnFocus = state.editorReturnFocus
   state.editor = null
+  state.editorReturnFocus = ''
   render()
+  if (returnFocus) {
+    requestAnimationFrame(() => {
+      document.querySelector(returnFocus)?.focus()
+    })
+  }
+}
+
+const captureEditorReturnFocus = () => {
+  const active = document.activeElement
+  if (!active?.dataset?.action) {
+    state.editorReturnFocus = ''
+    return
+  }
+  const selectorParts = [`[data-action="${active.dataset.action}"]`]
+  if (active.dataset.sectionIndex) selectorParts.push(`[data-section-index="${active.dataset.sectionIndex}"]`)
+  if (active.dataset.collection) selectorParts.push(`[data-collection="${active.dataset.collection}"]`)
+  if (active.dataset.itemId) selectorParts.push(`[data-item-id="${active.dataset.itemId}"]`)
+  state.editorReturnFocus = selectorParts.join('')
 }
 
 const openFormSectionEditor = (sectionIndex) => {
@@ -381,6 +439,7 @@ const openFormSectionEditor = (sectionIndex) => {
   if (!section) {
     return
   }
+  captureEditorReturnFocus()
   state.editor = {
     mode: 'form-section',
     sectionIndex,
@@ -391,6 +450,7 @@ const openFormSectionEditor = (sectionIndex) => {
 
 const openMetaEditor = () => {
   ensureMetaState()
+  captureEditorReturnFocus()
   state.editor = {
     mode: 'meta',
     title: '基础配置编辑',
@@ -403,6 +463,7 @@ const openCollectionItemEditor = (collectionKey, itemId, isNew = false) => {
   if (!collection) {
     return
   }
+  captureEditorReturnFocus()
   state.selected[collectionKey] = itemId
   state.editor = {
     mode: 'collection-item',
@@ -472,10 +533,20 @@ const getTableKey = (table = {}) => `table:${String(table.key || table.title || 
 const getCollectionPagerKey = (collection = {}) =>
   `collection:${String(collection.key || collection.title || collection.itemLabel || 'collection')}`
 
+const getPagerParam = (pagerKey) => `p_${slugify(pagerKey).slice(0, 48)}`
+
 const getCurrentPage = (pagerKey, pageCount) => {
-  const currentPage = Math.min(Math.max(Number(state.tablePages[pagerKey]) || 1, 1), pageCount)
+  const queryPage = new URLSearchParams(window.location.search).get(getPagerParam(pagerKey))
+  const currentPage = Math.min(Math.max(Number(state.tablePages[pagerKey] || queryPage) || 1, 1), pageCount)
   state.tablePages[pagerKey] = currentPage
   return currentPage
+}
+
+const setPagerPage = (pagerKey, page) => {
+  state.tablePages[pagerKey] = Number(page) || 1
+  const params = new URLSearchParams(window.location.search)
+  params.set(getPagerParam(pagerKey), String(state.tablePages[pagerKey]))
+  window.history.replaceState(null, '', `${window.location.pathname}?${params.toString()}`)
 }
 
 const getPaginationPages = (currentPage, pageCount) => {
@@ -490,11 +561,11 @@ const getPaginationPages = (currentPage, pageCount) => {
 const renderPagination = ({ pagerKey, pageSize, totalRows, currentPage, pageCount }) => {
   const pages = getPaginationPages(currentPage, pageCount)
   const pageButtons = pages
-    .map((page) => `<button class="pager-btn ${page === currentPage ? 'pager-btn-active' : ''}" type="button" data-action="table-page" data-table-key="${escapeHtml(pagerKey)}" data-page="${page}">${page}</button>`)
+    .map((page) => `<button class="pager-btn ${page === currentPage ? 'pager-btn-active' : ''}" type="button" data-action="table-page" data-table-key="${escapeHtml(pagerKey)}" data-page="${page}" aria-current="${page === currentPage ? 'page' : 'false'}">${page}</button>`)
     .join('')
   return `
     <div class="table-pagination">
-      <div class="pager-summary">${totalRows} records · ${pageSize}/page · ${currentPage}/${pageCount}</div>
+      <div class="pager-summary">${totalRows} 条 · 每页 ${pageSize} 条 · 第 ${currentPage}/${pageCount} 页</div>
       <div class="pager-actions">
         <button class="pager-btn" type="button" data-action="table-page" data-table-key="${escapeHtml(pagerKey)}" data-page="1" ${currentPage <= 1 ? 'disabled' : ''}>&#39318;&#39029;</button>
         <button class="pager-btn" type="button" data-action="table-page" data-table-key="${escapeHtml(pagerKey)}" data-page="${Math.max(1, currentPage - 1)}" ${currentPage <= 1 ? 'disabled' : ''}>&#19978;&#19968;&#39029;</button>
@@ -517,13 +588,13 @@ const renderTable = (table, rows) => {
   <div class="table-card">
     <div class="table-head">
       <div>
-        <div class="section-title">${table.title || 'List'}</div>
+        <div class="section-title">${escapeHtml(table.title || '列表')}</div>
       </div>
     </div>
     <div class="table-scroll">
       <table class="table">
         <thead>
-          <tr>${table.columns.map((column) => `<th>${column.label}</th>`).join('')}</tr>
+          <tr>${table.columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join('')}</tr>
         </thead>
         <tbody>
           ${
@@ -533,12 +604,12 @@ const renderTable = (table, rows) => {
                     (row) => `
                 <tr>
                   ${table.columns
-                    .map((column) => `<td>${row[column.key] == null || row[column.key] === '' ? '<span class="muted">-</span>' : String(row[column.key])}</td>`)
+                    .map((column) => `<td>${row[column.key] == null || row[column.key] === '' ? '<span class="muted">-</span>' : escapeHtml(String(row[column.key]))}</td>`)
                     .join('')}
                 </tr>`,
                   )
                   .join('')
-              : `<tr><td colspan="${table.columns.length}"><div class="empty-state">No data</div></td></tr>`
+              : `<tr><td colspan="${table.columns.length}"><div class="empty-state">暂无数据</div></td></tr>`
           }
         </tbody>
       </table>
@@ -546,16 +617,14 @@ const renderTable = (table, rows) => {
     ${renderPagination({ pagerKey: tableKey, pageSize, totalRows: allRows.length, currentPage, pageCount })}
   </div>`
 }
-const renderAssetInput = (field, value, collectionKey, itemId) => `
+const renderAssetInput = (field, value, collectionKey, itemId, common) => `
   <div class="asset-field">
     <div class="asset-input-row">
       <input
         class="asset-input-control"
         type="text"
-        value="${value ?? ''}"
-        data-field="${field.key}"
-        data-collection="${collectionKey || ''}"
-        data-item-id="${itemId || ''}"
+        value="${escapeHtml(value ?? '')}"
+        ${common}
       />
       <label class="mini-btn asset-upload-btn">
         上传图片
@@ -572,7 +641,7 @@ const renderAssetInput = (field, value, collectionKey, itemId) => `
       </label>
     </div>
     <div class="asset-preview ${value ? '' : 'asset-preview-empty'}">
-      ${value ? `<img src="${value}" alt="${field.label}" data-role="asset-preview" />` : '<span>未上传图片</span>'}
+      ${value ? `<img src="${escapeHtml(value)}" alt="${escapeHtml(field.label)}" data-role="asset-preview" ${getImageAttrs(field)} />` : '<span>未上传图片</span>'}
     </div>
     ${renderFieldMeta(field)}
   </div>`
@@ -580,7 +649,7 @@ const renderAssetInput = (field, value, collectionKey, itemId) => `
 const renderTableCell = (column, item) => {
   const value = item[column.key] ?? ''
   if (column.type === 'image' || isAssetField(column)) {
-    return value ? `<span class="table-avatar-cell"><img src="${escapeHtml(value)}" alt="${escapeHtml(column.label || '')}" /></span>` : ''
+    return value ? `<span class="table-avatar-cell"><img src="${escapeHtml(value)}" alt="${escapeHtml(column.label || '')}" ${getImageAttrs(column)} /></span>` : ''
   }
   return escapeHtml(value)
 }
@@ -601,9 +670,10 @@ const renderSelectField = (field, value, common) => {
 }
 
 const renderField = (field, value, collectionKey, itemId) => {
-  const common = `data-field="${field.key}" data-collection="${collectionKey || ''}" data-item-id="${itemId || ''}"`
+  const fieldId = getFieldDomId(field, collectionKey, itemId)
+  const common = `id="${fieldId}" name="${escapeHtml(field.key)}" data-field="${escapeHtml(field.key)}" data-collection="${escapeHtml(collectionKey || '')}" data-item-id="${escapeHtml(itemId || '')}"`
   if (isAssetField(field)) {
-    return renderAssetInput(field, value, collectionKey, itemId)
+    return renderAssetInput(field, value, collectionKey, itemId, `${common} autocomplete="off"`)
   }
   if (AUTO_COMPUTED_FIELD_KEYS.has(field.key)) {
     return `<div class="readonly-value readonly-rich">${getDisplayValue(field, value)}</div>`
@@ -612,9 +682,9 @@ const renderField = (field, value, collectionKey, itemId) => {
     return renderSelectField(field, value, common)
   }
   if (field.type === 'textarea') {
-    return `<textarea ${common}>${value || ''}</textarea>`
+    return `<textarea ${common} autocomplete="${getAutocomplete(field)}">${escapeHtml(value || '')}</textarea>`
   }
-  return `<input type="${field.type === 'number' ? 'number' : 'text'}" value="${value ?? ''}" ${common} />`
+  return `<input type="${getInputType(field)}" value="${escapeHtml(value ?? '')}" autocomplete="${getAutocomplete(field)}" ${common} />`
 }
 
 const renderSummaryField = (field, value) => `
@@ -624,24 +694,102 @@ const renderSummaryField = (field, value) => `
     ${renderFieldMeta(field)}
   </div>`
 
+const getCompactValue = (field, value) => {
+  if (value == null || value === '') {
+    return '未配置'
+  }
+  if (isAssetField(field)) {
+    return '已配置图片'
+  }
+  const text = String(value).replace(/\s+/g, ' ').trim()
+  return text.length > 48 ? `${text.slice(0, 48)}…` : text
+}
+
+const getFormSectionSummaryFields = (section) => {
+  const fields = section.fields || []
+  const textFields = fields.filter((field) => !isAssetField(field) && !AUTO_COMPUTED_FIELD_KEYS.has(field.key))
+  const assetFields = fields.filter((field) => isAssetField(field))
+  return [...textFields, ...assetFields].slice(0, 3)
+}
+
+const isConfiguredValue = (value) => {
+  if (value == null) {
+    return false
+  }
+  return String(value).trim() !== ''
+}
+
+const hasSectionDraftChanges = (section) =>
+  (section.fields || []).some((field) => JSON.stringify(state.formData?.[field.key] ?? '') !== JSON.stringify(state.page?.data?.[field.key] ?? ''))
+
+const renderFormSectionRow = (section, index) => {
+  const fields = section.fields || []
+  const summaryFields = getFormSectionSummaryFields(section)
+  const configuredCount = fields.filter((field) => isConfiguredValue(state.formData?.[field.key])).length
+  const hasDraft = hasSectionDraftChanges(section)
+  return `
+    <tr>
+      <td>
+        <div class="form-section-name">
+          <span class="form-section-title">${escapeHtml(section.title || `配置项 ${index + 1}`)}</span>
+          <span class="form-section-meta">${configuredCount}/${fields.length} 项已配置${hasDraft ? ' · 有未保存修改' : ''}</span>
+        </div>
+      </td>
+      <td>
+        <div class="form-section-summary">
+          ${
+            summaryFields.length
+              ? summaryFields
+                  .map(
+                    (field) => `
+                      <span class="summary-chip ${isConfiguredValue(state.formData?.[field.key]) ? '' : 'summary-chip-muted'}">
+                        <span>${escapeHtml(field.label)}</span>
+                        <strong>${escapeHtml(getCompactValue(field, state.formData?.[field.key]))}</strong>
+                      </span>`,
+                  )
+                  .join('')
+              : '<span class="muted">暂无摘要字段</span>'
+          }
+        </div>
+      </td>
+      <td>
+        <div class="inline-actions form-section-actions">
+          <button class="mini-btn" type="button" data-action="open-form-editor" data-section-index="${index}">编辑</button>
+        </div>
+      </td>
+    </tr>`
+}
+
 const renderFormSections = () => {
   ensureFormState()
-  return (state.page.formSections || [])
-    .map(
-      (section, index) => `
-      <section class="section-card">
-        <div class="section-head">
-          <div class="section-title">${section.title}</div>
-          <div class="inline-actions">
-            <button class="mini-btn" type="button" data-action="open-form-editor" data-section-index="${index}">编辑</button>
-          </div>
+  const sections = state.page.formSections || []
+  return `
+    <div class="table-card form-section-card">
+      <div class="table-head">
+        <div>
+          <div class="section-title">配置类目</div>
+          <div class="section-copy">按类目编辑并单独保存，列表只展示关键摘要。</div>
         </div>
-        <div class="field-grid">
-          ${section.fields.map((field) => renderSummaryField(field, state.formData?.[field.key])).join('')}
-        </div>
-      </section>`,
-    )
-    .join('')
+      </div>
+      <div class="table-scroll">
+        <table class="table form-section-table">
+          <thead>
+            <tr>
+              <th>类目</th>
+              <th>重要信息</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              sections.length
+                ? sections.map((section, index) => renderFormSectionRow(section, index)).join('')
+                : '<tr><td colspan="3"><div class="empty-state">暂无配置类目</div></td></tr>'
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>`
 }
 
 const getSelectedItem = (collection) => {
@@ -658,26 +806,41 @@ const buildBlankItem = (collection) => {
   return blank
 }
 
-const generateFreeTemplates = () => {
+const ensureFreeTemplateFilterOption = () => {
+  const templateCollection = (state.page?.collections || []).find((collection) => collection.key === 'templates')
+  const filterField = templateCollection?.fields?.find((field) => field.key === 'filterId')
+  if (!filterField) {
+    return
+  }
+  const options = Array.isArray(filterField.options) ? filterField.options : []
+  if (!options.some((option) => String(option?.value ?? option) === 'free')) {
+    filterField.options = [{ value: 'free', label: '免费模板 (free)' }, ...options]
+  }
+}
+
+const openFreeTemplateCreator = () => {
   if (state.slug !== 'content-templates') {
     return
   }
-  const filters = state.collections.filters || []
-  if (!filters.some((item) => item.id === 'free')) {
-    filters.unshift({ id: 'free', name: '免费模板' })
-    state.collections.filters = filters
+  captureEditorReturnFocus()
+  state.editor = {
+    mode: 'custom-view',
+    context: {
+      title: '创建免费模板',
+      copy: '确认后会直接写入后台数据，刷新页面也会保留。',
+      view: 'table',
+      rows: FREE_TEMPLATE_PRESETS,
+      columns: [
+        { key: 'title', label: '模板名称' },
+        { key: 'filterId', label: '分类' },
+        { key: 'cost', label: '积分' },
+        { key: 'meta', label: '描述' },
+      ],
+      saveAction: 'save-free-templates',
+      saveLabel: '创建并保存',
+      canDelete: false,
+    },
   }
-  const templates = state.collections.templates || []
-  const byId = new Map(templates.map((item) => [item.id, item]))
-  FREE_TEMPLATE_PRESETS.forEach((preset) => {
-    byId.set(preset.id, {
-      ...(byId.get(preset.id) || {}),
-      ...preset,
-    })
-  })
-  state.collections.templates = Array.from(byId.values())
-  state.selected.templates = FREE_TEMPLATE_PRESETS[0].id
-  setStatus('已生成免费模板，点击保存修改后同步到后台', 'success')
   render()
 }
 
@@ -699,8 +862,8 @@ const renderCollectionEditor = (collection, options = {}) => {
           readOnly
             ? ''
             : `<div class="inline-actions">
-                ${state.slug === 'content-templates' && collection.key === 'templates' ? '<button class="mini-btn mini-btn-hot" data-action="generate-free-templates">生成免费模板</button>' : ''}
-                <button class="mini-btn" data-action="add-item" data-collection="${collection.key}">&#26032;&#22686;${collection.itemLabel || '&#39033;'}</button>
+                ${state.slug === 'content-templates' && collection.key === 'templates' ? '<button class="mini-btn mini-btn-hot" type="button" data-action="create-free-templates">创建免费模板</button>' : ''}
+                <button class="mini-btn" type="button" data-action="add-item" data-collection="${collection.key}">&#26032;&#22686;${collection.itemLabel || '&#39033;'}</button>
               </div>`
         }
       </div>
@@ -733,14 +896,13 @@ const renderCollectionEditor = (collection, options = {}) => {
                                       )
                                       .join('')}
                                     <button class="mini-btn" type="button" data-action="edit-item" data-collection="${collection.key}" data-item-id="${item.id}">&#32534;&#36753;</button>
-                                    <button class="danger-inline" type="button" data-action="remove-item" data-collection="${collection.key}" data-item-id="${item.id}">&#21024;&#38500;</button>
                                   </div>
                                 </td>`
                           }
                         </tr>`,
                         )
                         .join('')
-                    : `<tr><td colspan="${collection.columns.length + (readOnly ? 0 : 1)}"><div class="empty-state">No data</div></td></tr>`
+                    : `<tr><td colspan="${collection.columns.length + (readOnly ? 0 : 1)}"><div class="empty-state">暂无数据</div></td></tr>`
                 }
               </tbody>
             </table>
@@ -825,22 +987,25 @@ const getEditorContext = () => {
     }
     return {
       title: state.editor.title,
-      copy: '编辑完成后请点击页面顶部“保存修改”同步到后台。',
+      copy: '编辑完成后保存当前类目，不会提交其他类目的未保存修改。',
       fields: section.fields || [],
       collectionKey: 'form',
       itemId: 'form',
       values: state.formData,
+      saveAction: 'save-form-section',
+      sectionIndex: state.editor.sectionIndex,
     }
   }
   if (state.editor.mode === 'meta') {
     ensureMetaState()
     return {
       title: state.editor.title,
-      copy: '编辑完成后请点击页面顶部“保存修改”同步到后台。',
+      copy: '编辑完成后保存当前配置，不会提交第一页的整页内容。',
       fields: state.page?.metaFields || [],
       collectionKey: 'meta',
       itemId: 'meta',
       values: state.meta,
+      saveAction: 'save-meta',
     }
   }
   if (state.editor.mode === 'collection-item') {
@@ -851,12 +1016,13 @@ const getEditorContext = () => {
     }
     return {
       title: state.editor.title,
-      copy: '编辑完成后请点击页面顶部“保存修改”同步到后台。',
+      copy: '编辑完成后保存当前项，不会提交第一页的整页内容。',
       fields: collection.fields || [],
       collectionKey: collection.key,
       itemId: item.id,
       values: item,
       canDelete: true,
+      saveAction: 'save-collection-item',
     }
   }
   if (state.editor.mode === 'custom-view') {
@@ -873,7 +1039,7 @@ const renderEditorOverlay = () => {
   return `
     <div class="editor-overlay-shell">
       <div class="editor-overlay-backdrop"></div>
-      <section class="editor-dialog" role="dialog" aria-modal="true" aria-label="${escapeHtml(context.title)}">
+      <section class="editor-dialog" role="dialog" aria-modal="true" aria-label="${escapeHtml(context.title)}" tabindex="-1">
         <div class="editor-dialog-head">
           <div>
             <div class="editor-dialog-title">${context.title}</div>
@@ -894,21 +1060,25 @@ const renderEditorOverlay = () => {
               : `<div class="field-grid editor-dialog-grid">
                   ${context.fields
                     .map(
-                      (field) => `
+                      (field) => {
+                        const fieldId = getFieldDomId(field, context.collectionKey, context.itemId)
+                        return `
                     <div class="field">
-                      <label>${field.label}</label>
+                      <label for="${fieldId}">${escapeHtml(field.label)}</label>
                       ${renderField(field, context.values?.[field.key], context.collectionKey, context.itemId)}
                       ${isAssetField(field) || AUTO_COMPUTED_FIELD_KEYS.has(field.key) ? '' : renderFieldMeta(field)}
-                    </div>`,
+                    </div>`
+                      },
                     )
                     .join('')}
                 </div>`
           }
         </div>
         ${
-          context.canDelete
+          context.canDelete || context.saveAction
             ? `<div class="editor-dialog-foot">
-                <button class="danger-inline" type="button" data-action="remove-item" data-collection="${context.collectionKey}" data-item-id="${context.itemId}" data-close-editor="1">删除当前项</button>
+                ${context.canDelete ? `<button class="danger-inline" type="button" data-action="remove-item" data-collection="${context.collectionKey}" data-item-id="${context.itemId}" data-close-editor="1">删除当前项</button>` : '<span></span>'}
+                ${context.saveAction ? `<button class="action-btn" type="button" data-action="${context.saveAction}" data-section-index="${context.sectionIndex ?? ''}" data-collection="${context.collectionKey || ''}" data-item-id="${context.itemId || ''}">${icon('icon-publish')} ${context.saveLabel || '保存此项'}</button>` : ''}
               </div>`
             : ''
         }
@@ -918,6 +1088,50 @@ const renderEditorOverlay = () => {
 
 const isEditable = () => ['form', 'collection', 'multi-collection'].includes(state.page?.view)
 
+const getCurrentMetaState = () => {
+  if (Object.keys(state.meta).length) {
+    return clone(state.meta)
+  }
+  return clone(state.page?.meta || {})
+}
+
+const getOriginalItemsForCollection = (collectionKey) => {
+  if (state.page?.view === 'collection' && state.page.collection?.key === collectionKey) {
+    return clone(state.page.collection.items || [])
+  }
+  const collection = (state.page?.collections || []).find((entry) => entry.key === collectionKey)
+  return clone(collection?.items || [])
+}
+
+const getCurrentItemsForCollection = (collectionKey) => {
+  if (state.collections[collectionKey]) {
+    return clone(state.collections[collectionKey])
+  }
+  return getOriginalItemsForCollection(collectionKey)
+}
+
+const buildCollectionPayload = ({ collectionKey, items, meta }) => {
+  if (state.page.view === 'collection') {
+    return {
+      meta: meta || getCurrentMetaState(),
+      items: clone(items || getCurrentItemsForCollection(collectionKey || state.page.collection.key)),
+    }
+  }
+
+  if (state.page.view === 'multi-collection') {
+    const collections = {}
+    ;(state.page.collections || []).forEach((collection) => {
+      collections[collection.key] =
+        collection.key === collectionKey
+          ? clone(items || getCurrentItemsForCollection(collection.key))
+          : getOriginalItemsForCollection(collection.key)
+    })
+    return { meta: meta || getCurrentMetaState(), collections }
+  }
+
+  return buildPayload()
+}
+
 const buildPayload = () => {
   if (state.page.view === 'form') {
     ensureFormState()
@@ -925,18 +1139,68 @@ const buildPayload = () => {
   }
 
   if (state.page.view === 'collection') {
-    return { meta: clone(state.meta), items: state.collections[state.page.collection.key] || [] }
+    return buildCollectionPayload({ collectionKey: state.page.collection.key })
   }
 
   if (state.page.view === 'multi-collection') {
-    const collections = {}
-    ;(state.page.collections || []).forEach((collection) => {
-      collections[collection.key] = state.collections[collection.key] || []
-    })
-    return { meta: clone(state.meta), collections }
+    return buildCollectionPayload({})
   }
 
   return {}
+}
+
+const buildFormSectionPayload = (sectionIndex) => {
+  ensureFormState()
+  const section = state.page?.formSections?.[sectionIndex]
+  if (!section) {
+    return { data: clone(state.page?.data || {}) }
+  }
+  const nextData = clone(state.page?.data || {})
+  ;(section.fields || []).forEach((field) => {
+    nextData[field.key] = state.formData?.[field.key]
+  })
+  return { data: nextData }
+}
+
+const buildCollectionItemPayload = (collectionKey, itemId) => {
+  const currentItem = (state.collections[collectionKey] || []).find((entry) => entry.id === itemId)
+  if (!currentItem) {
+    return buildCollectionPayload({ collectionKey })
+  }
+  return buildCollectionPayload({ collectionKey, items: getCurrentItemsForCollection(collectionKey) })
+}
+
+const buildCollectionDeletePayload = (collectionKey, itemId) => {
+  const nextItems = getCurrentItemsForCollection(collectionKey).filter((item) => item.id !== itemId)
+  return buildCollectionPayload({ collectionKey, items: nextItems })
+}
+
+const buildMetaPayload = () => buildCollectionPayload({ meta: getCurrentMetaState() })
+
+const buildFreeTemplatesPayload = () => {
+  const filters = getCurrentItemsForCollection('filters')
+  if (!filters.some((item) => item.id === 'free')) {
+    filters.unshift({ id: 'free', name: '免费模板' })
+  }
+
+  const templates = getCurrentItemsForCollection('templates')
+  const byId = new Map(templates.map((item) => [item.id, item]))
+  const presetIds = new Set(FREE_TEMPLATE_PRESETS.map((preset) => preset.id))
+  const freeTemplates = FREE_TEMPLATE_PRESETS.map((preset) => ({
+    ...preset,
+    ...(byId.get(preset.id) || {}),
+  }))
+  const payload = buildCollectionPayload({
+    collectionKey: 'templates',
+    items: [
+      ...freeTemplates,
+      ...templates.filter((item) => !presetIds.has(item.id)),
+    ],
+  })
+  if (payload.collections) {
+    payload.collections.filters = filters
+  }
+  return payload
 }
 
 const syncAssetPreview = (input) => {
@@ -952,7 +1216,7 @@ const syncAssetPreview = (input) => {
     return
   }
   preview.classList.remove('asset-preview-empty')
-  preview.innerHTML = `<img src="${value}" alt="asset preview" data-role="asset-preview" />`
+  preview.innerHTML = `<img src="${escapeHtml(value)}" alt="素材预览" data-role="asset-preview" width="960" height="540" loading="lazy" />`
 }
 
 const applyFieldValue = ({ collectionKey, itemId, fieldKey, value }) => {
@@ -996,7 +1260,7 @@ const uploadAsset = async (fileInput) => {
   }
 
   try {
-    setStatus('上传图片中...', 'normal')
+    setStatus('上传图片中…', 'normal')
     const dataUrl = await readFileAsDataUrl(file)
     const payload = await request(imageUploadEndpoint, {
       method: 'POST',
@@ -1023,6 +1287,7 @@ const uploadAsset = async (fileInput) => {
 
 const render = () => {
   const page = state.page
+  const showPageSave = false
   document.title = `${page.title} - 酒桌判官后台`
   const app = document.getElementById('app')
   app.innerHTML = `
@@ -1036,14 +1301,14 @@ const render = () => {
       </aside>
       <main class="content">
         <header class="topbar">
-          <label class="topbar-search">
-            ${icon('icon-search')}
-            <input value="${page.title}" readonly />
-          </label>
+          <div class="topbar-context">
+            <span class="topbar-kicker">管理后台</span>
+            <h1>${escapeHtml(page.title)}</h1>
+          </div>
           <div class="topbar-actions">
-            <span class="status-badge" data-role="status" data-type="normal">已连接后台</span>
-            <span class="user-pill">${icon('icon-user')} ${state.user.name}</span>
-            <button class="ghost-btn ghost-btn-dark" data-action="logout">${icon('icon-settings')} 退出</button>
+            <span class="status-badge" data-role="status" role="status" aria-live="polite" data-type="normal">已连接后台</span>
+            <span class="user-pill">${icon('icon-user')} ${escapeHtml(state.user.name)}</span>
+            <button class="ghost-btn ghost-btn-dark" type="button" data-action="logout">${icon('icon-settings')} 退出</button>
           </div>
         </header>
 
@@ -1051,11 +1316,11 @@ const render = () => {
 
         <div class="toolbar">
           <div class="toolbar-head">
-            <div class="toolbar-title">${page.title}</div>
+            <div class="toolbar-title">${escapeHtml(page.title)}</div>
             <div class="toolbar-copy">当前页面已接入真实后台接口</div>
           </div>
           <div class="toolbar-actions">
-            ${isEditable() ? `<button class="action-btn" data-action="save-page">${icon('icon-publish')} 保存修改</button>` : ''}
+            ${showPageSave ? `<button class="action-btn" type="button" data-action="save-page">${icon('icon-publish')} 保存修改</button>` : ''}
             <a class="ghost-btn ghost-btn-light" href="/admin/ui-kit">${icon('icon-eye')} UI Kit</a>
           </div>
         </div>
@@ -1076,9 +1341,7 @@ const bindEvents = () => {
     window.location.href = '/admin/login'
   })
 
-  document.querySelector('[data-action="save-page"]')?.addEventListener('click', savePage)
-
-  document.querySelector('[data-action="generate-free-templates"]')?.addEventListener('click', generateFreeTemplates)
+  document.querySelector('[data-action="create-free-templates"]')?.addEventListener('click', openFreeTemplateCreator)
 
   document.querySelectorAll('[data-action="toggle-nav-group"]').forEach((node) => {
     node.addEventListener('click', () => {
@@ -1093,7 +1356,7 @@ const bindEvents = () => {
       if (node.disabled) {
         return
       }
-      state.tablePages[node.dataset.tableKey] = Number(node.dataset.page) || 1
+      setPagerPage(node.dataset.tableKey, node.dataset.page)
       render()
     })
   })
@@ -1114,6 +1377,30 @@ const bindEvents = () => {
   document.querySelectorAll('[data-action="open-form-editor"]').forEach((node) => {
     node.addEventListener('click', () => {
       openFormSectionEditor(Number(node.dataset.sectionIndex))
+    })
+  })
+
+  document.querySelectorAll('[data-action="save-form-section"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      void saveFormSection(Number(node.dataset.sectionIndex))
+    })
+  })
+
+  document.querySelectorAll('[data-action="save-meta"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      void saveMeta()
+    })
+  })
+
+  document.querySelectorAll('[data-action="save-collection-item"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      void saveCollectionItem(node.dataset.collection, node.dataset.itemId)
+    })
+  })
+
+  document.querySelectorAll('[data-action="save-free-templates"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      void saveFreeTemplates()
     })
   })
 
@@ -1148,6 +1435,7 @@ const bindEvents = () => {
           canDelete: false,
         },
       }
+      captureEditorReturnFocus()
       render()
     })
   })
@@ -1158,18 +1446,23 @@ const bindEvents = () => {
     })
   })
 
+  const dialog = document.querySelector('.editor-dialog')
+  if (dialog) {
+    const focusTarget =
+      dialog.querySelector('.editor-dialog-body input:not([type="hidden"]), .editor-dialog-body select, .editor-dialog-body textarea') ||
+      dialog.querySelector('button, a[href]') ||
+      dialog
+    requestAnimationFrame(() => focusTarget.focus())
+    window.onkeydown = (event) => {
+      if (event.key === 'Escape') closeEditor()
+    }
+  } else {
+    window.onkeydown = null
+  }
+
   document.querySelectorAll('[data-action="remove-item"]').forEach((node) => {
     node.addEventListener('click', () => {
-      if (!window.confirm('确认删除这条记录？')) {
-        return
-      }
-      const key = node.dataset.collection
-      state.collections[key] = (state.collections[key] || []).filter((item) => item.id !== node.dataset.itemId)
-      state.selected[key] = state.collections[key]?.[0]?.id || ''
-      if (node.dataset.closeEditor === '1') {
-        state.editor = null
-      }
-      render()
+      void removeCollectionItem(node.dataset.collection, node.dataset.itemId)
     })
   })
 
@@ -1210,7 +1503,7 @@ const bindEvents = () => {
 
 const savePage = async () => {
   try {
-    setStatus('保存中...', 'normal')
+    setStatus('保存中…', 'normal')
     const data = await request(`/api/v1/admin/pages/${state.slug}`, {
       method: 'PUT',
       body: JSON.stringify(buildPayload()),
@@ -1226,6 +1519,130 @@ const savePage = async () => {
     setStatus('保存成功', 'success')
   } catch (error) {
     setStatus(error.message || '保存失败', 'error')
+  }
+}
+
+const saveFormSection = async (sectionIndex) => {
+  const section = state.page?.formSections?.[sectionIndex]
+  if (!section) {
+    setStatus('未找到要保存的类目', 'error')
+    return
+  }
+
+  try {
+    setStatus(`${section.title}保存中…`, 'normal')
+    const data = await request(`/api/v1/admin/pages/${state.slug}`, {
+      method: 'PUT',
+      body: JSON.stringify(buildFormSectionPayload(sectionIndex)),
+    })
+    state.user = data.user
+    state.page = data.page
+    state.formData = clone(data.page.data || {})
+    if (state.editor?.mode === 'form-section' && Number(state.editor.sectionIndex) === sectionIndex) {
+      state.editor = null
+    }
+    render()
+    setStatus(`${section.title}已保存`, 'success')
+  } catch (error) {
+    setStatus(error.message || `${section.title}保存失败`, 'error')
+  }
+}
+
+const resetPageState = (data) => {
+  state.user = data.user
+  state.page = data.page
+  state.formData = {}
+  state.collections = {}
+  state.selected = {}
+  state.meta = {}
+  state.editor = null
+}
+
+const saveMeta = async () => {
+  try {
+    setStatus('基础配置保存中…', 'normal')
+    const data = await request(`/api/v1/admin/pages/${state.slug}`, {
+      method: 'PUT',
+      body: JSON.stringify(buildMetaPayload()),
+    })
+    resetPageState(data)
+    render()
+    setStatus('基础配置已保存', 'success')
+  } catch (error) {
+    setStatus(error.message || '基础配置保存失败', 'error')
+  }
+}
+
+const saveCollectionItem = async (collectionKey, itemId) => {
+  const collection = getCollectionDefinition(collectionKey)
+  const item = (state.collections[collectionKey] || []).find((entry) => entry.id === itemId)
+  if (!collection || !item) {
+    setStatus('未找到要保存的记录', 'error')
+    return
+  }
+  if (!isMeaningfulItem(item, collection.fields || [])) {
+    setStatus('请先填写当前项内容', 'error')
+    return
+  }
+
+  try {
+    setStatus(`${collection.itemLabel || '当前项'}保存中…`, 'normal')
+    const data = await request(`/api/v1/admin/pages/${state.slug}`, {
+      method: 'PUT',
+      body: JSON.stringify(buildCollectionItemPayload(collectionKey, itemId)),
+    })
+    resetPageState(data)
+    render()
+    setStatus(`${collection.itemLabel || '当前项'}已保存`, 'success')
+  } catch (error) {
+    setStatus(error.message || `${collection.itemLabel || '当前项'}保存失败`, 'error')
+  }
+}
+
+const saveFreeTemplates = async () => {
+  if (state.slug !== 'content-templates') {
+    setStatus('当前页面不能创建免费模板', 'error')
+    return
+  }
+  const templatesCollection = (state.page.collections || []).find((collection) => collection.key === 'templates')
+  try {
+    setStatus('免费模板创建中…', 'normal')
+    const data = await request(`/api/v1/admin/pages/${state.slug}`, {
+      method: 'PUT',
+      body: JSON.stringify(buildFreeTemplatesPayload()),
+    })
+    if (templatesCollection) {
+      setPagerPage(getCollectionPagerKey(templatesCollection), 1)
+    }
+    resetPageState(data)
+    render()
+    setStatus('免费模板已创建并保存', 'success')
+  } catch (error) {
+    setStatus(error.message || '免费模板创建失败', 'error')
+  }
+}
+
+const removeCollectionItem = async (collectionKey, itemId) => {
+  const collection = getCollectionDefinition(collectionKey)
+  if (!collection || !itemId) {
+    setStatus('未找到要删除的记录', 'error')
+    return
+  }
+  if (!window.confirm('确认删除这条记录？')) {
+    return
+  }
+
+  try {
+    setStatus(`${collection.itemLabel || '当前项'}删除中…`, 'normal')
+    const data = await request(`/api/v1/admin/pages/${state.slug}`, {
+      method: 'PUT',
+      body: JSON.stringify(buildCollectionDeletePayload(collectionKey, itemId)),
+    })
+    resetPageState(data)
+    render()
+    setStatus(`${collection.itemLabel || '当前项'}已删除`, 'success')
+  } catch (error) {
+    setStatus(error.message || `${collection.itemLabel || '当前项'}删除失败`, 'error')
   }
 }
 

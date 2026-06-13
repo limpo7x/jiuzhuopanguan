@@ -2,6 +2,7 @@ import { homePageMock, type HomePageData } from '../../mock/home'
 import { claimPointsTask, getUserCommerceState } from '../../services/content'
 import { getHomePageData } from '../../services/home'
 import { joinManagedSession, recordManagedToolUsage } from '../../services/operations'
+import { showFirstLoginBonusModal } from '../../utils/firstLoginBonus'
 import { setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import { ensureUserAuthorized, getCurrentDisplayProfile, getUserAuthSession, loginWithWechatProfile } from '../../utils/social'
 
@@ -174,7 +175,11 @@ Page<HomePageState, HomePageMethods>({
         userAvatarUrl: normalizeAvatar(profile.avatarUrl) || avatarUrl,
         userName: normalizeName(profile.name) || name,
       })
-      wx.showToast({ title: '登录成功', icon: 'success' })
+      await this.syncAuthState()
+      const bonusShown = await showFirstLoginBonusModal(profile)
+      if (!bonusShown) {
+        wx.showToast({ title: '登录成功', icon: 'success' })
+      }
     } catch (error) {
       wx.showToast({ title: error instanceof Error ? error.message : '微信登录失败', icon: 'none' })
     } finally {

@@ -34,7 +34,7 @@ export interface PointsReward {
 }
 
 export interface PointsConfig {
-  balance: number
+  balance?: number
   bannerImageUrl: string
   rewards: PointsReward[]
   tasks: PointsTask[]

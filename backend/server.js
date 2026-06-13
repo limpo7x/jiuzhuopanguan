@@ -12,6 +12,7 @@ const {
   activateMembershipPlan,
   adjustUserPointsByAdmin,
   claimPointsTask,
+  grantFirstLoginBonus,
   getMembershipCatalog,
   getUserCommerceState,
   redeemPointsReward,
@@ -825,6 +826,9 @@ const server = http.createServer((request, response) => {
           identityTag: payload.profile?.identityTag || '',
         },
       })
+      if (Number(session.profile?.loginCount) === 1) {
+        grantFirstLoginBonus(session.profile.id)
+      }
       sendOk(response, session)
       return
     }

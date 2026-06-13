@@ -6,6 +6,14 @@ const storePath = path.join(__dirname, 'content-store.json')
 const cleanText = (value = '') => String(value || '').trim()
 const cleanArray = (value) => (Array.isArray(value) ? value : [])
 const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value)
+const BUILTIN_POINTS_TASKS = [
+  {
+    id: 'task-first-login',
+    title: '首次登录赠送',
+    value: 500,
+    iconClass: 'points-icon-coin',
+  },
+]
 const normalizeTemplateImageUrl = (value = '') => {
   const text = cleanText(value)
   if (/^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(text) || /\/__store__\//i.test(text) || /\/__tmp__\//i.test(text)) {
@@ -67,7 +75,6 @@ const createDefaultStore = () => ({
     },
   },
   pointsConfig: {
-    balance: 0,
     bannerImageUrl: '',
     tasks: [],
     rewards: [],
@@ -113,6 +120,22 @@ const normalizePointsTask = (item = {}) => ({
   value: Number(item.value) || 0,
   iconClass: cleanText(item.iconClass),
 })
+
+const withBuiltinPointsTasks = (tasks = []) => {
+  const byId = new Map(cleanArray(tasks).map(normalizePointsTask).filter((item) => item.id || item.title).map((item) => [item.id, item]))
+  BUILTIN_POINTS_TASKS.forEach((task) => {
+    byId.set(task.id, {
+      ...task,
+      ...(byId.get(task.id) || {}),
+      id: task.id,
+      value: Number((byId.get(task.id) || {}).value) || task.value,
+    })
+  })
+  return [
+    ...BUILTIN_POINTS_TASKS.map((task) => byId.get(task.id)),
+    ...Array.from(byId.values()).filter((task) => !BUILTIN_POINTS_TASKS.some((builtin) => builtin.id === task.id)),
+  ]
+}
 
 const normalizePointsReward = (item = {}) => ({
   id: cleanText(item.id),
@@ -225,9 +248,8 @@ const normalizeStore = (store = {}) => ({
   })).filter((item) => item.id || item.name),
   homeConfig: normalizeHomeConfig(store?.homeConfig),
   pointsConfig: {
-    balance: Number(store?.pointsConfig?.balance) || 0,
     bannerImageUrl: cleanText(store?.pointsConfig?.bannerImageUrl),
-    tasks: cleanArray(store?.pointsConfig?.tasks).map(normalizePointsTask).filter((item) => item.id || item.title),
+    tasks: withBuiltinPointsTasks(store?.pointsConfig?.tasks),
     rewards: cleanArray(store?.pointsConfig?.rewards).map(normalizePointsReward).filter((item) => item.id || item.title),
   },
   templateConfig: {
@@ -293,9 +315,8 @@ const updateHomeHero = (payload = {}) => updateHomeConfig({ hero: payload }).her
 const updatePointsConfig = (payload = {}) => {
   const store = readStore()
   store.pointsConfig = {
-    balance: Number(payload.balance) || 0,
     bannerImageUrl: cleanText(payload.bannerImageUrl),
-    tasks: cleanArray(payload.tasks).map(normalizePointsTask).filter((item) => item.id || item.title),
+    tasks: withBuiltinPointsTasks(payload.tasks),
     rewards: cleanArray(payload.rewards).map(normalizePointsReward).filter((item) => item.id || item.title),
   }
   return writeStore(store).pointsConfig
