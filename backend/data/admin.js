@@ -58,6 +58,25 @@ const seedCountFromRate = (rateText, denominator, fallbackBase = 1000) => {
 
 const DEFAULT_TOOLS_CATALOG = []
 
+const RANKING_REWARD_CATEGORIES = [
+  { value: 'today_funny', label: '今日最有梗' },
+  { value: 'today_debt', label: '今日最欠酒' },
+  { value: 'today_highlight', label: '今日最精彩' },
+  { value: 'today_visual', label: '今日最有画面' },
+  { value: 'best_opening', label: '最佳开场' },
+  { value: 'best_closing', label: '最佳收尾' },
+]
+
+const DEFAULT_RANKING_REWARD_RULES = [
+  { id: 'reward-rule-today-funny-1', category: 'today_funny', enabled: 'true', rankStart: 1, rankEnd: 1, points: 100, effectiveAt: '', reason: '初始榜单奖励配置', updatedAt: '' },
+  { id: 'reward-rule-today-funny-2', category: 'today_funny', enabled: 'true', rankStart: 2, rankEnd: 3, points: 50, effectiveAt: '', reason: '初始榜单奖励配置', updatedAt: '' },
+  { id: 'reward-rule-today-debt-1', category: 'today_debt', enabled: 'true', rankStart: 1, rankEnd: 1, points: 80, effectiveAt: '', reason: '初始榜单奖励配置', updatedAt: '' },
+  { id: 'reward-rule-today-highlight-1', category: 'today_highlight', enabled: 'true', rankStart: 1, rankEnd: 1, points: 120, effectiveAt: '', reason: '初始榜单奖励配置', updatedAt: '' },
+  { id: 'reward-rule-today-visual-1', category: 'today_visual', enabled: 'true', rankStart: 1, rankEnd: 1, points: 100, effectiveAt: '', reason: '初始榜单奖励配置', updatedAt: '' },
+  { id: 'reward-rule-best-opening-1', category: 'best_opening', enabled: 'true', rankStart: 1, rankEnd: 1, points: 60, effectiveAt: '', reason: '初始榜单奖励配置', updatedAt: '' },
+  { id: 'reward-rule-best-closing-1', category: 'best_closing', enabled: 'true', rankStart: 1, rankEnd: 1, points: 60, effectiveAt: '', reason: '初始榜单奖励配置', updatedAt: '' },
+]
+
 const normalizeToolItem = (item = {}, index = 0) => ({
   id: String(item.id || '').trim(),
   name: String(item.name || '').trim(),
@@ -79,6 +98,27 @@ const normalizeToolsCatalog = (tools = []) => {
     .filter((item) => item && String(item.id || '').trim())
     .map((item, index) => normalizeToolItem(item, index))
     .sort((a, b) => Number(a.sortOrder) - Number(b.sortOrder))
+}
+
+const getRankingCategoryLabel = (category) =>
+  RANKING_REWARD_CATEGORIES.find((item) => item.value === String(category || '').trim())?.label || String(category || '').trim()
+
+const normalizeRankingRewardRule = (item = {}, index = 0) => {
+  const category = String(item.category || RANKING_REWARD_CATEGORIES[0].value).trim()
+  const rankStart = Math.max(1, Number(item.rankStart) || 1)
+  const rankEnd = Math.max(rankStart, Number(item.rankEnd) || rankStart)
+  return {
+    id: String(item.id || `reward-rule-${category}-${index + 1}`).trim(),
+    category,
+    categoryName: getRankingCategoryLabel(category),
+    enabled: String(item.enabled ?? 'true') === 'false' ? 'false' : 'true',
+    rankStart,
+    rankEnd,
+    points: Math.max(0, Number(item.points) || 0),
+    effectiveAt: String(item.effectiveAt || '').trim(),
+    reason: String(item.reason || '').trim(),
+    updatedAt: String(item.updatedAt || '').trim(),
+  }
 }
 const createDefaultStore = () => ({
   adminUsers: [
@@ -142,6 +182,10 @@ const createDefaultStore = () => ({
   baseConfigs: [],
   sensitiveWords: [],
   auditQueue: [],
+  momentReviewItems: [],
+  momentReportItems: [],
+  shareImageTasks: [],
+  rankingRewardRules: DEFAULT_RANKING_REWARD_RULES,
 })
 
 const getSessionContactsByProfile = (profileId) => {
@@ -322,6 +366,12 @@ const normalizeStore = (store = {}) => {
   next.campaigns = (Array.isArray(store.campaigns) ? store.campaigns : next.campaigns).map((item, index) => normalizeCampaign(item, index))
   next.operationLogs = Array.isArray(store.operationLogs) ? store.operationLogs : []
   next.analyticsEvents = Array.isArray(store.analyticsEvents) ? store.analyticsEvents : []
+  next.momentReviewItems = Array.isArray(store.momentReviewItems) ? store.momentReviewItems : []
+  next.momentReportItems = Array.isArray(store.momentReportItems) ? store.momentReportItems : []
+  next.shareImageTasks = Array.isArray(store.shareImageTasks) ? store.shareImageTasks : []
+  next.rankingRewardRules = (Array.isArray(store.rankingRewardRules) ? store.rankingRewardRules : next.rankingRewardRules).map((item, index) =>
+    normalizeRankingRewardRule(item, index),
+  )
   return next
 }
 
@@ -551,6 +601,78 @@ const buildAdminOperationLogRows = (adminStore = readStore()) =>
       createdAt: entry.createdAt || '',
     }))
     .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+
+const buildMomentReviewRows = (adminStore = readStore()) =>
+  (adminStore.momentReviewItems || [])
+    .map((entry) => ({
+      id: entry.id || entry.momentId || '',
+      thumbnailUrl: entry.thumbnailUrl || entry.imageUrl || '',
+      caption: entry.caption || '',
+      tagsText: Array.isArray(entry.tags) ? entry.tags.join('、') : entry.tagsText || '',
+      sessionName: entry.sessionName || entry.sessionId || '',
+      uploaderName: entry.uploaderName || entry.uploaderProfileId || '',
+      nodeType: entry.nodeType || '',
+      visibility: entry.visibility || '',
+      consentText: entry.consentText || '',
+      completionStatus: entry.completionStatus || '',
+      reviewStatus: entry.reviewStatus || '',
+      secondaryReviewStatus: entry.secondaryReviewStatus || '',
+      rankingEligible: entry.rankingEligible ? '是' : '否',
+      rewardEligible: entry.rewardEligible ? '是' : '否',
+      reportCount: Number(entry.reportCount) || 0,
+      createdAt: entry.createdAt || '',
+    }))
+    .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+
+const buildMomentReportRows = (adminStore = readStore()) =>
+  (adminStore.momentReportItems || [])
+    .map((entry) => ({
+      id: entry.id || '',
+      momentId: entry.momentId || '',
+      sessionName: entry.sessionName || entry.sessionId || '',
+      reporterName: entry.reporterName || entry.reporterProfileId || '',
+      uploaderName: entry.uploaderName || entry.uploaderProfileId || '',
+      reason: entry.reason || '',
+      note: entry.note || '',
+      status: entry.status || '',
+      handler: entry.handler || '',
+      handledAt: entry.handledAt || '',
+      createdAt: entry.createdAt || '',
+    }))
+    .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+
+const buildShareImageTaskRows = (adminStore = readStore()) =>
+  (adminStore.shareImageTasks || [])
+    .map((entry) => ({
+      id: entry.id || '',
+      sessionName: entry.sessionName || entry.sessionId || '',
+      briefId: entry.briefId || '',
+      status: entry.status || '',
+      layoutMode: entry.layoutMode || '',
+      selectedNodeCount: Number(entry.selectedNodeCount || (Array.isArray(entry.selectedNodeIds) ? entry.selectedNodeIds.length : 0)) || 0,
+      durationMs: Number(entry.durationMs) || 0,
+      retryCount: Number(entry.retryCount) || 0,
+      failedReason: entry.failedReason || '',
+      imageUrl: entry.imageUrl || '',
+      createdAt: entry.createdAt || '',
+      finishedAt: entry.finishedAt || '',
+    }))
+    .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+
+const appendAdminOperationLog = (adminStore, log = {}) => {
+  adminStore.operationLogs = Array.isArray(adminStore.operationLogs) ? adminStore.operationLogs : []
+  adminStore.operationLogs.unshift({
+    id: createId('admin-op'),
+    operator: log.operator || 'admin-console',
+    action: log.action || '后台操作',
+    targetId: log.targetId || '',
+    targetName: log.targetName || '',
+    targetPhone: log.targetPhone || '',
+    targetOpenId: log.targetOpenId || '',
+    detail: log.detail || '',
+    createdAt: iso(),
+  })
+}
 
 const trackAnalyticsEvent = ({ type, profileId = '', reportId = '', assetId = '', planId = '', toolId = '', slotId = '', merchantId = '', campaignId = '', meta = {} }) => {
   const store = readStore()
@@ -1050,6 +1172,8 @@ const getComplianceMetrics = () => {
 
 const makeHomeFormData = () => {
   const config = getHomeConfig()
+  const store = readStore()
+  const toolsHero = store.toolsHero || {}
   return {
     heroTitle: config.hero.title,
     heroSubtitle: config.hero.subtitle,
@@ -1057,6 +1181,9 @@ const makeHomeFormData = () => {
     judgeHeroTitle: config.judge?.title || '',
     judgeHeroSubtitle: config.judge?.subtitle || '',
     judgeHeroImageUrl: config.judge?.imageUrl || '',
+    toolsHeroTitle: toolsHero.title || '',
+    toolsHeroSubtitle: toolsHero.subtitle || '',
+    toolsHeroImageUrl: toolsHero.imageUrl || '',
     bannerTitle: config.banner.title,
     bannerImageUrl: config.banner.imageUrl,
     quickToolsText: config.quickTools.map((item) => `${item.id}|${item.name}`).join('\n'),
@@ -1709,9 +1836,33 @@ const uniqueOptions = (values = []) =>
 const mergeOptions = (...groups) => uniqueOptions(groups.flat())
 
 const YES_NO_OPTIONS = [toOption('是'), toOption('否')]
+const TRUE_FALSE_OPTIONS = [toOption('true', '开启'), toOption('false', '关闭')]
 const QUESTION_TYPE_OPTIONS = [toOption('互动'), toOption('惩罚'), toOption('问答')]
 const QUESTION_DIFFICULTY_OPTIONS = [toOption('简单'), toOption('中等'), toOption('困难')]
 const RISK_LEVEL_OPTIONS = [toOption('低'), toOption('中'), toOption('高')]
+const MOMENT_NODE_TYPE_OPTIONS = [
+  toOption('opening', '开场'),
+  toOption('highlight', '精彩瞬间'),
+  toOption('drinking', '欠酒/加酒'),
+  toOption('private', '私密爆料'),
+  toOption('closing', '收尾'),
+]
+const MOMENT_REVIEW_STATUS_OPTIONS = [toOption('pending', '待审核'), toOption('approved', '已通过'), toOption('rejected', '已拒绝'), toOption('hidden', '已隐藏')]
+const MOMENT_SECONDARY_REVIEW_STATUS_OPTIONS = [
+  toOption('pending', '待二审'),
+  toOption('approved', '二审通过'),
+  toOption('rejected', '二审拒绝'),
+  toOption('require_resubmit', '要求重传'),
+]
+const MOMENT_COMPLETION_STATUS_OPTIONS = [toOption('draft', '草稿'), toOption('needs_media', '待补图'), toOption('complete', '已补全')]
+const SHARE_TASK_STATUS_OPTIONS = [
+  toOption('pending', '待处理'),
+  toOption('processing', '生成中'),
+  toOption('ready', '已生成'),
+  toOption('failed', '失败'),
+  toOption('expired', '已过期'),
+]
+const RANKING_REWARD_CATEGORY_OPTIONS = RANKING_REWARD_CATEGORIES.map((item) => toOption(item.value, item.label))
 const TOOL_PLACEMENT_OPTIONS = [toOption('home'), toOption('tools'), toOption('both')]
 const USER_STATUS_OPTIONS = [toOption('高活跃'), toOption('普通'), toOption('高价值'), toOption('沉默')]
 const ADMIN_STATUS_OPTIONS = [toOption('active', '启用'), toOption('disabled', '停用')]
@@ -1802,6 +1953,14 @@ const pageMap = {
           { key: 'judgeHeroTitle', label: '页面标题', type: 'text' },
           { key: 'judgeHeroSubtitle', label: '页面副标题', type: 'textarea' },
           { key: 'judgeHeroImageUrl', label: '页面主图', type: 'image' },
+        ],
+      },
+      {
+        title: '工具箱主视觉',
+        fields: [
+          { key: 'toolsHeroTitle', label: '页面标题', type: 'text' },
+          { key: 'toolsHeroSubtitle', label: '页面副标题', type: 'textarea' },
+          { key: 'toolsHeroImageUrl', label: '页面主图', type: 'image' },
         ],
       },
       {
@@ -1934,22 +2093,11 @@ const pageMap = {
   },
   'content-tools-ops': () => {
     const store = readStore()
-    const toolsHero = store.toolsHero || {}
     return {
       slug: 'content-tools-ops',
       title: '工具箱运营',
       view: 'collection',
       metrics: getToolOpsMetrics(),
-      metaFields: [
-        { key: 'heroTitle', label: '主视觉标题', type: 'text' },
-        { key: 'heroSubtitle', label: '主视觉副标题', type: 'text' },
-        { key: 'heroImageUrl', label: '主视觉图片', type: 'image' },
-      ],
-      meta: {
-        heroTitle: toolsHero.title || '',
-        heroSubtitle: toolsHero.subtitle || '',
-        heroImageUrl: toolsHero.imageUrl || '',
-      },
       collection: {
         key: 'toolsCatalog',
         itemLabel: '工具',
@@ -2584,6 +2732,151 @@ pageMap['system-operation-logs'] = () => {
   }
 }
 
+pageMap['content-moments-review'] = () => {
+  const rows = buildMomentReviewRows()
+  return {
+    slug: 'content-moments-review',
+    title: '精彩瞬间审核',
+    view: 'readonly',
+    metrics: [
+      { label: '待审核', value: formatNumber(countBy(rows, (item) => item.reviewStatus === 'pending' || item.reviewStatus === '待审核')), trend: '等待后端 moments 数据接入', tone: 'up' },
+      { label: '待二审', value: formatNumber(countBy(rows, (item) => item.secondaryReviewStatus === 'pending' || item.secondaryReviewStatus === '待二审')), trend: '公开传播前复核', tone: 'up' },
+      { label: '有举报', value: formatNumber(countBy(rows, (item) => Number(item.reportCount) > 0)), trend: `队列 ${formatNumber(rows.length)} 条`, tone: 'up' },
+      { label: '可上榜', value: formatNumber(countBy(rows, (item) => item.rankingEligible === '是')), trend: '以后端资格为准', tone: 'up' },
+    ],
+    tables: [
+      {
+        title: '瞬间审核队列',
+        columns: [
+          { key: 'thumbnailUrl', label: '缩略图', type: 'image' },
+          { key: 'caption', label: '文案' },
+          { key: 'tagsText', label: '标签' },
+          { key: 'sessionName', label: '酒局' },
+          { key: 'uploaderName', label: '上传者' },
+          { key: 'nodeType', label: '节点类型' },
+          { key: 'visibility', label: '可见范围' },
+          { key: 'completionStatus', label: '补全状态' },
+          { key: 'reviewStatus', label: '审核状态' },
+          { key: 'secondaryReviewStatus', label: '二审状态' },
+          { key: 'reportCount', label: '举报数' },
+          { key: 'rankingEligible', label: '可上榜' },
+          { key: 'createdAt', label: '创建时间' },
+        ],
+        rows,
+      },
+    ],
+  }
+}
+
+pageMap['content-moment-reports'] = () => {
+  const rows = buildMomentReportRows()
+  return {
+    slug: 'content-moment-reports',
+    title: '瞬间举报处理',
+    view: 'readonly',
+    metrics: [
+      { label: '举报总数', value: formatNumber(rows.length), trend: '等待举报接口接入', tone: 'up' },
+      { label: '待处理', value: formatNumber(countBy(rows, (item) => String(item.status || '').includes('待'))), trend: '需运营处理', tone: 'up' },
+      { label: '已处理', value: formatNumber(countBy(rows, (item) => String(item.status || '').includes('已'))), trend: '日志可追溯', tone: 'up' },
+      { label: '涉及酒局', value: formatNumber(new Set(rows.map((item) => item.sessionName).filter(Boolean)).size), trend: '按 session 聚合', tone: 'up' },
+    ],
+    tables: [
+      {
+        title: '举报处理记录',
+        columns: [
+          { key: 'id', label: '举报 ID' },
+          { key: 'momentId', label: '瞬间 ID' },
+          { key: 'sessionName', label: '酒局' },
+          { key: 'reporterName', label: '举报人' },
+          { key: 'uploaderName', label: '上传者' },
+          { key: 'reason', label: '举报原因' },
+          { key: 'status', label: '处理状态' },
+          { key: 'handler', label: '处理人' },
+          { key: 'handledAt', label: '处理时间' },
+          { key: 'createdAt', label: '举报时间' },
+        ],
+        rows,
+      },
+    ],
+  }
+}
+
+pageMap['growth-share-tasks'] = () => {
+  const rows = buildShareImageTaskRows()
+  return {
+    slug: 'growth-share-tasks',
+    title: '分享图任务',
+    view: 'readonly',
+    metrics: [
+      { label: '任务总数', value: formatNumber(rows.length), trend: '等待 share task 接入', tone: 'up' },
+      { label: '生成中', value: formatNumber(countBy(rows, (item) => item.status === 'pending' || item.status === 'processing')), trend: '后台静默处理', tone: 'up' },
+      { label: '已生成', value: formatNumber(countBy(rows, (item) => item.status === 'ready')), trend: '可查看保存', tone: 'up' },
+      { label: '失败', value: formatNumber(countBy(rows, (item) => item.status === 'failed')), trend: '后续接重试动作', tone: 'up' },
+    ],
+    tables: [
+      {
+        title: '分享图生成任务',
+        columns: [
+          { key: 'id', label: '任务 ID' },
+          { key: 'sessionName', label: '酒局' },
+          { key: 'briefId', label: '简报 ID' },
+          { key: 'status', label: '状态' },
+          { key: 'layoutMode', label: '布局' },
+          { key: 'selectedNodeCount', label: '节点数' },
+          { key: 'durationMs', label: '耗时 ms' },
+          { key: 'retryCount', label: '重试' },
+          { key: 'failedReason', label: '失败原因' },
+          { key: 'imageUrl', label: '图片 URL' },
+          { key: 'createdAt', label: '创建时间' },
+          { key: 'finishedAt', label: '完成时间' },
+        ],
+        rows,
+      },
+    ],
+  }
+}
+
+pageMap['commerce-ranking-rewards'] = () => {
+  const store = readStore()
+  const rules = (store.rankingRewardRules || []).map((item, index) => normalizeRankingRewardRule(item, index))
+  return {
+    slug: 'commerce-ranking-rewards',
+    title: '榜单奖励配置',
+    view: 'collection',
+    metrics: [
+      { label: '奖励规则', value: formatNumber(rules.length), trend: `启用 ${formatNumber(countBy(rules, (item) => item.enabled === 'true'))} 条`, tone: 'up' },
+      { label: '覆盖榜单', value: formatNumber(new Set(rules.map((item) => item.category)).size), trend: 'M5 发奖前置配置', tone: 'up' },
+      { label: '最高奖励', value: formatNumber(Math.max(0, ...rules.map((item) => Number(item.points) || 0))), trend: '积分', tone: 'up' },
+      { label: '最近更新', value: rules.find((item) => item.updatedAt)?.updatedAt || '--', trend: '保存需写原因', tone: 'up' },
+    ],
+    collection: {
+      key: 'rankingRewardRules',
+      itemLabel: '奖励规则',
+      fields: [
+        { key: 'id', label: '规则 ID', type: 'text' },
+        { key: 'category', label: '榜单分类', type: 'select', options: RANKING_REWARD_CATEGORY_OPTIONS },
+        { key: 'enabled', label: '启用状态', type: 'select', options: TRUE_FALSE_OPTIONS },
+        { key: 'rankStart', label: '起始名次', type: 'number' },
+        { key: 'rankEnd', label: '结束名次', type: 'number' },
+        { key: 'points', label: '奖励积分', type: 'number' },
+        { key: 'effectiveAt', label: '生效时间', type: 'text' },
+        { key: 'reason', label: '修改原因', type: 'textarea' },
+      ],
+      columns: [
+        { key: 'categoryName', label: '榜单' },
+        { key: 'enabled', label: '启用' },
+        { key: 'rankStart', label: '起始' },
+        { key: 'rankEnd', label: '结束' },
+        { key: 'points', label: '积分' },
+        { key: 'effectiveAt', label: '生效时间' },
+        { key: 'reason', label: '修改原因' },
+        { key: 'updatedAt', label: '更新时间' },
+      ],
+      items: rules,
+    },
+  }
+}
+
 const saveUserPointsCollection = (items = []) => {
   const contentStore = readContentStore()
   const adminStore = readStore()
@@ -2685,6 +2978,12 @@ const savePageData = (slug, payload = {}) => {
       },
       quickTools: parseQuickToolsText(payload.data.quickToolsText),
     })
+    adminStore.toolsHero = {
+      title: String(payload.data.toolsHeroTitle || '').trim(),
+      subtitle: String(payload.data.toolsHeroSubtitle || '').trim(),
+      imageUrl: String(payload.data.toolsHeroImageUrl || '').trim(),
+    }
+    writeStore(adminStore)
     return getPageData(slug)
   }
 
@@ -2713,11 +3012,6 @@ const savePageData = (slug, payload = {}) => {
   }
 
   if (slug === 'content-tools-ops') {
-    adminStore.toolsHero = {
-      title: String(payload.meta?.heroTitle || '').trim(),
-      subtitle: String(payload.meta?.heroSubtitle || '').trim(),
-      imageUrl: String(payload.meta?.heroImageUrl || '').trim(),
-    }
     adminStore.toolsCatalog = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.toolsCatalog)
     writeStore(adminStore)
     return getPageData(slug)
