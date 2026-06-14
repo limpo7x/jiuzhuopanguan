@@ -9,3 +9,8 @@ CREATE TABLE IF NOT EXISTS `app_store` (
   `data_json` LONGTEXT NOT NULL,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Normalized business tables are maintained in:
+-- backend/sql/mysql-normalized-schema.sql
+-- Run them during the database upgrade with:
+-- mysql -uroot -p jiuzhuopanguan < backend/sql/mysql-normalized-schema.sql

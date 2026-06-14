@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "start:mysql": "node server.js",
+    "db:sync-normalized": "node scripts/sync-normalized-db.js",
     "mysql:test": "node scripts/test-mysql.js"
   },
   "dependencies": {

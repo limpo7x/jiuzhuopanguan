@@ -155,5 +155,6 @@ const createStoreAccessor = ({ createDefaultStore, filePath, key, normalizeStore
 
 module.exports = {
   createStoreAccessor,
+  ensureMysqlPool,
   isMySQLEnabled,
 }
