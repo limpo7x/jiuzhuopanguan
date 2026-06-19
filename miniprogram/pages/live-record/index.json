@@ -1,6 +1,7 @@
 {
   "disableSwipeBack": true,
   "usingComponents": {
+    "moment-timeline": "/components/moment-timeline/moment-timeline",
     "navigation-bar": "/components/navigation-bar/navigation-bar"
   }
 }

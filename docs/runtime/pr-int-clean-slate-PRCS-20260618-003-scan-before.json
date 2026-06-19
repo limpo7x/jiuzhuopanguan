@@ -1,0 +1,127 @@
+{
+  "batch": "PRCS-20260618-003",
+  "stage": "scan-before",
+  "product": "party-recorder",
+  "apiBase": "local-node-script",
+  "targetService": "jiuzhuopanguan-backend local clean facade",
+  "executedAt": "2026-06-18T00:00:00+08:00",
+  "executedBy": "interface-integration",
+  "mode": "scan",
+  "sourceCommand": "node backend/scripts/smoke-clean-slate-phase1.js",
+  "manifestRef": {
+    "privatePath": "docs/runtime/pr-int-clean-slate-PRCS-20260618-003-manifest.private.json",
+    "sanitizedPath": "docs/runtime/pr-int-clean-slate-PRCS-20260618-003-manifest-sanitized.json"
+  },
+  "prefix": "PRCS-20260618-003",
+  "undeployed": true,
+  "stats": {
+    "partyCount": 1,
+    "sessionCount": 1,
+    "photoCount": 1,
+    "ledgerCount": 1,
+    "briefCount": 1,
+    "shareTaskCount": 1,
+    "reportCount": 1,
+    "reviewCount": 0,
+    "uploadFileCount": 1
+  },
+  "ids": {
+    "parties": [
+      "session-1781507687012-e4343d"
+    ],
+    "sessions": [
+      "session-1781507687012-e4343d"
+    ],
+    "photos": [
+      "moment-1781507687039-ee0677bb",
+      "moment-1781507687032-eb1806a4"
+    ],
+    "ledgers": [
+      "event-1781507687041-e380feb7"
+    ],
+    "briefs": [
+      "brief-1781507687042-d1990edd"
+    ],
+    "shareTasks": [
+      "share-task-it-moments-20260615-expired"
+    ],
+    "reports": [
+      "moment-report-it-moments-20260615"
+    ],
+    "reviews": [],
+    "uploads": [
+      "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp"
+    ]
+  },
+  "tokenTails": {
+    "host": "",
+    "memberA": "",
+    "memberB": "",
+    "outsider": ""
+  },
+  "fieldCoverage": {
+    "party": {
+      "partyId": true,
+      "sessionId": true,
+      "inviteCode": true,
+      "members": true,
+      "photoHighlights": true,
+      "ledgerSummary": true,
+      "eventHighlights": true,
+      "shareContentFilter": true,
+      "visibleNodeIds": true,
+      "filteredNodeIds": true,
+      "permissionState": true
+    },
+    "brief": {
+      "briefId": true,
+      "timeline": true,
+      "photoHighlights": true,
+      "ledgerSummary": true,
+      "accountingHighlights": true,
+      "settlementSummary": true,
+      "eventHighlights": true,
+      "shareContentFilter": true,
+      "albumSummary": false
+    },
+    "share": {
+      "taskId": true,
+      "status": true,
+      "layoutMode": true,
+      "imageUrl": false,
+      "imageSha256": false,
+      "imageSize": false,
+      "returnShareId": false
+    },
+    "moderation": {
+      "reportId": true,
+      "reviewCaseIds": false
+    }
+  },
+  "frontendQueries": {
+    "album": "/pages/album/index",
+    "albumUnshared": "/pages/album/index?mode=unshared",
+    "ledger": "/pages/ledger/index",
+    "privacyFiltered": "/pages/privacy-state/index?type=filtered"
+  },
+  "warnings": [
+    "scan-before source is local clean facade smoke only; not deployed to api.pomer.cn",
+    "facade maps existing INT-DATA-001 local IDs and must not be treated as clean actual fixture pass",
+    "legacy tokens were not read or emitted; token tails are intentionally empty",
+    "legacy strings remain in smoke source data: IT-MOMENTS, drink_debt, share-task-it-moments-20260615-expired",
+    "brief.photoHighlights exists but is empty in facade sample",
+    "albumSummary, share image hash/size/returnShareId, reviewCaseIds are missing",
+    "no cleanup was executed"
+  ],
+  "skipped": [
+    "private manifest generation skipped because backend 003 did not provide new PRCS test identities or tokens",
+    "cleanup skipped by PM boundary",
+    "api.pomer.cn scan skipped because backend 003 is undeployed"
+  ],
+  "residuals": [],
+  "backup": {
+    "path": "",
+    "hash": "",
+    "restorable": false
+  }
+}

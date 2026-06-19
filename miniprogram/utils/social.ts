@@ -97,7 +97,6 @@ let backendDownUntil = 0
 const normalizeSocialAvatarUrl = (value?: string) => {
   const text = String(value || '').trim()
   if (
-    /^\/static\/avatar-(?:host|\d+)\.png$/i.test(text) ||
     text.startsWith('/assets/avatars/') ||
     /^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(text) ||
     /\/__store__\//i.test(text) ||

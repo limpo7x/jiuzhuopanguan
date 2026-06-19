@@ -1,0 +1,158 @@
+{
+  "batch": "PRCS-20260618-005",
+  "stage": "scan-before",
+  "product": "party-recorder",
+  "apiBase": "local-node-script",
+  "targetService": "jiuzhuopanguan-backend local clean facade",
+  "executedAt": "2026-06-18T10:49:33+08:00",
+  "executedBy": "interface-integration",
+  "mode": "scan",
+  "privateManifest": {
+    "created": true,
+    "path": "%TEMP%/jiuzhuopanguan-private/pr-int-clean-slate-PRCS-20260618-005-manifest.private.json",
+    "seed": "prcs-005",
+    "fullTokensInPublicDocs": false
+  },
+  "manifestRef": {
+    "privatePath": "%TEMP%/jiuzhuopanguan-private/pr-int-clean-slate-PRCS-20260618-005-manifest.private.json",
+    "sanitizedPath": "docs/runtime/pr-int-clean-slate-PRCS-20260618-005-manifest-sanitized.json"
+  },
+  "sourceCommands": [
+    "node backend/scripts/manage-clean-slate-private-manifest.js --mode generate --seed prcs-005 --output %TEMP%/jiuzhuopanguan-private/pr-int-clean-slate-PRCS-20260618-005-manifest.private.json",
+    "node backend/scripts/manage-clean-slate-private-manifest.js --mode inspect --seed prcs-005",
+    "node backend/scripts/smoke-clean-slate-phase1.js"
+  ],
+  "undeployed": true,
+  "stats": {
+    "adminLiveSessions": 4,
+    "momentsBriefs": 1,
+    "momentsShareImageTasks": 4,
+    "socialProfiles": 13,
+    "seedProfiles": 4,
+    "seedUserSessions": 4,
+    "seedLoginLogs": 4,
+    "seedFriendships": 0,
+    "seedPokes": 0
+  },
+  "profiles": {
+    "host": {
+      "profileId": "user-1781750973039-6bebeb",
+      "tokenTail": "800c2717"
+    },
+    "memberA": {
+      "profileId": "user-1781750973040-d3b4a7",
+      "tokenTail": "23a57387"
+    },
+    "memberB": {
+      "profileId": "user-1781750973040-280cc1",
+      "tokenTail": "d07afc11"
+    },
+    "outsider": {
+      "profileId": "user-1781750973040-c4e5c8",
+      "tokenTail": "c065ca91"
+    }
+  },
+  "ids": {
+    "parties": [
+      "session-1781507687012-e4343d"
+    ],
+    "sessions": [
+      "session-1781507687012-e4343d"
+    ],
+    "photos": [
+      "moment-1781507687032-eb1806a4"
+    ],
+    "ledgers": [
+      "event-1781507687041-e380feb7"
+    ],
+    "briefs": [
+      "brief-1781507687042-d1990edd"
+    ],
+    "shareTasks": [
+      "share-task-1781507687046-d1098582"
+    ],
+    "reports": [
+      "moment-report-it-moments-20260615"
+    ],
+    "reviews": [],
+    "uploads": [
+      "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+      "/uploads/moments/share-tasks/share-task-1781507687046-d1098582.png"
+    ]
+  },
+  "fieldCoverage": {
+    "tokenHandoff": {
+      "privateManifestCreated": true,
+      "tokenTailsPresent": true,
+      "cleanupCommandPresent": true
+    },
+    "partiesLive": {
+      "partyId": true,
+      "inviteCode": true,
+      "title": true,
+      "photoHighlights": true,
+      "accountingHighlights": true,
+      "ledgerSummary": true,
+      "keyEvents": true,
+      "shareNotice": true,
+      "summary": true
+    },
+    "briefs": {
+      "briefId": true,
+      "partyId": true,
+      "title": true,
+      "photoHighlights": true,
+      "accountingHighlights": true,
+      "ledgerSummary": true,
+      "settlementSummary": true,
+      "keyEvents": true,
+      "shareNotice": true,
+      "summary": true
+    },
+    "shareImages": {
+      "shareImageId": true,
+      "partyId": true,
+      "briefId": true,
+      "status": true,
+      "renderMode": true,
+      "imageUrl": true,
+      "includeLedger": true,
+      "createdAt": true,
+      "finishedAt": true,
+      "message": true,
+      "imageSha256": false,
+      "imageSize": false,
+      "returnShareId": false
+    }
+  },
+  "frontendQueries": {
+    "album": "/pages/album/index",
+    "albumUnshared": "/pages/album/index?mode=unshared",
+    "ledger": "/pages/ledger/index",
+    "privacyFiltered": "/pages/privacy-state/index?type=filtered",
+    "brief": "waiting frontend 004 actual query",
+    "share": "waiting frontend 004 actual query",
+    "shareReturn": "waiting frontend 004 actual query"
+  },
+  "warnings": [
+    "private token manifest is generated and retained in a local private temp path; full tokens are not in public docs/runtime evidence",
+    "local social-store seed prcs-005 is retained for testing; cleanup not run by PM boundary",
+    "party/photo/ledger/brief/shareImage IDs still map to legacy local INT-DATA-001 data and are not clean PRCS actual acceptance IDs",
+    "smoke output is undeployed=true; no api.pomer.cn write or scan was run",
+    "share image still lacks imageSha256, imageSize, and returnShareId",
+    "reviewCaseIds and explicit no-token/outsider API negative checks are not produced by this smoke"
+  ],
+  "skipped": [
+    "cleanup skipped by PM boundary",
+    "online api.pomer.cn write skipped",
+    "online scan skipped",
+    "actual party/photo/ledger/brief/shareImage creation skipped because backend 005 only solves private token handoff"
+  ],
+  "cleanupPlan": {
+    "owner": "interface-integration or backend/API by PM cleanup assignment",
+    "seed": "prcs-005",
+    "command": "node backend/scripts/manage-clean-slate-private-manifest.js --mode cleanup --seed prcs-005",
+    "residualCheck": "node backend/scripts/manage-clean-slate-private-manifest.js --mode inspect --seed prcs-005",
+    "notRun": true
+  }
+}

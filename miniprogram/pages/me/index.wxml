@@ -17,8 +17,7 @@
             <text class="me-name">{{currentProfile.name || '微信用户'}}</text>
             <view class="me-vip-tag">V1</view>
           </view>
-          <text class="me-id">微信已登录，OpenID 已后台绑定</text>
-          <text class="me-id">手机号：{{currentProfile.phoneMasked || '未绑定（可选）'}}</text>
+          <text class="me-id">已记录 {{assetStats[0].value}} 场聚会，和 {{wineStats[1].value}} 次好友回忆</text>
         </view>
       </view>
 
@@ -28,35 +27,78 @@
       </view>
     </view>
 
-    <view wx:if="{{membershipEnabled}}" class="me-member-card">
-      <view class="me-member-top">
-        <text class="me-member-title">畅享会员</text>
-        <view class="me-member-btn" bindtap="handleMemberTap">查看权益</view>
+    <view class="me-recorder-actions">
+      <view class="me-recorder-action me-recorder-action-primary" data-tab="home" bindtap="handleTabTap">
+        <text>创建聚会</text>
+        <text>从首页开始三步记录</text>
       </view>
-      <text class="me-member-desc">会员权益、套餐和开通状态直接读取后台真实配置。</text>
+      <view class="me-recorder-action" data-tab="tools" bindtap="handleTabTap">
+        <text>工具箱</text>
+        <text>常用聚会小工具</text>
+      </view>
     </view>
 
-    <view class="me-stat-row">
+    <view class="me-memory-strip">
       <view wx:for="{{assetStats}}" wx:key="label" class="me-stat-item" data-label="{{item.label}}" bindtap="handleAssetTap">
         <text class="me-stat-value">{{item.value}}</text>
         <text class="me-stat-label">{{item.label}}</text>
       </view>
     </view>
 
+    <view wx:if="{{membershipEnabled}}" class="me-member-card">
+      <view class="me-member-top">
+      <text class="me-member-title">聚会记录权益</text>
+        <view class="me-member-btn" bindtap="handleMemberTap">查看权益</view>
+      </view>
+      <text class="me-member-desc">主题、相册和分享能力直接读取后台真实配置。</text>
+    </view>
+
     <view class="me-section-head">
-      <text class="me-section-title">我的酒局</text>
+      <text class="me-section-title">最近回忆</text>
       <text class="me-section-link" data-label="我的聚友" bindtap="handleWineStatTap">好友管理</text>
     </view>
 
-    <view class="me-stat-row">
+    <view class="me-memory-strip">
       <view wx:for="{{wineStats}}" wx:key="label" class="me-stat-item" data-label="{{item.label}}" bindtap="handleWineStatTap">
         <text class="me-stat-value">{{item.value}}</text>
         <text class="me-stat-label">{{item.label}}</text>
       </view>
     </view>
 
+    <view wx:if="{{momentSummaries.length}}" class="me-section-head">
+      <text class="me-section-title">待分享回忆</text>
+      <text class="me-section-link" bindtap="handlePendingAlbumAllTap">查看全部 {{pendingAlbumTotal}}</text>
+    </view>
+
+    <view wx:if="{{visiblePendingAlbums.length}}" class="me-pending-list">
+      <view
+        wx:for="{{visiblePendingAlbums}}"
+        wx:key="briefId"
+        class="me-pending-item"
+        data-brief-id="{{item.briefId}}"
+        data-session-id="{{item.sessionId}}"
+        bindtap="handlePendingAlbumTap"
+      >
+        <view class="me-pending-dot {{item.pendingMediaCount ? 'me-pending-dot-warn' : ''}}"></view>
+        <view class="me-pending-copy">
+          <view class="me-pending-title-row">
+            <text class="me-pending-title">{{item.title}}</text>
+          </view>
+          <text class="me-pending-meta">{{item.meta}}</text>
+        </view>
+        <view class="me-pending-action-stack">
+          <text wx:if="{{item.isEnded}}" class="me-pending-state me-pending-state-ended">{{item.stateLabel}}</text>
+          <text wx:elif="{{item.stateLabel}}" class="me-pending-state">{{item.stateLabel}}</text>
+          <view class="me-pending-action {{item.isEnded ? 'me-pending-action-muted' : ''}}">{{item.actionLabel}}</view>
+        </view>
+      </view>
+      <view class="me-pending-more" bindtap="handlePendingAlbumAllTap">
+        查看全部待分享回忆
+      </view>
+    </view>
+
     <view class="me-section-head">
-      <text class="me-section-title">常用功能</text>
+      <text class="me-section-title">更多设置</text>
     </view>
 
     <view class="me-grid">
@@ -88,7 +130,7 @@
         </button>
         <view class="auth-avatar-copy">
           <text class="auth-avatar-title">点击头像授权</text>
-          <text class="auth-avatar-desc">用于酒局身份展示，不会使用默认图片占位。</text>
+          <text class="auth-avatar-desc">用于聚会成员展示，不会使用默认图片占位。</text>
         </view>
       </view>
         <input
@@ -103,22 +145,18 @@
     </form>
   </view>
 
-  <view class="me-tabbar">
-    <view class="me-tab-item" data-tab="home" bindtap="handleTabTap">
-      <view class="me-tab-icon me-nav-home"></view>
-      <text class="me-tab-label">首页</text>
+  <view class="bottom-nav">
+    <view class="bottom-item" data-tab="home" bindtap="handleTabTap">
+      <view class="bottom-icon nav-home"></view>
+      <text class="bottom-label">首页</text>
     </view>
-    <view class="me-tab-item" data-tab="tools" bindtap="handleTabTap">
-      <view class="me-tab-icon me-nav-tools"></view>
-      <text class="me-tab-label">工具箱</text>
+    <view class="bottom-item" data-tab="tools" bindtap="handleTabTap">
+      <view class="bottom-icon nav-judge"></view>
+      <text class="bottom-label">工具箱</text>
     </view>
-    <view class="me-tab-item" data-tab="judge" bindtap="handleTabTap">
-      <view class="me-tab-icon me-nav-judge"></view>
-      <text class="me-tab-label">酒桌判官</text>
-    </view>
-    <view class="me-tab-item me-tab-active" data-tab="me" bindtap="handleTabTap">
-      <view class="me-tab-icon me-nav-me me-nav-active"></view>
-      <text class="me-tab-label">我的</text>
+    <view class="bottom-item active" data-tab="me" bindtap="handleTabTap">
+      <view class="bottom-icon nav-me active"></view>
+      <text class="bottom-label">我的</text>
     </view>
   </view>
 </view>

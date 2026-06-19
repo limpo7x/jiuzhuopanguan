@@ -128,22 +128,18 @@
     </block>
   </scroll-view>
 
-  <view class="tools-tabbar">
-    <view class="tools-tab-item" data-tab="home" bindtap="handleTabTap">
-      <view class="tools-tab-icon tools-nav-home"></view>
-      <text class="tools-tab-label">首页</text>
+  <view class="bottom-nav">
+    <view class="bottom-item" data-tab="home" bindtap="handleTabTap">
+      <view class="bottom-icon nav-home"></view>
+      <text class="bottom-label">首页</text>
     </view>
-    <view class="tools-tab-item tools-tab-active" data-tab="tools" bindtap="handleTabTap">
-      <view class="tools-tab-icon tools-nav-tools tools-nav-active"></view>
-      <text class="tools-tab-label">工具箱</text>
+    <view class="bottom-item active" data-tab="tools" bindtap="handleTabTap">
+      <view class="bottom-icon nav-judge active"></view>
+      <text class="bottom-label">工具箱</text>
     </view>
-    <view class="tools-tab-item" data-tab="judge" bindtap="handleTabTap">
-      <view class="tools-tab-icon tools-nav-judge"></view>
-      <text class="tools-tab-label">酒桌判官</text>
-    </view>
-    <view class="tools-tab-item" data-tab="me" bindtap="handleTabTap">
-      <view class="tools-tab-icon tools-nav-me"></view>
-      <text class="tools-tab-label">我的</text>
+    <view class="bottom-item" data-tab="me" bindtap="handleTabTap">
+      <view class="bottom-icon nav-me"></view>
+      <text class="bottom-label">我的</text>
     </view>
   </view>
 </view>

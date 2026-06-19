@@ -24,3 +24,41 @@ button {
 button::after {
   border: 0;
 }
+
+.party-cta {
+  min-width: 0;
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: 14px;
+  box-sizing: border-box;
+  font-size: 18px;
+  line-height: 52px;
+  font-weight: 900;
+  text-align: center;
+  transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+}
+
+.party-cta:active {
+  transform: scale(0.98);
+}
+
+.party-cta-primary {
+  background: linear-gradient(135deg, #ff6a4b 0%, #ff4f36 100%);
+  color: #fff;
+  box-shadow: 0 12px 26px rgba(255, 91, 61, 0.24);
+}
+
+.party-cta-secondary {
+  background: linear-gradient(135deg, #5ab4f6 0%, #2f91df 100%);
+  color: #fff;
+}
+
+.party-cta-tertiary {
+  border: 1px solid #2f91df;
+  background: #fff;
+  color: #2f91df;
+}
+
+.party-cta-disabled {
+  opacity: 0.54;
+}

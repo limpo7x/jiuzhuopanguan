@@ -7,7 +7,12 @@
     "start": "node server.js",
     "start:mysql": "node server.js",
     "db:sync-normalized": "node scripts/sync-normalized-db.js",
-    "mysql:test": "node scripts/test-mysql.js"
+    "mysql:test": "node scripts/test-mysql.js",
+    "fixture:moments-integration": "node scripts/prepare-moments-integration-fixture.js",
+    "smoke:moments-http": "node scripts/smoke-moments-http-flow.js",
+    "smoke:admin-moments": "node scripts/smoke-admin-moments-flow.js",
+    "smoke:ugc-risk": "node scripts/smoke-ugc-risk-flow.js",
+    "check:admin-ui": "node scripts/check-admin-ui-contract.js"
   },
   "dependencies": {
     "mysql2": "^3.22.5",

@@ -1,5 +1,7 @@
 const { getAdminStore, getManagedSessionById, getManagedSessionByInviteCode } = require('./admin')
 const { getCompliance, getToolHistory } = require('./content')
+const { getPublicSessionShareSummary } = require('./moments')
+const { listProfiles } = require('./social')
 
 const toText = (value, fallback = '') => String(value || fallback || '').trim()
 const normalizeTemplateImageUrl = (value = '') => {
@@ -51,6 +53,9 @@ const sortTools = (items = []) =>
     return orderDiff || (Number(right.usageCount) || 0) - (Number(left.usageCount) || 0)
   })
 
+const buildProfileAvatarMap = () =>
+  new Map((listProfiles() || []).map((item) => [toText(item.id), toText(item.avatarUrl)]).filter((item) => item[0]))
+
 const getJoinedCount = (session, playerCount) => {
   const state = String(session?.state || '')
   if (state.includes('已结束') || state.includes('进行中')) {
@@ -70,8 +75,9 @@ const buildSessionPlayers = (playerCount = 6) =>
 
 const buildMembersFromSession = (session) => {
   const members = Array.isArray(session?.members) ? session.members : []
+  const profileAvatarMap = buildProfileAvatarMap()
   return members.map((item) => ({
-    avatarUrl: '',
+    avatarUrl: toText(item.avatarUrl || profileAvatarMap.get(toText(item.profileId))),
     clearedCount: Math.max(0, Number(item.clearedCount) || 0),
     debtCount: Math.max(0, Number(item.debtCount) || 0),
     drinkCount: Math.max(0, Number(item.drinkCount) || 0),
@@ -92,10 +98,12 @@ const buildMembersFromSession = (session) => {
   }))
 }
 
+const isEndedSession = (session = {}) => String(session?.state || session?.status || '').includes('结束')
+
 const pickLiveSession = (sessions = []) =>
-  sessions.find((item) => String(item.state || '').includes('等待')) ||
-  sessions.find((item) => String(item.state || '').includes('进行中')) ||
-  sessions[0] ||
+  sessions.find((item) => String(item.state || item.status || '').includes('进行中')) ||
+  sessions.find((item) => String(item.state || item.status || '').includes('等待')) ||
+  sessions.find((item) => !isEndedSession(item)) ||
   null
 
 const formatLiveSession = (session = {}) => {
@@ -103,7 +111,10 @@ const formatLiveSession = (session = {}) => {
   const memberPlayers = buildMembersFromSession(session)
   const joinedPlayers = memberPlayers.filter((item) => item.status === '已加入')
   return {
-    hostAvatarUrl: '',
+    createdAt: toText(session?.createdAt),
+    coverPhotoUrl: '',
+    endedAt: toText(session?.endedAt),
+    hostAvatarUrl: toText(session?.hostAvatarUrl || joinedPlayers.find((item) => item.profileId === toText(session?.hostProfileId))?.avatarUrl),
     hostName: toText(session?.hostName),
     hostProfileId: toText(session?.hostProfileId),
     id: toText(session?.id),
@@ -120,6 +131,7 @@ const formatLiveSession = (session = {}) => {
     templateImageUrl: normalizeTemplateImageUrl(session?.templateImageUrl),
     templateName: toText(session?.template || session?.templateName),
     title: '',
+    updatedAt: toText(session?.updatedAt),
   }
 }
 
@@ -130,7 +142,14 @@ const getLiveSessionConfig = (sessionId, inviteCode) => {
     : inviteCode
       ? getManagedSessionByInviteCode(String(inviteCode))
       : pickLiveSession(store.liveSessions)
-  return formatLiveSession(session || {})
+  const liveSession = formatLiveSession(session || {})
+  const shareSummary = session?.id ? getPublicSessionShareSummary({ sessionId: session.id, inviteCode: session.inviteCode }) : null
+  return shareSummary
+    ? {
+        ...liveSession,
+        ...shareSummary,
+      }
+    : liveSession
 }
 
 const buildReportEvents = (report) => [report?.highlight1, report?.highlight2, report?.highlight3].filter(Boolean).map((text) => ({ text }))

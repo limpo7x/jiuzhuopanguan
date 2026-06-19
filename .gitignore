@@ -6,6 +6,7 @@ backend/.env
 backend/data/content-store.json
 backend/data/social-store.json
 backend/data/admin-store.json
+backend/data/moments-store.json
 backend/data/asset-manifest.json
 
 *.log
@@ -16,3 +17,4 @@ Thumbs.db
 backend.zip
 docs/archived-home-assets/
 docs/archived-avatar-assets/
+docs/runtime/**/chrome-profile*/

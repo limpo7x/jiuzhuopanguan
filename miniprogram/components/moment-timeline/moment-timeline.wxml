@@ -1,0 +1,26 @@
+<view class="moment-timeline">
+  <view class="moment-timeline-head">
+    <text class="moment-timeline-title">记录/相册</text>
+    <text class="moment-timeline-count">{{nodes.length}} 条</text>
+  </view>
+
+  <view wx:if="{{loading}}" class="moment-timeline-empty">
+    <image class="moment-timeline-empty-sticker" src="/assets/party-recorder/party-recorder-uploading-sticker.png" mode="aspectFit"></image>
+    <text>同步中...</text>
+  </view>
+
+  <block wx:elif="{{nodes.length}}">
+    <moment-card
+      wx:for="{{nodes}}"
+      wx:key="id"
+      node="{{item}}"
+      compact="{{true}}"
+      bind:select="handleSelect"
+    ></moment-card>
+  </block>
+
+  <view wx:else class="moment-timeline-empty">
+    <image class="moment-timeline-empty-sticker" src="/assets/party-recorder/party-recorder-empty-album-sticker.png" mode="aspectFit"></image>
+    <text>{{emptyText}}</text>
+  </view>
+</view>

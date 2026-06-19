@@ -1,0 +1,116 @@
+.share-task-status {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #eadfce;
+  border-radius: 16px;
+  background: rgba(255, 253, 248, 0.9);
+  color: #24160f;
+  box-sizing: border-box;
+}
+
+.share-task-status-compact {
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+}
+
+.share-task-status-main,
+.share-task-status-head,
+.share-task-status-actions {
+  display: flex;
+  align-items: center;
+}
+
+.share-task-status-main {
+  gap: 10px;
+  min-width: 0;
+}
+
+.share-task-status-icon {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border: 3px solid #fff5e9;
+  border-radius: 50%;
+  background: #8f7f6d;
+  box-shadow: 0 0 0 1px rgba(143, 127, 109, 0.22);
+  box-sizing: border-box;
+}
+
+.share-task-status-pending .share-task-status-icon,
+.share-task-status-processing .share-task-status-icon {
+  background: #c98935;
+  box-shadow: 0 0 0 1px rgba(201, 137, 53, 0.22);
+}
+
+.share-task-status-ready .share-task-status-icon {
+  background: #4e8062;
+  box-shadow: 0 0 0 1px rgba(78, 128, 98, 0.22);
+}
+
+.share-task-status-failed .share-task-status-icon,
+.share-task-status-expired .share-task-status-icon {
+  background: #ff5b3d;
+  box-shadow: 0 0 0 1px rgba(255, 91, 61, 0.22);
+}
+
+.share-task-status-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.share-task-status-head {
+  gap: 8px;
+  min-width: 0;
+}
+
+.share-task-status-title {
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-task-status-count {
+  flex: none;
+  color: #8f7f6d;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.share-task-status-desc {
+  color: #7d6450;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.share-task-status-actions {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.share-task-status-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 62px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #ff5b3d;
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 900;
+  box-sizing: border-box;
+}
+
+.share-task-status-action-disabled {
+  opacity: 0.5;
+}

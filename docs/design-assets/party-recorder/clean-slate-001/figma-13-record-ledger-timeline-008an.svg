@@ -1,0 +1,124 @@
+<svg width="390" height="844" viewBox="0 0 390 844" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="42" y1="18" x2="348" y2="844" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#261E2D"/>
+      <stop offset="0.45" stop-color="#151723"/>
+      <stop offset="1" stop-color="#0C0E17"/>
+    </linearGradient>
+    <radialGradient id="glowTop" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(302 128) rotate(132.7) scale(214.65 171.238)">
+      <stop stop-color="#F7A95D" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#F7A95D" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowBottom" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(106 660) rotate(90) scale(240 200)">
+      <stop stop-color="#A164FF" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#A164FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tabActive" x1="0" y1="0" x2="0" y2="42" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7EA"/>
+      <stop offset="1" stop-color="#F0DEC0"/>
+    </linearGradient>
+    <linearGradient id="rail" x1="0" y1="0" x2="0" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF1D5"/>
+      <stop offset="0.5" stop-color="#FFC878"/>
+      <stop offset="1" stop-color="#D58D4A"/>
+    </linearGradient>
+    <linearGradient id="photoCard" x1="0" y1="0" x2="210" y2="170" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF7EB"/>
+      <stop offset="1" stop-color="#E8D4B6"/>
+    </linearGradient>
+    <linearGradient id="ledgerDebt" x1="0" y1="0" x2="164" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4E1D17"/>
+      <stop offset="1" stop-color="#F36A46"/>
+    </linearGradient>
+    <linearGradient id="ledgerDrink" x1="0" y1="0" x2="164" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#40201A"/>
+      <stop offset="1" stop-color="#F6B86E"/>
+    </linearGradient>
+    <filter id="shadowSoft" x="-40" y="-40" width="470" height="924" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="20" flood-color="#070911" flood-opacity="0.48"/>
+    </filter>
+    <filter id="chipShadow" x="-20" y="-20" width="220" height="108" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#04050A" flood-opacity="0.36"/>
+    </filter>
+  </defs>
+
+  <rect width="390" height="844" rx="36" fill="#E7E4DF"/>
+  <g filter="url(#shadowSoft)">
+    <rect x="14" y="14" width="362" height="816" rx="32" fill="url(#bg)"/>
+    <rect x="14" y="14" width="362" height="816" rx="32" stroke="rgba(255,255,255,0.08)"/>
+    <ellipse cx="302" cy="128" rx="136" ry="108" fill="url(#glowTop)"/>
+    <ellipse cx="106" cy="660" rx="170" ry="160" fill="url(#glowBottom)"/>
+  </g>
+
+  <text x="40" y="62" fill="#F7F2EA" font-size="16" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="600">海边烧烤局</text>
+  <text x="40" y="92" fill="#C9C4C1" font-size="12" font-family="PingFang SC, Microsoft YaHei, sans-serif">19:42 · 第 18 分钟 · 创建者可编辑账本</text>
+
+  <rect x="36" y="116" width="318" height="44" rx="22" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.08)"/>
+  <rect x="40" y="120" width="68" height="36" rx="18" fill="url(#tabActive)"/>
+  <text x="61" y="143" fill="#281E17" font-size="14" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">记录</text>
+  <text x="129" y="143" fill="#EEE6DD" font-size="14" font-family="PingFang SC, Microsoft YaHei, sans-serif">相册</text>
+  <text x="198" y="143" fill="#EEE6DD" font-size="14" font-family="PingFang SC, Microsoft YaHei, sans-serif">分享</text>
+  <text x="257" y="143" fill="#EEE6DD" font-size="14" font-family="PingFang SC, Microsoft YaHei, sans-serif">聚会账本</text>
+
+  <text x="40" y="188" fill="#FFF6EA" font-size="20" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">今晚记录</text>
+  <text x="40" y="212" fill="#D2C7BE" font-size="12" font-family="PingFang SC, Microsoft YaHei, sans-serif">照片、欠酒、加酒都挂在同一条现场时间线上</text>
+
+  <rect x="64" y="228" width="4" height="436" rx="2" fill="url(#rail)"/>
+
+  <circle cx="66" cy="264" r="16" fill="#F8E9CB" stroke="#FFF8ED" stroke-width="2"/>
+  <path d="M58 266.5H74" stroke="#6C4829" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M60.5 258.5H71.5V272.5H60.5V258.5Z" stroke="#6C4829" stroke-width="2.2" stroke-linejoin="round"/>
+  <rect x="92" y="232" width="242" height="132" rx="24" fill="rgba(17,19,30,0.88)" stroke="rgba(255,255,255,0.08)"/>
+  <text x="116" y="260" fill="#FFF7ED" font-size="15" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">19:21 拍下第一张合照</text>
+  <text x="116" y="281" fill="#D0C6BE" font-size="12" font-family="PingFang SC, Microsoft YaHei, sans-serif">海边烧烤局 · 全员到齐，照片进入相册和分享流</text>
+  <g transform="translate(114 296) rotate(-4)">
+    <rect width="98" height="56" rx="12" fill="url(#photoCard)"/>
+    <rect x="8" y="8" width="82" height="32" rx="8" fill="#C66A4A"/>
+    <rect x="12" y="12" width="34" height="24" rx="6" fill="#F1C48A"/>
+    <rect x="50" y="14" width="32" height="18" rx="5" fill="#684A5A"/>
+    <rect x="18" y="46" width="44" height="4" rx="2" fill="#BCA98D"/>
+  </g>
+  <g transform="translate(224 304) rotate(5)">
+    <rect width="86" height="48" rx="12" fill="url(#photoCard)"/>
+    <rect x="8" y="8" width="70" height="24" rx="7" fill="#7B4A5A"/>
+    <rect x="14" y="15" width="24" height="11" rx="5.5" fill="#FFD88E"/>
+    <rect x="44" y="13" width="26" height="14" rx="6" fill="#F5EFE7"/>
+    <rect x="18" y="38" width="38" height="4" rx="2" fill="#C4AF92"/>
+  </g>
+
+  <circle cx="66" cy="400" r="16" fill="#FF885F" stroke="#FFD0BF" stroke-width="2"/>
+  <path d="M59 400H73" stroke="#FFF6EE" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M66 393V407" stroke="#FFF6EE" stroke-width="2.4" stroke-linecap="round"/>
+  <rect x="92" y="376" width="242" height="108" rx="24" fill="rgba(17,19,30,0.9)" stroke="rgba(255,255,255,0.08)"/>
+  <text x="116" y="404" fill="#FFF7ED" font-size="15" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">19:28 阿杰给自己记了 1 杯欠酒</text>
+  <text x="116" y="425" fill="#D0C6BE" font-size="12" font-family="PingFang SC, Microsoft YaHei, sans-serif">烧糊第一串，账本同步更新，可回到聚会账本继续调整</text>
+  <g filter="url(#chipShadow)">
+    <rect x="116" y="440" width="146" height="32" rx="16" fill="url(#ledgerDebt)"/>
+    <text x="142" y="461" fill="#FFF6EE" font-size="14" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">欠酒 +1</text>
+    <text x="214" y="461" fill="#FFD8C6" font-size="12" font-family="PingFang SC, Microsoft YaHei, sans-serif">阿杰</text>
+  </g>
+
+  <circle cx="66" cy="522" r="16" fill="#F0B45C" stroke="#FFE2B6" stroke-width="2"/>
+  <path d="M58.5 522C58.5 517.029 62.5294 513 67.5 513H73V518.5C73 523.471 68.9706 527.5 64 527.5H58.5V522Z" fill="#FFF8EE"/>
+  <path d="M60 521.5C60 517.91 62.9101 515 66.5 515H71V519.5C71 523.09 68.0899 526 64.5 526H60V521.5Z" stroke="#8B5A2C" stroke-width="2"/>
+  <rect x="92" y="496" width="242" height="108" rx="24" fill="rgba(17,19,30,0.9)" stroke="rgba(255,255,255,0.08)"/>
+  <text x="116" y="524" fill="#FFF7ED" font-size="15" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">19:33 小南给小赵加了 2 杯</text>
+  <text x="116" y="545" fill="#D0C6BE" font-size="12" font-family="PingFang SC, Microsoft YaHei, sans-serif">碰杯节点进入时间线，同时保留账本可编辑入口</text>
+  <g filter="url(#chipShadow)">
+    <rect x="116" y="560" width="146" height="32" rx="16" fill="url(#ledgerDrink)"/>
+    <text x="142" y="581" fill="#2C1A0A" font-size="14" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">加酒 +2</text>
+    <text x="214" y="581" fill="#5B3215" font-size="12" font-family="PingFang SC, Microsoft YaHei, sans-serif">小赵</text>
+  </g>
+
+  <circle cx="66" cy="644" r="16" fill="#F8E9CB" stroke="#FFF8ED" stroke-width="2"/>
+  <path d="M58 646.5H74" stroke="#6C4829" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M60.5 638.5H71.5V652.5H60.5V638.5Z" stroke="#6C4829" stroke-width="2.2" stroke-linejoin="round"/>
+  <rect x="92" y="620" width="242" height="86" rx="24" fill="rgba(17,19,30,0.9)" stroke="rgba(255,255,255,0.08)"/>
+  <text x="116" y="648" fill="#FFF7ED" font-size="15" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">19:39 补拍烤架特写</text>
+  <text x="116" y="669" fill="#D0C6BE" font-size="12" font-family="PingFang SC, Microsoft YaHei, sans-serif">照片节点和账本节点间距一致，保持首屏内可扫读</text>
+  <text x="116" y="690" fill="#FFCD8C" font-size="12" font-family="PingFang SC, Microsoft YaHei, sans-serif">照片 2 张 · 欠酒 1 条 · 加酒 1 条</text>
+
+  <rect x="36" y="738" width="318" height="64" rx="24" fill="#FFF5E6"/>
+  <rect x="36.5" y="738.5" width="317" height="63" rx="23.5" stroke="#FFE0AF"/>
+  <text x="153" y="779" fill="#322112" font-size="18" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-weight="700">继续拍照</text>
+</svg>

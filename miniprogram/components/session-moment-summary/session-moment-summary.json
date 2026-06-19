@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "share-task-status": "/components/share-task-status/share-task-status"
+  }
+}

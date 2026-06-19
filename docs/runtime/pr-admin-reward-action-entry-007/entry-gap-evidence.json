@@ -1,0 +1,106 @@
+{
+  "id": "PR-ADMIN-REWARD-ACTION-ENTRY-007",
+  "target": "https://api.pomer.cn",
+  "forbiddenTargetNotTouched": "pomer.cn",
+  "status": "入口缺口核查中/待修复边界确认",
+  "checkedAt": "2026-06-16T04:49:29.2056391Z",
+  "adminEntry": "https://api.pomer.cn/admin/login",
+  "pageUrl": "https://api.pomer.cn/admin/static/heatwave-ops/commerce-ranking-rewards.html",
+  "slug": "commerce-ranking-rewards",
+  "login": {
+    "role": "系统管理员 / 超级管理员",
+    "cookie": "redacted",
+    "statusCode": 200
+  },
+  "pageData": {
+    "actions": [
+      {
+        "key": "grant-today_funny",
+        "label": "发放今日最有梗",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "today_funny"
+        },
+        "confirm": "确认按当前 今日最有梗 榜单发放奖励？重复发放会被后端幂等跳过。"
+      },
+      {
+        "key": "grant-today_debt",
+        "label": "发放今日最欠酒",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "today_debt"
+        },
+        "confirm": "确认按当前 今日最欠酒 榜单发放奖励？重复发放会被后端幂等跳过。"
+      },
+      {
+        "key": "grant-today_highlight",
+        "label": "发放今日最精彩",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "today_highlight"
+        },
+        "confirm": "确认按当前 今日最精彩 榜单发放奖励？重复发放会被后端幂等跳过。"
+      },
+      {
+        "key": "grant-today_visual",
+        "label": "发放今日最有画面",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "today_visual"
+        },
+        "confirm": "确认按当前 今日最有画面 榜单发放奖励？重复发放会被后端幂等跳过。"
+      },
+      {
+        "key": "grant-best_opening",
+        "label": "发放最佳开场",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "best_opening"
+        },
+        "confirm": "确认按当前 最佳开场 榜单发放奖励？重复发放会被后端幂等跳过。"
+      },
+      {
+        "key": "grant-best_closing",
+        "label": "发放最佳收尾",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "best_closing"
+        },
+        "confirm": "确认按当前 最佳收尾 榜单发放奖励？重复发放会被后端幂等跳过。"
+      }
+    ],
+    "statusCode": 200,
+    "actionCount": 6
+  },
+  "staticHtml": {
+    "styleVersion": "20260611-admin-pagination-2",
+    "scriptVersion": "20260611-admin-pagination-2",
+    "containsActionVersion": false,
+    "statusCode": 200
+  },
+  "staticJs": {
+    "hasRenderPageActions": false,
+    "statusCode": 200,
+    "hasGrantBestOpening": false,
+    "hasPageActionButton": false,
+    "length": 60039,
+    "hasRunPageAction": false
+  },
+  "localStaticJs": {
+    "hasRunPageAction": true,
+    "path": "backend/public/admin/static/heatwave-ops/app.js",
+    "hasRenderPageActions": true,
+    "hasPageActionButton": true
+  },
+  "domSummary": "docs/runtime/pr-admin-reward-action-entry-007/dom-render-summary.json",
+  "screenshot": "docs/runtime/pr-admin-reward-action-entry-007/01-commerce-ranking-rewards-no-grant-button.png",
+  "directCause": "线上静态 HTML 引用 v=20260611-admin-pagination-2 的旧 app.js；该线上 JS 不包含 renderPageActions / runPageAction / data-action=\"page-action\"，因此即使页面数据接口返回 grant-best_opening 等 pageActions，静态页也不会渲染发奖按钮。",
+  "responsibility": "后端 action 合同与登录权限可用；入口缺口归属线上静态后台资源版本/部署同步，需发布含 page action 渲染逻辑的 heatwave-ops 静态页和 app.js，或由后台静态页实现修复后部署。",
+  "next": "测试不能只用接口复测替代页面按钮入口验收；在静态页修复/部署前，测试可保留接口 200 与 operationLogs 作为 API 证据，但页面按钮入口必须等修复后重录。"
+}

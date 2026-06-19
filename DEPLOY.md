@@ -1,13 +1,19 @@
 # 酒桌判官部署说明
 
-当前项目的部署目标有两部分：
+更新时间：2026-06-13
 
-- 小程序正式接口：`https://api.pomer.cn/api/v1/*`
-- PC 端后台页面：`https://pomer.cn/admin`
+## 1. 部署目标
 
-两者都由 `backend/server.js` 这一套 Node 服务提供，Nginx 负责 HTTPS 和反代。
+本仓库只部署酒桌判官项目，目标域名为：
 
-## 1. 服务器准备
+- API：`https://api.pomer.cn/api/v1/*`
+- 后台页面：`https://api.pomer.cn/admin`
+- 后台静态资源：`https://api.pomer.cn/admin/static/heatwave-ops/*`
+- 上传资源：`https://api.pomer.cn/uploads/*`
+
+不要把本项目部署到 `pomer.cn`。`pomer.cn` 是公司官网，除非另有明确指令，不修改、不重启、不代理、不覆盖官网服务。
+
+## 2. 服务器环境
 
 建议环境：
 
@@ -15,12 +21,13 @@
 - Node.js 20
 - Nginx
 - PM2
+- MySQL 8 或兼容版本
 
-安装命令：
+安装基础环境：
 
 ```bash
 apt update
-apt install -y nginx curl
+apt install -y nginx curl mysql-client
 curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
 apt install -y nodejs
 npm install -g pm2
@@ -35,39 +42,40 @@ pm2 -v
 nginx -v
 ```
 
-## 2. 上传项目
+## 3. 项目目录
 
-建议目录：
+建议部署目录：
 
 ```bash
 mkdir -p /data/www
 cd /data/www
+git clone <repo-url> jiuzhuopanguan
+cd /data/www/jiuzhuopanguan
 ```
 
-项目最终目录：
+如果服务器已经存在同机其他项目，先确认 Nginx、PM2、端口和域名归属，不要覆盖已有 `pomer.cn` 官网配置。
 
-```bash
-/data/www/jiuzhuopanguan
-```
+## 4. MySQL 初始化
 
-## 3. 初始化 MySQL
+当前项目使用 `app_store` 大 JSON 表作为主存储，JSON 文件作为镜像与兜底。
 
-先建库建表：
+初始化数据库：
 
 ```bash
 mysql -uroot -p < /data/www/jiuzhuopanguan/backend/sql/mysql-init.sql
 ```
 
-然后在后端目录放环境变量：
+创建后端环境变量：
 
 ```bash
 cd /data/www/jiuzhuopanguan/backend
 cp .env.mysql.example .env
 ```
 
-至少要配置：
+至少配置：
 
 ```bash
+PORT=3010
 MYSQL_HOST=127.0.0.1
 MYSQL_PORT=3306
 MYSQL_USER=root
@@ -76,9 +84,16 @@ MYSQL_DATABASE=jiuzhuopanguan
 MYSQL_STORE_TABLE=app_store
 WECHAT_APP_ID=你的小程序AppID
 WECHAT_APP_SECRET=你的小程序AppSecret
+STORE_FILE_MIRROR=1
 ```
 
-可先做连通性检查：
+说明：
+
+- `STORE_FILE_MIRROR=1` 或不配置时，会同步写本地 JSON 镜像。
+- `STORE_FILE_MIRROR=0` 时，只写 MySQL，不再更新本地 JSON 镜像。
+- 如果 MySQL 中没有某个 `store_key`，服务启动后会用本地 JSON 初始化。
+
+测试 MySQL：
 
 ```bash
 cd /data/www/jiuzhuopanguan/backend
@@ -88,7 +103,7 @@ set +a
 npm run mysql:test
 ```
 
-## 4. 安装依赖并启动后端
+## 5. 安装依赖与本机验证
 
 ```bash
 cd /data/www/jiuzhuopanguan/backend
@@ -99,22 +114,31 @@ set +a
 node server.js
 ```
 
-看到下面输出说明服务起来了：
+看到以下输出说明后端已启动：
 
-```bash
+```text
 jiuzhuopanguan backend listening on port 3010
 ```
 
 本机验证：
 
 ```bash
-curl http://127.0.0.1:3010/api/v1/config/home
-curl http://127.0.0.1:3010/api/v1/config/points
-curl http://127.0.0.1:3010/api/v1/config/templates
-curl http://127.0.0.1:3010/admin
+curl -i http://127.0.0.1:3010/api/v1/config/home
+curl -i http://127.0.0.1:3010/api/v1/config/points
+curl -i http://127.0.0.1:3010/api/v1/config/templates
+curl -i http://127.0.0.1:3010/admin
+curl -i http://127.0.0.1:3010/admin/login
 ```
 
-## 5. 用 PM2 常驻
+## 6. PM2 常驻
+
+项目已有 PM2 配置：
+
+```text
+backend/ecosystem.config.js
+```
+
+启动：
 
 ```bash
 cd /data/www/jiuzhuopanguan/backend
@@ -133,12 +157,12 @@ pm2 logs jiuzhuopanguan-backend
 重启：
 
 ```bash
-pm2 restart jiuzhuopanguan-backend
+pm2 restart jiuzhuopanguan-backend --update-env
 ```
 
-## 6. 配置 Nginx
+## 7. Nginx 配置
 
-项目里已有示例文件：
+项目示例文件：
 
 ```bash
 deploy/nginx/jiuzhuopanguan-api.conf.example
@@ -147,15 +171,14 @@ deploy/nginx/jiuzhuopanguan-api.conf.example
 部署到：
 
 ```bash
-/etc/nginx/conf.d/jiuzhuopanguan.conf
+/etc/nginx/conf.d/jiuzhuopanguan-api.conf
 ```
 
-如果你的证书路径不同，修改：
+关键要求：
 
-```nginx
-ssl_certificate /etc/nginx/ssl/pomer.cn/fullchain.pem;
-ssl_certificate_key /etc/nginx/ssl/pomer.cn/privkey.pem;
-```
+- `server_name` 必须是 `api.pomer.cn`
+- `/api/v1/`、`/admin`、`/admin/static/`、`/uploads/` 反代到 `127.0.0.1:3010`
+- 不要在本项目配置中写 `pomer.cn` 或 `www.pomer.cn`
 
 检查并重载：
 
@@ -167,86 +190,80 @@ systemctl reload nginx
 公网验证：
 
 ```bash
-curl https://api.pomer.cn/api/v1/config/home
-curl https://pomer.cn/admin
+curl -i https://api.pomer.cn/api/v1/config/home
+curl -i https://api.pomer.cn/api/v1/config/points
+curl -i https://api.pomer.cn/api/v1/config/templates
+curl -i https://api.pomer.cn/admin
+curl -i https://api.pomer.cn/admin/login
 ```
 
-## 7. 小程序前端切换线上接口
+## 8. 小程序配置
 
-项目当前已经默认切到：
+当前小程序默认请求：
 
 ```ts
-miniprogram/config/api.ts
 const REMOTE_API_BASE = 'https://api.pomer.cn/api/v1'
 ```
 
-所以线上部署完成后，重新编译小程序即可直接联调。
-
-## 8. 微信开发者工具和小程序后台规则
-
-微信小程序要注意这几条：
-
-- 正式联调、真机、体验版、正式版都必须走 HTTPS 域名
-- 不能用 IP 直连正式接口
-- 小程序后台必须配置 `request 合法域名`
-
-需要在微信公众平台配置：
+上线前在微信公众平台配置合法域名：
 
 ```text
-https://pomer.cn
+https://api.pomer.cn
 ```
 
-开发者工具本地调试时：
+开发者工具本地调试时可以临时关闭域名校验，或使用运行时覆盖接口地址；上线前必须回到 `https://api.pomer.cn/api/v1`。
 
-- 如果线上接口还没准备好，可以勾选“不校验合法域名、web-view（业务域名）、TLS 版本以及 HTTPS 证书”
-- 当前项目已经默认请求 `https://api.pomer.cn/api/v1`，所以如果线上没部署好，就会直接请求失败
-- 临时本地联调时，可用运行时覆盖接口地址，但上线前必须切回 `https://api.pomer.cn/api/v1`
+## 9. 后台登录与入口
 
-## 9. 当前后台能力
-
-PC 端后台地址：
+后台入口：
 
 ```text
-https://pomer.cn/admin
+https://api.pomer.cn/admin
 ```
 
-当前后台可配置：
+未登录会跳转：
 
-- 首页 Banner
-- 积分商城
-- 模板包
+```text
+https://api.pomer.cn/admin/login
+```
 
-这些配置会反映到小程序前台页面：
+后台会话接口：
 
-- 首页 Banner
-- 积分中心
-- 高级模板
+- `POST /api/v1/admin/auth/login`
+- `GET /api/v1/admin/auth/session`
+- `POST /api/v1/admin/auth/logout`
 
-## 10. 当前数据存储
+默认内置账号来自 `backend/data/admin.js` / `backend/data/admin-store.json`。生产环境上线后应尽快重置默认密码，并限制后台访问来源。
 
-当前后端主存储已经切到 MySQL，运行时会优先读写表：
+## 10. 发布更新流程
 
-- `app_store`
+推荐更新命令：
 
-其中包含这些 store key：
+```bash
+cd /data/www/jiuzhuopanguan
+git pull --ff-only origin main
+cd backend
+npm install
+set -a
+. ./.env
+set +a
+npm run mysql:test
+pm2 restart jiuzhuopanguan-backend --update-env
+pm2 logs jiuzhuopanguan-backend --lines 80
+```
 
-- `content_store`
-- `social_store`
-- `admin_store`
-- `asset_manifest`
+更新后验证：
 
-本地 JSON 文件现在只作为镜像和兜底导入源：
+```bash
+curl -f https://api.pomer.cn/api/v1/config/home
+curl -f https://api.pomer.cn/api/v1/config/points
+curl -f https://api.pomer.cn/api/v1/config/templates
+curl -I https://api.pomer.cn/admin
+```
 
-- `backend/data/content-store.json`
-- `backend/data/social-store.json`
-- `backend/data/admin-store.json`
-- `backend/data/asset-manifest.json`
+## 11. 当前待升级项
 
-首次切到 MySQL 时，如果表里还没有对应 `store_key`，服务会自动把本地 JSON 导入 MySQL。
-
-如果后面继续升级正式生产版，建议下一步：
-
-1. 把 `app_store` 的大 JSON store 继续拆成业务表，例如 `sessions`、`reports`、`membership_orders`、`points_ledger`
-2. 给图片上传接 OSS/COS
-3. 给后台补操作日志和更细粒度权限
-4. 给 MySQL 增加备份、监控和只读从库
+- 把 `app_store` 中的高频业务对象拆成实体表。
+- 接入正式对象存储或 CDN，替代本地 `/uploads/`。
+- 增加后台密码重置、登录失败限制、IP 白名单或二次校验。
+- 给 Nginx、MySQL、PM2 增加备份和监控。

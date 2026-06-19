@@ -1,0 +1,53 @@
+{
+  "id": "prcs-clean-slate-private-manifest-prcs-local",
+  "generatedAt": "",
+  "mode": "template",
+  "source": "local-private-template",
+  "seed": "prcs-local",
+  "notes": [
+    "完整 token 只允许写在私密文件或本机环境变量，不得进入公开文档。",
+    "公开回报只允许引用 tokenSuffix。"
+  ],
+  "env": {
+    "requiredKeys": [
+      "PRCS_HOST_TOKEN",
+      "PRCS_MEMBER_A_TOKEN",
+      "PRCS_MEMBER_B_TOKEN",
+      "PRCS_OUTSIDER_TOKEN"
+    ]
+  },
+  "profiles": {
+    "host": {
+      "role": "host",
+      "name": "聚会记录师房主",
+      "openIdHint": "prcs-clean-slate-prcs-local-host",
+      "profileId": "",
+      "token": "",
+      "tokenSuffix": ""
+    },
+    "memberA": {
+      "role": "memberA",
+      "name": "聚会记录师成员A",
+      "openIdHint": "prcs-clean-slate-prcs-local-member-a",
+      "profileId": "",
+      "token": "",
+      "tokenSuffix": ""
+    },
+    "memberB": {
+      "role": "memberB",
+      "name": "聚会记录师成员B",
+      "openIdHint": "prcs-clean-slate-prcs-local-member-b",
+      "profileId": "",
+      "token": "",
+      "tokenSuffix": ""
+    },
+    "outsider": {
+      "role": "outsider",
+      "name": "聚会记录师局外人",
+      "openIdHint": "prcs-clean-slate-prcs-local-outsider",
+      "profileId": "",
+      "token": "",
+      "tokenSuffix": ""
+    }
+  }
+}

@@ -36,6 +36,7 @@ interface TableModeState {
 
 interface TableModeMethods {
   handleBackTap: () => Promise<void>
+  handleClosingMomentTap: () => void
   handleFinishTap: () => Promise<void>
   handleRefreshTap: () => Promise<void>
   handleReactionTap: (event: WechatMiniprogram.BaseEvent) => void
@@ -222,6 +223,16 @@ Page<TableModeState, TableModeMethods>({
 
   async handleBackTap() {
     this.navigateBackToSession()
+  },
+
+  handleClosingMomentTap() {
+    const runtime = getSessionRuntime()
+    if (!runtime.sessionId) {
+      this.showPreviewToast('未找到当前酒局')
+      return
+    }
+
+    this.openPage(`/pages/moment-editor/index?sessionId=${encodeURIComponent(runtime.sessionId)}&nodeType=closing&visibility=share`)
   },
 
   async handleRefreshTap() {

@@ -1,0 +1,2566 @@
+{
+  "id": "PR-ADMIN-REWARD-009-VERIFY-011",
+  "target": "https://api.pomer.cn",
+  "forbiddenTargetNotTouched": "pomer.cn",
+  "executedAt": "2026-06-16T05:20:27.453Z",
+  "account": {
+    "username": "admin",
+    "role": "超级管理员",
+    "cookie": "redacted"
+  },
+  "ids": {
+    "momentId": "moment-1781586554926-ffc93c65",
+    "nominationId": "nomination-1781586678021-ca565a1c",
+    "payoutId": "ranking-reward-payout-1781586678028-9cad8832",
+    "reportId": "moment-report-it-moments-20260616-009",
+    "expiredTaskId": "share-task-it-moments-20260616-009-expired"
+  },
+  "actions": {
+    "reward": {
+      "pageBefore": {
+        "title": "榜单奖励配置 - 酒桌判官后台",
+        "buttons": [
+          {
+            "text": "发放今日最有梗",
+            "pageAction": "grant-today_funny"
+          },
+          {
+            "text": "发放今日最欠酒",
+            "pageAction": "grant-today_debt"
+          },
+          {
+            "text": "发放今日最精彩",
+            "pageAction": "grant-today_highlight"
+          },
+          {
+            "text": "发放今日最有画面",
+            "pageAction": "grant-today_visual"
+          },
+          {
+            "text": "发放最佳开场",
+            "pageAction": "grant-best_opening"
+          },
+          {
+            "text": "发放最佳收尾",
+            "pageAction": "grant-best_closing"
+          }
+        ],
+        "status": "已连接后台"
+      },
+      "confirm": {
+        "visible": true,
+        "text": "确认操作\n            确认按当前 最佳开场 榜单发放奖励？重复发放会被后端幂等跳过。\n          \n          关闭\n        \n        \n          取消\n          确认执行"
+      },
+      "status": "发放最佳开场已完成：发放 0 条，跳过 2 条",
+      "responseStatus": 200,
+      "response": {
+        "code": 0,
+        "message": "ok",
+        "data": {
+          "category": "best_opening",
+          "date": "2026-06-16",
+          "grantedCount": 0,
+          "skippedCount": 2,
+          "totalPoints": 0,
+          "items": [
+            {
+              "momentId": "moment-1781586554926-ffc93c65",
+              "profileId": "user-1781583974512-aedd1b",
+              "rank": 1,
+              "points": 60,
+              "status": "skipped",
+              "sourceId": "ranking-reward:2026-06-16:best_opening:moment-1781586554926-ffc93c65:reward-rule-best-opening-1"
+            }
+          ]
+        }
+      }
+    },
+    "report": {
+      "selectedAction": "invalid_keep",
+      "pageBefore": {
+        "title": "瞬间举报处理 - 酒桌判官后台",
+        "row": {
+          "text": "moment-report-it-moments-20260616-009moment-1781584503795-17a32c27IT-MOMENTS-20260616-006B-sessionuser-1781583974512-aedd1bPR Seed Member A-待处理--2026-06-16T05:11:18.038Z\n                  \n                          \n                            有效并隐藏无效保留要求重传移出榜单",
+          "actions": [
+            {
+              "text": "有效并隐藏",
+              "action": "valid-hide",
+              "rowId": "moment-report-it-moments-20260616-009"
+            },
+            {
+              "text": "无效保留",
+              "action": "invalid-keep",
+              "rowId": "moment-report-it-moments-20260616-009"
+            },
+            {
+              "text": "要求重传",
+              "action": "require-resubmit",
+              "rowId": "moment-report-it-moments-20260616-009"
+            },
+            {
+              "text": "移出榜单",
+              "action": "remove-ranking",
+              "rowId": "moment-report-it-moments-20260616-009"
+            }
+          ]
+        },
+        "status": "已连接后台"
+      },
+      "dialog": {
+        "visible": true,
+        "text": "填写操作原因\n            请输入判定举报无效的原因\n          \n          关闭\n        \n        \n          \n            操作原因\n            \n          \n        \n        \n          取消\n          确认执行"
+      },
+      "status": "无效保留已完成",
+      "responseStatus": 200,
+      "response": {
+        "code": 0,
+        "message": "ok",
+        "data": {
+          "refund": {
+            "refundedCount": 0,
+            "refundedPoints": 0,
+            "nominations": []
+          },
+          "report": {
+            "id": "moment-report-it-moments-20260616-009",
+            "sessionId": "session-1781584503517-c033e9",
+            "momentId": "moment-1781584503795-17a32c27",
+            "reporterProfileId": "user-1781583974512-aedd1b",
+            "targetProfileId": "user-1781583974514-a46045",
+            "reasonCode": "privacy_concern",
+            "reasonText": "IT-MOMENTS-20260616-009 report sample",
+            "status": "handled",
+            "statusText": "无效，保留内容",
+            "createdAt": "2026-06-16T05:11:18.038Z",
+            "updatedAt": "2026-06-16T05:20:17.681Z",
+            "handledAt": "2026-06-16T05:20:17.681Z",
+            "handlerId": null,
+            "handlerName": null,
+            "resolution": null,
+            "operationLogId": null,
+            "action": "invalid_keep",
+            "note": "PR-ADMIN-REWARD-009-VERIFY-011 invalid keep evidence",
+            "handler": "admin"
+          },
+          "moment": {
+            "id": "moment-1781584503795-17a32c27",
+            "clientDraftId": "IT-MOMENTS-20260616-006B-private-a-to-b",
+            "sessionId": "session-1781584503517-c033e9",
+            "uploaderProfileId": "user-1781583974512-aedd1b",
+            "uploaderName": "PR Seed Member A",
+            "nodeType": "private",
+            "mediaType": "image",
+            "imageUrl": "/uploads/moments/session-1781584503517-c033e9/1781584503700-it-moments-20260616-006b-opening-cdf665.webp",
+            "videoUrl": "",
+            "coverImageUrl": "",
+            "duration": 0,
+            "caption": "IT-MOMENTS-20260616-006B private for member B",
+            "tags": [
+              "INT-DATA-001",
+              "private"
+            ],
+            "visibility": "selected",
+            "visibleProfileIds": [
+              "user-1781583974514-a46045"
+            ],
+            "timelineTitle": "PR Seed Member A 发送了一条私密爆料",
+            "usageConsent": {
+              "session": true,
+              "brief": true,
+              "share": true,
+              "ranking": true
+            },
+            "completionStatus": "complete",
+            "reviewStatus": "pending",
+            "secondaryReviewStatus": "pending",
+            "rankingEligible": false,
+            "rewardEligible": false,
+            "isTimelinePlaceholder": false,
+            "removedAt": "",
+            "createdAt": "2026-06-16T04:35:03.796Z",
+            "updatedAt": "2026-06-16T04:35:03.796Z"
+          }
+        }
+      }
+    },
+    "expiredRetry": {
+      "pageBefore": {
+        "title": "分享图任务 - 酒桌判官后台",
+        "row": {
+          "text": "share-task-it-moments-20260616-009-expiredIT-MOMENTS-20260616-006B-sessionbrief-1781584503870-25d5edacexpiredposter100--2026-06-13T05:11:18.038Z-\n                  \n                          \n                            重试",
+          "actions": [
+            {
+              "text": "重试",
+              "action": "retry",
+              "rowId": "share-task-it-moments-20260616-009-expired"
+            }
+          ]
+        },
+        "status": "已连接后台"
+      },
+      "dialog": {
+        "visible": true,
+        "text": "填写操作原因\n            请输入重试原因\n          \n          关闭\n        \n        \n          \n            操作原因\n            \n          \n        \n        \n          取消\n          确认执行"
+      },
+      "status": "重试已完成",
+      "responseStatus": 200,
+      "response": {
+        "code": 0,
+        "message": "ok",
+        "data": {
+          "task": {
+            "id": "share-task-it-moments-20260616-009-expired",
+            "sessionId": "session-1781584503517-c033e9",
+            "briefId": "brief-1781584503870-25d5edac",
+            "status": "pending",
+            "layoutMode": "poster",
+            "selectedNodeIds": [
+              "event-1781584503850-94ad3aeb"
+            ],
+            "imageUrl": "",
+            "failedReason": "",
+            "retryCount": 1,
+            "createdAt": "2026-06-13T05:11:18.038Z",
+            "startedAt": "",
+            "finishedAt": "",
+            "updatedAt": "2026-06-16T05:20:21.043Z"
+          }
+        }
+      }
+    }
+  },
+  "before": {
+    "rewardPage": {
+      "code": 0,
+      "message": "ok",
+      "data": {
+        "user": {
+          "id": "admin-root",
+          "username": "admin",
+          "name": "系统管理员",
+          "roleId": "role-super-admin",
+          "roleName": "超级管理员",
+          "status": "active",
+          "lastLoginAt": "2026-06-16T05:20:10.900Z"
+        },
+        "page": {
+          "slug": "commerce-ranking-rewards",
+          "title": "榜单奖励配置",
+          "view": "collection",
+          "metrics": [
+            {
+              "label": "奖励规则",
+              "value": "7",
+              "trend": "启用 7 条",
+              "tone": "up"
+            },
+            {
+              "label": "覆盖榜单",
+              "value": "6",
+              "trend": "M5 发奖前置配置",
+              "tone": "up"
+            },
+            {
+              "label": "最高奖励",
+              "value": "120",
+              "trend": "积分",
+              "tone": "up"
+            },
+            {
+              "label": "最近更新",
+              "value": "2026-06-16T04:07:11.836Z",
+              "trend": "保存需写原因",
+              "tone": "up"
+            }
+          ],
+          "pageActions": [
+            {
+              "key": "grant-today_funny",
+              "label": "发放今日最有梗",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "today_funny"
+              },
+              "confirm": "确认按当前 今日最有梗 榜单发放奖励？重复发放会被后端幂等跳过。"
+            },
+            {
+              "key": "grant-today_debt",
+              "label": "发放今日最欠酒",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "today_debt"
+              },
+              "confirm": "确认按当前 今日最欠酒 榜单发放奖励？重复发放会被后端幂等跳过。"
+            },
+            {
+              "key": "grant-today_highlight",
+              "label": "发放今日最精彩",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "today_highlight"
+              },
+              "confirm": "确认按当前 今日最精彩 榜单发放奖励？重复发放会被后端幂等跳过。"
+            },
+            {
+              "key": "grant-today_visual",
+              "label": "发放今日最有画面",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "today_visual"
+              },
+              "confirm": "确认按当前 今日最有画面 榜单发放奖励？重复发放会被后端幂等跳过。"
+            },
+            {
+              "key": "grant-best_opening",
+              "label": "发放最佳开场",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "best_opening"
+              },
+              "confirm": "确认按当前 最佳开场 榜单发放奖励？重复发放会被后端幂等跳过。"
+            },
+            {
+              "key": "grant-best_closing",
+              "label": "发放最佳收尾",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "best_closing"
+              },
+              "confirm": "确认按当前 最佳收尾 榜单发放奖励？重复发放会被后端幂等跳过。"
+            }
+          ],
+          "collection": {
+            "key": "rankingRewardRules",
+            "itemLabel": "奖励规则",
+            "fields": [
+              {
+                "key": "id",
+                "label": "规则 ID",
+                "type": "text"
+              },
+              {
+                "key": "category",
+                "label": "榜单分类",
+                "type": "select",
+                "options": [
+                  {
+                    "value": "today_funny",
+                    "label": "今日最有梗"
+                  },
+                  {
+                    "value": "today_debt",
+                    "label": "今日最欠酒"
+                  },
+                  {
+                    "value": "today_highlight",
+                    "label": "今日最精彩"
+                  },
+                  {
+                    "value": "today_visual",
+                    "label": "今日最有画面"
+                  },
+                  {
+                    "value": "best_opening",
+                    "label": "最佳开场"
+                  },
+                  {
+                    "value": "best_closing",
+                    "label": "最佳收尾"
+                  }
+                ]
+              },
+              {
+                "key": "enabled",
+                "label": "启用状态",
+                "type": "select",
+                "options": [
+                  {
+                    "value": "true",
+                    "label": "开启"
+                  },
+                  {
+                    "value": "false",
+                    "label": "关闭"
+                  }
+                ]
+              },
+              {
+                "key": "rankStart",
+                "label": "起始名次",
+                "type": "number"
+              },
+              {
+                "key": "rankEnd",
+                "label": "结束名次",
+                "type": "number"
+              },
+              {
+                "key": "points",
+                "label": "奖励积分",
+                "type": "number"
+              },
+              {
+                "key": "effectiveAt",
+                "label": "生效时间",
+                "type": "text"
+              },
+              {
+                "key": "reason",
+                "label": "修改原因",
+                "type": "textarea"
+              }
+            ],
+            "columns": [
+              {
+                "key": "categoryName",
+                "label": "榜单"
+              },
+              {
+                "key": "enabled",
+                "label": "启用"
+              },
+              {
+                "key": "rankStart",
+                "label": "起始"
+              },
+              {
+                "key": "rankEnd",
+                "label": "结束"
+              },
+              {
+                "key": "points",
+                "label": "积分"
+              },
+              {
+                "key": "effectiveAt",
+                "label": "生效时间"
+              },
+              {
+                "key": "reason",
+                "label": "修改原因"
+              },
+              {
+                "key": "updatedAt",
+                "label": "更新时间"
+              }
+            ],
+            "items": [
+              {
+                "id": "reward-rule-today-funny-1",
+                "category": "today_funny",
+                "categoryName": "今日最有梗",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 100,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-today-funny-2",
+                "category": "today_funny",
+                "categoryName": "今日最有梗",
+                "enabled": "true",
+                "rankStart": 2,
+                "rankEnd": 3,
+                "points": 50,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-today-debt-1",
+                "category": "today_debt",
+                "categoryName": "今日最欠酒",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 80,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-today-highlight-1",
+                "category": "today_highlight",
+                "categoryName": "今日最精彩",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 120,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-today-visual-1",
+                "category": "today_visual",
+                "categoryName": "今日最有画面",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 100,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-best-opening-1",
+                "category": "best_opening",
+                "categoryName": "最佳开场",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 60,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-best-closing-1",
+                "category": "best_closing",
+                "categoryName": "最佳收尾",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 60,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "reportsPage": {
+      "code": 0,
+      "message": "ok",
+      "data": {
+        "user": {
+          "id": "admin-root",
+          "username": "admin",
+          "name": "系统管理员",
+          "roleId": "role-super-admin",
+          "roleName": "超级管理员",
+          "status": "active",
+          "lastLoginAt": "2026-06-16T05:20:10.900Z"
+        },
+        "page": {
+          "slug": "content-moment-reports",
+          "title": "瞬间举报处理",
+          "view": "readonly",
+          "metrics": [
+            {
+              "label": "举报总数",
+              "value": "1",
+              "trend": "等待举报接口接入",
+              "tone": "up"
+            },
+            {
+              "label": "待处理",
+              "value": "0",
+              "trend": "需运营处理",
+              "tone": "up"
+            },
+            {
+              "label": "已处理",
+              "value": "0",
+              "trend": "日志可追溯",
+              "tone": "up"
+            },
+            {
+              "label": "涉及酒局",
+              "value": "1",
+              "trend": "按 session 聚合",
+              "tone": "up"
+            }
+          ],
+          "tables": [
+            {
+              "title": "举报处理记录",
+              "columns": [
+                {
+                  "key": "id",
+                  "label": "举报 ID"
+                },
+                {
+                  "key": "momentId",
+                  "label": "瞬间 ID"
+                },
+                {
+                  "key": "sessionName",
+                  "label": "酒局"
+                },
+                {
+                  "key": "reporterName",
+                  "label": "举报人"
+                },
+                {
+                  "key": "uploaderName",
+                  "label": "上传者"
+                },
+                {
+                  "key": "reason",
+                  "label": "举报原因"
+                },
+                {
+                  "key": "statusText",
+                  "label": "处理状态"
+                },
+                {
+                  "key": "handler",
+                  "label": "处理人"
+                },
+                {
+                  "key": "handledAt",
+                  "label": "处理时间"
+                },
+                {
+                  "key": "createdAt",
+                  "label": "举报时间"
+                }
+              ],
+              "rowActions": [
+                {
+                  "key": "valid-hide",
+                  "label": "有效并隐藏",
+                  "endpoint": "/api/v1/admin/moment-reports/:id/handle",
+                  "payloadAction": "valid_hide",
+                  "reasonPrompt": "请输入判定有效并隐藏内容的原因",
+                  "visibleWhen": {
+                    "field": "status",
+                    "values": [
+                      "pending",
+                      "待处理",
+                      ""
+                    ]
+                  }
+                },
+                {
+                  "key": "invalid-keep",
+                  "label": "无效保留",
+                  "endpoint": "/api/v1/admin/moment-reports/:id/handle",
+                  "payloadAction": "invalid_keep",
+                  "reasonPrompt": "请输入判定举报无效的原因",
+                  "visibleWhen": {
+                    "field": "status",
+                    "values": [
+                      "pending",
+                      "待处理",
+                      ""
+                    ]
+                  }
+                },
+                {
+                  "key": "require-resubmit",
+                  "label": "要求重传",
+                  "endpoint": "/api/v1/admin/moment-reports/:id/handle",
+                  "payloadAction": "require_resubmit",
+                  "reasonPrompt": "请输入要求上传者重传的原因",
+                  "visibleWhen": {
+                    "field": "status",
+                    "values": [
+                      "pending",
+                      "待处理",
+                      ""
+                    ]
+                  }
+                },
+                {
+                  "key": "remove-ranking",
+                  "label": "移出榜单",
+                  "endpoint": "/api/v1/admin/moment-reports/:id/handle",
+                  "payloadAction": "remove_ranking",
+                  "reasonPrompt": "请输入移出榜单候选的原因",
+                  "visibleWhen": {
+                    "field": "status",
+                    "values": [
+                      "pending",
+                      "待处理",
+                      ""
+                    ]
+                  }
+                }
+              ],
+              "rows": [
+                {
+                  "id": "moment-report-it-moments-20260616-009",
+                  "momentId": "moment-1781584503795-17a32c27",
+                  "sessionName": "IT-MOMENTS-20260616-006B-session",
+                  "reporterName": "user-1781583974512-aedd1b",
+                  "uploaderName": "PR Seed Member A",
+                  "reason": "",
+                  "note": "",
+                  "status": "pending",
+                  "statusText": "待处理",
+                  "handler": "",
+                  "handledAt": "",
+                  "createdAt": "2026-06-16T05:11:18.038Z"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "shareTasksPage": {
+      "code": 0,
+      "message": "ok",
+      "data": {
+        "user": {
+          "id": "admin-root",
+          "username": "admin",
+          "name": "系统管理员",
+          "roleId": "role-super-admin",
+          "roleName": "超级管理员",
+          "status": "active",
+          "lastLoginAt": "2026-06-16T05:20:10.900Z"
+        },
+        "page": {
+          "slug": "growth-share-tasks",
+          "title": "分享图任务",
+          "view": "readonly",
+          "metrics": [
+            {
+              "label": "任务总数",
+              "value": "11",
+              "trend": "等待 share task 接入",
+              "tone": "up"
+            },
+            {
+              "label": "生成中",
+              "value": "5",
+              "trend": "后台静默处理",
+              "tone": "up"
+            },
+            {
+              "label": "已生成",
+              "value": "3",
+              "trend": "可查看保存",
+              "tone": "up"
+            },
+            {
+              "label": "失败",
+              "value": "2",
+              "trend": "后续接重试动作",
+              "tone": "up"
+            }
+          ],
+          "tables": [
+            {
+              "title": "分享图生成任务",
+              "columns": [
+                {
+                  "key": "id",
+                  "label": "任务 ID"
+                },
+                {
+                  "key": "sessionName",
+                  "label": "酒局"
+                },
+                {
+                  "key": "briefId",
+                  "label": "简报 ID"
+                },
+                {
+                  "key": "status",
+                  "label": "状态"
+                },
+                {
+                  "key": "layoutMode",
+                  "label": "布局"
+                },
+                {
+                  "key": "selectedNodeCount",
+                  "label": "节点数"
+                },
+                {
+                  "key": "durationMs",
+                  "label": "耗时 ms"
+                },
+                {
+                  "key": "retryCount",
+                  "label": "重试"
+                },
+                {
+                  "key": "failedReason",
+                  "label": "失败原因"
+                },
+                {
+                  "key": "imageUrl",
+                  "label": "图片 URL"
+                },
+                {
+                  "key": "createdAt",
+                  "label": "创建时间"
+                },
+                {
+                  "key": "finishedAt",
+                  "label": "完成时间"
+                }
+              ],
+              "rowActions": [
+                {
+                  "key": "retry",
+                  "label": "重试",
+                  "endpoint": "/api/v1/admin/share-image-tasks/:id/retry",
+                  "reasonPrompt": "请输入重试原因",
+                  "visibleWhen": {
+                    "field": "status",
+                    "values": [
+                      "failed",
+                      "expired"
+                    ]
+                  }
+                }
+              ],
+              "rows": [
+                {
+                  "id": "share-task-1781584504132-3251bd01",
+                  "sessionName": "IT-MOMENTS-20260616-006B-session",
+                  "briefId": "brief-1781584503870-25d5edac",
+                  "status": "failed",
+                  "layoutMode": "IT-MOMENTS-20260616-006B-failed",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "share task has no visible nodes",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-16T04:35:04.133Z",
+                  "finishedAt": "2026-06-16T04:35:04.188Z"
+                },
+                {
+                  "id": "share-task-1781584503902-a99a5211",
+                  "sessionName": "IT-MOMENTS-20260616-006B-session",
+                  "briefId": "brief-1781584503870-25d5edac",
+                  "status": "ready",
+                  "layoutMode": "IT-MOMENTS-20260616-006B-ready",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "/uploads/moments/share-tasks/share-task-1781584503902-a99a5211.png",
+                  "createdAt": "2026-06-16T04:35:03.902Z",
+                  "finishedAt": "2026-06-16T04:35:04.038Z"
+                },
+                {
+                  "id": "share-task-1781584503885-8bf3c52b",
+                  "sessionName": "IT-MOMENTS-20260616-006B-session",
+                  "briefId": "brief-1781584503870-25d5edac",
+                  "status": "pending",
+                  "layoutMode": "IT-MOMENTS-20260616-006B-pending",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-16T04:35:03.885Z",
+                  "finishedAt": ""
+                },
+                {
+                  "id": "share-task-1781584438094-47f7ee61",
+                  "sessionName": "IT-MOMENTS-20260616-006-session",
+                  "briefId": "brief-1781584437655-dad6bc1b",
+                  "status": "failed",
+                  "layoutMode": "IT-MOMENTS-20260616-006-failed",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "share task has no visible nodes",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-16T04:33:58.094Z",
+                  "finishedAt": "2026-06-16T04:33:58.146Z"
+                },
+                {
+                  "id": "share-task-1781584437695-68f2e5ec",
+                  "sessionName": "IT-MOMENTS-20260616-006-session",
+                  "briefId": "brief-1781584437655-dad6bc1b",
+                  "status": "ready",
+                  "layoutMode": "IT-MOMENTS-20260616-006-ready",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "/uploads/moments/share-tasks/share-task-1781584437695-68f2e5ec.png",
+                  "createdAt": "2026-06-16T04:33:57.696Z",
+                  "finishedAt": "2026-06-16T04:33:57.998Z"
+                },
+                {
+                  "id": "share-task-1781584437685-0bce88e9",
+                  "sessionName": "IT-MOMENTS-20260616-006-session",
+                  "briefId": "brief-1781584437655-dad6bc1b",
+                  "status": "pending",
+                  "layoutMode": "IT-MOMENTS-20260616-006-pending",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-16T04:33:57.685Z",
+                  "finishedAt": ""
+                },
+                {
+                  "id": "share-task-1781540737500-7b517d92",
+                  "sessionName": "周五快乐局",
+                  "briefId": "brief-1781540610538-7caba127",
+                  "status": "pending",
+                  "layoutMode": "timeline",
+                  "selectedNodeCount": 4,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-15T16:25:37.500Z",
+                  "finishedAt": ""
+                },
+                {
+                  "id": "share-task-1781527152182-0078e1ad",
+                  "sessionName": "周五快乐局",
+                  "briefId": "brief-1781527134616-745cd0f7",
+                  "status": "pending",
+                  "layoutMode": "timeline",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-15T12:39:12.183Z",
+                  "finishedAt": ""
+                },
+                {
+                  "id": "share-task-1781465622362-b11e8289",
+                  "sessionName": "IT-Moments-1781465623681",
+                  "briefId": "brief-1781465622338-8c84f732",
+                  "status": "ready",
+                  "layoutMode": "online-deploy-smoke",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "/uploads/moments/share-tasks/share-task-1781465622362-b11e8289.png",
+                  "createdAt": "2026-06-14T19:33:42.362Z",
+                  "finishedAt": "2026-06-14T19:33:42.698Z"
+                },
+                {
+                  "id": "share-task-1781464115687-938b6ad5",
+                  "sessionName": "IT-MOMENTS-20260615-1781464116545",
+                  "briefId": "brief-1781464115623-4f7c5b93",
+                  "status": "pending",
+                  "layoutMode": "timeline",
+                  "selectedNodeCount": 3,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-14T19:08:35.687Z",
+                  "finishedAt": ""
+                },
+                {
+                  "id": "share-task-it-moments-20260616-009-expired",
+                  "sessionName": "IT-MOMENTS-20260616-006B-session",
+                  "briefId": "brief-1781584503870-25d5edac",
+                  "status": "expired",
+                  "layoutMode": "poster",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-13T05:11:18.038Z",
+                  "finishedAt": ""
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "logsPage": {
+      "code": 0,
+      "message": "ok",
+      "data": {
+        "user": {
+          "id": "admin-root",
+          "username": "admin",
+          "name": "系统管理员",
+          "roleId": "role-super-admin",
+          "roleName": "超级管理员",
+          "status": "active",
+          "lastLoginAt": "2026-06-16T05:20:10.900Z"
+        },
+        "page": {
+          "slug": "system-operation-logs",
+          "title": "后台操作日志",
+          "view": "readonly",
+          "metrics": [
+            {
+              "label": "操作日志数",
+              "value": "21",
+              "trend": "最近 2026-06-16T05:11:18.035Z",
+              "tone": "up"
+            },
+            {
+              "label": "M4 动作日志",
+              "value": "21",
+              "trend": "审核、举报、分享图、奖励配置",
+              "tone": "up"
+            },
+            {
+              "label": "目标对象数",
+              "value": "11",
+              "trend": "内容与积分均可追溯",
+              "tone": "up"
+            },
+            {
+              "label": "操作人",
+              "value": "3",
+              "trend": "当前默认 admin-console",
+              "tone": "up"
+            }
+          ],
+          "tables": [
+            {
+              "title": "后台操作日志",
+              "columns": [
+                {
+                  "key": "logType",
+                  "label": "类型"
+                },
+                {
+                  "key": "operator",
+                  "label": "操作人"
+                },
+                {
+                  "key": "action",
+                  "label": "动作"
+                },
+                {
+                  "key": "targetId",
+                  "label": "目标 ID"
+                },
+                {
+                  "key": "targetName",
+                  "label": "目标名称"
+                },
+                {
+                  "key": "targetOpenId",
+                  "label": "OpenID"
+                },
+                {
+                  "key": "targetPhone",
+                  "label": "手机号"
+                },
+                {
+                  "key": "detail",
+                  "label": "详情"
+                },
+                {
+                  "key": "createdAt",
+                  "label": "时间"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "admin-op-1781586678035-8fbf3f",
+                  "logType": "榜单奖励",
+                  "operator": "pr-int-009",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 1 条，跳过 1 条，合计 60 积分",
+                  "createdAt": "2026-06-16T05:11:18.035Z"
+                },
+                {
+                  "id": "admin-op-1781586678010-202530",
+                  "logType": "瞬间审核",
+                  "operator": "pr-int-009",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781586554926-ffc93c65",
+                  "targetName": "IT-MOMENTS-20260616-009 reward candidate opening",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-009 reward-positive approval",
+                  "createdAt": "2026-06-16T05:11:18.010Z"
+                },
+                {
+                  "id": "admin-op-1781586555047-6741d0",
+                  "logType": "榜单奖励",
+                  "operator": "pr-int-009",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 1 条，合计 0 积分",
+                  "createdAt": "2026-06-16T05:09:15.047Z"
+                },
+                {
+                  "id": "admin-op-1781585869739-24fa35",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 1 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:57:49.739Z"
+                },
+                {
+                  "id": "admin-op-1781584650823-2e7f4f",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 1 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:37:30.823Z"
+                },
+                {
+                  "id": "admin-op-1781584504237-b905b7",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 1 条，跳过 0 条，合计 60 积分",
+                  "createdAt": "2026-06-16T04:35:04.237Z"
+                },
+                {
+                  "id": "admin-op-1781584504167-457c2e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：hide",
+                  "targetId": "moment-1781584503823-56dc9214",
+                  "targetName": "IT-MOMENTS-20260616-006B failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 approved/approved -> hidden/approved；原因：IT-MOMENTS-20260616-006B hide failed candidate before process",
+                  "createdAt": "2026-06-16T04:35:04.167Z"
+                },
+                {
+                  "id": "admin-op-1781584504109-c1655b",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584503823-56dc9214",
+                  "targetName": "IT-MOMENTS-20260616-006B failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006B approve failed candidate before task creation",
+                  "createdAt": "2026-06-16T04:35:04.109Z"
+                },
+                {
+                  "id": "admin-op-1781584504077-f9714e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584503741-d53b131f",
+                  "targetName": "IT-MOMENTS-20260616-006B opening",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006B approve opening for ranking",
+                  "createdAt": "2026-06-16T04:35:04.077Z"
+                },
+                {
+                  "id": "admin-op-1781584438126-31bb6d",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：hide",
+                  "targetId": "moment-1781584437610-e1e75e10",
+                  "targetName": "IT-MOMENTS-20260616-006 failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 approved/approved -> hidden/approved；原因：IT-MOMENTS-20260616-006 hide failed candidate before process",
+                  "createdAt": "2026-06-16T04:33:58.126Z"
+                },
+                {
+                  "id": "admin-op-1781584438062-769683",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584437610-e1e75e10",
+                  "targetName": "IT-MOMENTS-20260616-006 failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006 approve failed candidate before task creation",
+                  "createdAt": "2026-06-16T04:33:58.063Z"
+                },
+                {
+                  "id": "admin-op-1781584438040-f2d37e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584437537-2e21801b",
+                  "targetName": "IT-MOMENTS-20260616-006 opening",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006 approve opening for ranking",
+                  "createdAt": "2026-06-16T04:33:58.040Z"
+                },
+                {
+                  "id": "admin-op-1781584037698-5c4f91",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 0 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:27:17.698Z"
+                },
+                {
+                  "id": "admin-op-1781583905263-4613ab",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 0 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:25:05.263Z"
+                },
+                {
+                  "id": "admin-op-1781583557551-2cf1be",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 0 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:19:17.551Z"
+                },
+                {
+                  "id": "admin-op-1781582831837-2c6dd5",
+                  "logType": "榜单奖励",
+                  "operator": "admin-console",
+                  "action": "保存榜单奖励配置",
+                  "targetId": "commerce-ranking-rewards",
+                  "targetName": "榜单奖励配置",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "更新 7 条规则；覆盖：今日最有梗、今日最欠酒、今日最精彩、今日最有画面、最佳开场、最佳收尾",
+                  "createdAt": "2026-06-16T04:07:11.837Z"
+                },
+                {
+                  "id": "admin-op-1781582831811-89a318",
+                  "logType": "榜单奖励",
+                  "operator": "admin-console",
+                  "action": "保存榜单奖励配置",
+                  "targetId": "commerce-ranking-rewards",
+                  "targetName": "榜单奖励配置",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "更新 7 条规则；覆盖：今日最有梗、今日最欠酒、今日最精彩、今日最有画面、最佳开场、最佳收尾",
+                  "createdAt": "2026-06-16T04:07:11.811Z"
+                },
+                {
+                  "id": "admin-op-1781582831706-aba238",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：require_resubmit",
+                  "targetId": "moment-1781549829409-b3aece35",
+                  "targetName": "刚刚这一刻，值得留在时间线",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> pending/require_resubmit；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 require resubmit smoke",
+                  "createdAt": "2026-06-16T04:07:11.706Z"
+                },
+                {
+                  "id": "admin-op-1781582831652-efa236",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：hide",
+                  "targetId": "moment-1781540671054-90a9122f",
+                  "targetName": "恶意我",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> hidden/pending；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 hide smoke",
+                  "createdAt": "2026-06-16T04:07:11.652Z"
+                },
+                {
+                  "id": "admin-op-1781582831602-b31020",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781549804535-b8b389b0",
+                  "targetName": "今晚开场，先留证",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 approve smoke",
+                  "createdAt": "2026-06-16T04:07:11.602Z"
+                },
+                {
+                  "id": "admin-op-1781529144358-98309e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781527099498-31744936",
+                  "targetName": "今晚开场，先留证",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：123",
+                  "createdAt": "2026-06-15T13:12:24.358Z"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "after": {
+    "rewardPage": {
+      "code": 0,
+      "message": "ok",
+      "data": {
+        "user": {
+          "id": "admin-root",
+          "username": "admin",
+          "name": "系统管理员",
+          "roleId": "role-super-admin",
+          "roleName": "超级管理员",
+          "status": "active",
+          "lastLoginAt": "2026-06-16T05:20:10.900Z"
+        },
+        "page": {
+          "slug": "commerce-ranking-rewards",
+          "title": "榜单奖励配置",
+          "view": "collection",
+          "metrics": [
+            {
+              "label": "奖励规则",
+              "value": "7",
+              "trend": "启用 7 条",
+              "tone": "up"
+            },
+            {
+              "label": "覆盖榜单",
+              "value": "6",
+              "trend": "M5 发奖前置配置",
+              "tone": "up"
+            },
+            {
+              "label": "最高奖励",
+              "value": "120",
+              "trend": "积分",
+              "tone": "up"
+            },
+            {
+              "label": "最近更新",
+              "value": "2026-06-16T04:07:11.836Z",
+              "trend": "保存需写原因",
+              "tone": "up"
+            }
+          ],
+          "pageActions": [
+            {
+              "key": "grant-today_funny",
+              "label": "发放今日最有梗",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "today_funny"
+              },
+              "confirm": "确认按当前 今日最有梗 榜单发放奖励？重复发放会被后端幂等跳过。"
+            },
+            {
+              "key": "grant-today_debt",
+              "label": "发放今日最欠酒",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "today_debt"
+              },
+              "confirm": "确认按当前 今日最欠酒 榜单发放奖励？重复发放会被后端幂等跳过。"
+            },
+            {
+              "key": "grant-today_highlight",
+              "label": "发放今日最精彩",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "today_highlight"
+              },
+              "confirm": "确认按当前 今日最精彩 榜单发放奖励？重复发放会被后端幂等跳过。"
+            },
+            {
+              "key": "grant-today_visual",
+              "label": "发放今日最有画面",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "today_visual"
+              },
+              "confirm": "确认按当前 今日最有画面 榜单发放奖励？重复发放会被后端幂等跳过。"
+            },
+            {
+              "key": "grant-best_opening",
+              "label": "发放最佳开场",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "best_opening"
+              },
+              "confirm": "确认按当前 最佳开场 榜单发放奖励？重复发放会被后端幂等跳过。"
+            },
+            {
+              "key": "grant-best_closing",
+              "label": "发放最佳收尾",
+              "endpoint": "/api/v1/admin/ranking-rewards/grant",
+              "method": "POST",
+              "body": {
+                "category": "best_closing"
+              },
+              "confirm": "确认按当前 最佳收尾 榜单发放奖励？重复发放会被后端幂等跳过。"
+            }
+          ],
+          "collection": {
+            "key": "rankingRewardRules",
+            "itemLabel": "奖励规则",
+            "fields": [
+              {
+                "key": "id",
+                "label": "规则 ID",
+                "type": "text"
+              },
+              {
+                "key": "category",
+                "label": "榜单分类",
+                "type": "select",
+                "options": [
+                  {
+                    "value": "today_funny",
+                    "label": "今日最有梗"
+                  },
+                  {
+                    "value": "today_debt",
+                    "label": "今日最欠酒"
+                  },
+                  {
+                    "value": "today_highlight",
+                    "label": "今日最精彩"
+                  },
+                  {
+                    "value": "today_visual",
+                    "label": "今日最有画面"
+                  },
+                  {
+                    "value": "best_opening",
+                    "label": "最佳开场"
+                  },
+                  {
+                    "value": "best_closing",
+                    "label": "最佳收尾"
+                  }
+                ]
+              },
+              {
+                "key": "enabled",
+                "label": "启用状态",
+                "type": "select",
+                "options": [
+                  {
+                    "value": "true",
+                    "label": "开启"
+                  },
+                  {
+                    "value": "false",
+                    "label": "关闭"
+                  }
+                ]
+              },
+              {
+                "key": "rankStart",
+                "label": "起始名次",
+                "type": "number"
+              },
+              {
+                "key": "rankEnd",
+                "label": "结束名次",
+                "type": "number"
+              },
+              {
+                "key": "points",
+                "label": "奖励积分",
+                "type": "number"
+              },
+              {
+                "key": "effectiveAt",
+                "label": "生效时间",
+                "type": "text"
+              },
+              {
+                "key": "reason",
+                "label": "修改原因",
+                "type": "textarea"
+              }
+            ],
+            "columns": [
+              {
+                "key": "categoryName",
+                "label": "榜单"
+              },
+              {
+                "key": "enabled",
+                "label": "启用"
+              },
+              {
+                "key": "rankStart",
+                "label": "起始"
+              },
+              {
+                "key": "rankEnd",
+                "label": "结束"
+              },
+              {
+                "key": "points",
+                "label": "积分"
+              },
+              {
+                "key": "effectiveAt",
+                "label": "生效时间"
+              },
+              {
+                "key": "reason",
+                "label": "修改原因"
+              },
+              {
+                "key": "updatedAt",
+                "label": "更新时间"
+              }
+            ],
+            "items": [
+              {
+                "id": "reward-rule-today-funny-1",
+                "category": "today_funny",
+                "categoryName": "今日最有梗",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 100,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-today-funny-2",
+                "category": "today_funny",
+                "categoryName": "今日最有梗",
+                "enabled": "true",
+                "rankStart": 2,
+                "rankEnd": 3,
+                "points": 50,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-today-debt-1",
+                "category": "today_debt",
+                "categoryName": "今日最欠酒",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 80,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-today-highlight-1",
+                "category": "today_highlight",
+                "categoryName": "今日最精彩",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 120,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-today-visual-1",
+                "category": "today_visual",
+                "categoryName": "今日最有画面",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 100,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-best-opening-1",
+                "category": "best_opening",
+                "categoryName": "最佳开场",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 60,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              },
+              {
+                "id": "reward-rule-best-closing-1",
+                "category": "best_closing",
+                "categoryName": "最佳收尾",
+                "enabled": "true",
+                "rankStart": 1,
+                "rankEnd": 1,
+                "points": 60,
+                "effectiveAt": "",
+                "reason": "初始榜单奖励配置",
+                "updatedAt": "2026-06-16T04:07:11.836Z"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "reportsPage": {
+      "code": 0,
+      "message": "ok",
+      "data": {
+        "user": {
+          "id": "admin-root",
+          "username": "admin",
+          "name": "系统管理员",
+          "roleId": "role-super-admin",
+          "roleName": "超级管理员",
+          "status": "active",
+          "lastLoginAt": "2026-06-16T05:20:10.900Z"
+        },
+        "page": {
+          "slug": "content-moment-reports",
+          "title": "瞬间举报处理",
+          "view": "readonly",
+          "metrics": [
+            {
+              "label": "举报总数",
+              "value": "1",
+              "trend": "等待举报接口接入",
+              "tone": "up"
+            },
+            {
+              "label": "待处理",
+              "value": "0",
+              "trend": "需运营处理",
+              "tone": "up"
+            },
+            {
+              "label": "已处理",
+              "value": "0",
+              "trend": "日志可追溯",
+              "tone": "up"
+            },
+            {
+              "label": "涉及酒局",
+              "value": "1",
+              "trend": "按 session 聚合",
+              "tone": "up"
+            }
+          ],
+          "tables": [
+            {
+              "title": "举报处理记录",
+              "columns": [
+                {
+                  "key": "id",
+                  "label": "举报 ID"
+                },
+                {
+                  "key": "momentId",
+                  "label": "瞬间 ID"
+                },
+                {
+                  "key": "sessionName",
+                  "label": "酒局"
+                },
+                {
+                  "key": "reporterName",
+                  "label": "举报人"
+                },
+                {
+                  "key": "uploaderName",
+                  "label": "上传者"
+                },
+                {
+                  "key": "reason",
+                  "label": "举报原因"
+                },
+                {
+                  "key": "statusText",
+                  "label": "处理状态"
+                },
+                {
+                  "key": "handler",
+                  "label": "处理人"
+                },
+                {
+                  "key": "handledAt",
+                  "label": "处理时间"
+                },
+                {
+                  "key": "createdAt",
+                  "label": "举报时间"
+                }
+              ],
+              "rowActions": [
+                {
+                  "key": "valid-hide",
+                  "label": "有效并隐藏",
+                  "endpoint": "/api/v1/admin/moment-reports/:id/handle",
+                  "payloadAction": "valid_hide",
+                  "reasonPrompt": "请输入判定有效并隐藏内容的原因",
+                  "visibleWhen": {
+                    "field": "status",
+                    "values": [
+                      "pending",
+                      "待处理",
+                      ""
+                    ]
+                  }
+                },
+                {
+                  "key": "invalid-keep",
+                  "label": "无效保留",
+                  "endpoint": "/api/v1/admin/moment-reports/:id/handle",
+                  "payloadAction": "invalid_keep",
+                  "reasonPrompt": "请输入判定举报无效的原因",
+                  "visibleWhen": {
+                    "field": "status",
+                    "values": [
+                      "pending",
+                      "待处理",
+                      ""
+                    ]
+                  }
+                },
+                {
+                  "key": "require-resubmit",
+                  "label": "要求重传",
+                  "endpoint": "/api/v1/admin/moment-reports/:id/handle",
+                  "payloadAction": "require_resubmit",
+                  "reasonPrompt": "请输入要求上传者重传的原因",
+                  "visibleWhen": {
+                    "field": "status",
+                    "values": [
+                      "pending",
+                      "待处理",
+                      ""
+                    ]
+                  }
+                },
+                {
+                  "key": "remove-ranking",
+                  "label": "移出榜单",
+                  "endpoint": "/api/v1/admin/moment-reports/:id/handle",
+                  "payloadAction": "remove_ranking",
+                  "reasonPrompt": "请输入移出榜单候选的原因",
+                  "visibleWhen": {
+                    "field": "status",
+                    "values": [
+                      "pending",
+                      "待处理",
+                      ""
+                    ]
+                  }
+                }
+              ],
+              "rows": [
+                {
+                  "id": "moment-report-it-moments-20260616-009",
+                  "momentId": "moment-1781584503795-17a32c27",
+                  "sessionName": "IT-MOMENTS-20260616-006B-session",
+                  "reporterName": "user-1781583974512-aedd1b",
+                  "uploaderName": "PR Seed Member A",
+                  "reason": "",
+                  "note": "PR-ADMIN-REWARD-009-VERIFY-011 invalid keep evidence",
+                  "status": "handled",
+                  "statusText": "无效，保留内容",
+                  "handler": "admin",
+                  "handledAt": "2026-06-16T05:20:17.681Z",
+                  "createdAt": "2026-06-16T05:11:18.038Z"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "shareTasksPage": {
+      "code": 0,
+      "message": "ok",
+      "data": {
+        "user": {
+          "id": "admin-root",
+          "username": "admin",
+          "name": "系统管理员",
+          "roleId": "role-super-admin",
+          "roleName": "超级管理员",
+          "status": "active",
+          "lastLoginAt": "2026-06-16T05:20:10.900Z"
+        },
+        "page": {
+          "slug": "growth-share-tasks",
+          "title": "分享图任务",
+          "view": "readonly",
+          "metrics": [
+            {
+              "label": "任务总数",
+              "value": "11",
+              "trend": "等待 share task 接入",
+              "tone": "up"
+            },
+            {
+              "label": "生成中",
+              "value": "6",
+              "trend": "后台静默处理",
+              "tone": "up"
+            },
+            {
+              "label": "已生成",
+              "value": "3",
+              "trend": "可查看保存",
+              "tone": "up"
+            },
+            {
+              "label": "失败",
+              "value": "2",
+              "trend": "后续接重试动作",
+              "tone": "up"
+            }
+          ],
+          "tables": [
+            {
+              "title": "分享图生成任务",
+              "columns": [
+                {
+                  "key": "id",
+                  "label": "任务 ID"
+                },
+                {
+                  "key": "sessionName",
+                  "label": "酒局"
+                },
+                {
+                  "key": "briefId",
+                  "label": "简报 ID"
+                },
+                {
+                  "key": "status",
+                  "label": "状态"
+                },
+                {
+                  "key": "layoutMode",
+                  "label": "布局"
+                },
+                {
+                  "key": "selectedNodeCount",
+                  "label": "节点数"
+                },
+                {
+                  "key": "durationMs",
+                  "label": "耗时 ms"
+                },
+                {
+                  "key": "retryCount",
+                  "label": "重试"
+                },
+                {
+                  "key": "failedReason",
+                  "label": "失败原因"
+                },
+                {
+                  "key": "imageUrl",
+                  "label": "图片 URL"
+                },
+                {
+                  "key": "createdAt",
+                  "label": "创建时间"
+                },
+                {
+                  "key": "finishedAt",
+                  "label": "完成时间"
+                }
+              ],
+              "rowActions": [
+                {
+                  "key": "retry",
+                  "label": "重试",
+                  "endpoint": "/api/v1/admin/share-image-tasks/:id/retry",
+                  "reasonPrompt": "请输入重试原因",
+                  "visibleWhen": {
+                    "field": "status",
+                    "values": [
+                      "failed",
+                      "expired"
+                    ]
+                  }
+                }
+              ],
+              "rows": [
+                {
+                  "id": "share-task-1781584504132-3251bd01",
+                  "sessionName": "IT-MOMENTS-20260616-006B-session",
+                  "briefId": "brief-1781584503870-25d5edac",
+                  "status": "failed",
+                  "layoutMode": "IT-MOMENTS-20260616-006B-failed",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "share task has no visible nodes",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-16T04:35:04.133Z",
+                  "finishedAt": "2026-06-16T04:35:04.188Z"
+                },
+                {
+                  "id": "share-task-1781584503902-a99a5211",
+                  "sessionName": "IT-MOMENTS-20260616-006B-session",
+                  "briefId": "brief-1781584503870-25d5edac",
+                  "status": "ready",
+                  "layoutMode": "IT-MOMENTS-20260616-006B-ready",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "/uploads/moments/share-tasks/share-task-1781584503902-a99a5211.png",
+                  "createdAt": "2026-06-16T04:35:03.902Z",
+                  "finishedAt": "2026-06-16T04:35:04.038Z"
+                },
+                {
+                  "id": "share-task-1781584503885-8bf3c52b",
+                  "sessionName": "IT-MOMENTS-20260616-006B-session",
+                  "briefId": "brief-1781584503870-25d5edac",
+                  "status": "pending",
+                  "layoutMode": "IT-MOMENTS-20260616-006B-pending",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-16T04:35:03.885Z",
+                  "finishedAt": ""
+                },
+                {
+                  "id": "share-task-1781584438094-47f7ee61",
+                  "sessionName": "IT-MOMENTS-20260616-006-session",
+                  "briefId": "brief-1781584437655-dad6bc1b",
+                  "status": "failed",
+                  "layoutMode": "IT-MOMENTS-20260616-006-failed",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "share task has no visible nodes",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-16T04:33:58.094Z",
+                  "finishedAt": "2026-06-16T04:33:58.146Z"
+                },
+                {
+                  "id": "share-task-1781584437695-68f2e5ec",
+                  "sessionName": "IT-MOMENTS-20260616-006-session",
+                  "briefId": "brief-1781584437655-dad6bc1b",
+                  "status": "ready",
+                  "layoutMode": "IT-MOMENTS-20260616-006-ready",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "/uploads/moments/share-tasks/share-task-1781584437695-68f2e5ec.png",
+                  "createdAt": "2026-06-16T04:33:57.696Z",
+                  "finishedAt": "2026-06-16T04:33:57.998Z"
+                },
+                {
+                  "id": "share-task-1781584437685-0bce88e9",
+                  "sessionName": "IT-MOMENTS-20260616-006-session",
+                  "briefId": "brief-1781584437655-dad6bc1b",
+                  "status": "pending",
+                  "layoutMode": "IT-MOMENTS-20260616-006-pending",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-16T04:33:57.685Z",
+                  "finishedAt": ""
+                },
+                {
+                  "id": "share-task-1781540737500-7b517d92",
+                  "sessionName": "周五快乐局",
+                  "briefId": "brief-1781540610538-7caba127",
+                  "status": "pending",
+                  "layoutMode": "timeline",
+                  "selectedNodeCount": 4,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-15T16:25:37.500Z",
+                  "finishedAt": ""
+                },
+                {
+                  "id": "share-task-1781527152182-0078e1ad",
+                  "sessionName": "周五快乐局",
+                  "briefId": "brief-1781527134616-745cd0f7",
+                  "status": "pending",
+                  "layoutMode": "timeline",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-15T12:39:12.183Z",
+                  "finishedAt": ""
+                },
+                {
+                  "id": "share-task-1781465622362-b11e8289",
+                  "sessionName": "IT-Moments-1781465623681",
+                  "briefId": "brief-1781465622338-8c84f732",
+                  "status": "ready",
+                  "layoutMode": "online-deploy-smoke",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "/uploads/moments/share-tasks/share-task-1781465622362-b11e8289.png",
+                  "createdAt": "2026-06-14T19:33:42.362Z",
+                  "finishedAt": "2026-06-14T19:33:42.698Z"
+                },
+                {
+                  "id": "share-task-1781464115687-938b6ad5",
+                  "sessionName": "IT-MOMENTS-20260615-1781464116545",
+                  "briefId": "brief-1781464115623-4f7c5b93",
+                  "status": "pending",
+                  "layoutMode": "timeline",
+                  "selectedNodeCount": 3,
+                  "durationMs": 0,
+                  "retryCount": 0,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-14T19:08:35.687Z",
+                  "finishedAt": ""
+                },
+                {
+                  "id": "share-task-it-moments-20260616-009-expired",
+                  "sessionName": "IT-MOMENTS-20260616-006B-session",
+                  "briefId": "brief-1781584503870-25d5edac",
+                  "status": "pending",
+                  "layoutMode": "poster",
+                  "selectedNodeCount": 1,
+                  "durationMs": 0,
+                  "retryCount": 1,
+                  "failedReason": "",
+                  "imageUrl": "",
+                  "createdAt": "2026-06-13T05:11:18.038Z",
+                  "finishedAt": ""
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "logsPage": {
+      "code": 0,
+      "message": "ok",
+      "data": {
+        "user": {
+          "id": "admin-root",
+          "username": "admin",
+          "name": "系统管理员",
+          "roleId": "role-super-admin",
+          "roleName": "超级管理员",
+          "status": "active",
+          "lastLoginAt": "2026-06-16T05:20:10.900Z"
+        },
+        "page": {
+          "slug": "system-operation-logs",
+          "title": "后台操作日志",
+          "view": "readonly",
+          "metrics": [
+            {
+              "label": "操作日志数",
+              "value": "24",
+              "trend": "最近 2026-06-16T05:20:21.045Z",
+              "tone": "up"
+            },
+            {
+              "label": "M4 动作日志",
+              "value": "24",
+              "trend": "审核、举报、分享图、奖励配置",
+              "tone": "up"
+            },
+            {
+              "label": "目标对象数",
+              "value": "13",
+              "trend": "内容与积分均可追溯",
+              "tone": "up"
+            },
+            {
+              "label": "操作人",
+              "value": "3",
+              "trend": "当前默认 admin-console",
+              "tone": "up"
+            }
+          ],
+          "tables": [
+            {
+              "title": "后台操作日志",
+              "columns": [
+                {
+                  "key": "logType",
+                  "label": "类型"
+                },
+                {
+                  "key": "operator",
+                  "label": "操作人"
+                },
+                {
+                  "key": "action",
+                  "label": "动作"
+                },
+                {
+                  "key": "targetId",
+                  "label": "目标 ID"
+                },
+                {
+                  "key": "targetName",
+                  "label": "目标名称"
+                },
+                {
+                  "key": "targetOpenId",
+                  "label": "OpenID"
+                },
+                {
+                  "key": "targetPhone",
+                  "label": "手机号"
+                },
+                {
+                  "key": "detail",
+                  "label": "详情"
+                },
+                {
+                  "key": "createdAt",
+                  "label": "时间"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "admin-op-1781587221045-6a5c55",
+                  "logType": "分享图任务",
+                  "operator": "admin",
+                  "action": "重试分享图任务",
+                  "targetId": "share-task-it-moments-20260616-009-expired",
+                  "targetName": "share-task-it-moments-20260616-009-expired",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 expired -> pending；原因：PR-ADMIN-REWARD-009-VERIFY-011 expired retry evidence",
+                  "createdAt": "2026-06-16T05:20:21.045Z"
+                },
+                {
+                  "id": "admin-op-1781587217683-97e040",
+                  "logType": "瞬间举报",
+                  "operator": "admin",
+                  "action": "处理精彩瞬间举报：invalid_keep",
+                  "targetId": "moment-report-it-moments-20260616-009",
+                  "targetName": "moment-1781584503795-17a32c27",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "举报 moment-report-it-moments-20260616-009 -> 无效，保留内容；原因：PR-ADMIN-REWARD-009-VERIFY-011 invalid keep evidence",
+                  "createdAt": "2026-06-16T05:20:17.683Z"
+                },
+                {
+                  "id": "admin-op-1781587214003-9a574e",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 2 条，合计 0 积分",
+                  "createdAt": "2026-06-16T05:20:14.003Z"
+                },
+                {
+                  "id": "admin-op-1781586678035-8fbf3f",
+                  "logType": "榜单奖励",
+                  "operator": "pr-int-009",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 1 条，跳过 1 条，合计 60 积分",
+                  "createdAt": "2026-06-16T05:11:18.035Z"
+                },
+                {
+                  "id": "admin-op-1781586678010-202530",
+                  "logType": "瞬间审核",
+                  "operator": "pr-int-009",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781586554926-ffc93c65",
+                  "targetName": "IT-MOMENTS-20260616-009 reward candidate opening",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-009 reward-positive approval",
+                  "createdAt": "2026-06-16T05:11:18.010Z"
+                },
+                {
+                  "id": "admin-op-1781586555047-6741d0",
+                  "logType": "榜单奖励",
+                  "operator": "pr-int-009",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 1 条，合计 0 积分",
+                  "createdAt": "2026-06-16T05:09:15.047Z"
+                },
+                {
+                  "id": "admin-op-1781585869739-24fa35",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 1 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:57:49.739Z"
+                },
+                {
+                  "id": "admin-op-1781584650823-2e7f4f",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 1 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:37:30.823Z"
+                },
+                {
+                  "id": "admin-op-1781584504237-b905b7",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 1 条，跳过 0 条，合计 60 积分",
+                  "createdAt": "2026-06-16T04:35:04.237Z"
+                },
+                {
+                  "id": "admin-op-1781584504167-457c2e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：hide",
+                  "targetId": "moment-1781584503823-56dc9214",
+                  "targetName": "IT-MOMENTS-20260616-006B failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 approved/approved -> hidden/approved；原因：IT-MOMENTS-20260616-006B hide failed candidate before process",
+                  "createdAt": "2026-06-16T04:35:04.167Z"
+                },
+                {
+                  "id": "admin-op-1781584504109-c1655b",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584503823-56dc9214",
+                  "targetName": "IT-MOMENTS-20260616-006B failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006B approve failed candidate before task creation",
+                  "createdAt": "2026-06-16T04:35:04.109Z"
+                },
+                {
+                  "id": "admin-op-1781584504077-f9714e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584503741-d53b131f",
+                  "targetName": "IT-MOMENTS-20260616-006B opening",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006B approve opening for ranking",
+                  "createdAt": "2026-06-16T04:35:04.077Z"
+                },
+                {
+                  "id": "admin-op-1781584438126-31bb6d",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：hide",
+                  "targetId": "moment-1781584437610-e1e75e10",
+                  "targetName": "IT-MOMENTS-20260616-006 failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 approved/approved -> hidden/approved；原因：IT-MOMENTS-20260616-006 hide failed candidate before process",
+                  "createdAt": "2026-06-16T04:33:58.126Z"
+                },
+                {
+                  "id": "admin-op-1781584438062-769683",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584437610-e1e75e10",
+                  "targetName": "IT-MOMENTS-20260616-006 failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006 approve failed candidate before task creation",
+                  "createdAt": "2026-06-16T04:33:58.063Z"
+                },
+                {
+                  "id": "admin-op-1781584438040-f2d37e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584437537-2e21801b",
+                  "targetName": "IT-MOMENTS-20260616-006 opening",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006 approve opening for ranking",
+                  "createdAt": "2026-06-16T04:33:58.040Z"
+                },
+                {
+                  "id": "admin-op-1781584037698-5c4f91",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 0 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:27:17.698Z"
+                },
+                {
+                  "id": "admin-op-1781583905263-4613ab",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 0 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:25:05.263Z"
+                },
+                {
+                  "id": "admin-op-1781583557551-2cf1be",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 0 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:19:17.551Z"
+                },
+                {
+                  "id": "admin-op-1781582831837-2c6dd5",
+                  "logType": "榜单奖励",
+                  "operator": "admin-console",
+                  "action": "保存榜单奖励配置",
+                  "targetId": "commerce-ranking-rewards",
+                  "targetName": "榜单奖励配置",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "更新 7 条规则；覆盖：今日最有梗、今日最欠酒、今日最精彩、今日最有画面、最佳开场、最佳收尾",
+                  "createdAt": "2026-06-16T04:07:11.837Z"
+                },
+                {
+                  "id": "admin-op-1781582831811-89a318",
+                  "logType": "榜单奖励",
+                  "operator": "admin-console",
+                  "action": "保存榜单奖励配置",
+                  "targetId": "commerce-ranking-rewards",
+                  "targetName": "榜单奖励配置",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "更新 7 条规则；覆盖：今日最有梗、今日最欠酒、今日最精彩、今日最有画面、最佳开场、最佳收尾",
+                  "createdAt": "2026-06-16T04:07:11.811Z"
+                },
+                {
+                  "id": "admin-op-1781582831706-aba238",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：require_resubmit",
+                  "targetId": "moment-1781549829409-b3aece35",
+                  "targetName": "刚刚这一刻，值得留在时间线",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> pending/require_resubmit；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 require resubmit smoke",
+                  "createdAt": "2026-06-16T04:07:11.706Z"
+                },
+                {
+                  "id": "admin-op-1781582831652-efa236",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：hide",
+                  "targetId": "moment-1781540671054-90a9122f",
+                  "targetName": "恶意我",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> hidden/pending；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 hide smoke",
+                  "createdAt": "2026-06-16T04:07:11.652Z"
+                },
+                {
+                  "id": "admin-op-1781582831602-b31020",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781549804535-b8b389b0",
+                  "targetName": "今晚开场，先留证",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 approve smoke",
+                  "createdAt": "2026-06-16T04:07:11.602Z"
+                },
+                {
+                  "id": "admin-op-1781529144358-98309e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781527099498-31744936",
+                  "targetName": "今晚开场，先留证",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：123",
+                  "createdAt": "2026-06-15T13:12:24.358Z"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "network": {
+    "grant": {
+      "requestId": "15084.40",
+      "status": 200,
+      "body": "{\"code\":0,\"message\":\"ok\",\"data\":{\"category\":\"best_opening\",\"date\":\"2026-06-16\",\"grantedCount\":0,\"skippedCount\":2,\"totalPoints\":0,\"items\":[{\"momentId\":\"moment-1781586554926-ffc93c65\",\"profileId\":\"user-1781583974512-aedd1b\",\"rank\":1,\"points\":60,\"status\":\"skipped\",\"sourceId\":\"ranking-reward:2026-06-16:best_opening:moment-1781586554926-ffc93c65:reward-rule-best-opening-1\"}]}}"
+    },
+    "report": {
+      "requestId": "15084.113",
+      "status": 200,
+      "body": "{\"code\":0,\"message\":\"ok\",\"data\":{\"refund\":{\"refundedCount\":0,\"refundedPoints\":0,\"nominations\":[]},\"report\":{\"id\":\"moment-report-it-moments-20260616-009\",\"sessionId\":\"session-1781584503517-c033e9\",\"momentId\":\"moment-1781584503795-17a32c27\",\"reporterProfileId\":\"user-1781583974512-aedd1b\",\"targetProfileId\":\"user-1781583974514-a46045\",\"reasonCode\":\"privacy_concern\",\"reasonText\":\"IT-MOMENTS-20260616-009 report sample\",\"status\":\"handled\",\"statusText\":\"无效，保留内容\",\"createdAt\":\"2026-06-16T05:11:18.038Z\",\"updatedAt\":\"2026-06-16T05:20:17.681Z\",\"handledAt\":\"2026-06-16T05:20:17.681Z\",\"handlerId\":null,\"handlerName\":null,\"resolution\":null,\"operationLogId\":null,\"action\":\"invalid_keep\",\"note\":\"PR-ADMIN-REWARD-009-VERIFY-011 invalid keep evidence\",\"handler\":\"admin\"},\"moment\":{\"id\":\"moment-1781584503795-17a32c27\",\"clientDraftId\":\"IT-MOMENTS-20260616-006B-private-a-to-b\",\"sessionId\":\"session-1781584503517-c033e9\",\"uploaderProfileId\":\"user-1781583974512-aedd1b\",\"uploaderName\":\"PR Seed Member A\",\"nodeType\":\"private\",\"mediaType\":\"image\",\"imageUrl\":\"/uploads/moments/session-1781584503517-c033e9/1781584503700-it-moments-20260616-006b-opening-cdf665.webp\",\"videoUrl\":\"\",\"coverImageUrl\":\"\",\"duration\":0,\"caption\":\"IT-MOMENTS-20260616-006B private for member B\",\"tags\":[\"INT-DATA-001\",\"private\"],\"visibility\":\"selected\",\"visibleProfileIds\":[\"user-1781583974514-a46045\"],\"timelineTitle\":\"PR Seed Member A 发送了一条私密爆料\",\"usageConsent\":{\"session\":true,\"brief\":true,\"share\":true,\"ranking\":true},\"completionStatus\":\"complete\",\"reviewStatus\":\"pending\",\"secondaryReviewStatus\":\"pending\",\"rankingEligible\":false,\"rewardEligible\":false,\"isTimelinePlaceholder\":false,\"removedAt\":\"\",\"createdAt\":\"2026-06-16T04:35:03.796Z\",\"updatedAt\":\"2026-06-16T04:35:03.796Z\"}}}"
+    },
+    "retry": {
+      "requestId": "15084.192",
+      "status": 200,
+      "body": "{\"code\":0,\"message\":\"ok\",\"data\":{\"task\":{\"id\":\"share-task-it-moments-20260616-009-expired\",\"sessionId\":\"session-1781584503517-c033e9\",\"briefId\":\"brief-1781584503870-25d5edac\",\"status\":\"pending\",\"layoutMode\":\"poster\",\"selectedNodeIds\":[\"event-1781584503850-94ad3aeb\"],\"imageUrl\":\"\",\"failedReason\":\"\",\"retryCount\":1,\"createdAt\":\"2026-06-13T05:11:18.038Z\",\"startedAt\":\"\",\"finishedAt\":\"\",\"updatedAt\":\"2026-06-16T05:20:21.043Z\"}}}"
+    },
+    "responses": [
+      {
+        "url": "https://api.pomer.cn/admin/static/heatwave-ops/app.js?v=20260615-admin-action-dialogs",
+        "status": 200,
+        "mimeType": "application/javascript"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/pages/commerce-ranking-rewards",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/ranking-rewards/grant",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/pages/commerce-ranking-rewards",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/admin/static/heatwave-ops/app.js?v=20260615-admin-action-dialogs",
+        "status": 200,
+        "mimeType": "application/javascript"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/pages/content-moment-reports",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/moment-reports/moment-report-it-moments-20260616-009/handle",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/pages/content-moment-reports",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/admin/static/heatwave-ops/app.js?v=20260615-admin-action-dialogs",
+        "status": 200,
+        "mimeType": "application/javascript"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/pages/growth-share-tasks",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/share-image-tasks/share-task-it-moments-20260616-009-expired/retry",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/pages/growth-share-tasks",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/admin/static/heatwave-ops/app.js?v=20260615-admin-action-dialogs",
+        "status": 200,
+        "mimeType": "application/javascript"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/pages/system-operation-logs",
+        "status": 200,
+        "mimeType": "application/json"
+      }
+    ]
+  },
+  "screenshots": [
+    "docs/runtime/pr-admin-reward-009-verify-011/01-reward-page-button-before.png",
+    "docs/runtime/pr-admin-reward-009-verify-011/02-reward-confirm-dialog.png",
+    "docs/runtime/pr-admin-reward-009-verify-011/03-reward-after-click.png",
+    "docs/runtime/pr-admin-reward-009-verify-011/04-report-before-invalid-keep.png",
+    "docs/runtime/pr-admin-reward-009-verify-011/05-report-reason-dialog.png",
+    "docs/runtime/pr-admin-reward-009-verify-011/06-report-after-handle.png",
+    "docs/runtime/pr-admin-reward-009-verify-011/07-expired-task-before-retry.png",
+    "docs/runtime/pr-admin-reward-009-verify-011/08-expired-retry-reason-dialog.png",
+    "docs/runtime/pr-admin-reward-009-verify-011/09-expired-task-after-retry.png",
+    "docs/runtime/pr-admin-reward-009-verify-011/10-operation-logs-after-009-actions.png"
+  ],
+  "frontendSyncGap": "本轮只做后台页面/API/operationLogs 复核；未录小程序前台同步，测试需补榜单/积分/举报状态/分享任务前台截图。"
+}

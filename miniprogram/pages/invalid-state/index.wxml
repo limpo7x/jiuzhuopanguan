@@ -1,5 +1,5 @@
 <navigation-bar
-  title="酒局已结束"
+  title="聚会已结束"
   back="{{true}}"
   color="#24160f"
   background="rgba(255,253,248,0.96)"
@@ -10,8 +10,8 @@
   <scroll-view class="invalid-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="invalid-center">
       <view class="invalid-state-image"></view>
-      <text class="invalid-title">本局已结束</text>
-      <text class="invalid-subtitle">美好时光总是短暂的</text>
+      <text class="invalid-title">这场聚会已结束</text>
+      <text class="invalid-subtitle">照片、账本和分享图会保存在相册里</text>
 
       <view class="invalid-stat-row">
         <view wx:for="{{stats}}" wx:key="label" class="invalid-stat-item">
@@ -21,8 +21,8 @@
       </view>
 
       <view class="invalid-action-row">
-        <view class="invalid-ghost" bindtap="handleReportTap">查看战报回顾</view>
-        <view class="invalid-primary" bindtap="handleRestartTap">再开一局</view>
+        <view class="invalid-ghost" bindtap="handleReportTap">查看相册</view>
+        <view class="invalid-primary" bindtap="handleRestartTap">再开一场</view>
       </view>
 
       <view class="invalid-grid">
@@ -34,7 +34,7 @@
 
       <view class="invalid-notice">
         <view class="invalid-notice-icon"></view>
-        <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+        <text>仅展示可分享内容，私密记录不会进入公开页</text>
       </view>
     </view>
   </scroll-view>

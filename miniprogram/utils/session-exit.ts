@@ -14,8 +14,20 @@ interface ConfirmLeaveOptions {
   title?: string
 }
 
-const DEFAULT_REDIRECT_URL = '/pages/judge/index'
-const SESSION_LEAVE_ALERT_MESSAGE = '酒局正在进行中，确定要离开吗？'
+const DEFAULT_REDIRECT_URL = '/pages/index/index'
+const SESSION_LEAVE_ALERT_MESSAGE = '聚会正在记录中，确定要离开吗？'
+
+const redirectAfterExit = (redirectUrl: string) => {
+  disableSessionLeaveAlert()
+  wx.redirectTo({
+    url: redirectUrl,
+    fail: () => {
+      wx.reLaunch({
+        url: redirectUrl,
+      })
+    },
+  })
+}
 
 export const enableSessionLeaveAlert = () => {
   wx.enableAlertBeforeUnload({
@@ -41,15 +53,17 @@ export const confirmAndExitSession = async (options: ConfirmExitOptions = {}) =>
   const runtime = getSessionRuntime()
   const sessionId = runtime.sessionId || ''
   if (!sessionId) {
-    return false
+    clearSessionRuntime()
+    redirectAfterExit(options.redirectUrl || DEFAULT_REDIRECT_URL)
+    return true
   }
 
   const confirmed = await new Promise<boolean>((resolve) => {
     wx.showModal({
-      title: '确认退出本局',
+      title: '确认退出聚会',
       content: '现在退出将清空该场聚会，朋友将不可加入。',
       confirmText: '确认退出',
-      cancelText: '继续对局',
+      cancelText: '继续记录',
       success: (result) => resolve(Boolean(result.confirm)),
       fail: () => resolve(false),
     })
@@ -64,19 +78,35 @@ export const confirmAndExitSession = async (options: ConfirmExitOptions = {}) =>
     mask: true,
   })
 
+  let deleteError: unknown = null
   try {
     await deleteManagedSession(sessionId)
-    clearSessionRuntime()
-    disableSessionLeaveAlert()
-    const redirectUrl = options.redirectUrl || DEFAULT_REDIRECT_URL
-    wx.redirectTo({
-      url: redirectUrl,
-      fail: () => {
-        wx.reLaunch({
-          url: redirectUrl,
-        })
-      },
+  } catch (error) {
+    deleteError = error
+  } finally {
+    wx.hideLoading()
+  }
+
+  if (deleteError) {
+    const leaveLocal = await new Promise<boolean>((resolve) => {
+      wx.showModal({
+        title: '退出暂未同步',
+        content: '服务器暂未确认删除，可先返回首页，稍后再从相册或记录入口处理。',
+        confirmText: '先返回',
+        cancelText: '留在本页',
+        success: (result) => resolve(Boolean(result.confirm)),
+        fail: () => resolve(false),
+      })
     })
+
+    if (!leaveLocal) {
+      return false
+    }
+  }
+
+  try {
+    clearSessionRuntime()
+    redirectAfterExit(options.redirectUrl || DEFAULT_REDIRECT_URL)
     return true
   } catch (error) {
     wx.showToast({
@@ -84,18 +114,16 @@ export const confirmAndExitSession = async (options: ConfirmExitOptions = {}) =>
       icon: 'none',
     })
     return false
-  } finally {
-    wx.hideLoading()
   }
 }
 
 export const confirmLeaveSessionPage = async (options: ConfirmLeaveOptions = {}) => {
   const confirmed = await new Promise<boolean>((resolve) => {
     wx.showModal({
-      title: options.title || '确认离开本局',
-      content: options.content || '离开后可从我的酒局重新进入当前场次。',
+      title: options.title || '确认离开聚会',
+      content: options.content || '离开后可从我的相册重新进入当前聚会。',
       confirmText: options.confirmText || '确认离开',
-      cancelText: options.cancelText || '继续酒局',
+      cancelText: options.cancelText || '继续记录',
       success: (result) => resolve(Boolean(result.confirm)),
       fail: () => resolve(false),
     })
@@ -108,15 +136,6 @@ export const confirmLeaveSessionPage = async (options: ConfirmLeaveOptions = {})
   if (options.clearRuntime) {
     clearSessionRuntime()
   }
-  disableSessionLeaveAlert()
-  const redirectUrl = options.redirectUrl || DEFAULT_REDIRECT_URL
-  wx.redirectTo({
-    url: redirectUrl,
-    fail: () => {
-      wx.reLaunch({
-        url: redirectUrl,
-      })
-    },
-  })
+  redirectAfterExit(options.redirectUrl || DEFAULT_REDIRECT_URL)
   return true
 }

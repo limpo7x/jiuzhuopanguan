@@ -1,0 +1,129 @@
+{
+  "allButtons": [
+    {
+      "action": "toggle-nav-group",
+      "itemId": "",
+      "pageAction": "",
+      "text": "概览台"
+    },
+    {
+      "action": "toggle-nav-group",
+      "itemId": "",
+      "pageAction": "",
+      "text": "内容运营"
+    },
+    {
+      "action": "toggle-nav-group",
+      "itemId": "",
+      "pageAction": "",
+      "text": "用户与酒局"
+    },
+    {
+      "action": "toggle-nav-group",
+      "itemId": "",
+      "pageAction": "",
+      "text": "商业化"
+    },
+    {
+      "action": "toggle-nav-group",
+      "itemId": "",
+      "pageAction": "",
+      "text": "增长与数据"
+    },
+    {
+      "action": "toggle-nav-group",
+      "itemId": "",
+      "pageAction": "",
+      "text": "系统设置"
+    },
+    {
+      "action": "logout",
+      "itemId": "",
+      "pageAction": "",
+      "text": "退出"
+    },
+    {
+      "action": "add-item",
+      "itemId": "",
+      "pageAction": "",
+      "text": "新增奖励规则"
+    },
+    {
+      "action": "edit-item",
+      "itemId": "reward-rule-today-funny-1",
+      "pageAction": "",
+      "text": "编辑"
+    },
+    {
+      "action": "edit-item",
+      "itemId": "reward-rule-today-funny-2",
+      "pageAction": "",
+      "text": "编辑"
+    },
+    {
+      "action": "edit-item",
+      "itemId": "reward-rule-today-debt-1",
+      "pageAction": "",
+      "text": "编辑"
+    },
+    {
+      "action": "edit-item",
+      "itemId": "reward-rule-today-highlight-1",
+      "pageAction": "",
+      "text": "编辑"
+    },
+    {
+      "action": "edit-item",
+      "itemId": "reward-rule-today-visual-1",
+      "pageAction": "",
+      "text": "编辑"
+    },
+    {
+      "action": "edit-item",
+      "itemId": "reward-rule-best-opening-1",
+      "pageAction": "",
+      "text": "编辑"
+    },
+    {
+      "action": "edit-item",
+      "itemId": "reward-rule-best-closing-1",
+      "pageAction": "",
+      "text": "编辑"
+    },
+    {
+      "action": "table-page",
+      "itemId": "",
+      "pageAction": "",
+      "text": "首页"
+    },
+    {
+      "action": "table-page",
+      "itemId": "",
+      "pageAction": "",
+      "text": "上一页"
+    },
+    {
+      "action": "table-page",
+      "itemId": "",
+      "pageAction": "",
+      "text": "1"
+    },
+    {
+      "action": "table-page",
+      "itemId": "",
+      "pageAction": "",
+      "text": "下一页"
+    }
+  ],
+  "hasGrantText": true,
+  "pageActionButtons": [],
+  "scriptSrcs": [
+    "https://api.pomer.cn/admin/static/heatwave-ops/app.js?v=20260611-admin-pagination-2"
+  ],
+  "styleHrefs": [
+    "https://api.pomer.cn/admin/static/heatwave-ops/styles.css?v=20260611-admin-pagination-2"
+  ],
+  "title": "榜单奖励配置 - 酒桌判官后台",
+  "toolbarText": "UI Kit",
+  "url": "https://api.pomer.cn/admin/static/heatwave-ops/commerce-ranking-rewards.html"
+}

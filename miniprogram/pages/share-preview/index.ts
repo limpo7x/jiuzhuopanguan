@@ -1,28 +1,62 @@
-import { getManagedLiveSession } from '../../services/operations'
+import { getManagedLiveSession, getManagedSessionBrief, type ManagedSessionBrief, type ManagedTimelineNode } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
 
-interface SharePreviewItem {
-  iconClass: string
+interface SharePreviewMetric {
   id: string
-  name: string
+  label: string
+  unit: string
+  value: string
+}
+
+interface SharePreviewPhoto {
+  imageBroken?: boolean
+  id: string
+  imageUrl: string
+  meta: string
+  title: string
+}
+
+interface SharePreviewKeyEvent {
+  id: string
+  meta: string
+  title: string
 }
 
 interface SharePreviewState {
+  accountingHighlights: SharePreviewMetric[]
   avatars: string[]
+  briefId: string
   canvasHeight: number
   canvasWidth: number
+  errorText: string
+  filteredNodeIds: string[]
   inviteCode: string
+  inviteStatusText: string
   joinedCount: number
   joinStatusPlayers: Array<{ avatarUrl: string; name: string; status: string }>
+  keyEvents: SharePreviewKeyEvent[]
+  ledgerRankings: Record<string, unknown>
+  ledgerSummary: Record<string, unknown>
+  ledgerCount: number
+  photoHighlights: SharePreviewPhoto[]
+  photoHighlightsNotice: string
   playerCount: number
   posterImagePath: string
+  settlementSummary: Record<string, unknown>
   sessionId: string
+  shareId: string
   sessionName: string
-  shareItems: SharePreviewItem[]
+  shareContentFilter: Record<string, unknown>
+  shareSummary: string
+  shareReturnMode: boolean
   showJoinStatus: boolean
+  permissionState: string
+  previewLoadFailed: boolean
+  visibleNodeIds: string[]
 }
 
 interface SharePreviewMethods {
+  applyPreviewUnavailableState: (message: string, patch?: Partial<SharePreviewState>) => void
   buildInvitePoster: () => Promise<string>
   drawCanvasToFile: (
     width: number,
@@ -30,31 +64,127 @@ interface SharePreviewMethods {
     drawer: (ctx: WechatMiniprogram.CanvasContext) => void,
   ) => Promise<string>
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
-  handleSaveTap: () => Promise<void>
-  handleShareTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleReportHintTap: () => void
+  handleBackTap: () => void
+  handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => void
+  handlePhotoImageLoad: (event: WechatMiniprogram.BaseEvent) => void
+  handleRetryTap: () => Promise<void>
+  handleReturnAlbumTap: () => void
   loadInviteSession: (query?: Record<string, string | undefined>) => Promise<void>
+  loadBriefContract: (briefId: string) => Promise<Partial<SharePreviewState> | null>
   openPage: (url: string) => void
   saveImageFile: (filePath: string) => Promise<void>
   showPreviewToast: (message: string) => void
 }
 
+const readStringArray = (record: Record<string, unknown>, key: string): string[] => {
+  const value = record?.[key]
+  if (!Array.isArray(value)) {
+    return []
+  }
+  return value.map((item) => String(item || '')).filter(Boolean)
+}
+
+const isPublicSharePreviewMoment = (node: ManagedTimelineNode, filteredNodeIds: string[]): node is Extract<ManagedTimelineNode, { nodeKind: 'moment' }> =>
+  node.nodeKind === 'moment' &&
+  !filteredNodeIds.includes(node.id) &&
+  !node.isTimelinePlaceholder &&
+  node.completionStatus === 'complete' &&
+  node.usageConsent?.share !== false &&
+  node.visibility !== 'private' &&
+  node.visibility !== 'selected' &&
+  !!node.imageUrl
+
+const buildSharePreviewPhotoHighlights = (nodes: ManagedTimelineNode[], filteredNodeIds: string[]): SharePreviewPhoto[] =>
+  nodes.filter((node) => isPublicSharePreviewMoment(node, filteredNodeIds)).slice(0, 5).map((node, index) => ({
+    id: node.id,
+    imageUrl: node.imageUrl || '',
+    meta: node.uploaderName || `照片 ${index + 1}`,
+    title: node.timelineTitle || node.caption || '聚会照片',
+  }))
+
+const buildPhotoHighlightsNotice = (count: number) =>
+  count > 0 ? `已同步 ${count} 张可分享照片。` : '暂无可展示照片，先去记录一张聚会照片。'
+
+const buildInviteStatusText = (joinedCount: number, playerCount: number) => {
+  if (playerCount <= 0) {
+    return '等待好友加入'
+  }
+  if (joinedCount <= 0) {
+    return '邀请已准备好'
+  }
+  return `${joinedCount}/${playerCount} 位好友已加入`
+}
+
+const toSafeSharePreviewErrorText = (message: string) => {
+  const raw = String(message || '').trim()
+  const lower = raw.toLowerCase()
+  if (
+    lower.includes('not session member') ||
+    lower.includes('unauthorized') ||
+    lower.includes('forbidden') ||
+    lower.includes('401') ||
+    lower.includes('403')
+  ) {
+    return '当前账号暂不能查看这张分享页，请使用邀请入口加入聚会'
+  }
+  if (lower.includes('network') || lower.includes('timeout') || lower.includes('failed to fetch')) {
+    return '网络开小差了，请稍后重试'
+  }
+  if (raw.includes('超时')) {
+    return '网络开小差了，请稍后重试'
+  }
+  return '这张分享页暂时无法展示，请稍后重试'
+}
+
+const getJoinStatusText = (status?: string) => {
+  switch (String(status || '').toLowerCase()) {
+    case 'joined':
+    case 'active':
+    case 'ready':
+      return '已加入'
+    case 'invited':
+    case 'pending':
+      return '待加入'
+    case 'left':
+      return '已离开'
+    default:
+      return '本聚会成员'
+  }
+}
+
 Page<SharePreviewState, SharePreviewMethods>({
   data: {
+    accountingHighlights: [],
     avatars: [],
+    briefId: '',
     canvasHeight: 960,
     canvasWidth: 720,
+    errorText: '',
+    filteredNodeIds: [],
     inviteCode: '',
+    inviteStatusText: '等待好友加入',
     joinedCount: 0,
     joinStatusPlayers: [],
+    keyEvents: [],
+    ledgerRankings: {},
+    ledgerSummary: {},
+    ledgerCount: 0,
+    photoHighlights: [],
+    photoHighlightsNotice: '暂无可展示照片，先去记录一张聚会照片。',
     playerCount: 0,
     posterImagePath: '',
+    settlementSummary: {},
     sessionId: '',
+    shareId: '',
     sessionName: '',
-    shareItems: [
-      { id: 'friend', name: '分享给好友', iconClass: 'share-icon-wechat' },
-      { id: 'group', name: '分享到群', iconClass: 'share-icon-group' },
-    ],
+    shareContentFilter: {},
+    shareSummary: '邀请好友加入后，可以一起查看这场聚会的回忆。',
+    shareReturnMode: false,
     showJoinStatus: false,
+    permissionState: '',
+    previewLoadFailed: false,
+    visibleNodeIds: [],
   },
 
   async onLoad(query) {
@@ -65,16 +195,101 @@ Page<SharePreviewState, SharePreviewMethods>({
     const runtime = getSessionRuntime()
     const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
     const inviteCode = typeof query?.inviteCode === 'string' ? decodeURIComponent(query.inviteCode) : runtime.inviteCode || ''
+    const briefId = typeof query?.briefId === 'string' ? decodeURIComponent(query.briefId) : ''
+    const manifestId = typeof query?.manifestId === 'string' ? decodeURIComponent(query.manifestId) : ''
+    const shareId = typeof query?.shareId === 'string' ? decodeURIComponent(query.shareId) : ''
+    const taskId = typeof query?.taskId === 'string' ? decodeURIComponent(query.taskId) : ''
+    const shareTaskId = typeof query?.shareTaskId === 'string' ? decodeURIComponent(query.shareTaskId) : ''
+    const reportId = typeof query?.reportId === 'string' ? decodeURIComponent(query.reportId) : ''
+    const hasShareReturnMarker = !!briefId || !!shareId || !!taskId || !!shareTaskId || !!reportId
+    const shareReturnMode = query?.mode === 'return' || query?.view === 'return' || hasShareReturnMarker
+
+    this.setData({
+      briefId,
+      inviteCode,
+      sessionId,
+      shareId,
+      shareReturnMode,
+      previewLoadFailed: false,
+      errorText: '',
+    })
+
+    if (!sessionId && !inviteCode && !briefId && !manifestId && !hasShareReturnMarker) {
+      this.applyPreviewUnavailableState('这张分享页暂时无法展示，请稍后重试')
+      return
+    }
 
     try {
-      const liveSession = await getManagedLiveSession(sessionId, inviteCode)
+      const briefPreview = briefId ? await this.loadBriefContract(briefId) : null
+      const effectiveSessionId = sessionId || String(briefPreview?.sessionId || '')
+      let liveSession = null as Awaited<ReturnType<typeof getManagedLiveSession>> | null
+      try {
+        if (effectiveSessionId || inviteCode) {
+          liveSession = await getManagedLiveSession(effectiveSessionId, inviteCode)
+        }
+      } catch (error) {
+        if (!briefPreview) {
+          throw error
+        }
+      }
+
+      if (!liveSession && briefPreview) {
+        this.setData({
+          ...briefPreview,
+          briefId,
+          inviteCode,
+          inviteStatusText: inviteCode ? '邀请已准备好' : '仅展示可分享内容',
+          joinedCount: 0,
+          ledgerCount: Array.isArray(briefPreview.accountingHighlights) ? briefPreview.accountingHighlights.length : 0,
+          photoHighlightsNotice: buildPhotoHighlightsNotice(Array.isArray(briefPreview.photoHighlights) ? briefPreview.photoHighlights.length : 0),
+          playerCount: 0,
+          previewLoadFailed: false,
+          sessionId: effectiveSessionId,
+          shareSummary: Array.isArray(briefPreview.photoHighlights) && (briefPreview.photoHighlights.length || (briefPreview.accountingHighlights as SharePreviewMetric[] | undefined)?.length || (briefPreview.keyEvents as SharePreviewKeyEvent[] | undefined)?.length)
+            ? '这场聚会的照片和账本高光已准备好分享。'
+            : '这场聚会的可分享照片和账本高光会在这里汇总。',
+        })
+        return
+      }
+
+      if (!liveSession) {
+        this.applyPreviewUnavailableState('这张分享页暂时无法展示，请稍后重试', {
+          briefId,
+          inviteCode,
+          sessionId: effectiveSessionId,
+        })
+        return
+      }
+
       const playerCount = Number(liveSession.playerCount) || 0
       const joinStatusPlayers = liveSession.joinStatusPlayers.slice(0, playerCount).map((item) => ({
         avatarUrl: item.avatarUrl,
         name: item.name,
-        status: item.status,
+        status: getJoinStatusText(item.status),
       }))
       const avatars = liveSession.joinedPlayers.slice(0, Math.min(liveSession.joinedCount, 4)).map((item) => item.avatarUrl)
+      const totalDebt = liveSession.joinStatusPlayers.reduce((sum, item) => sum + (Number(item.debtCount) || 0), 0)
+      const totalDrink = liveSession.joinStatusPlayers.reduce((sum, item) => sum + (Number(item.drinkCount) || 0), 0)
+      const totalCleared = liveSession.joinStatusPlayers.reduce((sum, item) => sum + (Number(item.clearedCount) || 0), 0)
+      const ledgerCount = liveSession.joinStatusPlayers.filter((item) => (Number(item.debtCount) || 0) + (Number(item.drinkCount) || 0) + (Number(item.clearedCount) || 0) > 0).length
+      const accountingHighlights = [
+        totalDebt > 0 ? { id: 'debt', label: '待整理', value: `${totalDebt}`, unit: '条' } : null,
+        totalDrink > 0 ? { id: 'drink', label: '已记录', value: `${totalDrink}`, unit: '条' } : null,
+        totalCleared > 0 ? { id: 'cleared', label: '已完成', value: `${totalCleared}`, unit: '条' } : null,
+        ledgerCount > 0 ? { id: 'ledger', label: '账本', value: `${ledgerCount}`, unit: '人有记录' } : null,
+      ].filter((item): item is SharePreviewMetric => !!item)
+      const keyEvents = liveSession.joinStatusPlayers
+        .filter((item) => (Number(item.debtCount) || 0) + (Number(item.drinkCount) || 0) + (Number(item.clearedCount) || 0) > 0)
+        .slice(0, 3)
+        .map<SharePreviewKeyEvent>((item) => ({
+          id: item.profileId || item.name,
+          meta: `待整理 ${Number(item.debtCount) || 0} 条 · 已记录 ${Number(item.drinkCount) || 0} 条 · 已完成 ${Number(item.clearedCount) || 0} 条`,
+          title: `${item.name || '成员'} 的账本高光`,
+        }))
+      const nextAccountingHighlights = briefPreview?.accountingHighlights?.length ? briefPreview.accountingHighlights as SharePreviewMetric[] : accountingHighlights
+      const nextKeyEvents = briefPreview?.keyEvents?.length ? briefPreview.keyEvents as SharePreviewKeyEvent[] : keyEvents
+      const nextPhotoHighlights = Array.isArray(briefPreview?.photoHighlights) ? briefPreview.photoHighlights as SharePreviewPhoto[] : []
+      const nextPhotoNotice = buildPhotoHighlightsNotice(nextPhotoHighlights.length)
 
       setSessionRuntime({
         inviteCode: liveSession.inviteCode,
@@ -91,24 +306,107 @@ Page<SharePreviewState, SharePreviewMethods>({
       })
 
       this.setData({
+        accountingHighlights: nextAccountingHighlights,
         avatars,
+        briefId,
+        filteredNodeIds: Array.isArray(briefPreview?.filteredNodeIds) ? briefPreview.filteredNodeIds as string[] : [],
         inviteCode: liveSession.inviteCode,
+        inviteStatusText: buildInviteStatusText(liveSession.joinedCount, playerCount),
         joinedCount: liveSession.joinedCount,
         joinStatusPlayers,
+        keyEvents: nextKeyEvents,
+        ledgerCount: nextAccountingHighlights.length ? nextAccountingHighlights.length : ledgerCount,
+        ledgerRankings: briefPreview?.ledgerRankings as Record<string, unknown> || this.data.ledgerRankings,
+        ledgerSummary: briefPreview?.ledgerSummary as Record<string, unknown> || this.data.ledgerSummary,
+        permissionState: String(briefPreview?.permissionState || ''),
+        photoHighlights: nextPhotoHighlights,
+        photoHighlightsNotice: nextPhotoNotice,
         playerCount,
         posterImagePath: '',
-        sessionId: liveSession.id,
+        previewLoadFailed: false,
+        settlementSummary: briefPreview?.settlementSummary as Record<string, unknown> || this.data.settlementSummary,
+        shareContentFilter: briefPreview?.shareContentFilter as Record<string, unknown> || this.data.shareContentFilter,
+        sessionId: liveSession.id || effectiveSessionId,
         sessionName: liveSession.sessionName || '',
-      })    } catch {
-      this.setData({
-        avatars: [],
-        inviteCode,
-        joinedCount: 0,
-        joinStatusPlayers: [],
-        playerCount: 0,
-        sessionId,
-        sessionName: '',
+        shareSummary: nextPhotoHighlights.length || nextAccountingHighlights.length || nextKeyEvents.length
+          ? `${liveSession.sessionName || '这场聚会'} 已准备好邀请，照片和账本会合并到酷炫分享页。`
+          : '这场聚会的可分享照片和账本高光会在这里汇总。',
+        visibleNodeIds: Array.isArray(briefPreview?.visibleNodeIds) ? briefPreview.visibleNodeIds as string[] : [],
       })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '这张分享页暂时无法展示，请稍后重试'
+      this.applyPreviewUnavailableState(message, { briefId, inviteCode, sessionId })
+    }
+  },
+
+  applyPreviewUnavailableState(message, patch = {}) {
+    const safeMessage = toSafeSharePreviewErrorText(message)
+    this.setData({
+      accountingHighlights: [],
+      avatars: [],
+      errorText: safeMessage,
+      filteredNodeIds: [],
+      inviteStatusText: patch.inviteCode || this.data.inviteCode ? '邀请已准备好' : '等待好友加入',
+      joinedCount: 0,
+      joinStatusPlayers: [],
+      keyEvents: [],
+      ledgerCount: 0,
+      permissionState: '',
+      photoHighlights: [],
+      photoHighlightsNotice: '暂无可展示照片，先去记录一张聚会照片。',
+      playerCount: 0,
+      previewLoadFailed: true,
+      sessionName: '',
+      shareSummary: '这场聚会的可分享照片和账本高光会在这里汇总。',
+      visibleNodeIds: [],
+      ...patch,
+    })
+  },
+
+  async loadBriefContract(briefId) {
+    try {
+      const brief: ManagedSessionBrief = await getManagedSessionBrief(briefId)
+      const accountingHighlights = brief.accountingHighlights.slice(0, 4).map((item, index) => ({
+        id: String(item.id || item.type || `contract-metric-${index}`),
+        label: String(item.label || item.title || item.text || item.id || '账本'),
+        unit: String(item.unit || ''),
+        value: String(item.value ?? item.count ?? ''),
+      })).filter((item) => item.label || item.value)
+      const keyEvents = brief.eventHighlights.slice(0, 3).map((item, index) => ({
+        id: String(item.id || item.nodeId || `contract-event-${index}`),
+        meta: String(item.text || item.summary || item.caption || item.meta || ''),
+        title: String(item.title || item.label || item.eventType || '聚会关键时刻'),
+      })).filter((item) => item.title || item.meta)
+      const filteredNodeIds = readStringArray(brief.shareContentFilter, 'filteredNodeIds')
+      const visibleNodeIds = brief.timeline.nodes
+        .map((node) => node.id)
+        .filter((id) => id && !filteredNodeIds.includes(id))
+      const photoHighlights = buildSharePreviewPhotoHighlights(brief.timeline.nodes, filteredNodeIds)
+      const permissionState = String(
+        brief.shareContentFilter.permissionState ||
+        brief.shareContentFilter.permission ||
+        brief.shareContentFilter.visibilityScope ||
+        '',
+      )
+
+      return {
+        accountingHighlights,
+        briefId: brief.id,
+        filteredNodeIds,
+        keyEvents,
+        ledgerRankings: brief.ledgerRankings,
+        ledgerSummary: brief.ledgerSummary,
+        permissionState,
+        photoHighlights,
+        photoHighlightsNotice: buildPhotoHighlightsNotice(photoHighlights.length),
+        settlementSummary: brief.settlementSummary,
+        shareContentFilter: brief.shareContentFilter,
+        sessionId: brief.sessionId,
+        sessionName: brief.title || '',
+        visibleNodeIds,
+      }
+    } catch {
+      return null
     }
   },
 
@@ -116,11 +414,12 @@ Page<SharePreviewState, SharePreviewMethods>({
     const query = [
       this.data.inviteCode ? `inviteCode=${encodeURIComponent(this.data.inviteCode)}` : '',
       this.data.sessionId ? `sessionId=${encodeURIComponent(this.data.sessionId)}` : '',
+      this.data.briefId ? `briefId=${encodeURIComponent(this.data.briefId)}` : '',
     ].filter(Boolean).join('&')
 
     return {
-      title: `${this.data.sessionName}，来加入这局`,
-      path: `/pages/index/index${query ? `?${query}` : ''}`,
+      title: `${this.data.sessionName}，来记录这场聚会`,
+      path: `/pages/share-preview/index${query ? `?${query}` : ''}`,
       imageUrl: this.data.posterImagePath || '',
     }
   },
@@ -130,25 +429,58 @@ Page<SharePreviewState, SharePreviewMethods>({
     this.setData({ showJoinStatus: tab === 'status' })
   },
 
-  async handleSaveTap() {
-    try {
-      wx.showLoading({ title: '生成海报', mask: true })
-      const filePath = this.data.posterImagePath || await this.buildInvitePoster()
-      this.setData({ posterImagePath: filePath })
-      await this.saveImageFile(filePath)
-      this.showPreviewToast('邀请海报已保存')
-    } catch {
-      this.showPreviewToast('保存失败，请检查相册权限')
-    } finally {
-      wx.hideLoading()
-    }
+  handleReportHintTap() {
+    this.showPreviewToast('举报入口待后台联调，当前可先联系发起人处理')
   },
 
-  handleShareTap(event) {
-    const { id } = event.currentTarget.dataset as { id: string }
-    if (id === 'save') {
-      void this.handleSaveTap()
+  handleBackTap() {
+    wx.navigateBack({
+      fail: () => {
+        this.showPreviewToast('已停留在分享回流页')
+      },
+    })
+  },
+
+  handlePhotoImageLoad(event) {
+    const { id } = event.currentTarget.dataset as { id?: string }
+    const detail = (event as unknown as { detail?: { height?: number; width?: number } }).detail || {}
+    if (!id) {
+      return
     }
+    const width = Number(detail.width)
+    const height = Number(detail.height)
+    const hasSize = Number.isFinite(width) && Number.isFinite(height)
+    const imageBroken = hasSize && width < 8 && height < 8
+    this.setData({
+      photoHighlights: this.data.photoHighlights.map((item) => (item.id === id ? { ...item, imageBroken } : item)),
+    })
+  },
+
+  handlePhotoImageError(event) {
+    const { id } = event.currentTarget.dataset as { id?: string }
+    if (!id) {
+      return
+    }
+    this.setData({
+      photoHighlights: this.data.photoHighlights.map((item) => (item.id === id ? { ...item, imageBroken: true } : item)),
+    })
+  },
+
+  async handleRetryTap() {
+    await this.loadInviteSession({
+      briefId: this.data.briefId,
+      inviteCode: this.data.inviteCode,
+      sessionId: this.data.sessionId,
+    })
+  },
+
+  handleReturnAlbumTap() {
+    wx.navigateTo({
+      url: '/pages/album/index?mode=joined',
+      fail: () => {
+        this.showPreviewToast('相册暂时打不开，请稍后重试')
+      },
+    })
   },
 
   drawCanvasToFile(width, height, drawer) {
@@ -177,16 +509,16 @@ Page<SharePreviewState, SharePreviewMethods>({
   buildInvitePoster() {
     const width = 720
     const height = 960
-    const textInvite = '\u9152\u684c\u5224\u5b98\u9080\u8bf7\u51fd'
-    const textHappyA = '\u8fd9\u5c40\u5feb\u4e50'
-    const textHappyB = '\u5c31\u5b8c\u4e8b\u4e86\uff01'
-    const textFallbackName = '\u597d\u53cb\u9152\u5c40'
+    const textInvite = '\u805a\u4f1a\u8bb0\u5f55\u5e08\u9080\u8bf7\u51fd'
+    const textHappyA = '\u4e00\u8d77\u8bb0\u5f55'
+    const textHappyB = '\u8fd9\u573a\u805a\u4f1a'
+    const textFallbackName = '\u597d\u53cb\u805a\u4f1a'
     const textJoinCode = '\u52a0\u5165\u53e3\u4ee4'
     const textPending = '\u672a\u751f\u6210'
     const textJoined = '\u5df2\u52a0\u5165'
-    const textJoinTip = '\u8f93\u5165\u53e3\u4ee4\u5373\u53ef\u5165\u5c40'
-    const textShareTip = '\u4fdd\u5b58\u540e\u53d1\u7ed9\u597d\u53cb\uff0c\u7b49\u4eba\u9f50\u5c31\u5f00\u5c40'
-    const textDrinkTip = '\u7406\u6027\u996e\u9152\uff0c\u91cf\u529b\u800c\u884c'
+    const textJoinTip = '\u8f93\u5165\u53e3\u4ee4\u5373\u53ef\u52a0\u5165'
+    const textShareTip = '\u4fdd\u5b58\u540e\u53d1\u7ed9\u597d\u53cb\uff0c\u4e00\u8d77\u62cd\u7b2c\u4e00\u5f20'
+    const textDrinkTip = '\u9ed8\u8ba4\u4ec5\u672c\u805a\u4f1a\u53ef\u89c1'
 
     return this.drawCanvasToFile(width, height, (ctx) => {
       const drawFitText = (value: string, x: number, y: number, maxWidth: number, fontSize: number, color: string) => {
@@ -274,10 +606,36 @@ Page<SharePreviewState, SharePreviewMethods>({
   },
   saveImageFile(filePath) {
     return new Promise<void>((resolve, reject) => {
-      wx.saveImageToPhotosAlbum({
-        filePath,
-        success: () => resolve(),
-        fail: reject,
+      const save = () => {
+        wx.saveImageToPhotosAlbum({
+          filePath,
+          success: () => resolve(),
+          fail: (error) => {
+            const message = String(error?.errMsg || '')
+            if (message.includes('auth deny') || message.includes('authorize')) {
+              wx.openSetting({
+                success: () => reject(error),
+                fail: () => reject(error),
+              })
+              return
+            }
+            reject(error)
+          },
+        })
+      }
+
+      wx.getSetting({
+        success: (setting) => {
+          if (setting.authSetting['scope.writePhotosAlbum'] === false) {
+            wx.openSetting({
+              success: save,
+              fail: reject,
+            })
+            return
+          }
+          save()
+        },
+        fail: save,
       })
     })
   },
@@ -297,4 +655,3 @@ Page<SharePreviewState, SharePreviewMethods>({
 })
 
 export {}
-

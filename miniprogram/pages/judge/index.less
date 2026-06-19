@@ -27,14 +27,15 @@ page {
 .judge-hero {
   position: relative;
   overflow: hidden;
-  min-height: 186px;
+  min-height: 176px;
   border-radius: 18px;
-  background: #1b130f;
-  color: #fff;
-  box-shadow: 0 18px 36px rgba(34, 18, 11, 0.22);
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 208, 110, 0.28), transparent 32%),
+    linear-gradient(135deg, #fffdf8 0%, #e9f5ff 54%, #e8f8ef 100%);
+  color: #101820;
+  box-shadow: 0 12px 28px rgba(39, 72, 102, 0.08);
 }
 
-.judge-hero-image,
 .judge-hero-mask {
   position: absolute;
   inset: 0;
@@ -43,7 +44,7 @@ page {
 }
 
 .judge-hero-mask {
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.58));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.32));
 }
 
 .judge-hero-content {
@@ -64,8 +65,8 @@ page {
   min-height: 28px;
   padding: 0 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
-  color: #fff7e8;
+  background: rgba(255, 255, 255, 0.72);
+  color: #e45b3f;
   font-size: 12px;
   line-height: 1;
   font-weight: 900;
@@ -74,7 +75,7 @@ page {
 
 .judge-hero-title {
   margin-top: 12px;
-  font-size: 32px;
+  font-size: 30px;
   line-height: 1.05;
   font-weight: 950;
 }
@@ -83,7 +84,7 @@ page {
   margin-top: 10px;
   font-size: 15px;
   line-height: 1.4;
-  color: rgba(255, 255, 255, 0.88);
+  color: #526170;
 }
 
 .judge-hero-meta-row {
@@ -100,16 +101,16 @@ page {
   min-height: 30px;
   padding: 0 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
+  background: rgba(255, 255, 255, 0.72);
+  color: #31465b;
   font-size: 12px;
   line-height: 1;
   font-weight: 800;
 }
 
 .judge-hero-chip-accent {
-  background: rgba(255, 214, 153, 0.24);
-  color: #fff4d7;
+  background: rgba(255, 106, 75, 0.12);
+  color: #e45b3f;
 }
 
 .judge-primary {
@@ -186,6 +187,10 @@ page {
   background: #e8f6ec;
 }
 
+.judge-tile-ledger .judge-tile-icon {
+  background: #fff3df;
+}
+
 .judge-tile-glyph {
   width: 24px;
   height: 24px;
@@ -210,11 +215,13 @@ page {
 
 .judge-template-list {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .judge-template-card {
-  padding: 14px;
+  min-width: 0;
+  padding: 12px;
   border: 1px solid #eadfce;
   border-radius: 14px;
   background: #fffdf8;
@@ -252,12 +259,15 @@ page {
 }
 
 .judge-template-meta {
-  display: block;
+  display: -webkit-box;
+  overflow: hidden;
   margin-top: 8px;
   color: #8f7f6d;
   font-size: 12px;
   line-height: 1.45;
   font-weight: 600;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .judge-session-card {
@@ -274,10 +284,10 @@ page {
 
 .judge-poke-card {
   display: grid;
-  grid-template-columns: 48px 1fr auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
-  min-height: 88px;
+  min-height: 74px;
   margin-bottom: 10px;
   padding: 14px;
   border: 1px solid rgba(255, 91, 61, 0.2);
@@ -462,6 +472,10 @@ page {
 
 .judge-icon-history {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 4C16.4 4 20 7.6 20 12C20 16.4 16.4 20 12 20C9.5 20 7.3 18.9 5.8 17.1L7.3 15.8C8.4 17.1 10 18 12 18C15.3 18 18 15.3 18 12C18 8.7 15.3 6 12 6C9.9 6 8.1 7.1 7 8.8H10V10.8H4V4.8H6V7.1C7.5 5.2 9.7 4 12 4ZM11 8H13V12.4L16 14.2L15 15.9L11 13.5V8Z' fill='%234c6fff'/%3E%3C/svg%3E");
+}
+
+.judge-icon-ledger {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M5 3H19V21H5V3ZM7 5V19H17V5H7ZM9 8H15V10H9V8ZM9 12H11V14H9V12ZM13 12H15V14H13V12ZM9 16H11V18H9V16ZM13 16H15V18H13V16Z' fill='%23ff8a2a'/%3E%3C/svg%3E");
 }
 
 .judge-icon-trophy {

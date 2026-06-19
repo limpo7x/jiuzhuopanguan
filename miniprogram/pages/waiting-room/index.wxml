@@ -43,7 +43,7 @@
 
     <view class="waiting-card">
       <view class="waiting-row-between">
-        <text class="waiting-card-title">酒局信息</text>
+        <text class="waiting-card-title">聚会信息</text>
         <text class="waiting-card-link" bindtap="handleOverviewTap">更多</text>
       </view>
       <text class="waiting-card-meta">{{sessionName}}</text>
@@ -52,6 +52,7 @@
     </view>
 
     <view class="waiting-action-row">
+      <view wx:if="{{isJudge}}" class="waiting-ghost waiting-ghost-hot" bindtap="handleOpeningMomentTap">开局签到</view>
       <view wx:if="{{isJudge && joinedCount < playerCount}}" class="waiting-ghost" bindtap="handleInviteTap">提醒好友</view>
       <view class="waiting-ghost" bindtap="handleCodeTap">查看邀请卡</view>
     </view>

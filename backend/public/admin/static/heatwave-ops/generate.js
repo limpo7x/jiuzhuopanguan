@@ -10,6 +10,8 @@ const slugs = [
   'content-question-bank',
   'content-share-assets',
   'content-tools-ops',
+  'content-moments-review',
+  'content-moment-reports',
   'user-profiles',
   'user-login-logs',
   'sessions',
@@ -18,9 +20,11 @@ const slugs = [
   'commerce-point-ledger',
   'commerce-membership',
   'commerce-merchants',
+  'commerce-ranking-rewards',
   'data-users',
   'data-content',
   'data-business',
+  'growth-share-tasks',
   'system-permissions',
   'system-operation-logs',
   'system-config'
@@ -34,11 +38,11 @@ const makeShell = (slug) => `<!doctype html>
     <meta name="theme-color" content="#f6f7f8" />
     <link rel="icon" href="data:," />
     <title>${slug} - 酒桌判官后台</title>
-    <link rel="stylesheet" href="/admin/static/heatwave-ops/styles.css?v=20260611-admin-pagination-2" />
+    <link rel="stylesheet" href="/admin/static/heatwave-ops/styles.css?v=20260615-admin-action-dialogs" />
   </head>
   <body data-page="${slug}">
     <div id="app"></div>
-    <script src="/admin/static/heatwave-ops/app.js?v=20260611-admin-pagination-2"></script>
+    <script src="/admin/static/heatwave-ops/app.js?v=20260615-admin-action-dialogs"></script>
   </body>
 </html>
 `
@@ -51,7 +55,7 @@ const loginHtml = `<!doctype html>
     <meta name="theme-color" content="#f6f7f8" />
     <link rel="icon" href="data:," />
     <title>后台登录 - 酒桌判官</title>
-    <link rel="stylesheet" href="/admin/static/heatwave-ops/styles.css?v=20260611-admin-pagination-2" />
+    <link rel="stylesheet" href="/admin/static/heatwave-ops/styles.css?v=20260615-admin-action-dialogs" />
   </head>
   <body class="login-page">
     <div class="login-card">

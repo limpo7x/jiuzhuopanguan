@@ -1,0 +1,49 @@
+<view wx:if="{{displayItems.length}}" class="session-moment-summary {{compact ? 'session-moment-summary-compact' : ''}}">
+  <view
+    wx:for="{{displayItems}}"
+    wx:key="key"
+    class="session-moment-summary-card"
+  >
+    <view class="session-moment-summary-head">
+      <view class="session-moment-summary-copy">
+        <text class="session-moment-summary-title">{{item.primaryTitle}}</text>
+        <text class="session-moment-summary-meta">{{item.secondaryMeta}}</text>
+      </view>
+      <view wx:if="{{item.rankingEntryEnabled}}" class="session-moment-summary-badge">可推举</view>
+    </view>
+
+    <view class="session-moment-summary-metrics">
+      <view class="session-moment-summary-metric">
+        <text class="session-moment-summary-value">{{item.canResumeMomentIds.length}}</text>
+        <text class="session-moment-summary-label">可继续</text>
+      </view>
+    </view>
+
+    <share-task-status
+      compact="{{true}}"
+      task="{{item.shareTask}}"
+      data-index="{{index}}"
+      bind:preview="handlePreviewTap"
+      bind:retry="handleRetryTap"
+    ></share-task-status>
+
+    <view class="session-moment-summary-actions">
+      <view
+        class="session-moment-summary-action session-moment-summary-action-primary"
+        data-index="{{index}}"
+        bindtap="handleBriefTap"
+      >看简报</view>
+      <view
+        wx:if="{{item.canResume}}"
+        class="session-moment-summary-action"
+        data-index="{{index}}"
+        bindtap="handleResumeTap"
+      >继续记录</view>
+    </view>
+  </view>
+</view>
+
+<view wx:elif="{{emptyText}}" class="session-moment-summary-empty">
+  <image class="session-moment-summary-empty-sticker" src="/assets/party-recorder/party-recorder-empty-album-sticker.png" mode="aspectFit"></image>
+  <text>{{emptyText}}</text>
+</view>

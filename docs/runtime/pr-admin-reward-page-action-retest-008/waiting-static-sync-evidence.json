@@ -1,0 +1,100 @@
+{
+  "id": "PR-ADMIN-REWARD-PAGE-ACTION-RETEST-008",
+  "status": "已被页面按钮复测证据覆盖",
+  "checkedAt": "2026-06-16T04:54:06.24748Z",
+  "target": "https://api.pomer.cn",
+  "forbiddenTargetNotTouched": "pomer.cn",
+  "prerequisite": "PR-OPS-ADMIN-STATIC-ACTION-DEPLOY-008",
+  "adminEntry": "https://api.pomer.cn/admin/login",
+  "pageUrl": "https://api.pomer.cn/admin/static/heatwave-ops/commerce-ranking-rewards.html",
+  "login": {
+    "statusCode": 200,
+    "cookie": "redacted",
+    "role": "系统管理员 / 超级管理员"
+  },
+  "pageData": {
+    "statusCode": 200,
+    "hasGrantBestOpening": true,
+    "pageActionsCount": 6,
+    "actions": [
+      {
+        "key": "grant-today_funny",
+        "label": "发放今日最有梗",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "today_funny"
+        },
+        "confirm": "确认按当前 今日最有梗 榜单发放奖励？重复发放会被后端幂等跳过。"
+      },
+      {
+        "key": "grant-today_debt",
+        "label": "发放今日最欠酒",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "today_debt"
+        },
+        "confirm": "确认按当前 今日最欠酒 榜单发放奖励？重复发放会被后端幂等跳过。"
+      },
+      {
+        "key": "grant-today_highlight",
+        "label": "发放今日最精彩",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "today_highlight"
+        },
+        "confirm": "确认按当前 今日最精彩 榜单发放奖励？重复发放会被后端幂等跳过。"
+      },
+      {
+        "key": "grant-today_visual",
+        "label": "发放今日最有画面",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "today_visual"
+        },
+        "confirm": "确认按当前 今日最有画面 榜单发放奖励？重复发放会被后端幂等跳过。"
+      },
+      {
+        "key": "grant-best_opening",
+        "label": "发放最佳开场",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "best_opening"
+        },
+        "confirm": "确认按当前 最佳开场 榜单发放奖励？重复发放会被后端幂等跳过。"
+      },
+      {
+        "key": "grant-best_closing",
+        "label": "发放最佳收尾",
+        "endpoint": "/api/v1/admin/ranking-rewards/grant",
+        "method": "POST",
+        "body": {
+          "category": "best_closing"
+        },
+        "confirm": "确认按当前 最佳收尾 榜单发放奖励？重复发放会被后端幂等跳过。"
+      }
+    ]
+  },
+  "onlineStatic": {
+    "jsStatusCode": 200,
+    "htmlStatusCode": 200,
+    "hasRunPageAction": true,
+    "hasPageActionButton": true,
+    "scriptVersion": "20260615-admin-action-dialogs",
+    "styleVersion": "20260615-admin-action-dialogs",
+    "jsLength": 66908,
+    "hasRenderPageActions": true
+  },
+  "buttonRetest": {
+    "canRetestFromPageButton": true,
+    "reason": "运维同步后线上静态资源已包含 page action 渲染逻辑；最终结果见 page-button-click-evidence.json。",
+    "interfaceCalled": false,
+    "clicked": false,
+    "operationLogsExpected": false
+  },
+  "evidenceNote": "初始只读等待证据已过时；以 page-button-click-evidence.json 为本任务最终复测证据。"
+}

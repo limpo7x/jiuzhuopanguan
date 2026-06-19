@@ -28,6 +28,12 @@ const {
   listUsageRecords,
 } = require('./data/front')
 const {
+  getCleanSlateBaseline,
+  getPartyLiveFacade,
+  mapBrief,
+  mapShareImage,
+} = require('./data/clean-slate')
+const {
   getCompliance,
   getHomeConfig,
   initContentStore,
@@ -61,6 +67,7 @@ const {
 const {
   createManagedSession,
   deleteManagedSession,
+  endManagedSession,
   finishManagedSession,
   getManagedReportById,
   getManagedSessionById,
@@ -69,15 +76,38 @@ const {
   getPageData,
   getManagedSessionByInviteCode,
   getSessionContactsByProfile,
+  grantRankingRewardsByAdmin,
+  handleManagedMomentReport,
   initAdminStore,
   joinManagedSession,
   getSession,
   loginAdmin,
   logoutAdmin,
+  retryManagedShareImageTask,
+  reviewManagedMoment,
   savePageData,
   trackAnalyticsEvent,
   updateManagedSession,
 } = require('./data/admin')
+const {
+  createMoment,
+  createMomentNomination,
+  createOrRefreshSessionBrief,
+  createSessionEvent,
+  createShareImageTask,
+  deleteMoment,
+  getMomentNominationEligibility,
+  getSessionBrief,
+  getSessionTimeline,
+  getShareImageTask,
+  getUserSessionMomentSummaries,
+  initMomentsStore,
+  listTodayRankings,
+  processShareImageTask,
+  retryShareImageTask,
+  updateMoment,
+  uploadMomentImage,
+} = require('./data/moments')
 
 const port = Number(process.env.PORT || 3010)
 const publicDir = path.join(__dirname, 'public')
@@ -785,6 +815,88 @@ const server = http.createServer((request, response) => {
       }
     }
 
+    if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/admin/moments/')) {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
+      const parts = pathname.replace('/api/v1/admin/moments/', '').split('/').filter(Boolean)
+      const momentId = parts[0] || ''
+      const actionName = parts[1] || ''
+      const payload = await readJsonBody(request)
+      if (actionName === 'review') {
+        sendOk(response, reviewManagedMoment({
+          momentId,
+          action: payload.action,
+          reason: payload.reason,
+          operator: session.user?.username || session.user?.name || 'admin-console',
+        }))
+        return
+      }
+      if (actionName === 'require-resubmit') {
+        sendOk(response, reviewManagedMoment({
+          momentId,
+          action: 'require_resubmit',
+          reason: payload.reason,
+          operator: session.user?.username || session.user?.name || 'admin-console',
+        }))
+        return
+      }
+    }
+
+    if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/admin/moment-reports/')) {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
+      const parts = pathname.replace('/api/v1/admin/moment-reports/', '').split('/').filter(Boolean)
+      const reportId = parts[0] || ''
+      const actionName = parts[1] || ''
+      const payload = await readJsonBody(request)
+      if (actionName === 'handle') {
+        sendOk(response, handleManagedMomentReport({
+          reportId,
+          action: payload.action,
+          reason: payload.reason,
+          operator: session.user?.username || session.user?.name || 'admin-console',
+        }))
+        return
+      }
+    }
+
+    if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/admin/share-image-tasks/')) {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
+      const parts = pathname.replace('/api/v1/admin/share-image-tasks/', '').split('/').filter(Boolean)
+      const taskId = parts[0] || ''
+      const actionName = parts[1] || ''
+      const payload = await readJsonBody(request)
+      if (actionName === 'retry') {
+        sendOk(response, retryManagedShareImageTask({
+          taskId,
+          reason: payload.reason,
+          operator: session.user?.username || session.user?.name || 'admin-console',
+        }))
+        return
+      }
+    }
+
+    if (request.method === 'POST' && pathname === '/api/v1/admin/ranking-rewards/grant') {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
+      const payload = await readJsonBody(request)
+      sendOk(response, grantRankingRewardsByAdmin({
+        category: payload.category,
+        limit: payload.limit,
+        operator: session.user?.username || session.user?.name || 'admin-console',
+      }))
+      return
+    }
+
     if (request.method === 'GET' && pathname === '/api/v1/admin/assets') {
       const session = requireAdminSession(request, response)
       if (!session) {
@@ -1002,6 +1114,59 @@ const server = http.createServer((request, response) => {
       return
     }
 
+    if (request.method === 'GET' && pathname === '/api/v1/rankings/today') {
+      sendOk(response, listTodayRankings({ category: query.category, limit: query.limit }))
+      return
+    }
+
+    if (request.method === 'POST' && pathname === '/api/v1/moments/uploads/image') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const payload = await readJsonBody(request)
+      const asset = await uploadMomentImage({ profile: userSession.profile, payload })
+      sendOk(response, asset, 201)
+      return
+    }
+
+    if (pathname && pathname.startsWith('/api/v1/moments/')) {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const momentSegments = pathname.split('/').filter(Boolean)
+      const momentId = momentSegments[3]
+      const momentAction = momentSegments[4]
+      if (request.method === 'GET' && momentId && momentAction === 'nomination-eligibility') {
+        sendOk(response, getMomentNominationEligibility({ momentId, profile: userSession.profile, category: query.category }))
+        return
+      }
+      if (request.method === 'POST' && momentId && momentAction === 'nominations') {
+        const payload = await readJsonBody(request)
+        sendOk(response, createMomentNomination({ momentId, profile: userSession.profile, payload }), 201)
+        return
+      }
+      if (request.method === 'PUT' && momentId) {
+        const payload = await readJsonBody(request)
+        sendOk(response, updateMoment({ momentId, profile: userSession.profile, payload }))
+        return
+      }
+      if (request.method === 'DELETE' && momentId) {
+        sendOk(response, deleteMoment({ momentId, profile: userSession.profile }))
+        return
+      }
+    }
+
+    if (request.method === 'GET' && pathname === '/api/v1/user/session-moment-summaries') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      sendOk(response, getUserSessionMomentSummaries({ profile: userSession.profile }))
+      return
+    }
+
     if (request.method === 'GET' && pathname === '/api/v1/sessions/live') {
       if (query.sessionId && !getManagedSessionById(String(query.sessionId || '').trim())) {
         sendError(response, 404, 'session not found')
@@ -1013,6 +1178,116 @@ const server = http.createServer((request, response) => {
       }
       sendOk(response, getLiveSessionConfig(query.sessionId, query.inviteCode))
       return
+    }
+
+    if (request.method === 'GET' && pathname === '/api/v1/clean-slate/baseline') {
+      sendOk(response, getCleanSlateBaseline())
+      return
+    }
+
+    if (request.method === 'GET' && pathname === '/api/v1/parties/live') {
+      if (query.partyId && !getManagedSessionById(String(query.partyId || '').trim())) {
+        sendError(response, 404, 'party not found')
+        return
+      }
+      if (query.inviteCode && !getManagedSessionByInviteCode(String(query.inviteCode || '').trim())) {
+        sendError(response, 404, 'party not found')
+        return
+      }
+      sendOk(response, getPartyLiveFacade(query.partyId, query.inviteCode))
+      return
+    }
+
+    if (request.method === 'GET' && pathname === '/api/v1/parties/by-invite') {
+      const session = getManagedSessionByInviteCode(String(query.inviteCode || ''))
+      if (!session) {
+        sendError(response, 404, 'party not found')
+        return
+      }
+      sendOk(response, getPartyLiveFacade(session.id, session.inviteCode))
+      return
+    }
+
+    if (pathname && pathname.startsWith('/api/v1/session-briefs/')) {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const segments = pathname.split('/').filter(Boolean)
+      const briefId = segments[3]
+      const action = segments[4]
+      if (request.method === 'GET' && briefId && !action) {
+        sendOk(response, getSessionBrief({ briefId, profile: userSession.profile }))
+        return
+      }
+      if (request.method === 'POST' && briefId && action === 'share-image-tasks') {
+        const payload = await readJsonBody(request)
+        sendOk(response, createShareImageTask({ briefId, profile: userSession.profile, payload }), 201)
+        return
+      }
+    }
+
+    if (pathname && pathname.startsWith('/api/v1/briefs/')) {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const segments = pathname.split('/').filter(Boolean)
+      const briefId = segments[3]
+      const action = segments[4]
+      if (request.method === 'GET' && briefId && !action) {
+        sendOk(response, mapBrief(getSessionBrief({ briefId, profile: userSession.profile })))
+        return
+      }
+      if (request.method === 'POST' && briefId && action === 'share-images') {
+        const payload = await readJsonBody(request)
+        sendOk(response, mapShareImage(createShareImageTask({ briefId, profile: userSession.profile, payload })), 201)
+        return
+      }
+    }
+
+    if (pathname && pathname.startsWith('/api/v1/share-image-tasks/')) {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const segments = pathname.split('/').filter(Boolean)
+      const taskId = segments[3]
+      const action = segments[4]
+      if (request.method === 'GET' && taskId && !action) {
+        sendOk(response, getShareImageTask({ taskId, profile: userSession.profile }))
+        return
+      }
+      if (request.method === 'POST' && taskId && action === 'retry') {
+        sendOk(response, retryShareImageTask({ taskId, profile: userSession.profile }))
+        return
+      }
+      if (request.method === 'POST' && taskId && action === 'process') {
+        sendOk(response, await processShareImageTask({ taskId, profile: userSession.profile }))
+        return
+      }
+    }
+
+    if (pathname && pathname.startsWith('/api/v1/share-images/')) {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const segments = pathname.split('/').filter(Boolean)
+      const taskId = segments[3]
+      const action = segments[4]
+      if (request.method === 'GET' && taskId && !action) {
+        sendOk(response, mapShareImage(getShareImageTask({ taskId, profile: userSession.profile })))
+        return
+      }
+      if (request.method === 'POST' && taskId && action === 'retry') {
+        sendOk(response, mapShareImage(retryShareImageTask({ taskId, profile: userSession.profile })))
+        return
+      }
+      if (request.method === 'POST' && taskId && action === 'process') {
+        sendOk(response, mapShareImage(await processShareImageTask({ taskId, profile: userSession.profile })))
+        return
+      }
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/reports/featured') {
@@ -1092,6 +1367,23 @@ const server = http.createServer((request, response) => {
       return
     }
 
+    if (request.method === 'POST' && pathname === '/api/v1/parties') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const payload = await readJsonBody(request)
+      const created = createManagedSession({
+        ...payload,
+        hostAvatarUrl: userSession.profile.avatarUrl || payload.hostAvatarUrl || '',
+        hostName: userSession.profile.name,
+        hostPhone: userSession.profile.phone || '',
+        hostProfileId: userSession.profile.id,
+      })
+      sendOk(response, getPartyLiveFacade(created.id, created.inviteCode), 201)
+      return
+    }
+
     if (request.method === 'POST' && pathname === '/api/v1/sessions/join') {
       const userSession = requireUserSession(request, response)
       if (!userSession) {
@@ -1119,6 +1411,33 @@ const server = http.createServer((request, response) => {
       return
     }
 
+    if (request.method === 'POST' && pathname === '/api/v1/parties/join') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const payload = await readJsonBody(request)
+      try {
+        const inviteCode = String(payload.inviteCode || '').trim()
+        const session = joinManagedSession({
+          inviteCode,
+          profile: userSession.profile,
+        })
+        sendOk(response, getPartyLiveFacade(session.id, inviteCode))
+      } catch (error) {
+        if (error?.code === 'NOT_SESSION_PLAYER') {
+          sendError(response, 403, 'not party member')
+          return
+        }
+        if (error?.code === 'SESSION_NOT_FOUND') {
+          sendError(response, 404, 'party not found')
+          return
+        }
+        throw error
+      }
+      return
+    }
+
     if (request.method === 'GET' && pathname === '/api/v1/sessions/by-invite') {
       const session = getManagedSessionByInviteCode(String(query.inviteCode || ''))
       if (!session) {
@@ -1129,8 +1448,29 @@ const server = http.createServer((request, response) => {
       return
     }
 
+    if (pathname && pathname.startsWith('/api/v1/parties/')) {
+      const partySegments = pathname.split('/').filter(Boolean)
+      const partyId = partySegments[3]
+      const partyAction = partySegments[4]
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const targetParty = getManagedSessionById(partyId)
+      if (!targetParty) {
+        sendError(response, 404, 'party not found')
+        return
+      }
+      if (request.method === 'POST' && partyAction === 'briefs') {
+        sendOk(response, mapBrief(createOrRefreshSessionBrief({ sessionId: partyId, profile: userSession.profile })), 201)
+        return
+      }
+    }
+
     if (pathname && pathname.startsWith('/api/v1/sessions/')) {
-      const sessionId = pathname.replace('/api/v1/sessions/', '').trim()
+      const sessionSegments = pathname.split('/').filter(Boolean)
+      const sessionId = sessionSegments[3]
+      const sessionAction = sessionSegments[4]
       const userSession = requireUserSession(request, response)
       if (!userSession) {
         return
@@ -1143,6 +1483,40 @@ const server = http.createServer((request, response) => {
       const userProfileId = String(userSession.profile.id || '').trim()
       const isHost = String(targetSession.members?.find((item) => item?.isHost)?.profileId || '').trim() === userProfileId
       const isMember = userProfileId && (targetSession.members || []).some((item) => String(item?.profileId || '') === userProfileId)
+
+      if (request.method === 'POST' && sessionAction === 'end') {
+        if (!isHost) {
+          sendError(response, 403, 'forbidden')
+          return
+        }
+        const payload = await readJsonBody(request)
+        const updated = endManagedSession(sessionId, payload)
+        if (!updated) {
+          sendError(response, 404, 'session not found')
+          return
+        }
+        sendOk(response, updated)
+        return
+      }
+      if (request.method === 'POST' && sessionAction === 'moments') {
+        const payload = await readJsonBody(request)
+        sendOk(response, createMoment({ sessionId, profile: userSession.profile, payload }), 201)
+        return
+      }
+      if (request.method === 'GET' && sessionAction === 'timeline') {
+        sendOk(response, getSessionTimeline({ sessionId, profile: userSession.profile }))
+        return
+      }
+      if (request.method === 'POST' && sessionAction === 'events') {
+        const payload = await readJsonBody(request)
+        sendOk(response, createSessionEvent({ sessionId, profile: userSession.profile, payload }), 201)
+        return
+      }
+      if (request.method === 'POST' && sessionAction === 'brief') {
+        const payload = await readJsonBody(request)
+        sendOk(response, createOrRefreshSessionBrief({ sessionId, profile: userSession.profile, payload }), 201)
+        return
+      }
 
       if (request.method === 'PUT') {
         if (!isHost) {
@@ -1436,7 +1810,7 @@ const server = http.createServer((request, response) => {
   })
 })
 
-Promise.all([initContentStore(), initSocialStore(), initAdminStore(), initAssetsManifest()])
+Promise.all([initContentStore(), initSocialStore(), initAdminStore(), initAssetsManifest(), initMomentsStore()])
   .then(() => {
     server.listen(port, () => {
       console.log(`jiuzhuopanguan backend listening on port ${port}`)

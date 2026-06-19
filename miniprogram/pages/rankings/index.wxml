@@ -1,0 +1,78 @@
+<navigation-bar
+  title="今日回忆榜"
+  back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="rankings-nav"
+></navigation-bar>
+
+<view class="rankings-page">
+  <scroll-view class="rankings-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="rankings-hero">
+      <view class="rankings-hero-top">
+        <text class="rankings-date">{{dateText}}</text>
+        <view class="rankings-refresh" bindtap="handleRefreshTap">刷新</view>
+      </view>
+      <text class="rankings-title">今日回忆榜</text>
+      <text class="rankings-subtitle">{{subtitle}}</text>
+    </view>
+
+    <scroll-view class="rankings-tabs" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="rankings-tabs-inner">
+        <view
+          wx:for="{{categories}}"
+          wx:key="value"
+          class="rankings-tab {{activeCategory === item.value ? 'rankings-tab-active' : ''}}"
+          data-category="{{item.value}}"
+          bindtap="handleCategoryTap"
+        >{{item.label}}</view>
+      </view>
+    </scroll-view>
+
+    <view wx:if="{{loading}}" class="rankings-loading">加载榜单中...</view>
+
+    <view wx:elif="{{items.length === 0}}" class="rankings-empty">
+      <text class="rankings-empty-title">{{emptyText}}</text>
+      <text class="rankings-empty-meta">推荐成功后，这里会按照片热度和推举数排序。</text>
+    </view>
+
+    <view wx:else class="rankings-list">
+      <view wx:for="{{items}}" wx:key="rank" class="ranking-card">
+        <view class="ranking-rank">
+          <text class="ranking-rank-value">#{{item.rank}}</text>
+          <text class="ranking-rank-label">排名</text>
+        </view>
+
+        <image
+          wx:if="{{item.moment.imageUrl}}"
+          class="ranking-image"
+          src="{{item.moment.imageUrl}}"
+          mode="aspectFill"
+          data-image-url="{{item.moment.imageUrl}}"
+          bindtap="handleImageTap"
+        ></image>
+
+        <view wx:else class="ranking-image ranking-image-empty">
+          <text>无图</text>
+        </view>
+
+        <view class="ranking-main">
+          <text class="ranking-title">{{item.moment.timelineTitle || item.moment.caption || '精彩瞬间'}}</text>
+          <text class="ranking-caption">{{item.moment.caption || item.moment.uploaderName}}</text>
+          <view class="ranking-meta-row">
+            <text class="ranking-meta">{{item.pointsTotal}} 热度</text>
+            <text class="ranking-meta">{{item.nominationCount}} 次推举</text>
+          </view>
+        </view>
+
+        <view
+          class="ranking-action {{nominatingMomentId === item.moment.id ? 'ranking-action-disabled' : ''}}"
+          data-moment-id="{{item.moment.id}}"
+          bindtap="handleNominateTap"
+        >{{nominatingMomentId === item.moment.id ? '处理中' : '推荐这张'}}</view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

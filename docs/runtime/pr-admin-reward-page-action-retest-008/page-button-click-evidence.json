@@ -1,0 +1,486 @@
+{
+  "id": "PR-ADMIN-REWARD-PAGE-ACTION-RETEST-008",
+  "status": "页面按钮入口已复测",
+  "target": "https://api.pomer.cn",
+  "forbiddenTargetNotTouched": "pomer.cn",
+  "executedAt": "2026-06-16T04:57:56.188Z",
+  "opsPrerequisite": "PR-OPS-ADMIN-STATIC-ACTION-DEPLOY-008 已解除",
+  "adminEntry": "https://api.pomer.cn/admin/login",
+  "pageUrl": "https://api.pomer.cn/admin/static/heatwave-ops/commerce-ranking-rewards.html",
+  "account": {
+    "username": "admin",
+    "role": "超级管理员",
+    "cookie": "redacted"
+  },
+  "pageBeforeClick": {
+    "url": "https://api.pomer.cn/admin/static/heatwave-ops/commerce-ranking-rewards.html?retest=008-1781585868699",
+    "title": "榜单奖励配置 - 酒桌判官后台",
+    "scripts": [
+      "https://api.pomer.cn/admin/static/heatwave-ops/app.js?v=20260615-admin-action-dialogs"
+    ],
+    "pageActionButtons": [
+      {
+        "text": "发放今日最有梗",
+        "pageAction": "grant-today_funny",
+        "disabled": false
+      },
+      {
+        "text": "发放今日最欠酒",
+        "pageAction": "grant-today_debt",
+        "disabled": false
+      },
+      {
+        "text": "发放今日最精彩",
+        "pageAction": "grant-today_highlight",
+        "disabled": false
+      },
+      {
+        "text": "发放今日最有画面",
+        "pageAction": "grant-today_visual",
+        "disabled": false
+      },
+      {
+        "text": "发放最佳开场",
+        "pageAction": "grant-best_opening",
+        "disabled": false
+      },
+      {
+        "text": "发放最佳收尾",
+        "pageAction": "grant-best_closing",
+        "disabled": false
+      }
+    ],
+    "grantBestOpening": {
+      "text": "发放最佳开场",
+      "pageAction": "grant-best_opening",
+      "disabled": false
+    },
+    "toolbarText": "发放今日最有梗发放今日最欠酒发放今日最精彩发放今日最有画面发放最佳开场发放最佳收尾\n            \n             UI Kit",
+    "status": "已连接后台"
+  },
+  "pageClick": {
+    "clickedGrantBestOpening": true,
+    "confirmDialog": {
+      "visible": true,
+      "text": "确认操作\n            确认按当前 最佳开场 榜单发放奖励？重复发放会被后端幂等跳过。\n          \n          关闭\n        \n        \n          取消\n          确认执行",
+      "okText": "确认执行"
+    }
+  },
+  "pageAfterClick": {
+    "status": "发放最佳开场已完成：发放 0 条，跳过 1 条",
+    "buttons": [
+      {
+        "text": "发放今日最有梗",
+        "pageAction": "grant-today_funny"
+      },
+      {
+        "text": "发放今日最欠酒",
+        "pageAction": "grant-today_debt"
+      },
+      {
+        "text": "发放今日最精彩",
+        "pageAction": "grant-today_highlight"
+      },
+      {
+        "text": "发放今日最有画面",
+        "pageAction": "grant-today_visual"
+      },
+      {
+        "text": "发放最佳开场",
+        "pageAction": "grant-best_opening"
+      },
+      {
+        "text": "发放最佳收尾",
+        "pageAction": "grant-best_closing"
+      }
+    ]
+  },
+  "network": {
+    "responses": [
+      {
+        "url": "https://api.pomer.cn/admin/static/heatwave-ops/app.js?v=20260615-admin-action-dialogs",
+        "status": 200,
+        "mimeType": "application/javascript"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/pages/commerce-ranking-rewards",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/admin/static/heatwave-ops/app.js?v=20260615-admin-action-dialogs",
+        "status": 200,
+        "mimeType": "application/javascript"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/pages/commerce-ranking-rewards",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/ranking-rewards/grant",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/pages/commerce-ranking-rewards",
+        "status": 200,
+        "mimeType": "application/json"
+      },
+      {
+        "url": "https://api.pomer.cn/admin/static/heatwave-ops/app.js?v=20260615-admin-action-dialogs",
+        "status": 200,
+        "mimeType": "application/javascript"
+      },
+      {
+        "url": "https://api.pomer.cn/api/v1/admin/pages/system-operation-logs",
+        "status": 200,
+        "mimeType": "application/json"
+      }
+    ],
+    "grantRequestId": "2968.79",
+    "grantStatus": 200,
+    "grantBody": "{\"code\":0,\"message\":\"ok\",\"data\":{\"category\":\"best_opening\",\"date\":\"2026-06-16\",\"grantedCount\":0,\"skippedCount\":1,\"totalPoints\":0,\"items\":[{\"momentId\":\"moment-1781584503741-d53b131f\",\"profileId\":\"user-1781583974510-1a52e6\",\"rank\":1,\"points\":60,\"status\":\"skipped\",\"sourceId\":\"ranking-reward:2026-06-16:best_opening:moment-1781584503741-d53b131f:reward-rule-best-opening-1\"}]}}"
+  },
+  "grant": {
+    "statusCode": 200,
+    "body": {
+      "code": 0,
+      "message": "ok",
+      "data": {
+        "category": "best_opening",
+        "date": "2026-06-16",
+        "grantedCount": 0,
+        "skippedCount": 1,
+        "totalPoints": 0,
+        "items": [
+          {
+            "momentId": "moment-1781584503741-d53b131f",
+            "profileId": "user-1781583974510-1a52e6",
+            "rank": 1,
+            "points": 60,
+            "status": "skipped",
+            "sourceId": "ranking-reward:2026-06-16:best_opening:moment-1781584503741-d53b131f:reward-rule-best-opening-1"
+          }
+        ]
+      }
+    }
+  },
+  "operationLogs": {
+    "statusCode": 200,
+    "body": {
+      "code": 0,
+      "message": "ok",
+      "data": {
+        "user": {
+          "id": "admin-root",
+          "username": "admin",
+          "name": "系统管理员",
+          "roleId": "role-super-admin",
+          "roleName": "超级管理员",
+          "status": "active",
+          "lastLoginAt": "2026-06-16T04:57:45.138Z"
+        },
+        "page": {
+          "slug": "system-operation-logs",
+          "title": "后台操作日志",
+          "view": "readonly",
+          "metrics": [
+            {
+              "label": "操作日志数",
+              "value": "18",
+              "trend": "最近 2026-06-16T04:57:49.739Z",
+              "tone": "up"
+            },
+            {
+              "label": "M4 动作日志",
+              "value": "18",
+              "trend": "审核、举报、分享图、奖励配置",
+              "tone": "up"
+            },
+            {
+              "label": "目标对象数",
+              "value": "10",
+              "trend": "内容与积分均可追溯",
+              "tone": "up"
+            },
+            {
+              "label": "操作人",
+              "value": "2",
+              "trend": "当前默认 admin-console",
+              "tone": "up"
+            }
+          ],
+          "tables": [
+            {
+              "title": "后台操作日志",
+              "columns": [
+                {
+                  "key": "logType",
+                  "label": "类型"
+                },
+                {
+                  "key": "operator",
+                  "label": "操作人"
+                },
+                {
+                  "key": "action",
+                  "label": "动作"
+                },
+                {
+                  "key": "targetId",
+                  "label": "目标 ID"
+                },
+                {
+                  "key": "targetName",
+                  "label": "目标名称"
+                },
+                {
+                  "key": "targetOpenId",
+                  "label": "OpenID"
+                },
+                {
+                  "key": "targetPhone",
+                  "label": "手机号"
+                },
+                {
+                  "key": "detail",
+                  "label": "详情"
+                },
+                {
+                  "key": "createdAt",
+                  "label": "时间"
+                }
+              ],
+              "rows": [
+                {
+                  "id": "admin-op-1781585869739-24fa35",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 1 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:57:49.739Z"
+                },
+                {
+                  "id": "admin-op-1781584650823-2e7f4f",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 1 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:37:30.823Z"
+                },
+                {
+                  "id": "admin-op-1781584504237-b905b7",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 1 条，跳过 0 条，合计 60 积分",
+                  "createdAt": "2026-06-16T04:35:04.237Z"
+                },
+                {
+                  "id": "admin-op-1781584504167-457c2e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：hide",
+                  "targetId": "moment-1781584503823-56dc9214",
+                  "targetName": "IT-MOMENTS-20260616-006B failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 approved/approved -> hidden/approved；原因：IT-MOMENTS-20260616-006B hide failed candidate before process",
+                  "createdAt": "2026-06-16T04:35:04.167Z"
+                },
+                {
+                  "id": "admin-op-1781584504109-c1655b",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584503823-56dc9214",
+                  "targetName": "IT-MOMENTS-20260616-006B failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006B approve failed candidate before task creation",
+                  "createdAt": "2026-06-16T04:35:04.109Z"
+                },
+                {
+                  "id": "admin-op-1781584504077-f9714e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584503741-d53b131f",
+                  "targetName": "IT-MOMENTS-20260616-006B opening",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006B approve opening for ranking",
+                  "createdAt": "2026-06-16T04:35:04.077Z"
+                },
+                {
+                  "id": "admin-op-1781584438126-31bb6d",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：hide",
+                  "targetId": "moment-1781584437610-e1e75e10",
+                  "targetName": "IT-MOMENTS-20260616-006 failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 approved/approved -> hidden/approved；原因：IT-MOMENTS-20260616-006 hide failed candidate before process",
+                  "createdAt": "2026-06-16T04:33:58.126Z"
+                },
+                {
+                  "id": "admin-op-1781584438062-769683",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584437610-e1e75e10",
+                  "targetName": "IT-MOMENTS-20260616-006 failed share candidate",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006 approve failed candidate before task creation",
+                  "createdAt": "2026-06-16T04:33:58.063Z"
+                },
+                {
+                  "id": "admin-op-1781584438040-f2d37e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781584437537-2e21801b",
+                  "targetName": "IT-MOMENTS-20260616-006 opening",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：IT-MOMENTS-20260616-006 approve opening for ranking",
+                  "createdAt": "2026-06-16T04:33:58.040Z"
+                },
+                {
+                  "id": "admin-op-1781584037698-5c4f91",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 0 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:27:17.698Z"
+                },
+                {
+                  "id": "admin-op-1781583905263-4613ab",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 0 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:25:05.263Z"
+                },
+                {
+                  "id": "admin-op-1781583557551-2cf1be",
+                  "logType": "榜单奖励",
+                  "operator": "admin",
+                  "action": "发放榜单奖励",
+                  "targetId": "ranking-rewards:best_opening:2026-06-16",
+                  "targetName": "最佳开场",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "发放 0 条，跳过 0 条，合计 0 积分",
+                  "createdAt": "2026-06-16T04:19:17.551Z"
+                },
+                {
+                  "id": "admin-op-1781582831837-2c6dd5",
+                  "logType": "榜单奖励",
+                  "operator": "admin-console",
+                  "action": "保存榜单奖励配置",
+                  "targetId": "commerce-ranking-rewards",
+                  "targetName": "榜单奖励配置",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "更新 7 条规则；覆盖：今日最有梗、今日最欠酒、今日最精彩、今日最有画面、最佳开场、最佳收尾",
+                  "createdAt": "2026-06-16T04:07:11.837Z"
+                },
+                {
+                  "id": "admin-op-1781582831811-89a318",
+                  "logType": "榜单奖励",
+                  "operator": "admin-console",
+                  "action": "保存榜单奖励配置",
+                  "targetId": "commerce-ranking-rewards",
+                  "targetName": "榜单奖励配置",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "更新 7 条规则；覆盖：今日最有梗、今日最欠酒、今日最精彩、今日最有画面、最佳开场、最佳收尾",
+                  "createdAt": "2026-06-16T04:07:11.811Z"
+                },
+                {
+                  "id": "admin-op-1781582831706-aba238",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：require_resubmit",
+                  "targetId": "moment-1781549829409-b3aece35",
+                  "targetName": "刚刚这一刻，值得留在时间线",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> pending/require_resubmit；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 require resubmit smoke",
+                  "createdAt": "2026-06-16T04:07:11.706Z"
+                },
+                {
+                  "id": "admin-op-1781582831652-efa236",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：hide",
+                  "targetId": "moment-1781540671054-90a9122f",
+                  "targetName": "恶意我",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> hidden/pending；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 hide smoke",
+                  "createdAt": "2026-06-16T04:07:11.652Z"
+                },
+                {
+                  "id": "admin-op-1781582831602-b31020",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781549804535-b8b389b0",
+                  "targetName": "今晚开场，先留证",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 approve smoke",
+                  "createdAt": "2026-06-16T04:07:11.602Z"
+                },
+                {
+                  "id": "admin-op-1781529144358-98309e",
+                  "logType": "瞬间审核",
+                  "operator": "admin",
+                  "action": "审核精彩瞬间：approve",
+                  "targetId": "moment-1781527099498-31744936",
+                  "targetName": "今晚开场，先留证",
+                  "targetPhone": "",
+                  "targetOpenId": "",
+                  "detail": "状态 pending/pending -> approved/approved；原因：123",
+                  "createdAt": "2026-06-15T13:12:24.358Z"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  "screenshots": [
+    "docs/runtime/pr-admin-reward-page-action-retest-008/01-page-button-visible.png",
+    "docs/runtime/pr-admin-reward-page-action-retest-008/02-confirm-dialog.png",
+    "docs/runtime/pr-admin-reward-page-action-retest-008/03-after-page-click-result.png",
+    "docs/runtime/pr-admin-reward-page-action-retest-008/04-operation-logs-after-click.png"
+  ],
+  "conclusion": "页面 grant-best_opening 按钮已出现，并可从页面按钮触发发奖；结果按接口返回记录，不代表奖励完整验收通过。"
+}

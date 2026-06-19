@@ -12,7 +12,9 @@ const navGroups = [
       { slug: 'content-templates', title: '酒局模板', icon: 'icon-template' },
       { slug: 'content-question-bank', title: '题库与任务', icon: 'icon-question' },
       { slug: 'content-share-assets', title: '分享素材', icon: 'icon-share' },
-      { slug: 'content-tools-ops', title: '工具箱运营', icon: 'icon-tool' }
+      { slug: 'content-tools-ops', title: '工具箱运营', icon: 'icon-tool' },
+      { slug: 'content-moments-review', title: '精彩瞬间审核', icon: 'icon-content' },
+      { slug: 'content-moment-reports', title: '瞬间举报处理', icon: 'icon-alert' },
   ],
   },
   {
@@ -33,6 +35,7 @@ const navGroups = [
       { slug: 'commerce-point-ledger', title: '积分变动记录', icon: 'icon-points' },
       { slug: 'commerce-membership', title: '会员体系', icon: 'icon-member' },
       { slug: 'commerce-merchants', title: '商户合作', icon: 'icon-store' },
+      { slug: 'commerce-ranking-rewards', title: '榜单奖励配置', icon: 'icon-points' },
     ],
   },
   {
@@ -42,6 +45,7 @@ const navGroups = [
       { slug: 'data-users', title: '用户分析', icon: 'icon-chart' },
       { slug: 'data-content', title: '内容分析', icon: 'icon-content' },
       { slug: 'data-business', title: '商业分析', icon: 'icon-member' },
+      { slug: 'growth-share-tasks', title: '分享图任务', icon: 'icon-share' },
     ],
   },
   {
@@ -49,7 +53,7 @@ const navGroups = [
     title: '系统设置',
     items: [
       { slug: 'system-permissions', title: '账号权限', icon: 'icon-security' },
-      { slug: 'system-operation-logs', title: '后台积分操作日志', icon: 'icon-security' },
+      { slug: 'system-operation-logs', title: '后台操作日志', icon: 'icon-security' },
       { slug: 'system-config', title: '基础配置', icon: 'icon-settings' },
     ],
   },
@@ -339,6 +343,119 @@ const setStatus = (text, type = 'normal') => {
   node.dataset.type = type
 }
 
+const requestActionReason = (message = '请输入操作原因') =>
+  new Promise((resolve) => {
+    document.querySelector('[data-role="reason-dialog"]')?.remove()
+
+    const shell = document.createElement('div')
+    shell.className = 'editor-overlay-shell'
+    shell.dataset.role = 'reason-dialog'
+    shell.innerHTML = `
+      <div class="editor-overlay-backdrop" data-action="reason-cancel"></div>
+      <section class="editor-dialog reason-dialog" role="dialog" aria-modal="true" aria-label="填写操作原因" tabindex="-1">
+        <div class="editor-dialog-head">
+          <div>
+            <div class="editor-dialog-title">填写操作原因</div>
+            <div class="editor-dialog-copy">${escapeHtml(message)}</div>
+          </div>
+          <button class="dialog-close-btn" type="button" data-action="reason-cancel">关闭</button>
+        </div>
+        <div class="editor-dialog-body">
+          <label class="field">
+            <span>操作原因</span>
+            <textarea data-role="reason-input" placeholder="请输入本次操作原因" rows="4"></textarea>
+          </label>
+        </div>
+        <div class="editor-dialog-foot">
+          <button class="dialog-close-btn" type="button" data-action="reason-cancel">取消</button>
+          <button class="action-btn" type="button" data-action="reason-confirm">确认执行</button>
+        </div>
+      </section>`
+
+    let resolved = false
+    const finish = (value) => {
+      if (resolved) return
+      resolved = true
+      shell.remove()
+      resolve(value)
+    }
+    const input = shell.querySelector('[data-role="reason-input"]')
+    shell.querySelectorAll('[data-action="reason-cancel"]').forEach((node) => {
+      node.addEventListener('click', () => finish(''))
+    })
+    shell.querySelector('[data-action="reason-confirm"]')?.addEventListener('click', () => {
+      finish(input?.value || '')
+    })
+    shell.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        finish('')
+      }
+      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault()
+        finish(input?.value || '')
+      }
+    })
+
+    document.body.appendChild(shell)
+    requestAnimationFrame(() => {
+      input?.focus()
+    })
+  })
+
+const requestActionConfirm = (message = '确认执行这个操作？') =>
+  new Promise((resolve) => {
+    document.querySelector('[data-role="confirm-dialog"]')?.remove()
+
+    const shell = document.createElement('div')
+    shell.className = 'editor-overlay-shell'
+    shell.dataset.role = 'confirm-dialog'
+    shell.innerHTML = `
+      <div class="editor-overlay-backdrop" data-action="confirm-cancel"></div>
+      <section class="editor-dialog confirm-dialog" role="dialog" aria-modal="true" aria-label="确认操作" tabindex="-1">
+        <div class="editor-dialog-head">
+          <div>
+            <div class="editor-dialog-title">确认操作</div>
+            <div class="editor-dialog-copy">${escapeHtml(message)}</div>
+          </div>
+          <button class="dialog-close-btn" type="button" data-action="confirm-cancel">关闭</button>
+        </div>
+        <div class="editor-dialog-foot">
+          <button class="dialog-close-btn" type="button" data-action="confirm-cancel">取消</button>
+          <button class="action-btn" type="button" data-action="confirm-ok">确认执行</button>
+        </div>
+      </section>`
+
+    let resolved = false
+    const finish = (value) => {
+      if (resolved) return
+      resolved = true
+      shell.remove()
+      resolve(value)
+    }
+    shell.querySelectorAll('[data-action="confirm-cancel"]').forEach((node) => {
+      node.addEventListener('click', () => finish(false))
+    })
+    shell.querySelector('[data-action="confirm-ok"]')?.addEventListener('click', () => {
+      finish(true)
+    })
+    shell.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        finish(false)
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault()
+        finish(true)
+      }
+    })
+
+    document.body.appendChild(shell)
+    requestAnimationFrame(() => {
+      shell.querySelector('[data-action="confirm-ok"]')?.focus()
+    })
+  })
+
 const getCollectionState = (collection) => {
   if (!state.collections[collection.key]) {
     state.collections[collection.key] = clone(collection.items || [])
@@ -578,6 +695,7 @@ const renderPagination = ({ pagerKey, pageSize, totalRows, currentPage, pageCoun
 const renderTable = (table, rows) => {
   if (!table) return ''
   const allRows = Array.isArray(rows) ? rows : []
+  const rowActions = Array.isArray(table.rowActions) ? table.rowActions : []
   const pageSize = getPageSize(table)
   const pageCount = Math.max(1, Math.ceil(allRows.length / pageSize))
   const tableKey = getTableKey(table)
@@ -594,22 +712,46 @@ const renderTable = (table, rows) => {
     <div class="table-scroll">
       <table class="table">
         <thead>
-          <tr>${table.columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join('')}</tr>
+          <tr>
+            ${table.columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join('')}
+            ${rowActions.length ? '<th>操作</th>' : ''}
+          </tr>
         </thead>
         <tbody>
           ${
             displayRows.length
               ? displayRows
                   .map(
-                    (row) => `
+                    (row) => {
+                      const visibleActions = rowActions.filter((action) => isRowActionVisible(action, row))
+                      return `
                 <tr>
                   ${table.columns
-                    .map((column) => `<td>${row[column.key] == null || row[column.key] === '' ? '<span class="muted">-</span>' : escapeHtml(String(row[column.key]))}</td>`)
+                    .map((column) => `<td>${row[column.key] == null || row[column.key] === '' ? '<span class="muted">-</span>' : renderTableCell(column, row)}</td>`)
                     .join('')}
-                </tr>`,
+                  ${
+                    rowActions.length
+                      ? `<td>
+                          <div class="table-actions">
+                            ${
+                              visibleActions.length
+                                ? visibleActions
+                                  .map(
+                                    (action) =>
+                                      `<button class="mini-btn" type="button" data-action="admin-row-action" data-table-key="${escapeHtml(tableKey)}" data-row-id="${escapeHtml(row.id || '')}" data-row-action="${escapeHtml(action.key)}">${escapeHtml(action.label)}</button>`,
+                                  )
+                                  .join('')
+                                : '<span class="muted">无可用操作</span>'
+                            }
+                          </div>
+                        </td>`
+                      : ''
+                  }
+                </tr>`
+                    },
                   )
                   .join('')
-              : `<tr><td colspan="${table.columns.length}"><div class="empty-state">暂无数据</div></td></tr>`
+              : `<tr><td colspan="${table.columns.length + (rowActions.length ? 1 : 0)}"><div class="empty-state">暂无数据</div></td></tr>`
           }
         </tbody>
       </table>
@@ -844,6 +986,77 @@ const openFreeTemplateCreator = () => {
   render()
 }
 
+const getReadonlyTableDefinition = (tableKey) =>
+  (state.page?.tables || []).find((table) => getTableKey(table) === tableKey) || null
+
+const interpolateActionEndpoint = (endpoint = '', row = {}) =>
+  String(endpoint || '').replace(/:([a-zA-Z0-9_]+)/g, (_, key) => encodeURIComponent(String(row[key] ?? '')))
+
+const toTextList = (value) => (Array.isArray(value) ? value : [value]).map((item) => String(item ?? '').trim())
+
+const isRowActionVisible = (action = {}, row = {}) => {
+  const rule = action.visibleWhen
+  if (!rule) {
+    return true
+  }
+  if (Array.isArray(rule.all)) {
+    return rule.all.every((item) => isRowActionVisible({ visibleWhen: item }, row))
+  }
+  if (Array.isArray(rule.any)) {
+    return rule.any.some((item) => isRowActionVisible({ visibleWhen: item }, row))
+  }
+  const field = String(rule.field || rule.key || '').trim()
+  if (!field) {
+    return true
+  }
+  const value = String(row[field] ?? '').trim()
+  if (rule.equals != null && value !== String(rule.equals).trim()) {
+    return false
+  }
+  if (rule.values && !toTextList(rule.values).includes(value)) {
+    return false
+  }
+  if (rule.notValues && toTextList(rule.notValues).includes(value)) {
+    return false
+  }
+  return true
+}
+
+const runAdminRowAction = async (tableKey, rowId, actionKey) => {
+  const table = getReadonlyTableDefinition(tableKey)
+  const row = (table?.rows || []).find((item) => String(item.id || '') === String(rowId || ''))
+  const action = (table?.rowActions || []).find((item) => item.key === actionKey)
+  if (!table || !row || !action) {
+    setStatus('未找到要执行的后台操作', 'error')
+    return
+  }
+  const reason = await requestActionReason(action.reasonPrompt || '请输入操作原因')
+  if (!String(reason || '').trim()) {
+    setStatus('已取消：后台操作必须填写原因', 'error')
+    return
+  }
+  const endpoint = interpolateActionEndpoint(action.endpoint, row)
+  const payload = {
+    reason: String(reason).trim(),
+  }
+  if (action.payloadAction) {
+    payload.action = action.payloadAction
+  }
+  try {
+    setStatus(`${action.label}处理中…`, 'normal')
+    await request(endpoint, {
+      method: action.method || 'POST',
+      body: JSON.stringify(payload),
+    })
+    const data = await request(`/api/v1/admin/pages/${state.slug}`)
+    resetPageState(data)
+    render()
+    setStatus(`${action.label}已完成`, 'success')
+  } catch (error) {
+    setStatus(error.message || `${action.label}失败`, 'error')
+  }
+}
+
 const renderCollectionEditor = (collection, options = {}) => {
   const items = getCollectionState(collection)
   const readOnly = Boolean(options.readOnly)
@@ -944,6 +1157,14 @@ const renderReadonlyTables = () =>
 const renderNotes = () =>
   (state.page.notes || [])
     .map((note) => `<div class="notice-item"><div class="notice-item-copy">${note}</div></div>`)
+    .join('')
+
+const renderPageActions = () =>
+  (state.page.pageActions || [])
+    .map(
+      (action) =>
+        `<button class="mini-btn" type="button" data-action="page-action" data-page-action="${escapeHtml(action.key)}">${escapeHtml(action.label)}</button>`,
+    )
     .join('')
 
 const renderWorkspace = () => {
@@ -1285,6 +1506,35 @@ const uploadAsset = async (fileInput) => {
   }
 }
 
+const runPageAction = async (actionKey) => {
+  const action = (state.page.pageActions || []).find((item) => item.key === actionKey)
+  if (!action) {
+    setStatus('未找到页面操作', 'error')
+    return
+  }
+  if (action.confirm && !(await requestActionConfirm(action.confirm))) {
+    setStatus('已取消页面操作', 'normal')
+    return
+  }
+  try {
+    setStatus(`${action.label}处理中…`, 'normal')
+    const result = await request(action.endpoint, {
+      method: action.method || 'POST',
+      body: JSON.stringify(action.body || {}),
+    })
+    const data = await request(`/api/v1/admin/pages/${state.slug}`)
+    resetPageState(data)
+    render()
+    const summary =
+      result && typeof result === 'object' && 'grantedCount' in result
+        ? `发放 ${result.grantedCount} 条，跳过 ${result.skippedCount || 0} 条`
+        : '操作已完成'
+    setStatus(`${action.label}已完成：${summary}`, 'success')
+  } catch (error) {
+    setStatus(error.message || `${action.label}失败`, 'error')
+  }
+}
+
 const render = () => {
   const page = state.page
   const showPageSave = false
@@ -1320,6 +1570,7 @@ const render = () => {
             <div class="toolbar-copy">当前页面已接入真实后台接口</div>
           </div>
           <div class="toolbar-actions">
+            ${renderPageActions()}
             ${showPageSave ? `<button class="action-btn" type="button" data-action="save-page">${icon('icon-publish')} 保存修改</button>` : ''}
             <a class="ghost-btn ghost-btn-light" href="/admin/ui-kit">${icon('icon-eye')} UI Kit</a>
           </div>
@@ -1343,6 +1594,12 @@ const bindEvents = () => {
 
   document.querySelector('[data-action="create-free-templates"]')?.addEventListener('click', openFreeTemplateCreator)
 
+  document.querySelectorAll('[data-action="page-action"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      void runPageAction(node.dataset.pageAction)
+    })
+  })
+
   document.querySelectorAll('[data-action="toggle-nav-group"]').forEach((node) => {
     node.addEventListener('click', () => {
       state.navOpen[node.dataset.group] = !state.navOpen[node.dataset.group]
@@ -1358,6 +1615,11 @@ const bindEvents = () => {
       }
       setPagerPage(node.dataset.tableKey, node.dataset.page)
       render()
+    })
+  })
+  document.querySelectorAll('[data-action="admin-row-action"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      void runAdminRowAction(node.dataset.tableKey, node.dataset.rowId, node.dataset.rowAction)
     })
   })
   document.querySelectorAll('[data-action="add-item"]').forEach((node) => {
@@ -1628,7 +1890,7 @@ const removeCollectionItem = async (collectionKey, itemId) => {
     setStatus('未找到要删除的记录', 'error')
     return
   }
-  if (!window.confirm('确认删除这条记录？')) {
+  if (!(await requestActionConfirm('确认删除这条记录？'))) {
     return
   }
 

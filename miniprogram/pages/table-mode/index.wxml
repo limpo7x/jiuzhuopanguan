@@ -80,6 +80,14 @@
       <text>桌面模式已放大所有信息，方便酒桌上远一点也能看清。</text>
     </view>
 
+    <view wx:if="{{isJudge}}" class="table-closing-card">
+      <view class="table-closing-copy">
+        <text class="table-closing-title">收尾照</text>
+        <text class="table-closing-meta">可选上传，不影响结束本局。</text>
+      </view>
+      <view class="table-closing-action" bindtap="handleClosingMomentTap">上传</view>
+    </view>
+
     <view class="table-action-row">
       <view class="table-ghost {{isJudge ? '' : 'table-ghost-full'}}" bindtap="handleBackTap">返回</view>
       <view wx:if="{{isJudge}}" class="table-primary" bindtap="handleFinishTap">结束本局</view>

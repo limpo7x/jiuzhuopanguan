@@ -5,6 +5,7 @@ const { ensureMysqlPool, isMySQLEnabled } = require('./store-accessor')
 const { getAdminStore } = require('./admin')
 const { listAdminAssets } = require('./assets')
 const { readContentStore } = require('./content')
+const { readMomentsStore } = require('./moments')
 const { readSocialStore } = require('./social')
 
 const schemaPath = path.join(__dirname, '..', 'sql', 'mysql-normalized-schema.sql')
@@ -200,6 +201,154 @@ const mapWineReports = (adminStore) =>
     status: text(item.status),
     created_at: toDate(item.createdAt),
   })).filter((item) => item.id)
+
+const mapMomentRecords = (momentsStore) =>
+  (momentsStore.momentRecords || []).map((item, index) => ({
+    id: text(item.id) || safeId('moment', index),
+    client_draft_id: text(item.clientDraftId),
+    session_id: text(item.sessionId),
+    uploader_profile_id: text(item.uploaderProfileId),
+    uploader_name: text(item.uploaderName),
+    uploader_avatar_url: text(item.uploaderAvatarUrl),
+    node_type: text(item.nodeType) || 'highlight',
+    media_type: text(item.mediaType) || 'image',
+    image_url: text(item.imageUrl),
+    video_url: text(item.videoUrl),
+    cover_image_url: text(item.coverImageUrl),
+    duration: number(item.duration),
+    caption: text(item.caption),
+    tags_json: json(item.tags || []),
+    visibility: text(item.visibility) || 'session',
+    visible_profile_ids_json: json(item.visibleProfileIds || []),
+    timeline_title: text(item.timelineTitle),
+    is_timeline_placeholder: bool(item.isTimelinePlaceholder),
+    usage_consent_json: json(item.usageConsent || {}),
+    completion_status: text(item.completionStatus) || 'draft',
+    review_status: text(item.reviewStatus) || 'pending',
+    secondary_review_status: text(item.secondaryReviewStatus) || 'pending',
+    ranking_eligible: bool(item.rankingEligible),
+    reward_eligible: bool(item.rewardEligible),
+    removed_at: toDate(item.removedAt),
+    created_at: toDate(item.createdAt),
+    updated_at: toDate(item.updatedAt),
+  })).filter((item) => item.id && item.session_id && item.uploader_profile_id)
+
+const mapSessionEvents = (momentsStore) =>
+  (momentsStore.sessionEvents || []).map((item, index) => ({
+    id: text(item.id) || safeId('session-event', item.sessionId, item.clientEventId, index),
+    client_event_id: text(item.clientEventId),
+    session_id: text(item.sessionId),
+    event_type: text(item.eventType) || 'drink_debt',
+    operator_profile_id: text(item.operatorProfileId),
+    operator_name: text(item.operatorName),
+    target_profile_id: text(item.targetProfileId),
+    target_name: text(item.targetName),
+    score_delta: number(item.scoreDelta),
+    caption: text(item.caption),
+    sync_status: text(item.syncStatus),
+    created_at: toDate(item.createdAt),
+    updated_at: toDate(item.updatedAt),
+  })).filter((item) => item.id && item.session_id && item.operator_profile_id)
+
+const mapSessionBriefs = (momentsStore) =>
+  (momentsStore.sessionBriefs || []).map((item, index) => ({
+    id: text(item.id) || safeId('session-brief', item.sessionId, index),
+    session_id: text(item.sessionId),
+    title: text(item.title),
+    cover_mode: text(item.coverMode),
+    opening_moment_ids_json: json(item.openingMomentIds || []),
+    closing_moment_ids_json: json(item.closingMomentIds || []),
+    timeline_node_ids_json: json(item.timelineNodeIds || []),
+    share_image_task_id: text(item.shareImageTaskId),
+    share_image_status: text(item.shareImageStatus),
+    incomplete_moment_count: number(item.pendingMediaCount),
+    ranking_eligible: bool(item.rankingEligible),
+    created_at: toDate(item.createdAt),
+    updated_at: toDate(item.updatedAt),
+  })).filter((item) => item.id && item.session_id)
+
+const mapShareImageTasks = (momentsStore) =>
+  (momentsStore.shareImageTasks || []).map((item, index) => ({
+    id: text(item.id) || safeId('share-image-task', item.briefId, index),
+    session_id: text(item.sessionId),
+    brief_id: text(item.briefId),
+    status: text(item.status) || 'pending',
+    layout_mode: text(item.layoutMode) || 'timeline',
+    selected_node_ids_json: json(item.selectedNodeIds || []),
+    image_url: text(item.imageUrl),
+    failure_reason: text(item.failedReason || item.failureReason),
+    retry_count: number(item.retryCount),
+    created_at: toDate(item.createdAt),
+    started_at: toDate(item.startedAt),
+    finished_at: toDate(item.finishedAt),
+    updated_at: toDate(item.updatedAt),
+  })).filter((item) => item.id && item.session_id && item.brief_id)
+
+const mapMomentReports = (momentsStore) =>
+  (momentsStore.momentReports || []).map((item, index) => ({
+    id: text(item.id) || safeId('moment-report', item.momentId, item.createdAt, index),
+    moment_id: text(item.momentId),
+    session_id: text(item.sessionId),
+    reporter_profile_id: text(item.reporterProfileId || item.profileId),
+    reason: text(item.reason),
+    description: text(item.description || item.detail),
+    status: text(item.status) || 'pending',
+    handled_by: text(item.handledBy || item.operator),
+    handled_at: toDate(item.handledAt),
+    created_at: toDate(item.createdAt),
+  })).filter((item) => item.id && item.moment_id)
+
+const mapMomentNominations = (momentsStore) =>
+  (momentsStore.momentNominations || []).map((item, index) => ({
+    id: text(item.id) || safeId('moment-nomination', item.momentId, item.profileId, item.category, index),
+    client_nomination_id: text(item.clientNominationId),
+    moment_id: text(item.momentId),
+    session_id: text(item.sessionId),
+    profile_id: text(item.profileId),
+    profile_name: text(item.profileName),
+    category: text(item.category) || 'today_highlight',
+    points_spent: number(item.pointsSpent),
+    status: text(item.status) || 'active',
+    refunded_at: toDate(item.refundedAt),
+    refund_reason: text(item.refundReason),
+    created_at: toDate(item.createdAt),
+    updated_at: toDate(item.updatedAt),
+  })).filter((item) => item.id && item.moment_id && item.session_id && item.profile_id)
+
+const mapRankingRewardRules = (momentsStore, adminStore) =>
+  ((momentsStore.rankingRewardRules || []).length ? momentsStore.rankingRewardRules : adminStore.rankingRewardRules || []).map(
+    (item, index) => ({
+      id: text(item.id) || safeId('ranking-reward-rule', item.category, item.rankStart, item.rankEnd, index),
+      category: text(item.category) || 'today_highlight',
+      enabled: bool(item.enabled === 'true' || item.enabled === true),
+      rank_start: Math.max(1, number(item.rankStart) || 1),
+      rank_end: Math.max(Math.max(1, number(item.rankStart) || 1), number(item.rankEnd) || Math.max(1, number(item.rankStart) || 1)),
+      points: number(item.points),
+      tiers_json: json(item.tiers || null),
+      effective_at: toDate(item.effectiveAt),
+      reason: text(item.reason),
+      updated_at: toDate(item.updatedAt),
+    }),
+  ).filter((item) => item.id && item.category)
+
+const mapRankingRewardPayouts = (momentsStore) =>
+  (momentsStore.rankingRewardPayouts || []).map((item, index) => ({
+    id: text(item.id) || safeId('ranking-reward-payout', item.sourceId, index),
+    source_id: text(item.sourceId),
+    category: text(item.category) || 'today_highlight',
+    date: toDate(item.date),
+    moment_id: text(item.momentId),
+    session_id: text(item.sessionId),
+    profile_id: text(item.profileId),
+    profile_name: text(item.profileName),
+    rank: Math.max(1, number(item.rank) || 1),
+    points: number(item.points),
+    rule_id: text(item.ruleId),
+    status: text(item.status) || 'granted',
+    operator: text(item.operator),
+    created_at: toDate(item.createdAt),
+    updated_at: toDate(item.updatedAt),
+  })).filter((item) => item.id && item.source_id && item.date && item.moment_id && item.profile_id)
 
 const mapPointsTasks = (contentStore) =>
   (contentStore.pointsConfig?.tasks || []).map((item, index) => ({
@@ -439,6 +588,7 @@ const syncNormalizedTables = async ({ logger = console } = {}) => {
   const contentStore = readContentStore()
   const socialStore = readSocialStore()
   const adminStore = getAdminStore()
+  const momentsStore = readMomentsStore()
 
   const tasks = [
     ['users', mapUsers(socialStore), ['id', 'wechat_open_id', 'wechat_union_id', 'phone', 'name', 'avatar_url', 'signature', 'identity_tag', 'login_count', 'last_login_at', 'created_at', 'updated_at']],
@@ -449,6 +599,14 @@ const syncNormalizedTables = async ({ logger = console } = {}) => {
     ['wine_sessions', mapWineSessions(adminStore), ['id', 'invite_code', 'host_profile_id', 'name', 'template_id', 'template_name', 'player_count', 'state', 'status', 'source', 'started_at', 'ended_at', 'created_at', 'updated_at']],
     ['wine_session_members', mapWineSessionMembers(adminStore), ['id', 'session_id', 'profile_id', 'name', 'avatar_url', 'phone', 'is_host', 'status', 'debt_count', 'drink_count', 'cleared_count', 'meta_json', 'created_at', 'updated_at']],
     ['wine_reports', mapWineReports(adminStore), ['id', 'session_id', 'profile_id', 'template_name', 'title', 'scene', 'highlight1', 'highlight2', 'highlight3', 'view_count', 'share_count', 'replay_count', 'status', 'created_at']],
+    ['moment_records', mapMomentRecords(momentsStore), ['id', 'client_draft_id', 'session_id', 'uploader_profile_id', 'uploader_name', 'uploader_avatar_url', 'node_type', 'media_type', 'image_url', 'video_url', 'cover_image_url', 'duration', 'caption', 'tags_json', 'visibility', 'visible_profile_ids_json', 'timeline_title', 'is_timeline_placeholder', 'usage_consent_json', 'completion_status', 'review_status', 'secondary_review_status', 'ranking_eligible', 'reward_eligible', 'removed_at', 'created_at', 'updated_at']],
+    ['session_events', mapSessionEvents(momentsStore), ['id', 'client_event_id', 'session_id', 'event_type', 'operator_profile_id', 'operator_name', 'target_profile_id', 'target_name', 'score_delta', 'caption', 'sync_status', 'created_at', 'updated_at']],
+    ['session_briefs', mapSessionBriefs(momentsStore), ['id', 'session_id', 'title', 'cover_mode', 'opening_moment_ids_json', 'closing_moment_ids_json', 'timeline_node_ids_json', 'share_image_task_id', 'share_image_status', 'incomplete_moment_count', 'ranking_eligible', 'created_at', 'updated_at']],
+    ['share_image_tasks', mapShareImageTasks(momentsStore), ['id', 'session_id', 'brief_id', 'status', 'layout_mode', 'selected_node_ids_json', 'image_url', 'failure_reason', 'retry_count', 'created_at', 'started_at', 'finished_at', 'updated_at']],
+    ['moment_reports', mapMomentReports(momentsStore), ['id', 'moment_id', 'session_id', 'reporter_profile_id', 'reason', 'description', 'status', 'handled_by', 'handled_at', 'created_at']],
+    ['moment_nominations', mapMomentNominations(momentsStore), ['id', 'client_nomination_id', 'moment_id', 'session_id', 'profile_id', 'profile_name', 'category', 'points_spent', 'status', 'refunded_at', 'refund_reason', 'created_at', 'updated_at']],
+    ['ranking_reward_rules', mapRankingRewardRules(momentsStore, adminStore), ['id', 'category', 'enabled', 'rank_start', 'rank_end', 'points', 'tiers_json', 'effective_at', 'reason', 'updated_at']],
+    ['ranking_reward_payouts', mapRankingRewardPayouts(momentsStore), ['id', 'source_id', 'category', 'date', 'moment_id', 'session_id', 'profile_id', 'profile_name', 'rank', 'points', 'rule_id', 'status', 'operator', 'created_at', 'updated_at']],
     ['points_tasks', mapPointsTasks(contentStore), ['id', 'title', 'value', 'icon_class', 'status', 'sort_order']],
     ['points_rewards', mapPointsRewards(contentStore), ['id', 'title', 'subtitle', 'cost', 'icon_class', 'status', 'sort_order']],
     ['user_commerce_states', mapUserCommerceStates(contentStore), ['profile_id', 'points', 'membership_active', 'membership_plan_id', 'membership_expires_at', 'updated_at']],

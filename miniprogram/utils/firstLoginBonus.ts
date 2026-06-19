@@ -14,8 +14,8 @@ const resolveFirstLoginBonus = async () => {
 
 const openPointsMall = () => {
   wx.navigateTo({
-    url: '/pages/wine-points/index?tab=mall',
-    fail: () => wx.redirectTo({ url: '/pages/wine-points/index?tab=mall' }),
+    url: '/pages/privacy-state/index?type=feature',
+    fail: () => wx.redirectTo({ url: '/pages/privacy-state/index?type=feature' }),
   })
 }
 

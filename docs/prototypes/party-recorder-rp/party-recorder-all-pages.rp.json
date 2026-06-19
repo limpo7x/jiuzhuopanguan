@@ -1,0 +1,680 @@
+{
+  "product": "聚会记录师",
+  "generatedAt": "2026-06-17T15:54:46.218Z",
+  "source": "miniprogram/app.json + static route scan",
+  "pages": [
+    {
+      "id": "pages-index-index",
+      "route": "pages/index/index",
+      "index": 0,
+      "title": "首页",
+      "group": "核心入口",
+      "goal": "登录、三步创建聚会、最近聚会、待分享相册入口",
+      "sections": [
+        "登录/用户身份",
+        "创建聚会主 CTA",
+        "我创建/参与/待分享统计",
+        "工具与最近记录"
+      ],
+      "links": [
+        "/pages/wine-history/index?mode=host",
+        "/pages/tools/index",
+        "/pages/judge/index",
+        "/pages/me/index",
+        "/pages/wine-history/index?mode=joined",
+        "/pages/wine-history/index?mode=unshared",
+        "/pages/session-brief/index?briefId=${encodeURIComponent(item.briefId",
+        "/pages/session-brief/index?sessionId=${encodeURIComponent(item.sessionId",
+        "/pages/create-session/index",
+        "/pages/waiting-room/index?role=viewer&sessionId=",
+        "/pages/tool-detail/index?id=${encodeURIComponent(id"
+      ]
+    },
+    {
+      "id": "pages-tools-index",
+      "route": "pages/tools/index",
+      "index": 1,
+      "title": "工具箱",
+      "group": "工具与玩法",
+      "goal": "聚会工具入口集合",
+      "sections": [
+        "工具分类",
+        "热门工具",
+        "工具详情入口"
+      ],
+      "links": [
+        "/pages/index/index",
+        "/pages/judge/index",
+        "/pages/me/index",
+        "/pages/tool-detail/index?id=${encodeURIComponent(toolId"
+      ]
+    },
+    {
+      "id": "pages-judge-index",
+      "route": "pages/judge/index",
+      "index": 2,
+      "title": "记录广场/旧首页",
+      "group": "工具与玩法",
+      "goal": "历史判官入口降权，保留相册/工具/创建入口",
+      "sections": [
+        "快捷入口",
+        "记录说明",
+        "历史相册",
+        "主题模板"
+      ],
+      "links": [
+        "/pages/wine-history/index?mode=album",
+        "/pages/index/index",
+        "/pages/tools/index",
+        "/pages/me/index",
+        "/pages/create-session/index",
+        "/pages/live-record/index?sessionId=${encodeURIComponent(sessionId",
+        "/pages/table-mode/index",
+        "/pages/compliance-guide/index",
+        "/pages/wine-history/index",
+        "/pages/premium-templates/index",
+        "/pages/wine-history/index?mode=unshared"
+      ]
+    },
+    {
+      "id": "pages-me-index",
+      "route": "pages/me/index",
+      "index": 3,
+      "title": "我的",
+      "group": "个人中心",
+      "goal": "个人信息、待处理相册简略列表、会员/积分/设置入口",
+      "sections": [
+        "用户信息",
+        "待处理相册 3-5 条",
+        "查看全部入口",
+        "个人工具"
+      ],
+      "links": [
+        "/pages/wine-history/index?mode=album",
+        "/pages/index/index",
+        "/pages/tools/index",
+        "/pages/judge/index",
+        "/pages/member-center/index",
+        "/pages/wine-history/index?mode=host",
+        "/pages/wine-history/index?mode=unshared",
+        "/pages/premium-templates/index",
+        "/pages/session-brief/index?briefId=${encodeURIComponent(briefId",
+        "/pages/session-brief/index?sessionId=${encodeURIComponent(sessionId",
+        "/pages/wine-history/index",
+        "/pages/invite-friends/index",
+        "/pages/wine-history/index?mode=joined",
+        "/pages/friend-hub/index"
+      ]
+    },
+    {
+      "id": "pages-create-session-index",
+      "route": "pages/create-session/index",
+      "index": 4,
+      "title": "创建聚会",
+      "group": "核心入口",
+      "goal": "选择主题、人数、房间名，三步内进入邀请/拍照",
+      "sections": [
+        "聚会名称",
+        "主题卡片",
+        "人数/模板",
+        "创建按钮"
+      ],
+      "links": [
+        "/pages/invite-group/index?sessionId=${encodeURIComponent(created.id",
+        "/pages/premium-templates/index"
+      ]
+    },
+    {
+      "id": "pages-session-rules-index",
+      "route": "pages/session-rules/index",
+      "index": 5,
+      "title": "聚会规则",
+      "group": "创建流程",
+      "goal": "旧规则配置页，后续可砍或并入创建页",
+      "sections": [
+        "规则配置",
+        "进入加人"
+      ],
+      "links": [
+        "/pages/add-players/index"
+      ]
+    },
+    {
+      "id": "pages-add-players-index",
+      "route": "pages/add-players/index",
+      "index": 6,
+      "title": "添加成员",
+      "group": "创建流程",
+      "goal": "旧加人页，后续可并入邀请页",
+      "sections": [
+        "成员输入",
+        "确认成员",
+        "进入邀请"
+      ],
+      "links": [
+        "/pages/invite-group/index"
+      ]
+    },
+    {
+      "id": "pages-invite-group-index",
+      "route": "pages/invite-group/index",
+      "index": 7,
+      "title": "邀请聚友",
+      "group": "核心入口",
+      "goal": "展示邀请码、邀请好友，进入开场拍照",
+      "sections": [
+        "邀请码/分享",
+        "成员状态",
+        "开场拍照入口",
+        "分享预览入口"
+      ],
+      "links": [
+        "/pages/index/index?inviteCode=${encodeURIComponent(this.data.inviteCode",
+        "/pages/share-preview/index?sessionId=${encodeURIComponent(this.data.sessionId",
+        "/pages/moment-editor/index?sessionId=${encodeURIComponent(this.data.sessionId"
+      ]
+    },
+    {
+      "id": "pages-share-preview-index",
+      "route": "pages/share-preview/index",
+      "index": 8,
+      "title": "分享回流页",
+      "group": "分享主线",
+      "goal": "外部/成员查看公开聚会摘要并加入/查看相册",
+      "sections": [
+        "公开范围提示",
+        "照片高光",
+        "账本摘要",
+        "关键事件",
+        "加入/查看入口"
+      ],
+      "links": [
+        "/pages/index/index"
+      ]
+    },
+    {
+      "id": "pages-compliance-guide-index",
+      "route": "pages/compliance-guide/index",
+      "index": 9,
+      "title": "合规说明",
+      "group": "系统说明",
+      "goal": "说明公开分享、隐私、内容安全规则",
+      "sections": [
+        "隐私说明",
+        "分享范围",
+        "举报/审核"
+      ],
+      "links": []
+    },
+    {
+      "id": "pages-flow-overview-index",
+      "route": "pages/flow-overview/index",
+      "index": 10,
+      "title": "流程说明",
+      "group": "系统说明",
+      "goal": "说明记录流程，并引导进入现场记录",
+      "sections": [
+        "流程步骤",
+        "进入记录"
+      ],
+      "links": [
+        "/pages/live-record/index"
+      ]
+    },
+    {
+      "id": "pages-moment-editor-index",
+      "route": "pages/moment-editor/index",
+      "index": 11,
+      "title": "记录瞬间",
+      "group": "记录主线",
+      "goal": "提交照片、文字、公开/私密可见范围",
+      "sections": [
+        "照片/媒体",
+        "标题/说明",
+        "公开/私密",
+        "提交状态"
+      ],
+      "links": [
+        "/pages/live-record/index",
+        "/pages/invite-group/index?sessionId=${encodeURIComponent(sessionId",
+        "/pages/invite-group/index",
+        "/pages/live-record/index?sessionId=${encodeURIComponent(this.data.sessionId"
+      ]
+    },
+    {
+      "id": "pages-live-record-index",
+      "route": "pages/live-record/index",
+      "index": 12,
+      "title": "现场记录",
+      "group": "记录主线",
+      "goal": "拍照、写瞬间、记账、转盘、生成分享",
+      "sections": [
+        "拍照/上传",
+        "精彩瞬间",
+        "聚会账本入口",
+        "转盘/工具",
+        "生成分享"
+      ],
+      "links": [
+        "/pages/invite-group/index",
+        "/pages/moment-editor/index?sessionId=${encodeURIComponent(sessionId",
+        "/pages/share-poster/index?sessionId=${encodeURIComponent(sessionId",
+        "/pages/table-mode/index",
+        "/pages/table-mode/index?finish=1",
+        "/pages/judge-wheel/index?playerId=${encodeURIComponent(target.id",
+        "/pages/judge-wheel/index"
+      ]
+    },
+    {
+      "id": "pages-table-mode-index",
+      "route": "pages/table-mode/index",
+      "index": 13,
+      "title": "聚会账本",
+      "group": "记录主线",
+      "goal": "酒桌记账与拍照流程并存，并进入分享导出",
+      "sections": [
+        "欠酒/已喝/已清",
+        "成员账本",
+        "结算摘要",
+        "回到现场/生成简报"
+      ],
+      "links": [
+        "/pages/moment-editor/index?sessionId=${encodeURIComponent(runtime.sessionId",
+        "/pages/live-record/index?role=${runtime.isJudge",
+        "/pages/result-report/index?reportId=${encodeURIComponent(report.id"
+      ]
+    },
+    {
+      "id": "pages-judge-wheel-index",
+      "route": "pages/judge-wheel/index",
+      "index": 14,
+      "title": "转盘工具",
+      "group": "工具与玩法",
+      "goal": "选择成员/任务，回到现场记录",
+      "sections": [
+        "转盘",
+        "成员/任务",
+        "结果",
+        "回到现场"
+      ],
+      "links": [
+        "/pages/live-record/index?role=${runtime.isJudge"
+      ]
+    },
+    {
+      "id": "pages-result-report-index",
+      "route": "pages/result-report/index",
+      "index": 15,
+      "title": "结果报告",
+      "group": "分享主线",
+      "goal": "旧报告页，进入分享海报或简报",
+      "sections": [
+        "报告摘要",
+        "重开/回首页",
+        "分享海报",
+        "简报入口"
+      ],
+      "links": [
+        "/pages/restart-state/index",
+        "/pages/index/index",
+        "/pages/share-poster/index?reportId=${encodeURIComponent(this.data.reportId",
+        "/pages/session-brief/index?sessionId=${encodeURIComponent(this.data.sessionId"
+      ]
+    },
+    {
+      "id": "pages-session-brief-index",
+      "route": "pages/session-brief/index",
+      "index": 16,
+      "title": "聚会简报",
+      "group": "分享主线",
+      "goal": "汇总照片、账本、关键事件，生成分享图",
+      "sections": [
+        "聚会摘要",
+        "照片高光",
+        "账本高光",
+        "关键事件",
+        "生成分享图"
+      ],
+      "links": [
+        "/pages/rankings/index?category=today_highlight",
+        "/pages/share-poster/index?${query}",
+        "/pages/wine-history/index"
+      ]
+    },
+    {
+      "id": "pages-rankings-index",
+      "route": "pages/rankings/index",
+      "index": 17,
+      "title": "榜单",
+      "group": "增长与运营",
+      "goal": "今日高光、账本榜单、积分/奖励入口",
+      "sections": [
+        "榜单分类",
+        "排名列表",
+        "奖励/规则"
+      ],
+      "links": [
+        "/pages/index/index"
+      ]
+    },
+    {
+      "id": "pages-share-poster-index",
+      "route": "pages/share-poster/index",
+      "index": 18,
+      "title": "分享海报",
+      "group": "分享主线",
+      "goal": "酷炫保存图，照片墙 + 聚会账本 + 时间线共同导出",
+      "sections": [
+        "分享图预览",
+        "照片墙",
+        "聚会账本高光",
+        "时间线",
+        "保存/分享按钮"
+      ],
+      "links": [
+        "/pages/result-report/index?reportId=${encodeURIComponent(this.data.reportId",
+        "/pages/index/index",
+        "/pages/create-session/index"
+      ]
+    },
+    {
+      "id": "pages-wine-history-index",
+      "route": "pages/wine-history/index",
+      "index": 19,
+      "title": "聚会相册/历史",
+      "group": "相册与历史",
+      "goal": "查看全部相册、待处理相册、我创建/参与记录",
+      "sections": [
+        "筛选 tabs",
+        "相册列表",
+        "待分享/待处理",
+        "进入简报/继续记录"
+      ],
+      "links": [
+        "/pages/rankings/index?category=today_highlight",
+        "/pages/session-brief/index?sessionId=${encodeURIComponent(sessionId",
+        "/pages/session-brief/index?briefId=${encodeURIComponent(briefId",
+        "/pages/invalid-state/index",
+        "/pages/share-poster/index?reportId=${encodeURIComponent(reportId",
+        "/pages/result-report/index?reportId=${encodeURIComponent(reportId",
+        "/pages/live-record/index?sessionId=${encodeURIComponent(sessionId",
+        "/pages/create-session/index",
+        "/pages/me/index",
+        "/pages/index/index"
+      ]
+    },
+    {
+      "id": "pages-wine-points-index",
+      "route": "pages/wine-points/index",
+      "index": 20,
+      "title": "积分中心",
+      "group": "增长与运营",
+      "goal": "积分、任务、商城入口",
+      "sections": [
+        "积分余额",
+        "任务列表",
+        "兑换/商城"
+      ],
+      "links": []
+    },
+    {
+      "id": "pages-premium-templates-index",
+      "route": "pages/premium-templates/index",
+      "index": 21,
+      "title": "主题模板",
+      "group": "增长与运营",
+      "goal": "选择聚会主题模板并创建房间",
+      "sections": [
+        "模板列表",
+        "免费/高级",
+        "立即使用"
+      ],
+      "links": [
+        "/pages/create-session/index?template=${encodeURIComponent(title",
+        "/pages/member-center/index"
+      ]
+    },
+    {
+      "id": "pages-merchant-partners-index",
+      "route": "pages/merchant-partners/index",
+      "index": 22,
+      "title": "商家合作",
+      "group": "增长与运营",
+      "goal": "商家权益、优惠合作入口",
+      "sections": [
+        "商家列表",
+        "合作权益",
+        "优惠入口"
+      ],
+      "links": []
+    },
+    {
+      "id": "pages-invalid-state-index",
+      "route": "pages/invalid-state/index",
+      "index": 23,
+      "title": "失效状态",
+      "group": "系统状态",
+      "goal": "邀请/分享失效后的恢复入口",
+      "sections": [
+        "失效提示",
+        "重新创建",
+        "模板/积分入口"
+      ],
+      "links": [
+        "/pages/invite-group/index",
+        "/pages/premium-templates/index",
+        "/pages/wine-points/index",
+        "/pages/result-report/index",
+        "/pages/restart-state/index"
+      ]
+    },
+    {
+      "id": "pages-restart-state-index",
+      "route": "pages/restart-state/index",
+      "index": 24,
+      "title": "重开状态",
+      "group": "系统状态",
+      "goal": "聚会结束或失效后重新创建",
+      "sections": [
+        "重开说明",
+        "新建聚会",
+        "回首页"
+      ],
+      "links": [
+        "/pages/create-session/index",
+        "/pages/index/index"
+      ]
+    },
+    {
+      "id": "pages-tool-detail-index",
+      "route": "pages/tool-detail/index",
+      "index": 25,
+      "title": "工具详情",
+      "group": "工具与玩法",
+      "goal": "展示工具说明、使用记录、二维码/分享",
+      "sections": [
+        "工具介绍",
+        "操作区",
+        "使用历史",
+        "返回工具箱"
+      ],
+      "links": [
+        "/pages/usage-history/index",
+        "/pages/tools/index"
+      ]
+    },
+    {
+      "id": "pages-member-center-index",
+      "route": "pages/member-center/index",
+      "index": 26,
+      "title": "会员中心",
+      "group": "增长与运营",
+      "goal": "会员权益、优惠券、积分入口",
+      "sections": [
+        "权益卡",
+        "开通/续费",
+        "优惠券入口"
+      ],
+      "links": [
+        "/pages/index/index",
+        "/pages/coupon-center/index"
+      ]
+    },
+    {
+      "id": "pages-favorites-index",
+      "route": "pages/favorites/index",
+      "index": 27,
+      "title": "收藏",
+      "group": "个人中心",
+      "goal": "收藏内容与工具入口",
+      "sections": [
+        "收藏列表",
+        "空态",
+        "跳转详情"
+      ],
+      "links": []
+    },
+    {
+      "id": "pages-usage-history-index",
+      "route": "pages/usage-history/index",
+      "index": 28,
+      "title": "使用历史",
+      "group": "个人中心",
+      "goal": "工具或聚会使用记录",
+      "sections": [
+        "历史列表",
+        "继续使用",
+        "详情入口"
+      ],
+      "links": [
+        "/pages/live-record/index"
+      ]
+    },
+    {
+      "id": "pages-coupon-center-index",
+      "route": "pages/coupon-center/index",
+      "index": 29,
+      "title": "优惠券",
+      "group": "增长与运营",
+      "goal": "优惠券列表、商家合作、会员入口",
+      "sections": [
+        "优惠券列表",
+        "使用规则",
+        "商家/会员入口"
+      ],
+      "links": [
+        "/pages/merchant-partners/index",
+        "/pages/member-center/index",
+        "/pages/wine-points/index"
+      ]
+    },
+    {
+      "id": "pages-settings-index",
+      "route": "pages/settings/index",
+      "index": 30,
+      "title": "设置",
+      "group": "个人中心",
+      "goal": "账号、隐私、通知、清理缓存",
+      "sections": [
+        "账号设置",
+        "隐私设置",
+        "通知",
+        "关于"
+      ],
+      "links": []
+    },
+    {
+      "id": "pages-invite-friends-index",
+      "route": "pages/invite-friends/index",
+      "index": 31,
+      "title": "邀请好友",
+      "group": "社交",
+      "goal": "邀请好友进入聚会或分享页",
+      "sections": [
+        "邀请入口",
+        "分享预览",
+        "奖励说明"
+      ],
+      "links": [
+        "/pages/invite-group/index",
+        "/pages/share-preview/index"
+      ]
+    },
+    {
+      "id": "pages-friend-hub-index",
+      "route": "pages/friend-hub/index",
+      "index": 32,
+      "title": "聚友",
+      "group": "社交",
+      "goal": "聚友列表、邀请好友、关系入口",
+      "sections": [
+        "好友列表",
+        "邀请好友",
+        "互动记录"
+      ],
+      "links": []
+    },
+    {
+      "id": "pages-question-bank-index",
+      "route": "pages/question-bank/index",
+      "index": 33,
+      "title": "题库",
+      "group": "工具与玩法",
+      "goal": "题目/任务库，进入转盘或现场玩法",
+      "sections": [
+        "题目列表",
+        "分类筛选",
+        "开始任务"
+      ],
+      "links": [
+        "/pages/judge-wheel/index?task=${encodeURIComponent(current.text"
+      ]
+    },
+    {
+      "id": "pages-waiting-room-index",
+      "route": "pages/waiting-room/index",
+      "index": 34,
+      "title": "等待房间",
+      "group": "核心入口",
+      "goal": "入局前等待、邀请、了解流程、进入现场记录",
+      "sections": [
+        "房间状态",
+        "成员列表",
+        "邀请入口",
+        "开始记录"
+      ],
+      "links": [
+        "/pages/invite-group/index?sessionId=${encodeURIComponent(this.data.sessionId",
+        "/pages/share-preview/index?sessionId=${encodeURIComponent(this.data.sessionId",
+        "/pages/flow-overview/index",
+        "/pages/moment-editor/index?sessionId=${encodeURIComponent(this.data.sessionId",
+        "/pages/live-record/index?role=${this.data.isJudge"
+      ]
+    },
+    {
+      "id": "pages-logs-logs",
+      "route": "pages/logs/logs",
+      "index": 35,
+      "title": "日志页",
+      "group": "系统状态",
+      "goal": "开发/调试日志页，候选砍掉",
+      "sections": [
+        "日志列表"
+      ],
+      "links": []
+    }
+  ],
+  "groupOrder": [
+    "核心入口",
+    "创建流程",
+    "记录主线",
+    "分享主线",
+    "相册与历史",
+    "个人中心",
+    "工具与玩法",
+    "增长与运营",
+    "社交",
+    "系统说明",
+    "系统状态"
+  ]
+}

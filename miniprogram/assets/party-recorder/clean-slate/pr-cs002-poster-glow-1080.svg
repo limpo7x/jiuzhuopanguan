@@ -1,0 +1,22 @@
+<svg width="1080" height="1920" viewBox="0 0 1080 1920" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1080" height="1920" fill="#090705"/>
+  <rect width="1080" height="1920" fill="url(#posterWarm)"/>
+  <circle cx="540" cy="448" r="430" fill="#FF5A3D" fill-opacity="0.2"/>
+  <circle cx="826" cy="256" r="260" fill="#FFC75A" fill-opacity="0.13"/>
+  <circle cx="206" cy="1180" r="360" fill="#3C8DFF" fill-opacity="0.11"/>
+  <path d="M84 1450C286 1338 582 1336 996 1452" stroke="#FFF4DE" stroke-opacity="0.13" stroke-width="5"/>
+  <path d="M82 1534C326 1396 636 1410 998 1538" stroke="#FF5A3D" stroke-opacity="0.16" stroke-width="4"/>
+  <rect x="48" y="96" width="984" height="1776" rx="64" stroke="#FFF4DE" stroke-opacity="0.1" stroke-width="3"/>
+  <rect width="1080" height="1920" fill="url(#posterEdge)"/>
+  <defs>
+    <radialGradient id="posterWarm" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(540 730) rotate(90) scale(1120 720)">
+      <stop stop-color="#2A1710"/>
+      <stop offset="0.58" stop-color="#1A100B"/>
+      <stop offset="1" stop-color="#090705"/>
+    </radialGradient>
+    <radialGradient id="posterEdge" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(540 920) rotate(90) scale(1120 650)">
+      <stop offset="0.5" stop-color="#090705" stop-opacity="0"/>
+      <stop offset="1" stop-color="#090705" stop-opacity="0.78"/>
+    </radialGradient>
+  </defs>
+</svg>

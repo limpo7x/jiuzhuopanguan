@@ -1,0 +1,8 @@
+<view wx:if="{{visible}}" class="session-return-bar" bindtap="handleTap">
+  <view class="session-return-icon"></view>
+  <view class="session-return-copy">
+    <text class="session-return-title">{{title || '当前聚会'}}</text>
+    <text class="session-return-meta">{{meta || '回到记录页继续拍照'}}</text>
+  </view>
+  <view class="session-return-status">{{status || '进行中'}}</view>
+</view>

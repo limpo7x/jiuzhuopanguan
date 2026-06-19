@@ -1,5 +1,5 @@
 <navigation-bar
-  title="酒桌判官"
+  title="记录/相册"
   back="{{false}}"
   color="#24160f"
   background="rgba(255,253,248,0.96)"
@@ -8,11 +8,18 @@
 
 <view class="judge-page">
   <scroll-view class="judge-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <session-return-bar
+      visible="{{sessionReturn.visible}}"
+      title="{{sessionReturn.title}}"
+      meta="{{sessionReturn.meta}}"
+      status="{{sessionReturn.status}}"
+      bind:open="handleSessionReturnOpen"
+    ></session-return-bar>
+
     <view class="judge-hero">
-      <image wx:if="{{heroImageUrl}}" class="judge-hero-image" src="{{heroImageUrl}}" mode="aspectFill"></image>
       <view class="judge-hero-mask"></view>
       <view class="judge-hero-content">
-        <view class="judge-hero-badge">酒桌主模式</view>
+        <view class="judge-hero-badge">聚会记录</view>
         <text class="judge-hero-title">{{heroTitle}}</text>
         <text class="judge-hero-subtitle">{{heroSubtitle}}</text>
         <view class="judge-hero-meta-row">
@@ -20,7 +27,7 @@
           <view class="judge-hero-chip judge-hero-chip-accent">{{sessionTag}}</view>
         </view>
         <view class="judge-primary" bindtap="handleCreateTap">
-          <text>快速开一局</text>
+          <text>开始记录</text>
           <view class="judge-primary-icon judge-icon-flash"></view>
         </view>
       </view>
@@ -42,7 +49,7 @@
     </view>
 
     <view class="judge-section-head">
-      <text class="judge-section-title">热门模板</text>
+      <text class="judge-section-title">双主线入口</text>
     </view>
 
     <view class="judge-template-list">
@@ -62,7 +69,7 @@
     </view>
 
     <view class="judge-section-head">
-      <text class="judge-section-title">我的酒局</text>
+      <text class="judge-section-title">我的聚会</text>
     </view>
 
     <view wx:for="{{pokeCards}}" wx:key="id" class="judge-poke-card">
@@ -97,13 +104,13 @@
       <view class="judge-tab-icon judge-nav-home"></view>
       <text class="judge-tab-label">首页</text>
     </view>
-    <view class="judge-tab-item" data-tab="tools" bindtap="handleTabTap">
+    <view class="judge-tab-item" data-tab="album" bindtap="handleTabTap">
       <view class="judge-tab-icon judge-nav-tools"></view>
-      <text class="judge-tab-label">工具箱</text>
+      <text class="judge-tab-label">相册</text>
     </view>
     <view class="judge-tab-item judge-tab-active" data-tab="judge" bindtap="handleTabTap">
       <view class="judge-tab-icon judge-nav-judge judge-nav-active"></view>
-      <text class="judge-tab-label">酒桌判官</text>
+      <text class="judge-tab-label">记录</text>
     </view>
     <view class="judge-tab-item" data-tab="me" bindtap="handleTabTap">
       <view class="judge-tab-icon judge-nav-me"></view>

@@ -1,95 +1,77 @@
 <navigation-bar
-  title="分享战报"
+  title="分享图"
   back="{{true}}"
   customBack="{{true}}"
   bind:back="handleBackTap"
-  color="#24160f"
-  background="rgba(255,253,248,0.96)"
+  color="#fff7ee"
+  background="rgba(14,10,8,0.96)"
   ext-class="poster-nav"
 ></navigation-bar>
 
-<view class="poster-page">
+<view class="poster-page poster-flow-015">
   <scroll-view class="poster-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="poster-card">
-      <view class="poster-copy">
-        <view class="poster-tag">{{sessionName}}</view>
-        <text class="poster-headline">{{shareHeadline}}</text>
-        <text class="poster-title">{{posterTitle}}</text>
+    <view class="poster-stage-card poster-share021-hero" data-share-entry-selector="share-flow-015-entry">
+      <view class="poster-stage-glow poster-stage-glow-a"></view>
+      <view class="poster-stage-glow poster-stage-glow-b"></view>
+      <image class="poster-clean-stage-glow" src="/assets/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
+      <view class="poster-brand-row">
+        <view class="poster-brand-mark">相</view>
+        <view class="poster-brand-copy">
+          <text class="poster-brand-name">聚会记录师</text>
+          <text class="poster-brand-meta">分享预览 · 照片和账本</text>
+        </view>
+        <view class="poster-status-pill">{{displayTaskStatus}} · {{displayTaskLayoutMode}}</view>
+      </view>
 
-        <view wx:if="{{featuredRank}}" class="poster-featured-rank">
-          <view class="poster-featured-head">
-            <view class="poster-featured-tag">{{featuredRank.title}}</view>
-            <view class="poster-featured-badge">全场焦点</view>
+      <text class="poster-hero-title">聚会分享预览</text>
+      <image class="poster-share020-underline" src="/assets/party-recorder/share-flow/pr-share020-underline-coral.svg" mode="aspectFit"></image>
+      <text class="poster-hero-subtitle">按时间节点保存这场聚会</text>
+
+      <view class="poster-share021-timeline poster-share021-event-strip">
+        <view wx:if="{{!posterTimelineNodes.length}}" class="poster-timeline-empty">暂无可保存节点，先去记录照片或账本变动。</view>
+        <view wx:for="{{posterTimelineNodes}}" wx:key="id" class="poster-timeline-node poster-timeline-node-{{item.tone}}">
+          <view class="poster-timeline-axis">
+            <text>{{item.time}}</text>
+            <view class="poster-timeline-dot"></view>
           </view>
-          <view class="poster-featured-body">
-            <image wx:if="{{featuredRank.avatarUrl}}" class="poster-featured-avatar" src="{{featuredRank.avatarUrl}}" mode="aspectFill"></image>
-            <view wx:else class="poster-featured-avatar"></view>
-            <view class="poster-featured-copy">
-              <text class="poster-featured-name">{{featuredRank.name}}</text>
-              <text class="poster-featured-value">{{featuredRank.value}}</text>
+          <view class="poster-timeline-card">
+            <image
+              wx:if="{{item.type === 'photo' && item.imageUrl && !item.imageBroken}}"
+              class="poster-timeline-photo"
+              src="{{item.imageUrl}}"
+              mode="aspectFill"
+              data-id="{{item.id}}"
+              bindload="handlePhotoImageLoad"
+              binderror="handlePhotoImageError"
+            ></image>
+            <view class="poster-timeline-copy">
+              <text class="poster-timeline-title">{{item.title}}</text>
+              <text class="poster-timeline-meta">{{item.meta}}</text>
             </view>
           </view>
         </view>
+      </view>
 
-        <view wx:if="{{secondaryRanks.length}}" class="poster-ranks">
-          <view wx:for="{{secondaryRanks}}" wx:key="title" class="poster-rank-card">
-            <view class="poster-rank-tag">{{item.title}}</view>
-            <image wx:if="{{item.avatarUrl}}" class="poster-rank-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
-            <view wx:else class="poster-rank-avatar"></view>
-            <text class="poster-rank-name">{{item.name}}</text>
-            <text class="poster-rank-value">{{item.value}}</text>
-          </view>
+      <view class="poster-share021-action-row poster-action-panel">
+        <view class="poster-action-secondary" bindtap="handleBackTap">返回聚会</view>
+        <view class="poster-primary-action" bindtap="handleSaveTap" data-save-selector="share-flow-015-save-poster">
+          {{savePosterLabel}}
         </view>
-
-        <view wx:if="{{events.length}}" class="poster-events">
-          <view class="poster-events-title">本局精彩事件</view>
-          <text wx:for="{{events}}" wx:key="text" class="poster-event-text">· {{item.text}}</text>
+        <view class="poster-action-secondary" bindtap="handleTaskPrimaryTap" data-share-save-selector="share-flow-015-save">
+          刷新状态
+        </view>
+        <view wx:if="{{saveState === 'failed' || (shareTask && (shareTask.status === 'failed' || shareTask.status === 'expired'))}}" class="poster-action-retry poster-state-card-warn" bindtap="handleTaskPrimaryTap">
+          重新生成
         </view>
       </view>
-    </view>
 
-    <view class="poster-section-head">
-      <text class="poster-section-title">分享到</text>
-    </view>
-
-    <view class="poster-share-grid">
-      <block wx:for="{{shareItems}}" wx:key="id">
-        <button
-          wx:if="{{item.id !== 'timeline'}}"
-          class="poster-share-item poster-share-item-{{item.id}}"
-          open-type="share"
-          data-id="{{item.id}}"
-        >
-          <view class="poster-share-icon {{item.iconClass}}"></view>
-          <text class="poster-share-label">{{item.name}}</text>
-        </button>
-        <view wx:else class="poster-share-item poster-share-item-{{item.id}}" data-id="{{item.id}}" bindtap="handleTimelineTap">
-          <view class="poster-share-icon {{item.iconClass}}"></view>
-          <text class="poster-share-label">{{item.name}}</text>
-        </view>
-      </block>
-    </view>
-
-    <view class="poster-primary {{posterSaved ? 'poster-primary-disabled' : ''}}" bindtap="handleSaveTap">
-      <text>{{savePosterLabel}}</text>
-      <view class="poster-primary-icon"></view>
-    </view>
-
-    <view class="poster-close-row">
-      <view class="poster-primary poster-primary-half" bindtap="handleCreateTap">
-        <text>{{createSessionLabel}}</text>
-        <view class="poster-primary-icon"></view>
-      </view>
-      <view class="poster-primary poster-primary-half poster-primary-finish" bindtap="handleFinishShareTap">
-        <text>{{finishShareLabel}}</text>
-        <view class="poster-primary-icon"></view>
-      </view>
-    </view>
-
-    <view class="poster-notice">
-      <view class="poster-notice-icon"></view>
-      <text>分享图仅保留展示数据，不包含按钮与操作入口</text>
+      <view class="poster-status-line {{saveState === 'failed' ? 'poster-status-line-warn' : ''}}">{{posterStatusLine}}</view>
     </view>
   </scroll-view>
 
+  <canvas
+    canvas-id="sharePosterCanvas"
+    class="poster-hidden-canvas"
+    style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"
+  ></canvas>
 </view>

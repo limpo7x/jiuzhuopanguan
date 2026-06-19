@@ -4,7 +4,6 @@ import { normalizeManagedAssetPath } from '../config/assets'
 import { resolveCachedManagedImagePathQuick } from '../utils/imageCache'
 import { getUserAuthHeaders } from '../utils/social'
 import { getManagedToolsCatalog, isToolVisibleInPlacement, type ManagedToolCatalog } from './operations'
-import type { RecentTool } from '../mock/home'
 
 interface ApiResponse<T> {
   code: number
@@ -34,14 +33,6 @@ interface UserProfileResponse {
   points?: number
 }
 
-interface ToolHistoryResponseItem {
-  category?: string
-  id?: string
-  name?: string
-  route?: string
-  usedAt?: string
-}
-
 const HOME_CACHE_TTL = 45000
 let homePageCache: { expiresAt: number; value: HomePageData } | null = null
 
@@ -63,7 +54,7 @@ const request = <T>(path: string): Promise<T> =>
     })
   })
 
-const buildToolRoute = (id: string, name: string) => `/pages/tool-detail/index?id=${encodeURIComponent(id)}&name=${encodeURIComponent(name)}`
+const buildToolRoute = (_id: string, _name: string) => '/pages/privacy-state/index?type=feature'
 
 const mapCatalogToolToQuickTool = (tool: ManagedToolCatalog['tools'][number]) => ({
   id: tool.id,
@@ -84,57 +75,15 @@ const mapQuickTools = (quickTools: HomeConfigResponse['quickTools'] | undefined,
   return selectedTools.slice(0, 4).map(mapCatalogToolToQuickTool)
 }
 
-const formatUsedAt = (value?: string) => {
-  if (!value) {
-    return ''
-  }
-  const timestamp = Date.parse(value)
-  if (!Number.isFinite(timestamp)) {
-    return value
-  }
-  const diff = Date.now() - timestamp
-  if (diff < 60 * 1000) return 'just now'
-  if (diff < 60 * 60 * 1000) return `${Math.max(1, Math.floor(diff / 60000))} min ago`
-  if (diff < 24 * 60 * 60 * 1000) return `${Math.max(1, Math.floor(diff / 3600000))} h ago`
-  return `${Math.max(1, Math.floor(diff / 86400000))} d ago`
-}
-
-const mapRecentTools = (items: ToolHistoryResponseItem[] | undefined, catalog: ManagedToolCatalog) => {
-  const tools = catalog.tools
-  const byId = new Map(tools.map((tool) => [tool.id, tool]))
-  const result: RecentTool[] = []
-  ;(items || []).forEach((item) => {
-    if (result.length >= 3) {
-      return
-    }
-    const id = String(item.id || '').trim()
-    const tool = byId.get(id)
-    if (!tool) {
-      return
-    }
-    result.push({
-      id: tool.id,
-      name: tool.name,
-      usedAt: formatUsedAt(item.usedAt),
-      imageUrl: tool.imageUrl,
-      badgeText: catalog.categories.find((category) => category.id === tool.categoryId)?.name || '',
-      badgeClass: '',
-      route: buildToolRoute(tool.id, tool.name),
-    })
-  })
-  return result
-}
-
 export const getHomePageData = async (): Promise<HomePageData> => {
   if (homePageCache && homePageCache.expiresAt > Date.now()) {
     return homePageCache.value
   }
 
-  const [homeConfig, compliance, profile, toolHistory, toolsCatalog] = await Promise.all([
+  const [homeConfig, compliance, profile, toolsCatalog] = await Promise.all([
     request<HomeConfigResponse>('/config/home'),
     request<ComplianceResponse>('/config/compliance'),
     request<UserProfileResponse>('/user/profile'),
-    request<ToolHistoryResponseItem[]>('/tools/history'),
     getManagedToolsCatalog(),
   ])
 
@@ -148,7 +97,7 @@ export const getHomePageData = async (): Promise<HomePageData> => {
       shareTitle: homeConfig.hero?.title || '',
     },
     quickTools: mapQuickTools(homeConfig.quickTools, toolsCatalog),
-    recentTools: mapRecentTools(toolHistory, toolsCatalog),
+    recentTools: [],
     complianceCopy: compliance.copy || '',
   }
 

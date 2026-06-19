@@ -1,7 +1,12 @@
-﻿import { getMembershipCatalog, getUserCommerceState } from '../../services/content'
-import { getManagedJudgeStats } from '../../services/operations'
+import { getMembershipCatalog } from '../../services/content'
+import {
+  getManagedJudgeStats,
+  getManagedSessionMomentSummaries,
+  retryManagedShareImageTask,
+  type ManagedSessionMomentSummary,
+} from '../../services/operations'
 import { showFirstLoginBonusModal } from '../../utils/firstLoginBonus'
-import { getCurrentDisplayProfile, getUserAuthSession, getWineFriends, loginWithWechatProfile, type SocialProfile } from '../../utils/social'
+import { getCurrentDisplayProfile, getUserAuthSession, loginWithWechatProfile, type SocialProfile } from '../../utils/social'
 
 interface StatItem {
   label: string
@@ -12,6 +17,23 @@ interface FeatureItem {
   iconClass: string
   id: string
   name: string
+}
+
+interface PendingAlbumItem {
+  briefId: string
+  actionLabel: string
+  canResume: boolean
+  endedAt: string
+  isEnded: boolean
+  meta: string
+  pendingMediaCount: number
+  sessionId: string
+  shareImageStatus: string
+  shareImageTaskId: string
+  state: string
+  stateLabel: string
+  status: string
+  title: string
 }
 
 interface NicknameInputDetail {
@@ -33,7 +55,17 @@ interface MePageState {
   membershipEnabled: boolean
   features: FeatureItem[]
   loggedIn: boolean
+  momentSummaries: ManagedSessionMomentSummary[]
+  pendingAlbumTotal: number
+  visiblePendingAlbums: PendingAlbumItem[]
   wineStats: StatItem[]
+}
+
+interface MomentSummaryEventDetail {
+  briefId?: string
+  imageUrl?: string
+  sessionId?: string
+  shareImageTaskId?: string
 }
 
 interface MePageMethods {
@@ -46,6 +78,12 @@ interface MePageMethods {
   handleLoginSubmit: (event: WechatMiniprogram.CustomEvent<{ value?: Record<string, string> }>) => Promise<void>
   handleLoginTextTap: () => void
   handleMemberTap: () => void
+  handleMomentBriefTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => void
+  handleMomentPreviewTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => void
+  handleMomentResumeTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => void
+  handleMomentRetryTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => Promise<void>
+  handlePendingAlbumAllTap: () => void
+  handlePendingAlbumTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
   handleWineStatTap: (event: WechatMiniprogram.BaseEvent) => void
   loadSocialData: () => Promise<void>
@@ -57,7 +95,7 @@ interface MePageMethods {
 const TAB_ROUTES: Record<string, string> = {
   home: '/pages/index/index',
   tools: '/pages/tools/index',
-  judge: '/pages/judge/index',
+  judge: '/pages/ledger/index',
   me: '/pages/me/index',
 }
 
@@ -73,32 +111,107 @@ const DEFAULT_PROFILE: SocialProfile = {
 }
 
 const DEFAULT_ASSET_STATS: StatItem[] = [
-  { value: '0', label: '我的积分' },
-  { value: '0', label: '我的权益' },
-  { value: '0', label: '已解锁模板' },
+  { value: '0', label: '回忆数' },
+  { value: '0', label: '分享图' },
 ]
 
 const DEFAULT_WINE_STATS: StatItem[] = [
-  { value: '0', label: '我的酒局' },
-  { value: '0', label: '参与场次' },
-  { value: '0', label: '待分享战报' },
-  { value: '0', label: '我的聚友' },
+  { value: '0', label: '我创建的' },
+  { value: '0', label: '我参与的' },
+  { value: '0', label: '已结束' },
 ]
 
 const DEFAULT_FEATURES: FeatureItem[] = [
-  { id: 'history', name: '使用记录', iconClass: 'me-icon-history' },
-  { id: 'coupons', name: '我的权益', iconClass: 'me-icon-ticket' },
-  { id: 'points', name: '积分商城', iconClass: 'me-icon-shield' },
-  { id: 'merchant', name: '商户优惠', iconClass: 'me-icon-store' },
-  { id: 'invite', name: '邀请好友', iconClass: 'me-icon-user' },
+  { id: 'ledger', name: '聚会账本', iconClass: 'me-icon-history' },
+  { id: 'tools', name: '工具箱', iconClass: 'me-icon-store' },
+  { id: 'friends', name: '好友管理', iconClass: 'me-icon-user' },
+  { id: 'settings', name: '资料设置', iconClass: 'me-icon-shield' },
 ]
 
 const normalizeName = (value?: string) => {
   const text = String(value || '').trim()
-  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text) || text === '未登录' ? '' : text
+  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text) || /^(PR|QA|DEV|TEST)\s+Seed\b/i.test(text) || text === '未登录' ? '' : text
 }
 
 const normalizeAvatar = (value?: string) => String(value || '').trim()
+const internalAlbumTitlePattern = /^(IT|PR|QA|DEV|TEST)[-_ ][A-Z0-9_-]+(?:\s+(opening|highlight|drinking|private|closing))?$/i
+const nodeTypeTitleMap: Record<string, string> = {
+  closing: '收尾照片',
+  drinking: '聚会账本',
+  highlight: '聚会照片',
+  opening: '开场照片',
+  private: '私密记录',
+}
+
+const formatSummaryDate = (value?: string) => {
+  const date = value ? new Date(value) : null
+  if (!date || Number.isNaN(date.getTime())) return ''
+  return `${date.getMonth() + 1}月${date.getDate()}日 ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+const normalizePendingAlbumTitle = (title?: string, sessionName?: string, index = 0) => {
+  const rawTitle = String(title || '').trim()
+  const rawSessionName = String(sessionName || '').trim()
+  const match = rawTitle.match(internalAlbumTitlePattern)
+  if (match) {
+    const nodeType = String(match[2] || '').toLowerCase()
+    return nodeTypeTitleMap[nodeType] || `待分享回忆 ${index + 1}`
+  }
+  if (rawTitle) return rawTitle
+  if (rawSessionName && !internalAlbumTitlePattern.test(rawSessionName)) return rawSessionName
+  return `待分享回忆 ${index + 1}`
+}
+
+const isEndedSessionSummary = (item: ManagedSessionMomentSummary) => {
+  const stateText = `${item.state || ''} ${item.status || ''} ${item.stateText || ''}`.trim()
+  return Boolean(item.endedAt) || /已结束|结束|已完成|ended|finished|closed/i.test(stateText)
+}
+
+const hasGeneratedShareImage = (item: ManagedSessionMomentSummary) => Boolean(item.readyShareImageUrl || item.shareImageUrl)
+
+const isPendingShareMemory = (item: ManagedSessionMomentSummary) => !isEndedSessionSummary(item) && !hasGeneratedShareImage(item)
+
+const buildSummaryStateLabel = (item: ManagedSessionMomentSummary, isEnded: boolean) => {
+  if (isEnded) return '已结束'
+  return String(item.stateText || item.status || item.state || '').trim()
+}
+
+const buildPendingAlbumItems = (items: ManagedSessionMomentSummary[]): PendingAlbumItem[] =>
+  items.filter(isPendingShareMemory).slice(0, 5).map((item, index) => {
+    const pendingMediaCount = Number(item.pendingMediaCount) || 0
+    const canResumeMomentIds = Array.isArray(item.canResumeMomentIds) ? item.canResumeMomentIds.filter(Boolean) : []
+    const shareImageStatus = String(item.shareImageStatus || '')
+    const isEnded = isEndedSessionSummary(item)
+    const stateLabel = buildSummaryStateLabel(item, isEnded)
+    const canResume = !isEnded && (item.canResume || pendingMediaCount > 0 || canResumeMomentIds.length > 0)
+    const actionLabel = isEnded ? '查看' : canResume ? '进入本局' : '查看'
+    const statusText =
+      isEnded
+        ? item.endedAt
+          ? `结束于 ${formatSummaryDate(item.endedAt)}`
+          : '聚会已结束'
+        : pendingMediaCount > 0
+        ? `待补 ${pendingMediaCount} 张照片`
+        : canResumeMomentIds.length
+          ? '可继续补图'
+          : '还没生成分享图'
+    return {
+      actionLabel,
+      briefId: item.briefId || '',
+      canResume,
+      endedAt: item.endedAt || '',
+      isEnded,
+      meta: statusText,
+      pendingMediaCount,
+      sessionId: item.sessionId || '',
+      shareImageStatus,
+      shareImageTaskId: item.shareImageTaskId || '',
+      state: item.state || '',
+      stateLabel,
+      status: item.status || '',
+      title: normalizePendingAlbumTitle(item.title, item.sessionName, index),
+    }
+  })
 
 const persistAvatar = (avatarUrl: string) =>
   new Promise<string>((resolve) => {
@@ -118,6 +231,9 @@ Page<MePageState, MePageMethods>({
     membershipEnabled: true,
     features: DEFAULT_FEATURES,
     loggedIn: false,
+    momentSummaries: [],
+    pendingAlbumTotal: 0,
+    visiblePendingAlbums: [],
     wineStats: DEFAULT_WINE_STATS,
   },
 
@@ -130,21 +246,22 @@ Page<MePageState, MePageMethods>({
   },
 
   async loadSocialData() {
-    const [authSession, currentProfile, commerceState, judgeStats, wineFriends, membershipCatalog] = await Promise.all([
+    const [authSession, currentProfile, judgeStats, membershipCatalog, momentSummaries] = await Promise.all([
       getUserAuthSession().catch(() => ({ loggedIn: false, profile: null })),
       getCurrentDisplayProfile().catch(() => DEFAULT_PROFILE),
-      getUserCommerceState().catch(() => null),
       getManagedJudgeStats().catch(() => null),
-      getWineFriends().catch(() => []),
       getMembershipCatalog().catch(() => null),
+      getManagedSessionMomentSummaries().catch(() => []),
     ])
     const displayProfile = authSession.profile || currentProfile || DEFAULT_PROFILE
     const loggedIn = Boolean(authSession.loggedIn && authSession.profile?.wechatOpenId)
+    const pendingShareSummaries = momentSummaries.filter(isPendingShareMemory)
+    const generatedShareSummaries = momentSummaries.filter(hasGeneratedShareImage)
+    const endedSummaries = momentSummaries.filter(isEndedSessionSummary)
     this.setData({
       assetStats: [
-        { value: String(commerceState?.points ?? 0), label: '我的积分' },
-        { value: String(commerceState?.rewardRedemptions?.length ?? 0), label: '我的权益' },
-        { value: String(commerceState?.unlockedTemplateIds?.length ?? 0), label: '已解锁模板' },
+        { value: String(momentSummaries.length), label: '回忆数' },
+        { value: String(generatedShareSummaries.length), label: '分享图' },
       ],
       authAvatarUrl: loggedIn ? '' : this.data.authAvatarUrl || normalizeAvatar(displayProfile.avatarUrl),
       authName: loggedIn ? '' : this.data.authName || normalizeName(displayProfile.name),
@@ -152,11 +269,13 @@ Page<MePageState, MePageMethods>({
       currentProfile: { ...displayProfile, name: normalizeName(displayProfile.name), avatarUrl: normalizeAvatar(displayProfile.avatarUrl) },
       loggedIn,
       membershipEnabled: Boolean(membershipCatalog ? membershipCatalog.membershipEnabled : true),
+      momentSummaries,
+      pendingAlbumTotal: pendingShareSummaries.length,
+      visiblePendingAlbums: buildPendingAlbumItems(momentSummaries),
       wineStats: [
-        { value: String(judgeStats?.hostedCount ?? 0), label: '我的酒局' },
-        { value: String(judgeStats?.joinedCount ?? 0), label: '参与场次' },
-        { value: String(judgeStats?.unsharedReportCount ?? 0), label: '待分享战报' },
-        { value: String(wineFriends.length), label: '我的聚友' },
+        { value: String(judgeStats?.hostedCount ?? 0), label: '我创建的' },
+        { value: String(judgeStats?.joinedCount ?? 0), label: '我参与的' },
+        { value: String(endedSummaries.length), label: '已结束' },
       ],
     })
   },
@@ -232,28 +351,101 @@ Page<MePageState, MePageMethods>({
       wx.showToast({ title: '会员功能暂未开放', icon: 'none' })
       return
     }
-    this.openPage('/pages/member-center/index')
+    this.openPage('/pages/privacy-state/index?type=feature')
   },
 
   handleAssetTap(event) {
     const { label } = event.currentTarget.dataset as { label: string }
     const routes: Record<string, string> = {
-      我的积分: '/pages/wine-points/index?tab=tasks',
-      我的权益: '/pages/coupon-center/index',
-      已解锁模板: '/pages/premium-templates/index',
+      回忆数: '/pages/album/index?mode=records',
+      相册数: '/pages/album/index?mode=records',
+      分享图: '/pages/album/index?mode=shares',
     }
     const target = routes[label]
-    if (target) this.openPage(target)
+    if (target) {
+      this.openPage(target)
+      return
+    }
+    this.showPreviewToast('从下方待分享回忆选择具体聚会查看')
+  },
+
+  handleMomentBriefTap(event) {
+    const { briefId, sessionId } = event.detail
+    if (briefId) {
+      this.openPage(`/pages/session-brief/index?briefId=${encodeURIComponent(briefId)}`)
+      return
+    }
+    if (sessionId) {
+      this.openPage(`/pages/session-brief/index?sessionId=${encodeURIComponent(sessionId)}`)
+      return
+    }
+    this.showPreviewToast('缺少简报信息')
+  },
+
+  handleMomentPreviewTap(event) {
+    const imageUrl = event.detail.imageUrl || ''
+    if (!imageUrl) {
+      this.showPreviewToast('分享图还未生成')
+      return
+    }
+    wx.previewImage({
+      current: imageUrl,
+      urls: [imageUrl],
+    })
+  },
+
+  handleMomentResumeTap(event) {
+    const { briefId, sessionId } = event.detail
+    if (briefId) {
+      this.openPage(`/pages/session-brief/index?briefId=${encodeURIComponent(briefId)}`)
+      return
+    }
+    if (sessionId) {
+      this.openPage(`/pages/session-brief/index?sessionId=${encodeURIComponent(sessionId)}`)
+      return
+    }
+    this.showPreviewToast('缺少可补图聚会')
+  },
+
+  async handleMomentRetryTap(event) {
+    const taskId = event.detail.shareImageTaskId || ''
+    if (!taskId) {
+      this.showPreviewToast('未找到分享图任务')
+      return
+    }
+
+    wx.showLoading({ title: '重试中', mask: true })
+    try {
+      await retryManagedShareImageTask(taskId)
+      await this.loadSocialData()
+      this.showPreviewToast('已重新排队')
+    } catch (error) {
+      this.showPreviewToast(error instanceof Error ? error.message : '重试失败')
+    } finally {
+      wx.hideLoading()
+    }
+  },
+
+  handlePendingAlbumAllTap() {
+    this.openPage('/pages/album/index?mode=unshared')
+  },
+
+  handlePendingAlbumTap(event) {
+    const { sessionId } = event.currentTarget.dataset as { sessionId?: string }
+    if (sessionId) {
+      this.openPage(`/pages/live-record/index?sessionId=${encodeURIComponent(sessionId)}`)
+      return
+    }
+    this.showPreviewToast('缺少回忆信息')
   },
 
   handleFeatureTap(event) {
     const { name } = event.currentTarget.dataset as { name: string }
     const routes: Record<string, string> = {
-      使用记录: '/pages/usage-history/index',
-      我的权益: '/pages/coupon-center/index',
-      积分商城: '/pages/wine-points/index?tab=mall',
-      商户优惠: '/pages/merchant-partners/index',
-      邀请好友: '/pages/invite-friends/index',
+      聚会账本: '/pages/ledger/index',
+      工具箱: '/pages/tools/index',
+      好友管理: '/pages/friend-hub/index',
+      资料设置: '/pages/settings/index',
     }
     const target = routes[name]
     if (target) {
@@ -273,9 +465,9 @@ Page<MePageState, MePageMethods>({
   handleWineStatTap(event) {
     const { label } = event.currentTarget.dataset as { label: string }
     const routes: Record<string, string> = {
-      我的酒局: '/pages/wine-history/index?mode=host',
-      参与场次: '/pages/wine-history/index?mode=joined',
-      待分享战报: '/pages/wine-history/index?mode=unshared',
+      我创建的: '/pages/ledger/index',
+      我参与的: '/pages/friend-hub/index',
+      已结束: '/pages/album/index?mode=ended',
       我的聚友: '/pages/friend-hub/index',
     }
     const target = routes[label]

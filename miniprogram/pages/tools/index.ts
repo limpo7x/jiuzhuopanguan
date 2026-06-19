@@ -1,5 +1,8 @@
 ﻿import {
+  getToolCategoryCards,
   resolveToolId,
+  TOOL_CATEGORIES,
+  TOOL_LIST,
   type ToolCategoryCard,
   type ToolDescriptor,
 } from '../../utils/toolkit'
@@ -41,11 +44,18 @@ interface ToolsPageMethods {
 const TAB_ROUTES: Record<string, string> = {
   home: '/pages/index/index',
   tools: '/pages/tools/index',
-  judge: '/pages/judge/index',
+  judge: '/pages/ledger/index',
   me: '/pages/me/index',
 }
 
 const normalizeKeyword = (value: string) => value.trim().toLowerCase()
+
+const buildPageFallbackCatalog = () => ({
+  categories: TOOL_CATEGORIES,
+  categoryCards: getToolCategoryCards(),
+  popularTools: TOOL_LIST.filter((tool) => isToolVisibleInPlacement(tool, 'tools')).slice(0, 4),
+  tools: TOOL_LIST,
+})
 
 Page<ToolsPageState, ToolsPageMethods>({
   data: {
@@ -74,21 +84,26 @@ Page<ToolsPageState, ToolsPageMethods>({
 
   async loadCatalog() {
     const catalog = await getManagedToolsCatalog()
+    const fallbackCatalog = catalog.tools.length ? null : buildPageFallbackCatalog()
+    const categories = fallbackCatalog?.categories || catalog.categories
+    const categoryCards = fallbackCatalog?.categoryCards || catalog.categoryCards
+    const popularTools = fallbackCatalog?.popularTools || catalog.popularTools
+    const tools = fallbackCatalog?.tools || catalog.tools
     this.setData(
       {
-        allCategoryCards: catalog.categoryCards,
-        allPopularTools: catalog.popularTools,
-        allTools: catalog.tools,
-        categories: catalog.categories.map((item) => ({
+        allCategoryCards: categoryCards,
+        allPopularTools: popularTools,
+        allTools: tools,
+        categories: categories.map((item) => ({
           id: item.id,
           name: item.name,
           active: item.id === 'all',
         })),
-        categoryCards: catalog.categoryCards,
+        categoryCards,
         heroImageUrl: catalog.hero.imageUrl,
         heroSubtitle: catalog.hero.subtitle,
         heroTitle: catalog.hero.title,
-        popularTools: catalog.popularTools,
+        popularTools,
       },
       () => {
         this.applyFilters()
@@ -114,6 +129,10 @@ Page<ToolsPageState, ToolsPageMethods>({
       return matchCategory && matchesKeyword(`${tool.name} ${tool.meta}`)
     })
 
+    const collapsedCards = keyword ? visibleCards : visibleCards.slice(0, 3)
+    const collapsedPopularTools = keyword ? visiblePopularTools : visiblePopularTools.slice(0, 4)
+    const collapsedFilteredTools = keyword || activeCategory !== 'all' ? filteredTools.slice(0, 6) : filteredTools.slice(0, 5)
+
     this.setData({
       activeCategoryName,
       categories: sourceCategories.map((item) => ({
@@ -121,9 +140,9 @@ Page<ToolsPageState, ToolsPageMethods>({
         name: item.name,
         active: item.id === activeCategory,
       })),
-      categoryCards: visibleCards,
-      filteredTools,
-      popularTools: visiblePopularTools,
+      categoryCards: collapsedCards,
+      filteredTools: collapsedFilteredTools,
+      popularTools: collapsedPopularTools,
     })
   },
 

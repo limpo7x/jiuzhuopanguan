@@ -1,112 +1,89 @@
 <navigation-bar
-  title="创建酒局"
+  title="创建聚会"
   back="{{true}}"
-  color="#24160f"
-  background="rgba(255,253,248,0.96)"
+  color="#111827"
+  background="rgba(255,255,252,0.96)"
   ext-class="create-nav"
 ></navigation-bar>
 
-<view class="create-page">
-  <scroll-view class="create-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="create-progress">
-      <view class="create-progress-step create-progress-step-active">
-        <text class="create-progress-dot">1</text>
-        <text>创建酒局</text>
-      </view>
-      <view class="create-progress-step">
-        <text class="create-progress-dot">2</text>
-        <text>玩法设置</text>
-      </view>
-      <view class="create-progress-step">
-        <text class="create-progress-dot">3</text>
-        <text>邀请开局</text>
-      </view>
+<view class="create-page create-redesign">
+  <scroll-view class="create-scroll create-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="create-step-line">
+      <view class="create-step-pill create-step-pill-active">1 创建</view>
+      <view class="create-step-pill">2 邀请</view>
+      <view class="create-step-pill">3 拍照</view>
     </view>
 
-    <view class="create-card create-form-card">
-      <view class="create-field">
-        <text class="create-label">酒局名称</text>
+    <view class="create-hero">
+      <text class="create-title">创建聚会</text>
+      <text class="create-subtitle">默认生成房间和邀请方式，马上拍第一张照片。</text>
+      <view class="create-confetti">✦</view>
+    </view>
+
+    <view class="create-form">
+      <view class="create-input-row">
+        <text class="create-input-icon">✎</text>
         <input
           class="create-input"
           value="{{sessionName}}"
-          placeholder="请输入酒局名称"
+          placeholder="今晚的聚会"
           placeholder-class="create-input-placeholder"
           bindinput="handleSessionNameInput"
         />
       </view>
 
-      <view class="create-pill-row">
+      <view class="create-name-preset-row">
         <view
           wx:for="{{sessionNamePresets}}"
           wx:key="name"
-          class="create-pill {{item.active ? 'create-pill-active' : ''}}"
+          class="create-name-preset-chip {{item.active ? 'create-name-preset-chip-active' : ''}}"
           data-name="{{item.name}}"
           bindtap="handlePresetTap"
         >{{item.name}}</view>
       </view>
 
-      <view class="create-field">
-        <text class="create-label">选择人数</text>
-        <view class="create-row-between">
-          <view class="create-stepper">
-            <view class="create-stepper-btn" data-action="minus" bindtap="handlePlayerCountTap">-</view>
-            <text class="create-stepper-value">{{playerCount}}人</text>
-            <view class="create-stepper-btn" data-action="plus" bindtap="handlePlayerCountTap">+</view>
-          </view>
-          <text class="create-tiny">支持 2-12 人</text>
-        </view>
+      <view class="create-input-row">
+        <text class="create-input-icon">◷</text>
+        <text class="create-input-static">{{currentTimeText}}</text>
+        <text class="create-input-arrow">›</text>
       </view>
     </view>
 
-    <view class="create-section-head">
-      <view class="create-section-copy">
-        <text class="create-section-title">选择玩法模板</text>
-        <text class="create-section-subtitle">先选氛围，后面再细调规则</text>
+    <view class="create-advanced-row" bindtap="handleMoreTemplatesTap">
+      <text>高级设置</text>
+      <text>人数 {{playerCount}} 人 · 可直接调整</text>
+      <text class="create-advanced-arrow">⌄</text>
+    </view>
+
+    <view class="create-player-count-panel">
+      <view class="create-player-count-copy">
+        <text class="create-player-count-title">今晚聚会人数</text>
+        <text class="create-player-count-desc">2 到 12 人，创建后用于邀请名额和账本成员数。</text>
       </view>
-      <view class="create-section-link" bindtap="handleMoreTemplatesTap">更多模板</view>
-    </view>
-
-    <view wx:if="{{templatesLoading && !templates.length}}" class="create-template-skeletons">
-      <view class="create-template-skeleton"></view>
-      <view class="create-template-skeleton"></view>
-    </view>
-
-    <scroll-view wx:elif="{{templates.length}}" class="create-template-scroll" scroll-x enhanced show-scrollbar="{{false}}">
-      <view class="create-template-row">
+      <view class="create-stepper create-player-count-stepper">
         <view
-          wx:for="{{templates}}"
-          wx:key="id"
-          class="create-template-card {{item.active ? 'create-template-card-active' : ''}}"
-          data-id="{{item.id}}"
-          bindtap="handleTemplateTap"
-        >
-          <image wx:if="{{item.imageUrl}}" class="create-template-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
-          <view wx:else class="create-template-image"></view>
-          <view class="create-template-body">
-            <view class="create-template-topline">
-              <text class="create-template-name">{{item.name}}</text>
-              <text class="create-template-status">{{item.active ? '已选' : '免费'}}</text>
-            </view>
-            <text class="create-template-meta">{{item.meta}}</text>
-          </view>
-        </view>
+          class="create-stepper-btn create-player-count-minus {{playerCount <= 2 ? 'create-stepper-btn-disabled' : ''}}"
+          data-action="minus"
+          bindtap="handlePlayerCountTap"
+        >−</view>
+        <text class="create-stepper-value create-player-count-value">{{playerCount}} 人</text>
+        <view
+          class="create-stepper-btn create-player-count-plus {{playerCount >= 12 ? 'create-stepper-btn-disabled' : ''}}"
+          data-action="plus"
+          bindtap="handlePlayerCountTap"
+        >＋</view>
       </view>
-    </scroll-view>
-
-    <view wx:else class="create-template-empty">
-      <text>模板暂时加载失败，请稍后重试</text>
     </view>
 
     <view class="create-notice">
       <view class="create-notice-icon create-icon-shield"></view>
-      <text>理性饮酒，适量饮酒，未成年人禁止饮酒</text>
+      <text>默认仅本聚会成员可见，公开分享需单独授权。</text>
     </view>
   </scroll-view>
 
   <view class="create-bottom-bar">
-    <view class="create-primary" bindtap="handleNextTap">
-      <text>下一步 设置玩法</text>
-      <view class="create-primary-icon create-icon-arrow"></view>
+    <view class="create-primary party-cta party-cta-primary" bindtap="handleNextTap">
+      <text>创建并邀请</text>
     </view>
   </view>
 </view>

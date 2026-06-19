@@ -51,6 +51,14 @@
       <text wx:for="{{events}}" wx:key="text" class="report-event-text">· {{item.text}}</text>
     </view>
 
+    <view wx:if="{{sessionId}}" class="report-brief-entry" bindtap="handleBriefTap">
+      <view class="report-brief-copy">
+        <text class="report-brief-title">查看时间线简报</text>
+        <text class="report-brief-meta">按开场、过程和收尾整理本局精彩瞬间</text>
+      </view>
+      <view class="report-brief-action">查看</view>
+    </view>
+
     <view class="report-action-row">
       <view class="report-ghost" bindtap="handleRestartTap">再开一局</view>
       <view class="report-primary" bindtap="handleShareTap">分享战报</view>

@@ -68,6 +68,14 @@
 - `admin_operation_logs`
 - `analytics_events`
 - `assets`
+- `moment_records`
+- `session_events`
+- `session_briefs`
+- `share_image_tasks`
+- `moment_reports`
+- `moment_nominations`
+- `ranking_reward_rules`
+- `ranking_reward_payouts`
 
 ## 4. 升级阶段
 
@@ -82,6 +90,11 @@
 - 新增 `backend/data/normalized-db.js`，负责建表和同步。
 - 新增 `backend/scripts/sync-normalized-db.js`，作为人工迁移命令。
 - 新增 `backend/package.json` 命令：`npm run db:sync-normalized`。
+
+补充状态：
+
+- 2026-06-15 已为精彩瞬间迭代补充 moments 相关 DDL 草案，但本轮线上验证只覆盖 `app_store` 和 HTTP API，不等同于 moments 实体表已完成验收。
+- moments 实体表执行、同步、双写和查询切换必须由 DBA/运维另行复核。
 
 执行命令：
 

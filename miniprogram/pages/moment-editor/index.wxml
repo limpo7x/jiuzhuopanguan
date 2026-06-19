@@ -1,0 +1,142 @@
+<navigation-bar
+  title="{{title}}"
+  back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
+  color="#111827"
+  background="rgba(255,255,252,0.96)"
+  ext-class="moment-editor-nav"
+></navigation-bar>
+
+<view class="moment-editor-page moment-redesign">
+  <scroll-view class="moment-editor-scroll moment-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="moment-editor-hero">
+      <text class="moment-editor-title">拍照/上传</text>
+      <text class="moment-editor-subtitle">准备记录第一张照片</text>
+    </view>
+
+    <view class="moment-camera-stage">
+      <image
+        class="moment-editor-guide-sticker"
+        src="{{uploadError ? '/assets/party-recorder/party-recorder-upload-failed-retry-sticker.png' : (uploading ? '/assets/party-recorder/party-recorder-uploading-sticker.png' : '/assets/party-recorder/party-recorder-photo-guide-sticker.png')}}"
+        mode="aspectFit"
+      ></image>
+      <view wx:if="{{draftImageFilePath || imageUrl}}" class="moment-editor-image-wrap" bindtap="handleChooseImage">
+        <image class="moment-editor-image" src="{{draftImageFilePath || imageUrl}}" mode="aspectFill"></image>
+        <text class="moment-editor-image-action">{{uploading ? '上传中...' : '更换图片'}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{!draftImageFilePath && !imageUrl}}" class="moment-photo-actions">
+      <view class="moment-photo-primary party-cta party-cta-secondary" bindtap="handleChooseImage">
+        <text class="moment-photo-icon">▣</text>
+        <text>{{uploading ? '上传中...' : (uploadError ? '重试选择照片' : '拍照')}}</text>
+      </view>
+      <view class="moment-photo-secondary party-cta party-cta-tertiary" bindtap="handleChooseImage">
+        <text class="moment-photo-icon">▧</text>
+        <text>从相册选择</text>
+      </view>
+    </view>
+
+    <view wx:if="{{uploadError}}" class="moment-editor-upload-failed">
+      <text class="moment-editor-upload-error">{{uploadError}}</text>
+      <text class="moment-editor-upload-draft">已保留文字、可见范围和授权选择。</text>
+      <view class="moment-editor-upload-actions">
+        <view class="moment-editor-upload-retry" bindtap="handleRetryUploadTap">重试上传</view>
+        <view class="moment-editor-upload-return" bindtap="handleReturnInviteTap">返回邀请页</view>
+      </view>
+    </view>
+
+    <view class="moment-ready-note">
+      <text class="moment-ready-dot">✓</text>
+      <text>默认仅本聚会成员可见</text>
+    </view>
+
+    <view class="moment-editor-section moment-caption-section">
+      <text class="moment-editor-section-title">一句话说明</text>
+      <textarea
+        class="moment-editor-textarea"
+        value="{{caption}}"
+        maxlength="80"
+        placeholder="例如：今晚第一张合影，大家都笑得很开心"
+        bindinput="handleCaptionInput"
+      ></textarea>
+      <view class="moment-caption-presets">
+        <view
+          wx:for="{{captionPresets}}"
+          wx:key="text"
+          class="moment-caption-preset"
+          data-text="{{item.text}}"
+          bindtap="handleCaptionPresetTap"
+        >{{item.text}}</view>
+      </view>
+      <text class="moment-editor-counter">{{caption.length}} / 80</text>
+    </view>
+
+    <view class="moment-editor-section moment-privacy-section">
+      <view class="moment-editor-section-head">
+        <text class="moment-editor-section-title">可见范围</text>
+        <text class="moment-editor-section-meta">选择谁能看见</text>
+      </view>
+      <view class="moment-editor-visibility">
+        <view
+          wx:for="{{visibilityOptions}}"
+          wx:key="value"
+          class="moment-editor-visibility-item {{item.active ? 'moment-editor-visibility-active' : ''}}"
+          data-value="{{item.value}}"
+          bindtap="handleVisibilityTap"
+        >{{item.label}}</view>
+      </view>
+      <view class="moment-editor-section-head moment-editor-consent-head">
+        <text class="moment-editor-section-title">授权用途</text>
+        <text class="moment-editor-section-meta">默认 4 项全选</text>
+      </view>
+      <view class="moment-editor-consents">
+        <view
+          wx:for="{{authorizationOptions}}"
+          wx:key="key"
+          class="moment-editor-consent"
+          data-key="{{item.key}}"
+          bindtap="handleConsentTap"
+        >
+          <view class="moment-editor-check {{item.checked ? 'moment-editor-check-active' : ''}}">{{item.checked ? '✓' : ''}}</view>
+          <view class="moment-editor-consent-copy">
+            <text class="moment-editor-consent-title">{{item.label}}</text>
+            <text class="moment-editor-consent-desc">{{item.desc}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{showVisibleMemberPicker}}" class="moment-editor-section moment-members-section">
+      <view class="moment-editor-section-head">
+        <text class="moment-editor-section-title">可见成员</text>
+        <text class="moment-editor-section-meta">已选 {{selectedVisibleProfileIds.length}} 人</text>
+      </view>
+      <view wx:if="{{memberOptions.length}}" class="moment-editor-members">
+        <view
+          wx:for="{{memberOptions}}"
+          wx:key="profileId"
+          class="moment-editor-member {{item.active ? 'moment-editor-member-active' : ''}}"
+          data-profile-id="{{item.profileId}}"
+          bindtap="handleMemberTap"
+        >
+          <image wx:if="{{item.avatarUrl}}" class="moment-editor-member-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+          <view wx:else class="moment-editor-member-avatar moment-editor-member-avatar-empty">{{item.initial}}</view>
+          <view class="moment-editor-member-copy">
+            <text class="moment-editor-member-name">{{item.name}}</text>
+            <text class="moment-editor-member-status">{{item.status || '本聚会成员'}}</text>
+          </view>
+          <view class="moment-editor-member-check {{item.active ? '' : 'moment-editor-member-check-empty'}}">{{item.active ? '✓' : ''}}</view>
+        </view>
+      </view>
+      <text wx:else class="moment-editor-member-empty">未同步到本聚会成员，返回聚会页刷新后再试。</text>
+    </view>
+  </scroll-view>
+
+  <view class="moment-editor-bottom">
+    <view class="moment-editor-submit party-cta party-cta-primary {{saving || uploading ? 'moment-editor-submit-disabled party-cta-disabled' : ''}}" bindtap="handleSubmitTap">
+      {{saving ? '保存中...' : submitLabel}}
+    </view>
+  </view>
+</view>

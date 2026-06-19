@@ -1,0 +1,83 @@
+<navigation-bar
+  title="聚会简报"
+  back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
+  color="#24160f"
+  background="rgba(255,253,248,0.96)"
+  ext-class="brief-nav"
+></navigation-bar>
+
+<view class="brief-page">
+  <scroll-view class="brief-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="brief-hero">
+      <view class="brief-tag-row">
+        <text class="brief-tag">{{rankingStatusText}}</text>
+        <text class="brief-tag brief-tag-soft">{{closingCountText}}</text>
+      </view>
+      <text class="brief-title">{{briefTitle}}</text>
+      <text class="brief-subtitle">{{subtitle}}</text>
+      <view class="brief-stat-grid">
+        <view wx:for="{{stats}}" wx:key="label" class="brief-stat">
+          <text class="brief-stat-value">{{item.value}}</text>
+          <text class="brief-stat-label">{{item.label}}</text>
+        </view>
+      </view>
+      <view class="brief-ranking-action" bindtap="handleRankingTap">查看今日回忆榜</view>
+    </view>
+
+    <view wx:if="{{loading}}" class="brief-loading">加载中...</view>
+
+    <block wx:else>
+      <moment-timeline
+        nodes="{{timelineNodes}}"
+        loading="{{false}}"
+        empty-text="{{timelineEmptyText}}"
+        bind:select="handleTimelineSelect"
+      ></moment-timeline>
+      <view wx:if="{{previewableImageCount}}" class="brief-image-preview-probe" bindtap="handlePreviewFirstImageTap">查看大图</view>
+
+      <view class="brief-section">
+        <view class="brief-section-head">
+          <text class="brief-section-title">分享图任务</text>
+          <view class="brief-section-action" bindtap="handleRefreshTap">刷新</view>
+        </view>
+
+        <share-task-status
+          wx:if="{{shareTask}}"
+          task="{{shareTask}}"
+          bind:preview="handlePreviewShareTask"
+          bind:retry="handleRetryShareTask"
+        ></share-task-status>
+
+        <view wx:else class="brief-share-empty">
+          <text class="brief-share-title">还没有分享图任务</text>
+          <text class="brief-share-meta">生成后可离开页面，稍后回来查看状态。</text>
+          <view class="brief-share-action" bindtap="handleCreateShareTaskTap">生成分享图</view>
+        </view>
+
+        <view class="brief-share-flow-entry brief-share020-entry" bindtap="handleOpenShareFlowTap" data-share-entry-selector="share-flow-015-brief-entry">
+          <image class="brief-share020-sticker brief-share020-sticker-star" src="/assets/party-recorder/share-flow/pr-share020-sticker-starburst.svg" mode="aspectFit"></image>
+          <image class="brief-share020-sticker brief-share020-sticker-tape" src="/assets/party-recorder/share-flow/pr-share020-sticker-tape-mint.svg" mode="aspectFit"></image>
+          <view class="brief-share-flow-copy">
+            <text class="brief-share020-kicker">分享流程</text>
+            <text class="brief-share-flow-title">生成酷炫分享页</text>
+            <image class="brief-share020-underline" src="/assets/party-recorder/share-flow/pr-share020-underline-coral.svg" mode="aspectFit"></image>
+            <text class="brief-share-flow-meta">照片记录、聚会账本和关键事件会一起进入分享预览。</text>
+            <view class="brief-share020-dual-row">
+              <view class="brief-share020-dual brief-share020-photo">
+                <text>拍照记录</text>
+                <text>随聚会回忆展示</text>
+              </view>
+              <view class="brief-share020-dual brief-share020-ledger">
+                <text>聚会账本</text>
+                <text>欠酒加酒一页看清</text>
+              </view>
+            </view>
+          </view>
+          <view class="brief-share-flow-action">打开</view>
+        </view>
+      </view>
+    </block>
+  </scroll-view>
+</view>

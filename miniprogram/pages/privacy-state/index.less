@@ -1,0 +1,81 @@
+page {
+  height: 100vh;
+  overflow: hidden;
+  background: #f7fbf7;
+}
+
+.privacy-page {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 20% 14%, rgba(73, 202, 136, 0.18), transparent 30%),
+    linear-gradient(180deg, #fffdf7 0%, #eef8f0 100%);
+  color: #17221c;
+}
+
+.privacy-card {
+  width: 100%;
+  padding: 28px 20px;
+  border: 1px solid rgba(112, 159, 122, 0.24);
+  border-radius: 22px;
+  background: rgba(255, 255, 252, 0.9);
+  text-align: center;
+  box-shadow: 0 18px 36px rgba(24, 60, 40, 0.1);
+}
+
+.privacy-icon {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 18px;
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(63, 202, 139, 0.18), rgba(255, 154, 91, 0.2)),
+    url("../../assets/party-recorder/clean-slate/pr-cs002-privacy-shield.svg") center/42px 42px no-repeat;
+}
+
+.privacy-title {
+  display: block;
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 950;
+}
+
+.privacy-detail {
+  display: block;
+  margin-top: 10px;
+  color: #5f6f66;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.privacy-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.privacy-primary,
+.privacy-secondary {
+  display: flex;
+  min-height: 44px;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.privacy-primary {
+  background: #17221c;
+  color: #fff;
+}
+
+.privacy-secondary {
+  border: 1px solid rgba(23, 34, 28, 0.14);
+  color: #17221c;
+}

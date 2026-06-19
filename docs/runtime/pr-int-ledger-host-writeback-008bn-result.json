@@ -1,0 +1,205 @@
+{
+  "apiBase": "http://127.0.0.1:3221/api/v1",
+  "sessionId": "session-1781787045680-8e406c",
+  "hostProfileId": "user-1781787045678-c892b9",
+  "hostTokenTail": "ddceb616",
+  "before": {
+    "live": {
+      "http": 200,
+      "code": 0,
+      "sessionName": "周末聚会记录",
+      "hostProfileId": "user-1781787045678-c892b9",
+      "joinedCount": 3,
+      "players": [
+        {
+          "profileId": "user-1781787045678-c892b9",
+          "name": "聚会记录师房主",
+          "debtCount": 0,
+          "drinkCount": 0,
+          "clearedCount": 0,
+          "status": "已加入"
+        },
+        {
+          "profileId": "user-1781787045679-f3f2eb",
+          "name": "聚会记录师成员A",
+          "debtCount": 0,
+          "drinkCount": 0,
+          "clearedCount": 0,
+          "status": "已加入"
+        },
+        {
+          "profileId": "user-1781787045679-4cd6ea",
+          "name": "聚会记录师成员B",
+          "debtCount": 0,
+          "drinkCount": 0,
+          "clearedCount": 0,
+          "status": "已加入"
+        }
+      ]
+    },
+    "timeline": {
+      "http": 200,
+      "code": 0,
+      "nodeCount": 5,
+      "ledgerEventCount": 2,
+      "lastEvents": [
+        {
+          "id": "event-1781787045692-6dbe67d6",
+          "eventType": "drink_debt",
+          "clientEventId": "prcs-008g-ledger-pending",
+          "createdAt": "2026-06-18T12:50:45.692Z",
+          "operatorProfileId": "user-1781787045678-c892b9",
+          "operatorName": "聚会记录师房主",
+          "targetProfileId": "user-1781787045679-f3f2eb",
+          "targetName": "聚会记录师成员A",
+          "scoreDelta": 1,
+          "caption": "新增一条待处理记录"
+        },
+        {
+          "id": "event-1781787045693-464dde2c",
+          "eventType": "drink_add",
+          "clientEventId": "prcs-008g-ledger-added",
+          "createdAt": "2026-06-18T12:50:45.693Z",
+          "operatorProfileId": "user-1781787045678-c892b9",
+          "operatorName": "聚会记录师房主",
+          "targetProfileId": "user-1781787045679-4cd6ea",
+          "targetName": "聚会记录师成员B",
+          "scoreDelta": 1,
+          "caption": "新增一条加酒记录"
+        }
+      ]
+    }
+  },
+  "write": {
+    "put": {
+      "http": 200,
+      "code": 0,
+      "message": "ok",
+      "updatedMembers": [
+        {
+          "profileId": "user-1781787045678-c892b9",
+          "name": "聚会记录师房主",
+          "isHost": true,
+          "debtCount": 0,
+          "drinkCount": 0,
+          "clearedCount": 0,
+          "status": "已加入"
+        },
+        {
+          "profileId": "user-1781787045679-f3f2eb",
+          "name": "聚会记录师成员A",
+          "isHost": false,
+          "debtCount": 1,
+          "drinkCount": 0,
+          "clearedCount": 0,
+          "status": "已加入"
+        },
+        {
+          "profileId": "user-1781787045679-4cd6ea",
+          "name": "聚会记录师成员B",
+          "isHost": false,
+          "debtCount": 0,
+          "drinkCount": 1,
+          "clearedCount": 0,
+          "status": "已加入"
+        }
+      ]
+    },
+    "event": {
+      "http": 201,
+      "code": 0,
+      "message": "ok",
+      "event": {
+        "id": "event-1781866683850-2a2b287a",
+        "clientEventId": "pr-int-008bn-host-writeback-debt-1781866200",
+        "eventType": "drink_debt",
+        "operatorProfileId": "user-1781787045678-c892b9",
+        "operatorName": "聚会记录师房主",
+        "targetProfileId": "user-1781787045679-f3f2eb",
+        "targetName": "聚会记录师成员A",
+        "scoreDelta": 1,
+        "caption": "008BN host writeback check",
+        "createdAt": "2026-06-19T10:58:03.850Z"
+      }
+    }
+  },
+  "after": {
+    "live": {
+      "http": 200,
+      "code": 0,
+      "sessionName": "周末聚会记录",
+      "hostProfileId": "user-1781787045678-c892b9",
+      "joinedCount": 3,
+      "players": [
+        {
+          "profileId": "user-1781787045678-c892b9",
+          "name": "聚会记录师房主",
+          "debtCount": 0,
+          "drinkCount": 0,
+          "clearedCount": 0,
+          "status": "已加入"
+        },
+        {
+          "profileId": "user-1781787045679-f3f2eb",
+          "name": "聚会记录师成员A",
+          "debtCount": 1,
+          "drinkCount": 0,
+          "clearedCount": 0,
+          "status": "已加入"
+        },
+        {
+          "profileId": "user-1781787045679-4cd6ea",
+          "name": "聚会记录师成员B",
+          "debtCount": 0,
+          "drinkCount": 1,
+          "clearedCount": 0,
+          "status": "已加入"
+        }
+      ]
+    },
+    "timeline": {
+      "http": 200,
+      "code": 0,
+      "nodeCount": 6,
+      "ledgerEventCount": 3,
+      "lastEvents": [
+        {
+          "id": "event-1781787045692-6dbe67d6",
+          "eventType": "drink_debt",
+          "clientEventId": "prcs-008g-ledger-pending",
+          "createdAt": "2026-06-18T12:50:45.692Z",
+          "operatorProfileId": "user-1781787045678-c892b9",
+          "operatorName": "聚会记录师房主",
+          "targetProfileId": "user-1781787045679-f3f2eb",
+          "targetName": "聚会记录师成员A",
+          "scoreDelta": 1,
+          "caption": "新增一条待处理记录"
+        },
+        {
+          "id": "event-1781787045693-464dde2c",
+          "eventType": "drink_add",
+          "clientEventId": "prcs-008g-ledger-added",
+          "createdAt": "2026-06-18T12:50:45.693Z",
+          "operatorProfileId": "user-1781787045678-c892b9",
+          "operatorName": "聚会记录师房主",
+          "targetProfileId": "user-1781787045679-4cd6ea",
+          "targetName": "聚会记录师成员B",
+          "scoreDelta": 1,
+          "caption": "新增一条加酒记录"
+        },
+        {
+          "id": "event-1781866683850-2a2b287a",
+          "eventType": "drink_debt",
+          "clientEventId": "pr-int-008bn-host-writeback-debt-1781866200",
+          "createdAt": "2026-06-19T10:58:03.850Z",
+          "operatorProfileId": "user-1781787045678-c892b9",
+          "operatorName": "聚会记录师房主",
+          "targetProfileId": "user-1781787045679-f3f2eb",
+          "targetName": "聚会记录师成员A",
+          "scoreDelta": 1,
+          "caption": "008BN host writeback check"
+        }
+      ]
+    }
+  }
+}

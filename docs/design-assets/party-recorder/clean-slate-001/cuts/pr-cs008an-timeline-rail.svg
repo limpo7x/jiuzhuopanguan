@@ -1,0 +1,17 @@
+<svg width="64" height="1040" viewBox="0 0 64 1040" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rail" x1="32" y1="0" x2="32" y2="1040" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF2D7"/>
+      <stop offset="0.18" stop-color="#FFD38D"/>
+      <stop offset="0.52" stop-color="#FFC16D"/>
+      <stop offset="1" stop-color="#AA6F38"/>
+    </linearGradient>
+    <filter id="railGlow" x="10" y="-12" width="44" height="1064" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#FFBF74" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="64" height="1040" rx="32" fill="rgba(255,255,255,0.02)"/>
+  <g filter="url(#railGlow)">
+    <rect x="30" y="12" width="4" height="1016" rx="2" fill="url(#rail)"/>
+  </g>
+</svg>

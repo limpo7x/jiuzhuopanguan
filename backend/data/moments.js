@@ -1,0 +1,1888 @@
+const crypto = require('crypto')
+const fs = require('fs')
+const path = require('path')
+const sharp = require('sharp')
+const { getAdminStore, getManagedSessionById, listManagedReports } = require('./admin')
+const { createDefaultUserCommerceState, readContentStore, writeContentStore } = require('./content')
+const { listProfiles } = require('./social')
+const { createStoreAccessor } = require('./store-accessor')
+
+const storePath = path.join(__dirname, 'moments-store.json')
+const momentsUploadRoot = path.join(__dirname, '..', 'public', 'uploads', 'moments')
+const shareImageOutputRoot = path.join(momentsUploadRoot, 'share-tasks')
+const staticShareMiniappQrCandidates = [
+  path.join(__dirname, '..', '..', 'miniprogram', 'assets', 'home', 'share-miniapp-qr.png'),
+  path.join(__dirname, '..', '..', 'miniprogram', 'assets', 'share', 'share-poster-miniapp-code.png'),
+  path.join(__dirname, '..', '..', 'miniprogram', 'pages', 'share-poster', 'assets', 'share', 'share-poster-miniapp-code.png'),
+]
+const MAX_MOMENT_IMAGE_BYTES = 5 * 1024 * 1024
+const MOMENT_IMAGE_WIDTH = 1800
+const MOMENT_IMAGE_HEIGHT = 1800
+const MOMENT_IMAGE_QUALITY = 84
+const SHARE_IMAGE_WIDTH = 900
+const SHARE_IMAGE_HEIGHT = 1400
+const DEFAULT_MINI_PROGRAM_QR_URL = '/static/share-miniapp-qr.png'
+
+const IMAGE_MIME_EXTENSION_MAP = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+}
+
+const NODE_TYPES = new Set(['opening', 'highlight', 'drinking', 'private', 'closing'])
+const MEDIA_TYPES = new Set(['image'])
+const VISIBILITIES = new Set(['private', 'selected', 'session', 'share', 'featured'])
+const EVENT_TYPES = new Set(['drink_debt', 'drink_add', 'wheel_result'])
+const SHARE_TASK_STATUSES = new Set(['pending', 'processing', 'ready', 'failed', 'expired'])
+const RANKING_CATEGORIES = new Set(['today_funny', 'today_debt', 'today_highlight', 'today_visual', 'best_opening', 'best_closing'])
+const DEFAULT_NOMINATION_POINTS = 10
+
+const nowIso = () => new Date().toISOString()
+
+const createId = (prefix) => `${prefix}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
+
+const cleanText = (value = '') => String(value || '').trim()
+const resolveFirstExistingPath = (...candidatePaths) => candidatePaths.find((candidatePath) => fs.existsSync(candidatePath)) || ''
+const defaultMiniProgramQrLocalPath = resolveFirstExistingPath(...staticShareMiniappQrCandidates)
+const getMiniProgramQrUrl = (task = {}) => cleanText(task.miniProgramQrUrl || task.qrCodeUrl) || DEFAULT_MINI_PROGRAM_QR_URL
+
+const trimText = (value = '', maxLength = 20) => {
+  const text = cleanText(value)
+  return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text
+}
+
+const escapeXml = (value = '') =>
+  String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;')
+
+const createHttpError = (message, statusCode = 400) => {
+  const error = new Error(message)
+  error.statusCode = statusCode
+  return error
+}
+
+const normalizeStringArray = (value) =>
+  (Array.isArray(value) ? value : String(value || '').split(/[,\s，、]+/))
+    .map((item) => cleanText(item))
+    .filter(Boolean)
+
+const normalizeUsageConsent = (value = {}) => ({
+  session: value.session !== false,
+  brief: value.brief !== false,
+  share: value.share !== false,
+  ranking: value.ranking !== false,
+})
+
+const createDefaultStore = () => ({
+  momentRecords: [],
+  sessionEvents: [],
+  sessionBriefs: [],
+  shareImageTasks: [],
+  momentReports: [],
+  momentNominations: [],
+  rankingRewardPayouts: [],
+  rankingRewardRules: [],
+  uploadedAssets: [],
+})
+
+const normalizeMomentRecord = (item = {}) => {
+  const nodeType = NODE_TYPES.has(cleanText(item.nodeType)) ? cleanText(item.nodeType) : 'highlight'
+  const mediaType = MEDIA_TYPES.has(cleanText(item.mediaType)) ? cleanText(item.mediaType) : 'image'
+  const visibility = VISIBILITIES.has(cleanText(item.visibility)) ? cleanText(item.visibility) : 'session'
+  const imageUrl = cleanText(item.imageUrl)
+  const completionStatus = cleanText(item.completionStatus) || (imageUrl ? 'complete' : 'needs_media')
+  const reviewStatus = cleanText(item.reviewStatus) || 'pending'
+  const secondaryReviewStatus = cleanText(item.secondaryReviewStatus) || 'pending'
+  const usageConsent = normalizeUsageConsent(item.usageConsent)
+  const isPrivate = nodeType === 'private' || visibility === 'private' || visibility === 'selected'
+  const reviewPass = reviewStatus === 'approved' && secondaryReviewStatus === 'approved'
+  const rankingEligible = Boolean(
+    item.rankingEligible === true ||
+      (completionStatus === 'complete' && usageConsent.ranking && !isPrivate && reviewPass),
+  )
+  const rewardEligible = Boolean(
+    item.rewardEligible === true ||
+      (completionStatus === 'complete' && usageConsent.ranking && !isPrivate && reviewPass),
+  )
+  const createdAt = cleanText(item.createdAt) || nowIso()
+
+  return {
+    id: cleanText(item.id) || createId('moment'),
+    clientDraftId: cleanText(item.clientDraftId),
+    sessionId: cleanText(item.sessionId),
+    uploaderProfileId: cleanText(item.uploaderProfileId),
+    uploaderName: cleanText(item.uploaderName),
+    nodeType,
+    mediaType,
+    imageUrl,
+    videoUrl: cleanText(item.videoUrl),
+    coverImageUrl: cleanText(item.coverImageUrl),
+    duration: Math.max(0, Number(item.duration) || 0),
+    caption: cleanText(item.caption),
+    tags: normalizeStringArray(item.tags),
+    visibility,
+    visibleProfileIds: normalizeStringArray(item.visibleProfileIds),
+    timelineTitle: cleanText(item.timelineTitle),
+    usageConsent,
+    completionStatus,
+    reviewStatus,
+    secondaryReviewStatus,
+    rankingEligible,
+    rewardEligible,
+    isTimelinePlaceholder: item.isTimelinePlaceholder === true,
+    removedAt: cleanText(item.removedAt),
+    createdAt,
+    updatedAt: cleanText(item.updatedAt) || createdAt,
+  }
+}
+
+const normalizeSessionEvent = (item = {}) => {
+  const eventType = EVENT_TYPES.has(cleanText(item.eventType)) ? cleanText(item.eventType) : 'drink_debt'
+  const createdAt = cleanText(item.createdAt) || nowIso()
+  return {
+    id: cleanText(item.id) || createId('event'),
+    clientEventId: cleanText(item.clientEventId),
+    sessionId: cleanText(item.sessionId),
+    eventType,
+    operatorProfileId: cleanText(item.operatorProfileId),
+    operatorName: cleanText(item.operatorName),
+    targetProfileId: cleanText(item.targetProfileId),
+    targetName: cleanText(item.targetName),
+    scoreDelta: Number(item.scoreDelta) || 0,
+    caption: cleanText(item.caption),
+    createdAt,
+    updatedAt: cleanText(item.updatedAt) || createdAt,
+    syncStatus: cleanText(item.syncStatus) || 'synced',
+  }
+}
+
+const normalizeSessionBrief = (item = {}) => {
+  const createdAt = cleanText(item.createdAt) || nowIso()
+  return {
+    id: cleanText(item.id) || createId('brief'),
+    sessionId: cleanText(item.sessionId),
+    title: cleanText(item.title),
+    coverMode: cleanText(item.coverMode) || 'opening_collage',
+    openingMomentIds: normalizeStringArray(item.openingMomentIds),
+    closingMomentIds: normalizeStringArray(item.closingMomentIds),
+    timelineNodeIds: normalizeStringArray(item.timelineNodeIds),
+    shareImageTaskId: cleanText(item.shareImageTaskId),
+    shareImageStatus: cleanText(item.shareImageStatus) || '',
+    pendingMediaCount: Math.max(0, Number(item.pendingMediaCount) || 0),
+    rankingEligible: item.rankingEligible === true,
+    createdAt,
+    updatedAt: cleanText(item.updatedAt) || createdAt,
+  }
+}
+
+const normalizeShareImageTask = (item = {}) => {
+  const status = SHARE_TASK_STATUSES.has(cleanText(item.status)) ? cleanText(item.status) : 'pending'
+  const layoutMode = cleanText(item.layoutMode) || 'timeline'
+  const createdAt = cleanText(item.createdAt) || nowIso()
+  return {
+    id: cleanText(item.id) || createId('share-task'),
+    sessionId: cleanText(item.sessionId),
+    briefId: cleanText(item.briefId),
+    status,
+    layoutMode,
+    ledgerIncluded: item.ledgerIncluded === true || item.includeLedger === true || layoutMode === 'dual_flow',
+    selectedNodeIds: normalizeStringArray(item.selectedNodeIds),
+    imageUrl: cleanText(item.imageUrl),
+    failedReason: cleanText(item.failedReason),
+    retryCount: Math.max(0, Number(item.retryCount) || 0),
+    createdAt,
+    startedAt: cleanText(item.startedAt),
+    finishedAt: cleanText(item.finishedAt),
+    updatedAt: cleanText(item.updatedAt) || createdAt,
+  }
+}
+
+const decorateShareImageTask = (task = {}) => {
+  const imageUrl = cleanText(task.imageUrl)
+  const miniProgramQrUrl = getMiniProgramQrUrl(task)
+  return {
+    ...task,
+    imageUrl,
+    posterImageUrl: cleanText(task.posterImageUrl) || imageUrl,
+    readyShareImageUrl: cleanText(task.readyShareImageUrl) || imageUrl,
+    miniProgramQrUrl,
+    qrCodeUrl: cleanText(task.qrCodeUrl) || miniProgramQrUrl,
+  }
+}
+
+const normalizeMomentNomination = (item = {}) => {
+  const createdAt = cleanText(item.createdAt) || nowIso()
+  return {
+    id: cleanText(item.id) || createId('nomination'),
+    clientNominationId: cleanText(item.clientNominationId),
+    momentId: cleanText(item.momentId),
+    sessionId: cleanText(item.sessionId),
+    profileId: cleanText(item.profileId),
+    profileName: cleanText(item.profileName),
+    category: RANKING_CATEGORIES.has(cleanText(item.category)) ? cleanText(item.category) : 'today_highlight',
+    pointsSpent: Math.max(0, Number(item.pointsSpent) || 0),
+    status: cleanText(item.status) || 'active',
+    refundedAt: cleanText(item.refundedAt),
+    refundReason: cleanText(item.refundReason),
+    createdAt,
+    updatedAt: cleanText(item.updatedAt) || createdAt,
+  }
+}
+
+const normalizeRankingRewardPayout = (item = {}) => {
+  const createdAt = cleanText(item.createdAt) || nowIso()
+  return {
+    id: cleanText(item.id) || createId('ranking-reward-payout'),
+    sourceId: cleanText(item.sourceId),
+    category: RANKING_CATEGORIES.has(cleanText(item.category)) ? cleanText(item.category) : 'today_highlight',
+    date: cleanText(item.date) || getTodayYmd(createdAt),
+    momentId: cleanText(item.momentId),
+    sessionId: cleanText(item.sessionId),
+    profileId: cleanText(item.profileId),
+    profileName: cleanText(item.profileName),
+    rank: Math.max(1, Number(item.rank) || 1),
+    points: Math.max(0, Number(item.points) || 0),
+    ruleId: cleanText(item.ruleId),
+    status: cleanText(item.status) || 'granted',
+    operator: cleanText(item.operator),
+    createdAt,
+    updatedAt: cleanText(item.updatedAt) || createdAt,
+  }
+}
+
+const normalizeStore = (store = {}) => ({
+  momentRecords: Array.isArray(store.momentRecords) ? store.momentRecords.map(normalizeMomentRecord) : [],
+  sessionEvents: Array.isArray(store.sessionEvents) ? store.sessionEvents.map(normalizeSessionEvent) : [],
+  sessionBriefs: Array.isArray(store.sessionBriefs) ? store.sessionBriefs.map(normalizeSessionBrief) : [],
+  shareImageTasks: Array.isArray(store.shareImageTasks) ? store.shareImageTasks.map(normalizeShareImageTask) : [],
+  momentReports: Array.isArray(store.momentReports) ? store.momentReports : [],
+  momentNominations: Array.isArray(store.momentNominations) ? store.momentNominations.map(normalizeMomentNomination) : [],
+  rankingRewardPayouts: Array.isArray(store.rankingRewardPayouts) ? store.rankingRewardPayouts.map(normalizeRankingRewardPayout) : [],
+  rankingRewardRules: Array.isArray(store.rankingRewardRules) ? store.rankingRewardRules : [],
+  uploadedAssets: Array.isArray(store.uploadedAssets) ? store.uploadedAssets : [],
+})
+
+const storeAccessor = createStoreAccessor({
+  key: 'moments_store',
+  filePath: storePath,
+  createDefaultStore,
+  normalizeStore,
+})
+
+const readMomentsStore = () => storeAccessor.read()
+
+const writeMomentsStore = (store) => storeAccessor.write(store)
+
+const getProfileId = (profile = {}) => cleanText(profile.id || profile.profileId)
+const buildProfileAvatarMap = () =>
+  new Map((listProfiles() || []).map((item) => [cleanText(item.id), cleanText(item.avatarUrl)]).filter((item) => item[0]))
+const resolveAvatarUrl = ({ sessionId = '', profileId = '', preferredAvatarUrl = '' } = {}) => {
+  const direct = cleanText(preferredAvatarUrl)
+  if (direct) {
+    return direct
+  }
+  const normalizedProfileId = cleanText(profileId)
+  if (!normalizedProfileId) {
+    return ''
+  }
+  const session = sessionId ? getManagedSessionById(sessionId) : null
+  const memberAvatarUrl = cleanText(
+    (Array.isArray(session?.members) ? session.members : []).find((item) => cleanText(item?.profileId) === normalizedProfileId)?.avatarUrl,
+  )
+  if (memberAvatarUrl) {
+    return memberAvatarUrl
+  }
+  return cleanText(buildProfileAvatarMap().get(normalizedProfileId))
+}
+
+const getSessionMember = (session = {}, profileId = '') =>
+  (Array.isArray(session.members) ? session.members : []).find(
+    (item) => cleanText(item?.profileId) === cleanText(profileId),
+  ) || null
+
+const assertSession = (sessionId) => {
+  const session = getManagedSessionById(cleanText(sessionId))
+  if (!session) {
+    throw createHttpError('session not found', 404)
+  }
+  return session
+}
+
+const assertSessionMember = (sessionId, profile = {}) => {
+  const profileId = getProfileId(profile)
+  if (!profileId) {
+    throw createHttpError('unauthorized', 401)
+  }
+  const session = assertSession(sessionId)
+  const member = getSessionMember(session, profileId)
+  if (!member) {
+    throw createHttpError('not session member', 403)
+  }
+  return { session, member, profileId }
+}
+
+const assertSessionHost = (sessionId, profile = {}) => {
+  const context = assertSessionMember(sessionId, profile)
+  if (!context.member.isHost) {
+    throw createHttpError('forbidden', 403)
+  }
+  return context
+}
+
+const normalizeVisibleProfileIds = ({ session, nodeType, visibility, visibleProfileIds }) => {
+  const nextVisibleProfileIds = normalizeStringArray(visibleProfileIds)
+  if ((nodeType === 'private' || visibility === 'private' || visibility === 'selected') && !nextVisibleProfileIds.length) {
+    throw createHttpError('private moment requires visibleProfileIds', 400)
+  }
+  const invalidProfileId = nextVisibleProfileIds.find((profileId) => !getSessionMember(session, profileId))
+  if (invalidProfileId) {
+    throw createHttpError('visibleProfileIds must be session members', 400)
+  }
+  return nextVisibleProfileIds
+}
+
+const isViewerAllowedForMoment = (moment = {}, profileId = '') => {
+  if (moment.uploaderProfileId === profileId) {
+    return true
+  }
+  if (moment.visibility === 'private' || moment.visibility === 'selected' || moment.nodeType === 'private') {
+    return moment.visibleProfileIds.includes(profileId)
+  }
+  return true
+}
+
+const buildDefaultCaption = (nodeType) => {
+  if (nodeType === 'opening') {
+    return '今晚开场，先留证'
+  }
+  if (nodeType === 'closing') {
+    return '今晚最后一张，给这局收尾'
+  }
+  if (nodeType === 'private') {
+    return '一条私密爆料'
+  }
+  return '刚刚这一刻，值得留在时间线'
+}
+
+const buildTimelineTitle = (moment = {}) => {
+  const name = moment.uploaderName || '有人'
+  if (moment.nodeType === 'opening') {
+    return `${name} 上传了开场打卡`
+  }
+  if (moment.nodeType === 'closing') {
+    return `${name} 上传了收尾照`
+  }
+  if (moment.nodeType === 'private') {
+    return moment.visibleProfileIds.length > 1 ? `${name} 发送了一条私密爆料` : `${name} 发送了一条私密爆料`
+  }
+  return `${name} 添加了精彩瞬间`
+}
+
+const computeMomentStatus = (moment = {}) => {
+  const imageUrl = cleanText(moment.imageUrl)
+  const nodeType = cleanText(moment.nodeType)
+  const visibility = cleanText(moment.visibility)
+  const usageConsent = normalizeUsageConsent(moment.usageConsent)
+  const completionStatus = imageUrl ? 'complete' : 'needs_media'
+  const isPrivate = nodeType === 'private' || visibility === 'private' || visibility === 'selected'
+  const reviewStatus = cleanText(moment.reviewStatus) || 'pending'
+  const secondaryReviewStatus = cleanText(moment.secondaryReviewStatus) || 'pending'
+  const approved = reviewStatus === 'approved' && secondaryReviewStatus === 'approved'
+
+  return {
+    completionStatus,
+    rankingEligible: completionStatus === 'complete' && usageConsent.ranking && !isPrivate && approved,
+    rewardEligible: completionStatus === 'complete' && usageConsent.ranking && !isPrivate && approved,
+  }
+}
+
+const serializeMomentForViewer = (moment = {}, profileId = '') => {
+  const allowed = isViewerAllowedForMoment(moment, profileId)
+  const uploaderAvatarUrl = resolveAvatarUrl({
+    sessionId: moment.sessionId,
+    profileId: moment.uploaderProfileId,
+    preferredAvatarUrl: moment.uploaderAvatarUrl,
+  })
+  const base = {
+    id: moment.id,
+    nodeKind: 'moment',
+    sessionId: moment.sessionId,
+    nodeType: moment.nodeType,
+    mediaType: moment.mediaType,
+    uploaderProfileId: moment.uploaderProfileId,
+    uploaderName: moment.uploaderName,
+    uploaderAvatarUrl,
+    tags: allowed ? moment.tags : [],
+    visibility: allowed ? moment.visibility : 'private',
+    timelineTitle: moment.timelineTitle || buildTimelineTitle(moment),
+    usageConsent: allowed ? moment.usageConsent : undefined,
+    completionStatus: moment.completionStatus,
+    reviewStatus: allowed ? moment.reviewStatus : undefined,
+    secondaryReviewStatus: allowed ? moment.secondaryReviewStatus : undefined,
+    rankingEligible: allowed ? moment.rankingEligible : false,
+    rewardEligible: allowed ? moment.rewardEligible : false,
+    isTimelinePlaceholder: !allowed,
+    createdAt: moment.createdAt,
+    updatedAt: moment.updatedAt,
+  }
+  if (!allowed) {
+    return base
+  }
+  return {
+    ...base,
+    imageUrl: moment.imageUrl,
+    caption: moment.caption,
+    visibleProfileIds: moment.visibleProfileIds,
+  }
+}
+
+const serializeEvent = (event = {}) => ({
+  ...event,
+  operatorAvatarUrl: resolveAvatarUrl({
+    sessionId: event.sessionId,
+    profileId: event.operatorProfileId,
+    preferredAvatarUrl: event.operatorAvatarUrl,
+  }),
+  targetAvatarUrl: resolveAvatarUrl({
+    sessionId: event.sessionId,
+    profileId: event.targetProfileId,
+    preferredAvatarUrl: event.targetAvatarUrl,
+  }),
+  nodeKind: 'event',
+})
+
+const getTodayYmd = (value = Date.now()) =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(value))
+
+const findMomentById = (store, nodeId) =>
+  store.momentRecords.find((item) => item.id === cleanText(nodeId) && !item.removedAt) || null
+
+const findEventById = (store, nodeId) => store.sessionEvents.find((item) => item.id === cleanText(nodeId)) || null
+
+const getDefaultRankingCategory = (moment = {}) => {
+  if (moment.nodeType === 'opening') return 'best_opening'
+  if (moment.nodeType === 'closing') return 'best_closing'
+  if (moment.nodeType === 'drinking') return 'today_debt'
+  return 'today_highlight'
+}
+
+const getRankingCategory = (value, moment = {}) => {
+  const category = cleanText(value)
+  return RANKING_CATEGORIES.has(category) ? category : getDefaultRankingCategory(moment)
+}
+
+const isMomentPublicForRanking = (moment = {}) => {
+  const usageConsent = normalizeUsageConsent(moment.usageConsent)
+  const visibility = cleanText(moment.visibility)
+  const isPrivate = moment.nodeType === 'private' || visibility === 'private' || visibility === 'selected'
+  return Boolean(
+    !moment.removedAt &&
+      moment.completionStatus === 'complete' &&
+      usageConsent.ranking &&
+      moment.reviewStatus === 'approved' &&
+      moment.secondaryReviewStatus === 'approved' &&
+      moment.rankingEligible &&
+      !isPrivate,
+  )
+}
+
+const isTimelineNodeShareImageEligible = (node = {}) => {
+  if (node.nodeKind === 'event') {
+    return true
+  }
+  if (node.nodeKind !== 'moment' || node.isTimelinePlaceholder || node.removedAt) {
+    return false
+  }
+  const usageConsent = normalizeUsageConsent(node.usageConsent)
+  const visibility = cleanText(node.visibility)
+  const isPrivate = node.nodeType === 'private' || visibility === 'private' || visibility === 'selected'
+  return Boolean(
+    !isPrivate &&
+      usageConsent.share &&
+      node.completionStatus === 'complete',
+  )
+}
+
+const toSafeDisplayName = (index = 0) => `成员${index + 1}`
+
+const getSessionMembersForLedger = (session = {}) =>
+  (Array.isArray(session?.members) ? session.members : [])
+    .filter((member) => cleanText(member?.name) || cleanText(member?.profileId))
+    .map((member, index) => ({
+      displayName: toSafeDisplayName(index),
+      originalName: cleanText(member?.name),
+      debtCount: Math.max(0, Number(member?.debtCount) || 0),
+      drinkCount: Math.max(0, Number(member?.drinkCount) || 0),
+      clearedCount: Math.max(0, Number(member?.clearedCount) || 0),
+      updatedAt: cleanText(member?.updatedAt || member?.joinedAt || member?.createdAt),
+    }))
+
+const sumBy = (items = [], getter = () => 0) => items.reduce((sum, item) => sum + Math.max(0, Number(getter(item)) || 0), 0)
+
+const buildRankingRows = (members = [], field = 'debtCount') =>
+  members
+    .filter((item) => Number(item[field]) > 0)
+    .sort((left, right) => Number(right[field]) - Number(left[field]))
+    .slice(0, 3)
+    .map((item, index) => ({
+      rank: index + 1,
+      displayName: item.displayName,
+      value: Number(item[field]) || 0,
+    }))
+
+const buildAccountingHighlight = ({ type, label, value, unit, emptyText }) => {
+  const safeValue = Math.max(0, Number(value) || 0)
+  return {
+    type,
+    label,
+    value: safeValue,
+    unit,
+    text: safeValue > 0 ? `${label} ${safeValue}${unit}` : emptyText,
+  }
+}
+
+const buildShareContentFilter = (timeline = { nodes: [] }) => {
+  const nodes = Array.isArray(timeline.nodes) ? timeline.nodes : []
+  const allowedNodeIds = []
+  const filteredNodes = []
+  nodes.forEach((node) => {
+    if (isTimelineNodeShareImageEligible(node)) {
+      allowedNodeIds.push(node.id)
+      return
+    }
+    const reason =
+      node.nodeKind === 'moment' && node.isTimelinePlaceholder
+        ? 'private_or_not_visible'
+        : node.nodeKind === 'moment' && node.completionStatus !== 'complete'
+          ? 'needs_media'
+          : node.nodeKind === 'moment'
+            ? 'not_shareable'
+            : 'unsupported'
+    filteredNodes.push({
+      nodeId: cleanText(node.id),
+      nodeKind: cleanText(node.nodeKind),
+      reason,
+    })
+  })
+  return {
+    allowedNodeIds,
+    filteredNodeIds: filteredNodes.map((item) => item.nodeId).filter(Boolean),
+    filteredNodes,
+    notice: '仅展示已授权公开内容；私密、不可见、待补图和未授权内容不会进入分享图。',
+  }
+}
+
+const buildSessionLedgerSnapshot = ({ sessionId, timeline } = {}) => {
+  const normalizedSessionId = cleanText(sessionId)
+  const session = getManagedSessionById(normalizedSessionId) || {}
+  const store = readMomentsStore()
+  const members = getSessionMembersForLedger(session)
+  const events = store.sessionEvents.filter((item) => item.sessionId === normalizedSessionId)
+  const debtEventCount = events
+    .filter((item) => item.eventType === 'drink_debt')
+    .reduce((sum, item) => sum + Math.max(1, Math.abs(Number(item.scoreDelta) || 0)), 0)
+  const memberDebtCups = sumBy(members, (item) => item.debtCount)
+  const debtCups = memberDebtCups || debtEventCount
+  const drunkCups = sumBy(members, (item) => item.drinkCount)
+  const clearedCups = sumBy(members, (item) => item.clearedCount)
+  const addWineCount = events
+    .filter((item) => item.eventType === 'drink_add')
+    .reduce((sum, item) => sum + Math.max(1, Math.abs(Number(item.scoreDelta) || 0)), 0)
+  const keyEvents = events.filter((item) => item.eventType === 'wheel_result')
+  const ledgerCount = debtCups + drunkCups + clearedCups + addWineCount + keyEvents.length
+  const eventHighlights = events
+    .filter((item) => ['drink_debt', 'drink_add', 'wheel_result'].includes(item.eventType))
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+    .slice(0, 5)
+    .map((item) => ({
+      id: item.id,
+      type: item.eventType,
+      text:
+        item.eventType === 'drink_add'
+          ? '新增一条加酒记录'
+          : item.eventType === 'wheel_result'
+            ? '记录了一条关键互动'
+            : '新增一条待处理记录',
+      createdAt: item.createdAt,
+    }))
+  const settlementStatus = ledgerCount === 0 ? 'empty' : debtCups > 0 ? 'open' : 'settled'
+  const settlementText =
+    settlementStatus === 'empty'
+      ? '聚会账本还没开始，先记一笔。'
+      : settlementStatus === 'settled'
+        ? `本场已记录 ${drunkCups} 条完成记录，账本已基本结清。`
+        : `本场已记录 ${ledgerCount} 条账本高光，还有 ${debtCups} 条待处理记录。`
+  const updatedAt =
+    [session?.updatedAt, session?.createdAt, ...members.map((item) => item.updatedAt), ...events.map((item) => item.updatedAt || item.createdAt)]
+      .map(cleanText)
+      .filter(Boolean)
+      .sort()
+      .at(-1) || nowIso()
+
+  return {
+    ledgerSummary: {
+      sessionId: normalizedSessionId,
+      participantCount: members.length,
+      ledgerCount,
+      debtCups,
+      drunkCups,
+      addWineCount,
+      debtEventCount,
+      clearedCups,
+      keyEventCount: keyEvents.length,
+      hasLedgerData: ledgerCount > 0,
+      visibilityScope: 'public_summary',
+      generatedFrom: ['session-members', 'timeline-events'],
+      updatedAt,
+      emptyText: '聚会账本还没开始，先记一笔。',
+    },
+    accountingHighlights: [
+      buildAccountingHighlight({ type: 'debt', label: '待处理记录', value: debtCups, unit: '条', emptyText: '暂无待处理记录' }),
+      buildAccountingHighlight({ type: 'drunk', label: '完成记录', value: drunkCups, unit: '条', emptyText: '暂无完成记录' }),
+      buildAccountingHighlight({ type: 'add_wine', label: '加酒记录', value: addWineCount, unit: '条', emptyText: '暂无加酒记录' }),
+      buildAccountingHighlight({ type: 'cleared', label: '已消记录', value: clearedCups, unit: '条', emptyText: '暂无已消记录' }),
+    ],
+    settlementSummary: {
+      status: settlementStatus,
+      text: settlementText,
+      generatedFrom: ledgerCount > 0 ? 'session-members+timeline-events' : 'empty',
+      safeForPublic: true,
+    },
+    ledgerRankings: {
+      debt: buildRankingRows(members, 'debtCount'),
+      drink: buildRankingRows(members, 'drinkCount'),
+      cleared: buildRankingRows(members, 'clearedCount'),
+    },
+    eventHighlights,
+    shareContentFilter: buildShareContentFilter(timeline),
+  }
+}
+
+const buildPublicPhotoTitle = (node = {}) => {
+  if (node.nodeType === 'opening') return '聚会开场'
+  if (node.nodeType === 'closing') return '收尾回忆'
+  if (node.nodeType === 'drinking') return '账本高光'
+  return '精彩瞬间'
+}
+
+const serializePublicVisibleNode = (node = {}) => {
+  if (node.nodeKind === 'event') {
+    return {
+      id: cleanText(node.id),
+      nodeKind: 'event',
+      eventType: cleanText(node.eventType),
+      title:
+        node.eventType === 'drink_add'
+          ? '加酒记录'
+          : node.eventType === 'wheel_result'
+            ? '关键互动'
+            : '待处理记录',
+      createdAt: cleanText(node.createdAt),
+    }
+  }
+  return {
+    id: cleanText(node.id),
+    nodeKind: 'moment',
+    nodeType: cleanText(node.nodeType),
+    imageUrl: cleanText(node.imageUrl),
+    title: buildPublicPhotoTitle(node),
+    createdAt: cleanText(node.createdAt),
+  }
+}
+
+const getPublicSessionShareSummary = ({ sessionId, inviteCode } = {}) => {
+  const normalizedSessionId = cleanText(sessionId)
+  const normalizedInviteCode = cleanText(inviteCode).toUpperCase()
+  const session =
+    (normalizedSessionId ? getManagedSessionById(normalizedSessionId) : null) ||
+    (normalizedInviteCode ? getAdminStore().liveSessions.find((item) => cleanText(item.inviteCode).toUpperCase() === normalizedInviteCode) : null)
+  if (!session?.id) {
+    return null
+  }
+  const store = readMomentsStore()
+  const momentNodes = store.momentRecords
+    .filter((item) => item.sessionId === cleanText(session.id) && !item.removedAt)
+    .map((item) => ({ ...item, nodeKind: 'moment' }))
+  const eventNodes = store.sessionEvents
+    .filter((item) => item.sessionId === cleanText(session.id))
+    .map((item) => ({ ...item, nodeKind: 'event' }))
+  const timeline = {
+    sessionId: cleanText(session.id),
+    nodes: [...momentNodes, ...eventNodes].sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()),
+  }
+  const ledgerSnapshot = buildSessionLedgerSnapshot({ sessionId: session.id, timeline })
+  const visibleNodeIdSet = new Set(ledgerSnapshot.shareContentFilter.allowedNodeIds || [])
+  const visibleNodes = timeline.nodes.filter((node) => visibleNodeIdSet.has(node.id)).map(serializePublicVisibleNode)
+  const photoHighlights = visibleNodes
+    .filter((node) => node.nodeKind === 'moment' && node.imageUrl)
+    .slice(0, 6)
+    .map((node) => ({
+      id: node.id,
+      imageUrl: node.imageUrl,
+      nodeType: node.nodeType,
+      title: node.title,
+      uploaderAvatarUrl: cleanText(node.uploaderAvatarUrl),
+      createdAt: node.createdAt,
+    }))
+
+  return {
+    coverPhotoUrl: photoHighlights[0]?.imageUrl || '',
+    photoHighlights,
+    accountingHighlights: ledgerSnapshot.accountingHighlights,
+    ledgerSummary: ledgerSnapshot.ledgerSummary,
+    eventHighlights: ledgerSnapshot.eventHighlights,
+    keyEvents: ledgerSnapshot.eventHighlights,
+    shareContentFilter: ledgerSnapshot.shareContentFilter,
+    filteredNodeIds: ledgerSnapshot.shareContentFilter.filteredNodeIds || [],
+    visibleNodeIds: visibleNodes.map((node) => node.id),
+    visibleNodes,
+    permissionState: 'public',
+    publicAccessState: {
+      state: 'public_invite',
+      canViewPublicShare: true,
+      canViewMemberBrief: false,
+      reason: 'invite_code_valid',
+    },
+  }
+}
+
+const ensureUserCommerceState = (contentStore, profileId) => {
+  if (!contentStore.userCommerce || typeof contentStore.userCommerce !== 'object' || Array.isArray(contentStore.userCommerce)) {
+    contentStore.userCommerce = {}
+  }
+  if (!contentStore.userCommerce[profileId]) {
+    contentStore.userCommerce[profileId] = createDefaultUserCommerceState()
+  }
+  if (!Array.isArray(contentStore.userCommerce[profileId].pointsLedger)) {
+    contentStore.userCommerce[profileId].pointsLedger = []
+  }
+  return contentStore.userCommerce[profileId]
+}
+
+const createPointsLedgerEntry = ({ delta, kind, sourceId, title }) => ({
+  id: createId('ledger'),
+  title: cleanText(title),
+  createdAt: nowIso(),
+  delta: Number(delta) || 0,
+  kind: cleanText(kind),
+  sourceId: cleanText(sourceId),
+})
+
+const normalizeRankingRewardRule = (item = {}, index = 0) => {
+  const category = RANKING_CATEGORIES.has(cleanText(item.category)) ? cleanText(item.category) : 'today_highlight'
+  const rankStart = Math.max(1, Number(item.rankStart) || 1)
+  const rankEnd = Math.max(rankStart, Number(item.rankEnd) || rankStart)
+  return {
+    id: cleanText(item.id) || `reward-rule-${category}-${index + 1}`,
+    category,
+    enabled: cleanText(item.enabled || 'true') !== 'false',
+    rankStart,
+    rankEnd,
+    points: Math.max(0, Number(item.points) || 0),
+    reason: cleanText(item.reason),
+  }
+}
+
+const getRankingRewardRules = (store = readMomentsStore()) => {
+  const sourceRules = Array.isArray(store.rankingRewardRules) && store.rankingRewardRules.length
+    ? store.rankingRewardRules
+    : getAdminStore().rankingRewardRules || []
+  return sourceRules.map(normalizeRankingRewardRule).filter((item) => item.enabled && item.points > 0)
+}
+
+const refundMomentNominationsForMoment = ({ momentId, reason = 'moment removed from ranking' } = {}) => {
+  const normalizedMomentId = cleanText(momentId)
+  if (!normalizedMomentId) {
+    throw createHttpError('momentId required', 400)
+  }
+  const store = readMomentsStore()
+  const now = nowIso()
+  const targetNominations = store.momentNominations.filter(
+    (item) => item.momentId === normalizedMomentId && item.status === 'active' && !item.refundedAt && Number(item.pointsSpent || 0) > 0,
+  )
+  if (!targetNominations.length) {
+    return {
+      momentId: normalizedMomentId,
+      refundedCount: 0,
+      refundedPoints: 0,
+      nominations: [],
+    }
+  }
+
+  const contentStore = readContentStore()
+  let refundedPoints = 0
+  const refundedIds = new Set()
+  targetNominations.forEach((nomination) => {
+    const userState = ensureUserCommerceState(contentStore, nomination.profileId)
+    const alreadyRefunded = userState.pointsLedger.some(
+      (entry) => entry.kind === 'moment-nomination-refund' && entry.sourceId === nomination.id,
+    )
+    const refundPoints = Math.max(0, Number(nomination.pointsSpent) || 0)
+    if (!alreadyRefunded && refundPoints > 0) {
+      userState.points = Number(userState.points || 0) + refundPoints
+      userState.pointsLedger.unshift(
+        createPointsLedgerEntry({
+          delta: refundPoints,
+          kind: 'moment-nomination-refund',
+          sourceId: nomination.id,
+          title: `推举退款：${cleanText(reason) || normalizedMomentId}`,
+        }),
+      )
+      refundedPoints += refundPoints
+    }
+    nomination.status = 'refunded'
+    nomination.refundedAt = now
+    nomination.refundReason = cleanText(reason)
+    nomination.updatedAt = now
+    refundedIds.add(nomination.id)
+  })
+  writeContentStore(contentStore)
+  writeMomentsStore(store)
+
+  return {
+    momentId: normalizedMomentId,
+    refundedCount: refundedIds.size,
+    refundedPoints,
+    nominations: store.momentNominations.filter((item) => refundedIds.has(item.id)),
+  }
+}
+
+const grantRankingRewards = ({ category = 'today_highlight', limit = 100, operator = 'admin-console' } = {}) => {
+  const normalizedCategory = RANKING_CATEGORIES.has(cleanText(category)) ? cleanText(category) : 'today_highlight'
+  const ranking = listTodayRankings({ category: normalizedCategory, limit })
+  const store = readMomentsStore()
+  const rules = getRankingRewardRules(store).filter((item) => item.category === normalizedCategory)
+  const contentStore = readContentStore()
+  const now = nowIso()
+  const results = []
+  let grantedCount = 0
+  let skippedCount = 0
+  let totalPoints = 0
+
+  ranking.items.forEach((item) => {
+    const rule = rules.find((candidate) => item.rank >= candidate.rankStart && item.rank <= candidate.rankEnd)
+    const profileId = cleanText(item.moment?.uploaderProfileId)
+    const momentId = cleanText(item.moment?.id)
+    if (!rule || !profileId || !momentId) {
+      skippedCount += 1
+      return
+    }
+    const sourceId = `ranking-reward:${ranking.date}:${normalizedCategory}:${momentId}:${rule.id}`
+    const existedPayout = store.rankingRewardPayouts.some((payout) => payout.sourceId === sourceId)
+    const userState = ensureUserCommerceState(contentStore, profileId)
+    const existedLedger = userState.pointsLedger.some((entry) => entry.kind === 'ranking-reward' && entry.sourceId === sourceId)
+    if (existedPayout || existedLedger) {
+      skippedCount += 1
+      results.push({
+        momentId,
+        profileId,
+        rank: item.rank,
+        points: Number(rule.points) || 0,
+        status: 'skipped',
+        sourceId,
+      })
+      return
+    }
+
+    const points = Math.max(0, Number(rule.points) || 0)
+    userState.points = Number(userState.points || 0) + points
+    userState.pointsLedger.unshift(
+      createPointsLedgerEntry({
+        delta: points,
+        kind: 'ranking-reward',
+        sourceId,
+        title: `榜单奖励：${normalizedCategory} 第${item.rank}名`,
+      }),
+    )
+    const payout = normalizeRankingRewardPayout({
+      id: createId('ranking-reward-payout'),
+      sourceId,
+      category: normalizedCategory,
+      date: ranking.date,
+      momentId,
+      sessionId: item.moment.sessionId,
+      profileId,
+      profileName: item.moment.uploaderName,
+      rank: item.rank,
+      points,
+      ruleId: rule.id,
+      status: 'granted',
+      operator,
+      createdAt: now,
+      updatedAt: now,
+    })
+    store.rankingRewardPayouts.unshift(payout)
+    grantedCount += 1
+    totalPoints += points
+    results.push(payout)
+  })
+
+  writeContentStore(contentStore)
+  writeMomentsStore(store)
+  return {
+    category: normalizedCategory,
+    date: ranking.date,
+    grantedCount,
+    skippedCount,
+    totalPoints,
+    items: results,
+  }
+}
+
+const resolveLocalUploadPath = (imageUrl = '') => {
+  const text = cleanText(imageUrl)
+  if (!text || /^https?:\/\//i.test(text) || !text.startsWith('/uploads/')) {
+    return ''
+  }
+  const relativePath = text.replace(/^\/uploads\//, '')
+  const resolvedPath = path.resolve(path.join(__dirname, '..', 'public', 'uploads'), relativePath)
+  const uploadsRoot = path.resolve(path.join(__dirname, '..', 'public', 'uploads'))
+  if (!resolvedPath.startsWith(uploadsRoot)) {
+    return ''
+  }
+  return resolvedPath
+}
+
+const resolveImageDataUri = async (imageUrl = '') => {
+  const imagePath = resolveLocalUploadPath(imageUrl)
+  if (!imagePath || !fs.existsSync(imagePath)) {
+    return ''
+  }
+  try {
+    const image = sharp(imagePath).resize({ width: 720, height: 420, fit: 'cover' }).png()
+    const stats = await image.clone().stats()
+    const deviation = stats.channels
+      .slice(0, 3)
+      .reduce((sum, channel) => sum + Math.max(0, Number(channel.stdev) || 0), 0)
+    if (deviation < 18) {
+      return ''
+    }
+    const buffer = await image.toBuffer()
+    return `data:image/png;base64,${buffer.toString('base64')}`
+  } catch {
+    return ''
+  }
+}
+
+const resolveMiniProgramQrDataUri = async (imageUrl = '') => {
+  const text = cleanText(imageUrl)
+  const imagePath =
+    text === DEFAULT_MINI_PROGRAM_QR_URL || text === '/static/share-poster-miniapp-code.png'
+      ? defaultMiniProgramQrLocalPath
+      : ''
+  if (!imagePath || !fs.existsSync(imagePath)) {
+    return ''
+  }
+  try {
+    const buffer = await sharp(imagePath).png().toBuffer()
+    return `data:image/png;base64,${buffer.toString('base64')}`
+  } catch {
+    return ''
+  }
+}
+
+const getTaskVisibleNodes = (store, task) => {
+  const brief = store.sessionBriefs.find((item) => item.id === cleanText(task.briefId))
+  if (!brief) {
+    throw createHttpError('brief not found', 404)
+  }
+  return task.selectedNodeIds
+    .map((nodeId) => {
+      const moment = findMomentById(store, nodeId)
+      if (moment) {
+        return { ...moment, nodeKind: 'moment' }
+      }
+      const event = findEventById(store, nodeId)
+      return event ? { ...event, nodeKind: 'event' } : null
+    })
+    .filter((item) => item && isTimelineNodeShareImageEligible(item))
+}
+
+const POSTER_UNSAFE_TEXT_PATTERN =
+  /(IT-MOMENTS|PR Seed|dual_flow|share-task|session-|brief-|moment-|event-|nomination-|ranking-reward|fixture|seed|sample|test|测试种子|内部样本)/i
+
+const toPosterSafeText = (value = '', fallback = '聚会高光', maxLength = 18) => {
+  const text = cleanText(value)
+    .replace(/酒桌判官/g, '聚会记录师')
+    .replace(/酒局/g, '聚会')
+    .replace(/判官/g, '记录人')
+    .replace(/_/g, ' ')
+  if (!text || POSTER_UNSAFE_TEXT_PATTERN.test(text)) {
+    return trimText(fallback, maxLength)
+  }
+  return trimText(text, maxLength)
+}
+
+const getPosterMomentTitle = (node = {}) => {
+  if (node.nodeType === 'opening') return '开场合照'
+  if (node.nodeType === 'closing') return '收尾回忆'
+  if (node.nodeType === 'drinking') return '账本瞬间'
+  return '精彩瞬间'
+}
+
+const getPosterEventTitle = (node = {}) => {
+  if (node.eventType === 'drink_add') return '新增加酒记录'
+  if (node.eventType === 'wheel_result') return '记录关键互动'
+  return '新增待处理记录'
+}
+
+const formatPosterTime = (value = '') => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return '刚刚'
+  }
+  return new Intl.DateTimeFormat('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
+const renderPosterPhotoWall = (imageDataUris = []) => {
+  const images = imageDataUris.filter(Boolean).slice(0, 4)
+  if (!images.length) {
+    return `
+      <rect x="66" y="260" width="768" height="300" rx="36" fill="#17110d" stroke="#fff4de" stroke-opacity="0.18" stroke-width="2"/>
+      <circle cx="450" cy="368" r="54" fill="#ff5a3d" fill-opacity="0.20"/>
+      <text x="450" y="362" text-anchor="middle" font-size="30" font-weight="900" fill="#fff8ec">还没有可展示照片</text>
+      <text x="450" y="408" text-anchor="middle" font-size="23" font-weight="700" fill="#ffb1a0">拍第一张照片后再生成联合分享图</text>
+      <rect x="312" y="444" width="276" height="62" rx="31" fill="#ff5a3d"/>
+      <text x="450" y="484" text-anchor="middle" font-size="24" font-weight="900" fill="#fff8ec">去拍聚会高光</text>
+    `
+  }
+
+  const placements = [
+    { x: 94, y: 268, w: 324, h: 220, rotate: -4 },
+    { x: 392, y: 276, w: 330, h: 226, rotate: 3 },
+    { x: 190, y: 450, w: 246, h: 150, rotate: 4 },
+    { x: 492, y: 448, w: 232, h: 148, rotate: -3 },
+  ]
+
+  return images
+    .map((dataUri, index) => {
+      const item = placements[index]
+      const cx = item.x + item.w / 2
+      const cy = item.y + item.h / 2
+      const imageX = item.x + 14
+      const imageY = item.y + 14
+      const imageW = item.w - 28
+      const imageH = item.h - 46
+      return `
+        <g transform="rotate(${item.rotate} ${cx} ${cy})">
+          <rect x="${item.x}" y="${item.y}" width="${item.w}" height="${item.h}" rx="22" fill="#fff4de"/>
+          <rect x="${imageX}" y="${imageY}" width="${imageW}" height="${imageH}" rx="16" fill="#201611"/>
+          <clipPath id="posterPhoto${index}"><rect x="${imageX}" y="${imageY}" width="${imageW}" height="${imageH}" rx="16"/></clipPath>
+          <image href="${dataUri}" x="${imageX}" y="${imageY}" width="${imageW}" height="${imageH}" preserveAspectRatio="xMidYMid slice" clip-path="url(#posterPhoto${index})"/>
+          <text x="${item.x + 22}" y="${item.y + item.h - 17}" font-size="18" font-weight="800" fill="#2a1c13">聚会照片 ${index + 1}</text>
+        </g>
+      `
+    })
+    .join('')
+}
+
+const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null }) => {
+  const session = getManagedSessionById(task.sessionId) || {}
+  const imageNodes = nodes.filter((item) => item.nodeKind === 'moment' && item.imageUrl).slice(0, 6)
+  const imageDataUris = await Promise.all(imageNodes.map((item) => resolveImageDataUri(item.imageUrl)))
+  const visibleImageDataUris = imageDataUris.filter(Boolean)
+  const visiblePhotoCount = visibleImageDataUris.length
+  const ledgerSummary = ledgerSnapshot?.ledgerSummary || {}
+  const accountingHighlights = Array.isArray(ledgerSnapshot?.accountingHighlights) ? ledgerSnapshot.accountingHighlights : []
+  const settlementSummary = ledgerSnapshot?.settlementSummary || {}
+  const eventHighlights = Array.isArray(ledgerSnapshot?.eventHighlights) ? ledgerSnapshot.eventHighlights : []
+  const ledgerCount = Number(ledgerSummary.ledgerCount) || 0
+  const inviteCode = toPosterSafeText(session.inviteCode || '', '回流查看', 10)
+  const sessionTitle = toPosterSafeText(session.name || brief.title, '今晚聚会高光', 16)
+  const qrDataUri = await resolveMiniProgramQrDataUri(getMiniProgramQrUrl(task))
+  const ledgerRows = accountingHighlights
+    .slice(0, 4)
+    .map((item, index) => {
+      const x = 80 + index * 185
+      const colors = ['#ff5a3d', '#63dfae', '#ffc75a', '#3c8dff']
+      return `
+        <rect x="${x}" y="656" width="162" height="132" rx="28" fill="#17110d" stroke="${colors[index] || '#fff4de'}" stroke-opacity="0.72" stroke-width="2"/>
+        <text x="${x + 22}" y="696" font-size="21" font-weight="800" fill="#fff4de">${escapeXml(toPosterSafeText(item.label, '账本记录', 7))}</text>
+        <text x="${x + 22}" y="756" font-size="47" font-weight="900" fill="${colors[index] || '#fff4de'}">${Math.max(0, Number(item.value) || 0)}</text>
+        <text x="${x + 116}" y="756" font-size="23" font-weight="800" fill="#fff4de">${escapeXml(toPosterSafeText(item.unit, '条', 2))}</text>
+      `
+    })
+    .join('')
+
+  const timelineItems = [
+    ...eventHighlights.map((item) => ({ ...item, nodeKind: 'event-highlight' })),
+    ...nodes.filter((item) => item.nodeKind === 'event'),
+    ...nodes.filter((item) => item.nodeKind === 'moment'),
+  ].slice(0, 3)
+  const timelineRows = timelineItems
+    .map((item, index) => {
+      const y = 908 + index * 104
+      const title =
+        item.nodeKind === 'event-highlight'
+          ? toPosterSafeText(item.text, getPosterEventTitle(item), 15)
+          : item.nodeKind === 'event'
+            ? getPosterEventTitle(item)
+            : getPosterMomentTitle(item)
+      const desc =
+        item.nodeKind === 'moment'
+          ? '已授权公开照片'
+          : item.nodeKind === 'event-highlight'
+            ? '账本高光'
+            : '聚会账本'
+      return `
+        <rect x="80" y="${y - 48}" width="740" height="82" rx="25" fill="#140f0c" stroke="#fff4de" stroke-opacity="0.16"/>
+        <circle cx="122" cy="${y - 8}" r="18" fill="${index % 2 ? '#63dfae' : '#ff5a3d'}"/>
+        <text x="122" y="${y}" text-anchor="middle" font-size="19" font-weight="900" fill="#090705">${index + 1}</text>
+        <text x="160" y="${y - 14}" font-size="27" font-weight="900" fill="#fff8ec">${escapeXml(title)}</text>
+        <text x="160" y="${y + 19}" font-size="20" font-weight="700" fill="#ffb1a0">${escapeXml(desc)}</text>
+        <text x="780" y="${y + 3}" text-anchor="end" font-size="20" font-weight="800" fill="#fff4de" opacity="0.72">${escapeXml(formatPosterTime(item.createdAt))}</text>
+      `
+    })
+    .join('')
+  const summaryText = toPosterSafeText(settlementSummary.text, ledgerCount > 0 ? '聚会账本高光已生成' : '聚会账本还没开始，先记一笔', 34)
+  const photoWall = renderPosterPhotoWall(visibleImageDataUris)
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${SHARE_IMAGE_WIDTH}" height="${SHARE_IMAGE_HEIGHT}" viewBox="0 0 ${SHARE_IMAGE_WIDTH} ${SHARE_IMAGE_HEIGHT}" font-family="'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', sans-serif">
+      <defs>
+        <style>text { font-family: 'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', sans-serif; }</style>
+        <radialGradient id="bgGlow" cx="48%" cy="24%" r="70%">
+          <stop offset="0" stop-color="#312016"/>
+          <stop offset="0.48" stop-color="#1a100b"/>
+          <stop offset="1" stop-color="#090705"/>
+        </radialGradient>
+        <linearGradient id="coralLine" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#ff5a3d"/>
+          <stop offset="0.55" stop-color="#ffc75a"/>
+          <stop offset="1" stop-color="#63dfae"/>
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#bgGlow)"/>
+      <circle cx="120" cy="160" r="110" fill="#ff5a3d" opacity="0.16"/>
+      <circle cx="812" cy="230" r="142" fill="#63dfae" opacity="0.12"/>
+      <circle cx="720" cy="1120" r="190" fill="#3c8dff" opacity="0.10"/>
+      <rect x="38" y="38" width="824" height="1324" rx="46" fill="#090705" fill-opacity="0.60" stroke="#fff4de" stroke-opacity="0.16"/>
+      <text x="74" y="128" font-size="54" font-weight="900" fill="#fff8ec">今晚聚会高光</text>
+      <rect x="74" y="154" width="290" height="12" rx="6" fill="url(#coralLine)"/>
+      <text x="74" y="204" font-size="27" font-weight="800" fill="#ffb1a0">${escapeXml(sessionTitle)}</text>
+      <text x="74" y="238" font-size="30" font-weight="900" fill="#fff8ec">照片墙</text>
+      <text x="812" y="238" text-anchor="end" font-size="23" font-weight="800" fill="#fff4de" opacity="0.76">${visiblePhotoCount ? `${visiblePhotoCount} 张公开照片` : '照片空态'}</text>
+      ${photoWall}
+      <text x="74" y="638" font-size="30" font-weight="900" fill="#fff8ec">聚会账本</text>
+      <text x="812" y="638" text-anchor="end" font-size="23" font-weight="800" fill="#63dfae">${ledgerCount} 条高光</text>
+      ${ledgerRows || '<rect x="80" y="656" width="740" height="132" rx="28" fill="#17110d" stroke="#63dfae" stroke-opacity="0.55"/><text x="450" y="734" text-anchor="middle" font-size="28" font-weight="900" fill="#fff8ec">账本还没开始，先记一笔</text>'}
+      <text x="74" y="846" font-size="30" font-weight="900" fill="#fff8ec">关键时刻</text>
+      ${timelineRows || '<rect x="80" y="870" width="740" height="104" rx="28" fill="#140f0c" stroke="#fff4de" stroke-opacity="0.16"/><text x="450" y="933" text-anchor="middle" font-size="26" font-weight="900" fill="#fff4de">暂无公开关键时刻</text>'}
+      <rect x="74" y="1168" width="752" height="116" rx="28" fill="#fff4de"/>
+      <text x="108" y="1218" font-size="24" font-weight="900" fill="#2a1c13">聚会总结</text>
+      <text x="108" y="1260" font-size="28" font-weight="900" fill="#2a1c13">${escapeXml(summaryText)}</text>
+      <rect x="74" y="1292" width="752" height="68" rx="28" fill="#fff4de" fill-opacity="0.12"/>
+      <text x="108" y="1334" font-size="20" font-weight="800" fill="#fff8ec">房间码 ${escapeXml(inviteCode)}</text>
+      <text x="438" y="1334" text-anchor="middle" font-size="20" font-weight="800" fill="#63dfae">仅展示已授权公开内容</text>
+      <text x="612" y="1334" font-size="20" font-weight="800" fill="#fff8ec">聚会记录师</text>
+      <rect x="662" y="1178" width="144" height="160" rx="28" fill="#fff4de"/>
+      ${qrDataUri ? `<image href="${qrDataUri}" x="680" y="1196" width="108" height="108" preserveAspectRatio="xMidYMid meet"/>` : ''}
+      <text x="734" y="1326" text-anchor="middle" font-size="18" font-weight="900" fill="#2a1c13">扫码回到小程序</text>
+    </svg>
+  `
+}
+
+const createMoment = ({ sessionId, profile, payload = {} }) => {
+  const { member, profileId, session } = assertSessionMember(sessionId, profile)
+  const nodeType = NODE_TYPES.has(cleanText(payload.nodeType)) ? cleanText(payload.nodeType) : 'highlight'
+  const visibility = VISIBILITIES.has(cleanText(payload.visibility))
+    ? cleanText(payload.visibility)
+    : nodeType === 'private'
+      ? 'private'
+      : 'session'
+  const visibleProfileIds = normalizeVisibleProfileIds({
+    session,
+    nodeType,
+    visibility,
+    visibleProfileIds: payload.visibleProfileIds,
+  })
+  const store = readMomentsStore()
+  const clientDraftId = cleanText(payload.clientDraftId)
+  const existing =
+    clientDraftId &&
+    store.momentRecords.find(
+      (item) => item.sessionId === cleanText(sessionId) && item.uploaderProfileId === profileId && item.clientDraftId === clientDraftId,
+    )
+  if (existing) {
+    return serializeMomentForViewer(existing, profileId)
+  }
+
+  const reusableOpening =
+    nodeType === 'opening'
+      ? store.momentRecords.find(
+          (item) => item.sessionId === cleanText(sessionId) && item.uploaderProfileId === profileId && item.nodeType === 'opening' && !item.removedAt,
+        )
+      : null
+  const base = {
+    ...(reusableOpening || {}),
+    id: reusableOpening?.id || createId('moment'),
+    clientDraftId,
+    sessionId: cleanText(sessionId),
+    uploaderProfileId: profileId,
+    uploaderName: cleanText(profile.name || member.name),
+    nodeType,
+    mediaType: 'image',
+    imageUrl: cleanText(payload.imageUrl),
+    caption: cleanText(payload.caption) || buildDefaultCaption(nodeType),
+    tags: normalizeStringArray(payload.tags),
+    visibility,
+    visibleProfileIds,
+    usageConsent: normalizeUsageConsent(payload.usageConsent),
+    reviewStatus: reusableOpening?.reviewStatus || 'pending',
+    secondaryReviewStatus: reusableOpening?.secondaryReviewStatus || 'pending',
+    removedAt: '',
+    createdAt: reusableOpening?.createdAt || nowIso(),
+    updatedAt: nowIso(),
+  }
+  const status = computeMomentStatus(base)
+  const next = normalizeMomentRecord({
+    ...base,
+    ...status,
+    timelineTitle: cleanText(payload.timelineTitle) || buildTimelineTitle(base),
+  })
+
+  store.momentRecords = reusableOpening
+    ? store.momentRecords.map((item) => (item.id === reusableOpening.id ? next : item))
+    : [next, ...store.momentRecords]
+  writeMomentsStore(store)
+  return serializeMomentForViewer(next, profileId)
+}
+
+const updateMoment = ({ momentId, profile, payload = {} }) => {
+  const profileId = getProfileId(profile)
+  const store = readMomentsStore()
+  const index = store.momentRecords.findIndex((item) => item.id === cleanText(momentId) && !item.removedAt)
+  if (index === -1) {
+    throw createHttpError('moment not found', 404)
+  }
+  const existed = store.momentRecords[index]
+  const { session } = assertSessionMember(existed.sessionId, profile)
+  if (existed.uploaderProfileId !== profileId) {
+    throw createHttpError('forbidden', 403)
+  }
+  const nextVisibility =
+    Object.prototype.hasOwnProperty.call(payload, 'visibility') && VISIBILITIES.has(cleanText(payload.visibility))
+      ? cleanText(payload.visibility)
+      : existed.visibility
+  const nextVisibleProfileIds = Object.prototype.hasOwnProperty.call(payload, 'visibleProfileIds')
+    ? normalizeVisibleProfileIds({
+        session,
+        nodeType: existed.nodeType,
+        visibility: nextVisibility,
+        visibleProfileIds: payload.visibleProfileIds,
+      })
+    : normalizeVisibleProfileIds({
+        session,
+        nodeType: existed.nodeType,
+        visibility: nextVisibility,
+        visibleProfileIds: existed.visibleProfileIds,
+      })
+  const nextBase = {
+    ...existed,
+    imageUrl: Object.prototype.hasOwnProperty.call(payload, 'imageUrl') ? cleanText(payload.imageUrl) : existed.imageUrl,
+    caption: Object.prototype.hasOwnProperty.call(payload, 'caption') ? cleanText(payload.caption) || buildDefaultCaption(existed.nodeType) : existed.caption,
+    tags: Object.prototype.hasOwnProperty.call(payload, 'tags') ? normalizeStringArray(payload.tags) : existed.tags,
+    visibility: nextVisibility,
+    visibleProfileIds: nextVisibleProfileIds,
+    usageConsent: Object.prototype.hasOwnProperty.call(payload, 'usageConsent') ? normalizeUsageConsent(payload.usageConsent) : existed.usageConsent,
+    updatedAt: nowIso(),
+  }
+  const status = computeMomentStatus(nextBase)
+  const next = normalizeMomentRecord({
+    ...nextBase,
+    ...status,
+    timelineTitle: cleanText(payload.timelineTitle) || buildTimelineTitle(nextBase),
+  })
+  store.momentRecords[index] = next
+  writeMomentsStore(store)
+  return serializeMomentForViewer(next, profileId)
+}
+
+const deleteMoment = ({ momentId, profile }) => {
+  const profileId = getProfileId(profile)
+  const store = readMomentsStore()
+  const index = store.momentRecords.findIndex((item) => item.id === cleanText(momentId) && !item.removedAt)
+  if (index === -1) {
+    throw createHttpError('moment not found', 404)
+  }
+  const existed = store.momentRecords[index]
+  assertSessionMember(existed.sessionId, profile)
+  if (existed.uploaderProfileId !== profileId) {
+    throw createHttpError('forbidden', 403)
+  }
+  if (
+    existed.reviewStatus === 'approved' ||
+    existed.secondaryReviewStatus === 'approved' ||
+    existed.rankingEligible ||
+    existed.rewardEligible
+  ) {
+    throw createHttpError('moment cannot be deleted after publish', 409)
+  }
+  store.momentRecords[index] = normalizeMomentRecord({
+    ...existed,
+    removedAt: nowIso(),
+    updatedAt: nowIso(),
+  })
+  writeMomentsStore(store)
+  return { id: existed.id, removed: true }
+}
+
+const createSessionEvent = ({ sessionId, profile, payload = {} }) => {
+  const { member, profileId, session } = assertSessionHost(sessionId, profile)
+  const eventType = EVENT_TYPES.has(cleanText(payload.eventType)) ? cleanText(payload.eventType) : ''
+  if (!eventType) {
+    throw createHttpError('invalid eventType', 400)
+  }
+  const clientEventId = cleanText(payload.clientEventId)
+  if (!clientEventId) {
+    throw createHttpError('clientEventId required', 400)
+  }
+  const store = readMomentsStore()
+  const existing = store.sessionEvents.find((item) => item.sessionId === cleanText(sessionId) && item.clientEventId === clientEventId)
+  if (existing) {
+    return serializeEvent(existing)
+  }
+  const targetProfileId = cleanText(payload.targetProfileId)
+  const targetMember = getSessionMember(session, targetProfileId)
+  if (targetProfileId && !targetMember) {
+    throw createHttpError('targetProfileId must be session member', 400)
+  }
+  const next = normalizeSessionEvent({
+    id: createId('event'),
+    clientEventId,
+    sessionId,
+    eventType,
+    operatorProfileId: profileId,
+    operatorName: cleanText(profile.name || member.name),
+    targetProfileId,
+    targetName: cleanText(payload.targetName || targetMember?.name),
+    scoreDelta: Number(payload.scoreDelta) || 0,
+    caption: cleanText(payload.caption),
+    createdAt: cleanText(payload.createdAt) || nowIso(),
+  })
+  store.sessionEvents.unshift(next)
+  writeMomentsStore(store)
+  return serializeEvent(next)
+}
+
+const getSessionTimeline = ({ sessionId, profile }) => {
+  const { profileId } = assertSessionMember(sessionId, profile)
+  const store = readMomentsStore()
+  const moments = store.momentRecords
+    .filter((item) => item.sessionId === cleanText(sessionId) && !item.removedAt)
+    .map((item) => serializeMomentForViewer(item, profileId))
+  const events = store.sessionEvents
+    .filter((item) => item.sessionId === cleanText(sessionId))
+    .map(serializeEvent)
+  const nodes = [...moments, ...events].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+  return {
+    sessionId: cleanText(sessionId),
+    nodes,
+    pendingMediaCount: moments.filter((item) => item.completionStatus === 'needs_media' && !item.isTimelinePlaceholder).length,
+  }
+}
+
+const createOrRefreshSessionBrief = ({ sessionId, profile }) => {
+  assertSessionMember(sessionId, profile)
+  const store = readMomentsStore()
+  const timeline = getSessionTimeline({ sessionId, profile })
+  const momentNodes = timeline.nodes.filter((item) => item.nodeKind === 'moment' && !item.isTimelinePlaceholder)
+  const existing = store.sessionBriefs.find((item) => item.sessionId === cleanText(sessionId))
+  const now = nowIso()
+  const next = normalizeSessionBrief({
+    ...(existing || {}),
+    id: existing?.id || createId('brief'),
+    sessionId,
+    title: existing?.title || '聚会时间线简报',
+    coverMode: 'opening_collage',
+    openingMomentIds: momentNodes.filter((item) => item.nodeType === 'opening').map((item) => item.id),
+    closingMomentIds: momentNodes.filter((item) => item.nodeType === 'closing').map((item) => item.id),
+    timelineNodeIds: timeline.nodes.map((item) => item.id),
+    pendingMediaCount: timeline.pendingMediaCount,
+    rankingEligible: momentNodes.some((item) => item.rankingEligible === true),
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+  })
+  store.sessionBriefs = existing
+    ? store.sessionBriefs.map((item) => (item.id === existing.id ? next : item))
+    : [next, ...store.sessionBriefs]
+  writeMomentsStore(store)
+  return {
+    ...next,
+    timeline,
+    ...buildSessionLedgerSnapshot({ sessionId, timeline }),
+  }
+}
+
+const getSessionBrief = ({ briefId, profile }) => {
+  const store = readMomentsStore()
+  const brief = store.sessionBriefs.find((item) => item.id === cleanText(briefId))
+  if (!brief) {
+    throw createHttpError('brief not found', 404)
+  }
+  const timeline = getSessionTimeline({ sessionId: brief.sessionId, profile })
+  return {
+    ...brief,
+    timeline,
+    ...buildSessionLedgerSnapshot({ sessionId: brief.sessionId, timeline }),
+  }
+}
+
+const createShareImageTask = ({ briefId, profile, payload = {} }) => {
+  const brief = getSessionBrief({ briefId, profile })
+  const layoutMode = cleanText(payload.layoutMode) || 'timeline'
+  const store = readMomentsStore()
+  const existing = store.shareImageTasks.find(
+    (item) => item.briefId === brief.id && item.layoutMode === layoutMode && ['pending', 'processing', 'ready'].includes(item.status),
+  )
+  if (existing) {
+    return decorateShareImageTask(existing)
+  }
+  const availableNodeIds = brief.timeline.nodes.filter(isTimelineNodeShareImageEligible).map((item) => item.id)
+  const availableNodeIdSet = new Set(availableNodeIds)
+  const requestedNodeIds = normalizeStringArray(payload.selectedNodeIds)
+  const invalidNodeIds = requestedNodeIds.filter((nodeId) => !availableNodeIdSet.has(nodeId))
+  if (invalidNodeIds.length) {
+    throw createHttpError('selectedNodeIds must belong to visible brief timeline nodes', 400)
+  }
+  const selectedNodeIds = requestedNodeIds.length ? requestedNodeIds : availableNodeIds.slice(0, 6)
+  if (!selectedNodeIds.length) {
+    throw createHttpError('selectedNodeIds required', 400)
+  }
+  const task = normalizeShareImageTask({
+    id: createId('share-task'),
+    sessionId: brief.sessionId,
+    briefId: brief.id,
+    status: 'pending',
+    layoutMode,
+    ledgerIncluded: payload.includeLedger === true || layoutMode === 'dual_flow',
+    selectedNodeIds,
+    createdAt: nowIso(),
+  })
+  store.shareImageTasks.unshift(task)
+  store.sessionBriefs = store.sessionBriefs.map((item) =>
+    item.id === brief.id ? normalizeSessionBrief({ ...item, shareImageTaskId: task.id, shareImageStatus: task.status, updatedAt: nowIso() }) : item,
+  )
+  writeMomentsStore(store)
+  return decorateShareImageTask(task)
+}
+
+const getShareImageTask = ({ taskId, profile }) => {
+  const store = readMomentsStore()
+  const task = store.shareImageTasks.find((item) => item.id === cleanText(taskId))
+  if (!task) {
+    throw createHttpError('share task not found', 404)
+  }
+  assertSessionMember(task.sessionId, profile)
+  return decorateShareImageTask(task)
+}
+
+const updateBriefTaskStatus = (store, task) => {
+  store.sessionBriefs = store.sessionBriefs.map((item) =>
+    item.id === task.briefId
+      ? normalizeSessionBrief({
+          ...item,
+          shareImageTaskId: task.id,
+          shareImageStatus: task.status,
+          updatedAt: nowIso(),
+        })
+      : item,
+  )
+}
+
+const processShareImageTask = async ({ taskId, profile }) => {
+  const store = readMomentsStore()
+  const index = store.shareImageTasks.findIndex((item) => item.id === cleanText(taskId))
+  if (index === -1) {
+    throw createHttpError('share task not found', 404)
+  }
+  const existed = store.shareImageTasks[index]
+  assertSessionMember(existed.sessionId, profile)
+  if (!['pending', 'failed', 'expired'].includes(existed.status)) {
+    throw createHttpError('share task is not processable', 409)
+  }
+
+  const processingTask = normalizeShareImageTask({
+    ...existed,
+    status: 'processing',
+    failedReason: '',
+    startedAt: nowIso(),
+    updatedAt: nowIso(),
+  })
+  store.shareImageTasks[index] = processingTask
+  updateBriefTaskStatus(store, processingTask)
+  writeMomentsStore(store)
+
+  try {
+    const nextStore = readMomentsStore()
+    const task = nextStore.shareImageTasks.find((item) => item.id === processingTask.id)
+    const brief = nextStore.sessionBriefs.find((item) => item.id === processingTask.briefId)
+    if (!task || !brief) {
+      throw createHttpError('share task source not found', 404)
+    }
+    const nodes = getTaskVisibleNodes(nextStore, task)
+    if (!nodes.length) {
+      throw createHttpError('share task has no visible nodes', 400)
+    }
+    fs.mkdirSync(shareImageOutputRoot, { recursive: true })
+    const timeline = getSessionTimeline({ sessionId: task.sessionId, profile })
+    const ledgerSnapshot = buildSessionLedgerSnapshot({ sessionId: task.sessionId, timeline })
+    const svg = await buildShareImageSvg({ brief, task, nodes, ledgerSnapshot })
+    const buffer = await sharp(Buffer.from(svg)).png().toBuffer()
+    const fileName = `${task.id}.png`
+    const targetPath = path.join(shareImageOutputRoot, fileName)
+    fs.writeFileSync(targetPath, buffer)
+
+    const latestStore = readMomentsStore()
+    const latestIndex = latestStore.shareImageTasks.findIndex((item) => item.id === task.id)
+    if (latestIndex === -1) {
+      throw createHttpError('share task not found', 404)
+    }
+    const readyTask = normalizeShareImageTask({
+      ...latestStore.shareImageTasks[latestIndex],
+      status: 'ready',
+      imageUrl: `/uploads/moments/share-tasks/${fileName}`,
+      failedReason: '',
+      finishedAt: nowIso(),
+      updatedAt: nowIso(),
+    })
+    latestStore.shareImageTasks[latestIndex] = readyTask
+    updateBriefTaskStatus(latestStore, readyTask)
+    writeMomentsStore(latestStore)
+    return decorateShareImageTask(readyTask)
+  } catch (error) {
+    const failedStore = readMomentsStore()
+    const failedIndex = failedStore.shareImageTasks.findIndex((item) => item.id === processingTask.id)
+    if (failedIndex === -1) {
+      throw error
+    }
+    const failedTask = normalizeShareImageTask({
+      ...failedStore.shareImageTasks[failedIndex],
+      status: 'failed',
+      failedReason: error instanceof Error ? error.message : 'share image generation failed',
+      finishedAt: nowIso(),
+      updatedAt: nowIso(),
+    })
+    failedStore.shareImageTasks[failedIndex] = failedTask
+    updateBriefTaskStatus(failedStore, failedTask)
+    writeMomentsStore(failedStore)
+    return decorateShareImageTask(failedTask)
+  }
+}
+
+const retryShareImageTask = ({ taskId, profile }) => {
+  const store = readMomentsStore()
+  const index = store.shareImageTasks.findIndex((item) => item.id === cleanText(taskId))
+  if (index === -1) {
+    throw createHttpError('share task not found', 404)
+  }
+  const existed = store.shareImageTasks[index]
+  assertSessionMember(existed.sessionId, profile)
+  if (!['failed', 'expired'].includes(existed.status)) {
+    throw createHttpError('only failed or expired share tasks can be retried', 409)
+  }
+  const task = normalizeShareImageTask({
+    ...existed,
+    status: 'pending',
+    failedReason: '',
+    retryCount: existed.retryCount + 1,
+    updatedAt: nowIso(),
+  })
+  store.shareImageTasks[index] = task
+  updateBriefTaskStatus(store, task)
+  writeMomentsStore(store)
+  return decorateShareImageTask(task)
+}
+
+const getUserSessionMomentSummaries = ({ profile }) => {
+  const profileId = getProfileId(profile)
+  if (!profileId) {
+    throw createHttpError('unauthorized', 401)
+  }
+  const reports = listManagedReports(profileId, 'all')
+  const store = readMomentsStore()
+  return reports.map((report) => {
+    const sessionId = cleanText(report.sessionId)
+    const session = sessionId ? getManagedSessionById(sessionId) : null
+    const sessionState = cleanText(session?.state || report.status)
+    const sessionStatus = cleanText(session?.status || report.status)
+    const isEndedSession = sessionState.includes('结束') || sessionStatus.includes('结束')
+    const moments = store.momentRecords.filter((item) => item.sessionId === sessionId && !item.removedAt)
+    const brief = store.sessionBriefs.find((item) => item.sessionId === sessionId)
+    const task = brief?.shareImageTaskId ? store.shareImageTasks.find((item) => item.id === brief.shareImageTaskId) : null
+    const resumableMomentIds = isEndedSession
+      ? []
+      : moments
+          .filter((item) => item.uploaderProfileId === profileId && item.completionStatus === 'needs_media')
+          .map((item) => item.id)
+    const readyShareImageUrl = cleanText(task?.imageUrl || task?.posterImageUrl || task?.readyShareImageUrl)
+    return {
+      sessionId,
+      reportId: report.reportId || report.id,
+      sessionName: report.sessionName,
+      title: report.title,
+      state: sessionState,
+      stateText: sessionState,
+      status: sessionStatus,
+      endedAt: cleanText(session?.endedAt),
+      updatedAt: cleanText(session?.updatedAt),
+      canResume: resumableMomentIds.length > 0,
+      canShare: Boolean(brief?.id && (task?.status === 'ready' ? readyShareImageUrl : brief.shareImageTaskId || task?.id)),
+      pendingMediaCount: moments.filter((item) => item.uploaderProfileId === profileId && item.completionStatus === 'needs_media').length,
+      canResumeMomentIds: resumableMomentIds,
+      briefId: brief?.id || '',
+      shareImageTaskId: task?.id || '',
+      shareImageStatus: task?.status || '',
+      shareImageUrl: task?.imageUrl || '',
+      readyShareImageUrl,
+      rankingEntryEnabled: Boolean(brief?.rankingEligible),
+    }
+  })
+}
+
+const buildRankingEntry = ({ moment, nominations, rank, category }) => {
+  const pointsTotal = nominations.reduce((sum, item) => sum + (Number(item.pointsSpent) || 0), 0)
+  const nominationCount = nominations.length
+  const latestNominationAt = nominations
+    .map((item) => item.createdAt)
+    .filter(Boolean)
+    .sort()
+    .at(-1) || ''
+  return {
+    category,
+    moment: serializeMomentForViewer(moment, moment.uploaderProfileId),
+    nominationCount,
+    pointsTotal,
+    rank,
+    score: pointsTotal + nominationCount,
+    latestNominationAt,
+  }
+}
+
+const listTodayRankings = ({ category = 'today_highlight', limit = 20 } = {}) => {
+  const normalizedCategory = RANKING_CATEGORIES.has(cleanText(category)) ? cleanText(category) : 'today_highlight'
+  const today = getTodayYmd()
+  const store = readMomentsStore()
+  const momentMap = new Map(
+    store.momentRecords
+      .filter((item) => isMomentPublicForRanking(item))
+      .map((item) => [item.id, item]),
+  )
+  const nominationGroups = new Map()
+  store.momentNominations
+    .filter((item) => item.status === 'active' && item.category === normalizedCategory && getTodayYmd(item.createdAt) === today)
+    .forEach((item) => {
+      if (!momentMap.has(item.momentId)) {
+        return
+      }
+      const group = nominationGroups.get(item.momentId) || []
+      group.push(item)
+      nominationGroups.set(item.momentId, group)
+    })
+  return {
+    category: normalizedCategory,
+    date: today,
+    items: Array.from(nominationGroups.entries())
+      .map(([momentId, nominations]) => buildRankingEntry({ moment: momentMap.get(momentId), nominations, category: normalizedCategory }))
+      .sort((left, right) => {
+        if (right.score !== left.score) return right.score - left.score
+        if (right.pointsTotal !== left.pointsTotal) return right.pointsTotal - left.pointsTotal
+        return new Date(right.latestNominationAt).getTime() - new Date(left.latestNominationAt).getTime()
+      })
+      .slice(0, Math.max(1, Math.min(100, Number(limit) || 20)))
+      .map((item, index) => ({ ...item, rank: index + 1 })),
+  }
+}
+
+const getMomentNominationEligibility = ({ momentId, profile, category }) => {
+  const profileId = getProfileId(profile)
+  if (!profileId) {
+    throw createHttpError('unauthorized', 401)
+  }
+  const store = readMomentsStore()
+  const moment = findMomentById(store, momentId)
+  if (!moment) {
+    throw createHttpError('moment not found', 404)
+  }
+  assertSessionMember(moment.sessionId, profile)
+  const normalizedCategory = getRankingCategory(category, moment)
+  const eligible = isMomentPublicForRanking(moment)
+  const today = getTodayYmd()
+  const alreadyNominatedToday = store.momentNominations.some(
+    (item) =>
+      item.status === 'active' &&
+      item.momentId === moment.id &&
+      item.profileId === profileId &&
+      item.category === normalizedCategory &&
+      getTodayYmd(item.createdAt) === today,
+  )
+  return {
+    alreadyNominatedToday,
+    category: normalizedCategory,
+    eligible: eligible && !alreadyNominatedToday,
+    momentId: moment.id,
+    pointsCost: DEFAULT_NOMINATION_POINTS,
+    reason: !eligible
+      ? 'moment is not eligible for ranking'
+      : alreadyNominatedToday
+        ? 'already nominated today'
+        : '',
+  }
+}
+
+const createMomentNomination = ({ momentId, profile, payload = {} }) => {
+  const profileId = getProfileId(profile)
+  if (!profileId) {
+    throw createHttpError('unauthorized', 401)
+  }
+  const store = readMomentsStore()
+  const moment = findMomentById(store, momentId)
+  if (!moment) {
+    throw createHttpError('moment not found', 404)
+  }
+  assertSessionMember(moment.sessionId, profile)
+  const category = getRankingCategory(payload.category, moment)
+  const clientNominationId = cleanText(payload.clientNominationId)
+  const existingByClientId =
+    clientNominationId &&
+    store.momentNominations.find(
+      (item) => item.clientNominationId === clientNominationId && item.profileId === profileId && item.momentId === moment.id,
+    )
+  if (existingByClientId) {
+    return existingByClientId
+  }
+  const eligibility = getMomentNominationEligibility({ momentId: moment.id, profile, category })
+  if (!eligibility.eligible) {
+    throw createHttpError(eligibility.reason || 'moment is not eligible for ranking', eligibility.alreadyNominatedToday ? 409 : 400)
+  }
+
+  const contentStore = readContentStore()
+  const userState = ensureUserCommerceState(contentStore, profileId)
+  if (Number(userState.points || 0) < DEFAULT_NOMINATION_POINTS) {
+    throw createHttpError('points not enough', 400)
+  }
+
+  const nomination = normalizeMomentNomination({
+    id: createId('nomination'),
+    clientNominationId,
+    momentId: moment.id,
+    sessionId: moment.sessionId,
+    profileId,
+    profileName: cleanText(profile.name),
+    category,
+    pointsSpent: DEFAULT_NOMINATION_POINTS,
+    status: 'active',
+    createdAt: nowIso(),
+  })
+
+  userState.points = Math.max(0, Number(userState.points || 0) - DEFAULT_NOMINATION_POINTS)
+  userState.pointsLedger.unshift(
+    createPointsLedgerEntry({
+      delta: -DEFAULT_NOMINATION_POINTS,
+      kind: 'moment-nomination',
+      sourceId: nomination.id,
+      title: `推举精彩瞬间：${category}`,
+    }),
+  )
+  writeContentStore(contentStore)
+
+  store.momentNominations.unshift(nomination)
+  writeMomentsStore(store)
+  return nomination
+}
+
+const parseImageDataUrl = (value) => {
+  const match = cleanText(value).match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,([\s\S]+)$/)
+  if (!match) {
+    throw createHttpError('invalid image dataUrl', 400)
+  }
+  const mimeType = match[1].toLowerCase()
+  if (!IMAGE_MIME_EXTENSION_MAP[mimeType]) {
+    throw createHttpError('only jpeg, png and webp are supported', 400)
+  }
+  const buffer = Buffer.from(match[2], 'base64')
+  if (!buffer.length || buffer.length > MAX_MOMENT_IMAGE_BYTES) {
+    throw createHttpError('image size must be within 5MB', 400)
+  }
+  return { buffer, mimeType }
+}
+
+const uploadMomentImage = async ({ profile, payload = {} }) => {
+  const sessionId = cleanText(payload.sessionId)
+  assertSessionMember(sessionId, profile)
+  const { buffer } = parseImageDataUrl(payload.dataUrl)
+  const safeBaseName =
+    cleanText(path.parse(cleanText(payload.fileName) || 'moment').name)
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'moment'
+  const targetDir = path.join(momentsUploadRoot, sessionId || 'general')
+  const storedName = `${Date.now()}-${safeBaseName}-${crypto.randomBytes(3).toString('hex')}.webp`
+  const targetPath = path.join(targetDir, storedName)
+  fs.mkdirSync(targetDir, { recursive: true })
+  const output = await sharp(buffer)
+    .rotate()
+    .resize({
+      width: MOMENT_IMAGE_WIDTH,
+      height: MOMENT_IMAGE_HEIGHT,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    .webp({ quality: MOMENT_IMAGE_QUALITY, effort: 5 })
+    .toBuffer()
+  fs.writeFileSync(targetPath, output)
+
+  const asset = {
+    id: createId('moment-asset'),
+    sessionId,
+    uploaderProfileId: getProfileId(profile),
+    fileName: cleanText(payload.fileName) || storedName,
+    mimeType: 'image/webp',
+    size: output.length,
+    url: `/uploads/moments/${sessionId || 'general'}/${storedName}`,
+    createdAt: nowIso(),
+  }
+  const store = readMomentsStore()
+  store.uploadedAssets.unshift(asset)
+  writeMomentsStore(store)
+  return asset
+}
+
+module.exports = {
+  createMoment,
+  createOrRefreshSessionBrief,
+  createSessionEvent,
+  createShareImageTask,
+  deleteMoment,
+  getSessionBrief,
+  getSessionTimeline,
+  getShareImageTask,
+  getUserSessionMomentSummaries,
+  getPublicSessionShareSummary,
+  grantRankingRewards,
+  initMomentsStore: storeAccessor.init,
+  createMomentNomination,
+  getMomentNominationEligibility,
+  listTodayRankings,
+  processShareImageTask,
+  readMomentsStore,
+  refundMomentNominationsForMoment,
+  retryShareImageTask,
+  updateMoment,
+  uploadMomentImage,
+  writeMomentsStore,
+  _buildShareImageSvgForTest: buildShareImageSvg,
+}

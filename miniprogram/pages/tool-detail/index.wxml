@@ -219,7 +219,7 @@
     </view>
 
     <view class="tool-detail-actions">
-      <view class="tool-detail-primary" bindtap="handlePrimaryTap">查看使用记录</view>
+      <view class="tool-detail-primary" bindtap="handlePrimaryTap">开始使用</view>
       <view class="tool-detail-secondary" bindtap="handleSecondaryTap">返回工具箱</view>
     </view>
   </scroll-view>

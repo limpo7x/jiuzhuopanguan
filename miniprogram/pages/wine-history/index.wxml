@@ -1,6 +1,8 @@
 ﻿<navigation-bar
   title="{{pageTitle}}"
   back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
   color="#24160f"
   background="rgba(255,253,248,0.96)"
   ext-class="history-nav"
@@ -8,16 +10,43 @@
 
 <view class="history-page">
   <scroll-view class="history-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="history-chip-row">
-      <view
-        wx:for="{{filters}}"
-        wx:key="name"
-        class="history-chip {{item.active ? 'history-chip-active' : ''}}"
-        data-name="{{item.name}}"
-        bindtap="handleFilterTap"
-      >
-        {{item.name}}
+    <session-return-bar
+      visible="{{sessionReturn.visible}}"
+      title="{{sessionReturn.title}}"
+      meta="{{sessionReturn.meta}}"
+      status="{{sessionReturn.status}}"
+      bind:open="handleSessionReturnOpen"
+    ></session-return-bar>
+
+    <session-moment-summary
+      wx:if="{{momentSummaries.length}}"
+      compact="{{true}}"
+      items="{{momentSummaries}}"
+      bind:brief="handleMomentBriefTap"
+      bind:preview="handleMomentPreviewTap"
+      bind:resume="handleMomentResumeTap"
+      bind:retry="handleMomentRetryTap"
+    ></session-moment-summary>
+
+    <view wx:if="{{!authRequired}}" class="history-mode-tabs">
+      <view class="history-mode-tab {{mode === 'host' ? 'history-mode-tab-active' : ''}}" data-mode="host" bindtap="handleModeTap">我创建的</view>
+      <view class="history-mode-tab {{mode === 'joined' ? 'history-mode-tab-active' : ''}}" data-mode="joined" bindtap="handleModeTap">我加入的</view>
+      <view class="history-mode-tab {{mode === 'unshared' ? 'history-mode-tab-active' : ''}}" data-mode="unshared" bindtap="handleModeTap">分享图</view>
+    </view>
+
+    <view wx:if="{{!authRequired}}" class="history-toolbar">
+      <view class="history-chip-row">
+        <view
+          wx:for="{{filters}}"
+          wx:key="name"
+          class="history-chip {{item.active ? 'history-chip-active' : ''}}"
+          data-name="{{item.name}}"
+          bindtap="handleFilterTap"
+        >
+          {{item.name}}
+        </view>
       </view>
+      <view class="history-ranking-action" bindtap="handleRankingTap">回忆榜</view>
     </view>
 
     <view wx:if="{{!loading && visibleSessions.length}}" class="history-list">
@@ -50,19 +79,31 @@
         <view class="history-copy">
           <text class="history-title">{{item.name}}</text>
           <text class="history-meta">{{item.meta}}</text>
-          <text class="history-meta">判官：{{item.hostName || '未知'}} · ID：{{item.hostProfileId || '--'}}</text>
+          <text class="history-meta">发起人：{{item.hostName || '未知'}}</text>
         </view>
-        <view class="history-tag {{item.status === '进行中' ? 'history-tag-green' : ''}}">{{item.tag}}</view>
+        <view class="history-actions">
+          <view class="history-tag {{item.status === '进行中' ? 'history-tag-green' : ''}}">{{item.tag}}</view>
+          <view
+            wx:if="{{item.status === '已结束' && item.sessionId}}"
+            class="history-brief-link"
+            data-session-id="{{item.sessionId}}"
+            catchtap="handleBriefTap"
+          >简报</view>
+        </view>
       </view>
     </view>
 
-    <view wx:elif="{{!loading}}" class="history-empty">
+    <view wx:elif="{{!loading}}" class="history-empty {{authRequired ? 'history-empty-auth' : ''}}">
       <text class="history-empty-title">{{emptyTitle}}</text>
       <text class="history-empty-meta">{{emptyMeta}}</text>
     </view>
 
-    <view class="history-primary" bindtap="handleCreateTap">{{primaryText}}</view>
   </scroll-view>
+
+  <view class="history-bottom-actions">
+    <view wx:if="{{authRequired}}" class="history-primary history-primary-login" bindtap="handleLoginTap">去登录</view>
+    <view wx:else class="history-primary" bindtap="handleCreateTap">{{primaryText}}</view>
+  </view>
 </view>
 
 

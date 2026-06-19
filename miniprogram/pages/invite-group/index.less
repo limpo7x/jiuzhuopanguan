@@ -288,3 +288,333 @@ button.invite-share-item::after {
   font-size: 17px;
   box-shadow: 0 16px 34px rgba(255, 91, 61, 0.34);
 }
+
+/* PR-FE-ASSET-INTEGRATE-001: invite CTA state from PR-UX-ASSET-001-B */
+.invite-primary.party-cta,
+.invite-secondary-full.party-cta {
+  min-height: 52px;
+  padding: 0 24px;
+  border-radius: 14px;
+  line-height: 52px;
+  font-size: 18px;
+}
+
+.invite-primary-full.party-cta {
+  min-height: 52px;
+  line-height: 52px;
+}
+
+.invite-secondary-full {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0 18px;
+}
+
+.invite-privacy-note {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid rgba(78, 128, 98, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 253, 248, 0.9);
+  box-sizing: border-box;
+}
+
+.invite-privacy-title {
+  color: #24160f;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 950;
+}
+
+.invite-privacy-copy {
+  color: #7b6049;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+/* PR-FE-REDESIGN-FULL-001: invite / QR clean shell */
+.invite-redesign {
+  background: linear-gradient(180deg, #fffdf9 0%, #fff8ef 100%);
+}
+
+.invite-redesign-scroll {
+  padding: 20px 24px calc(136px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.invite-step-line {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.invite-step-pill {
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #f1f5f8;
+  color: #7a8794;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.invite-step-pill-active {
+  background: #e8f2ff;
+  color: #2f80d8;
+}
+
+.invite-hero {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.invite-title {
+  color: #101820;
+  font-size: 30px;
+  line-height: 1.12;
+  font-weight: 950;
+}
+
+.invite-subtitle {
+  color: #65717f;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.invite-code-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.invite-code-card-image {
+  position: relative;
+  z-index: 0;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.invite-code-content {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  width: 100%;
+  padding: 24px 22px 22px;
+  justify-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.invite-code-label {
+  color: #65717f;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.invite-code {
+  color: #4d8edc;
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: 2px;
+}
+
+.invite-code-expire {
+  color: #65717f;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.invite-avatar-slots {
+  display: flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.invite-avatar-slot {
+  display: flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px dashed #d5dee7;
+  border-radius: 50%;
+  background: rgba(249, 251, 252, 0.88);
+  color: #9aa6b2;
+  font-size: 16px;
+  font-weight: 950;
+  box-sizing: border-box;
+}
+
+.invite-avatar-slot-filled {
+  border-style: solid;
+  border-color: rgba(77, 142, 220, 0.3);
+  background: #eef6ff;
+  color: #2f80d8;
+}
+
+.invite-avatar-image {
+  width: 100%;
+  height: 100%;
+}
+
+.invite-avatar-initial,
+.invite-avatar-empty {
+  line-height: 1;
+}
+
+.invite-share-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.invite-share-item,
+button.invite-share-item {
+  width: auto;
+  min-height: 72px;
+  flex: none;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.invite-share-icon {
+  width: 34px;
+  height: 34px;
+}
+
+.invite-share-label {
+  margin-top: 6px;
+  color: #435263;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.invite-inline-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.invite-inline-action {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e8ecef;
+  border-radius: 12px;
+  background: #fff;
+  color: #2f80d8;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.invite-redesign .invite-privacy-note {
+  margin-top: 18px;
+  border-color: transparent;
+  background: #eef9f2;
+}
+
+.invite-bottom-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 80;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 10px;
+  padding: 12px 24px calc(18px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(255, 253, 249, 0), rgba(255, 253, 249, 0.92) 32%, #fffdf9 100%);
+  box-sizing: border-box;
+}
+
+button.invite-inline-action {
+  margin: 0;
+  padding: 0;
+  line-height: normal;
+}
+
+button.invite-inline-action::after {
+  border: 0;
+}
+
+.invite-share-button {
+  display: flex;
+  width: 100%;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 16px;
+  background: #07c160;
+  color: #fff;
+  font-size: 16px;
+  line-height: 54px;
+  font-weight: 950;
+  box-shadow: 0 14px 28px rgba(7, 193, 96, 0.24);
+  box-sizing: border-box;
+}
+
+.invite-share-button::after {
+  border: 0;
+}
+
+.invite-share-button-icon {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  filter: brightness(0) invert(1);
+}
+
+.invite-share-card-canvas {
+  position: fixed;
+  left: -1200px;
+  top: -1200px;
+  z-index: -1;
+  opacity: 0.01;
+  pointer-events: none;
+}
+
+.invite-bottom-bar .party-cta {
+  min-height: 52px;
+  margin: 0;
+  padding: 0 14px;
+  border-radius: 14px;
+  font-size: 16px;
+  line-height: 52px;
+}
+
+.invite-secondary-full.party-cta {
+  display: flex;
+}

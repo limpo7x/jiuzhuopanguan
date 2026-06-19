@@ -1,0 +1,6 @@
+{
+  "component": true,
+  "usingComponents": {
+    "moment-card": "/components/moment-card/moment-card"
+  }
+}

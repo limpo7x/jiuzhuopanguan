@@ -3,7 +3,10 @@ import { normalizeManagedAssetPath, normalizeManagedAvatarPath } from '../config
 import { resolveCachedManagedImagePath, resolveCachedManagedImagePathQuick } from '../utils/imageCache'
 import { getUserAuthHeaders } from '../utils/social'
 import {
+  getToolCategoryCards,
   resolveToolId,
+  TOOL_CATEGORIES,
+  TOOL_LIST,
   type ToolCategory,
   type ToolCategoryCard,
   type ToolDescriptor,
@@ -66,6 +69,8 @@ interface RemoteSessionPlayer {
 }
 
 interface RemoteLiveSession {
+  endedAt?: string
+  finishedAt?: string
   hostName?: string
   hostProfileId?: string
   id?: string
@@ -82,6 +87,17 @@ interface RemoteLiveSession {
   templateImageUrl?: string
   templateName?: string
   title?: string
+  updatedAt?: string
+}
+
+interface RemoteSessionFinishResult {
+  endedAt?: string
+  finishedAt?: string
+  id?: string
+  sessionId?: string
+  state?: string
+  status?: string
+  updatedAt?: string
 }
 
 interface RemoteManagedReport {
@@ -135,6 +151,181 @@ interface RemoteShareConfig {
     name?: string
     scene?: string
   }>
+}
+
+interface RemoteMomentRecord {
+  caption?: string
+  completionStatus?: 'draft' | 'needs_media' | 'complete'
+  createdAt?: string
+  id?: string
+  imageUrl?: string
+  isTimelinePlaceholder?: boolean
+  kind?: 'moment'
+  mediaType?: 'image'
+  nodeKind?: 'moment'
+  nodeType?: 'opening' | 'highlight' | 'drinking' | 'private' | 'closing'
+  rankingEligible?: boolean
+  reviewStatus?: string
+  rewardEligible?: boolean
+  secondaryReviewStatus?: string
+  sessionId?: string
+  tags?: string[]
+  timelineTitle?: string
+  updatedAt?: string
+  uploaderAvatarUrl?: string
+  uploaderName?: string
+  uploaderProfileId?: string
+  usageConsent?: Partial<ManagedMomentUsageConsent>
+  visibility?: string
+  visibleProfileIds?: string[]
+}
+
+interface RemoteSessionEventRecord {
+  caption?: string
+  clientEventId?: string
+  createdAt?: string
+  eventType?: 'drink_debt' | 'drink_add' | 'wheel_result'
+  id?: string
+  kind?: 'event'
+  nodeKind?: 'event'
+  nodeType?: 'drinking'
+  operatorAvatarUrl?: string
+  operatorName?: string
+  operatorProfileId?: string
+  scoreDelta?: number
+  sessionId?: string
+  syncStatus?: string
+  targetAvatarUrl?: string
+  targetName?: string
+  targetProfileId?: string
+  timelineTitle?: string
+  updatedAt?: string
+}
+
+interface RemoteSessionTimeline {
+  nodes?: Array<RemoteMomentRecord | RemoteSessionEventRecord>
+  pendingMediaCount?: number
+  sessionId?: string
+  sessionName?: string
+}
+
+interface RemoteSessionBrief {
+  accountingHighlights?: Array<Record<string, unknown>>
+  briefId?: string
+  closingMomentIds?: string[]
+  coverMode?: string
+  createdAt?: string
+  eventHighlights?: Array<Record<string, unknown>>
+  generatedAt?: string
+  id?: string
+  keyEvents?: Array<Record<string, unknown>>
+  ledgerRankings?: Record<string, unknown>
+  ledgerSummary?: Record<string, unknown>
+  openingMomentIds?: string[]
+  partyId?: string
+  photoHighlights?: Array<Record<string, unknown>>
+  rankingEligible?: boolean
+  sessionId?: string
+  settlementSummary?: Record<string, unknown>
+  shareContentFilter?: Record<string, unknown>
+  shareImageStatus?: string
+  shareImageTaskId?: string
+  timeline?: RemoteSessionTimeline
+  timelineNodeIds?: string[]
+  title?: string
+  updatedAt?: string
+}
+
+interface RemoteShareImageTask {
+  briefId?: string
+  createdAt?: string
+  failedReason?: string
+  failureReason?: string
+  finishedAt?: string
+  id?: string
+  imageUrl?: string
+  includeLedger?: boolean
+  ledgerIncluded?: boolean
+  layoutMode?: string
+  message?: string
+  miniProgramQrUrl?: string
+  partyId?: string
+  renderMode?: string
+  retryCount?: number
+  qrCodeUrl?: string
+  selectedNodeIds?: string[]
+  shareImageId?: string
+  sessionId?: string
+  startedAt?: string
+  status?: 'pending' | 'processing' | 'ready' | 'failed' | 'expired'
+  updatedAt?: string
+}
+
+interface RemoteSessionMomentSummary {
+  briefId?: string
+  canResume?: boolean
+  canResumeMomentIds?: string[]
+  canShare?: boolean
+  coverImageUrl?: string
+  coverPhotoUrl?: string
+  createdAt?: string
+  endedAt?: string
+  pendingMediaCount?: number
+  rankingEntryEnabled?: boolean
+  readyShareImageUrl?: string
+  reportId?: string
+  sessionId?: string
+  sessionName?: string
+  shareImageStatus?: string
+  shareImageTaskId?: string
+  shareImageUrl?: string
+  state?: string
+  stateText?: string
+  status?: string
+  title?: string
+  updatedAt?: string
+}
+
+type RemoteRankingCategory = 'today_funny' | 'today_debt' | 'today_highlight' | 'today_visual' | 'best_opening' | 'best_closing'
+
+interface RemoteRankingItem {
+  category?: RemoteRankingCategory
+  latestNominationAt?: string
+  moment?: RemoteMomentRecord
+  nominationCount?: number
+  pointsTotal?: number
+  rank?: number
+  score?: number
+}
+
+interface RemoteTodayRanking {
+  category?: RemoteRankingCategory
+  date?: string
+  items?: RemoteRankingItem[]
+}
+
+interface RemoteMomentNominationEligibility {
+  alreadyNominatedToday?: boolean
+  category?: RemoteRankingCategory
+  eligible?: boolean
+  momentId?: string
+  pointsCost?: number
+  reason?: string
+}
+
+interface RemoteMomentNomination {
+  category?: RemoteRankingCategory
+  clientNominationId?: string
+  createdAt?: string
+  id?: string
+  momentId?: string
+  pointsSpent?: number
+  profileId?: string
+  profileName?: string
+  refundedAt?: string
+  sessionId?: string
+  status?: string
+  updatedAt?: string
 }
 
 interface RemoteQuestionCatalog {
@@ -228,6 +419,14 @@ export interface ManagedLiveSession {
   templateImageUrl: string
   templateName: string
   title: string
+}
+
+export interface ManagedSessionFinishResult {
+  endedAt: string
+  sessionId: string
+  state: string
+  status: string
+  updatedAt: string
 }
 
 export interface ManagedSessionMutationPayload {
@@ -360,6 +559,214 @@ export interface ManagedJudgeStats {
   unsharedReportCount: number
 }
 
+export type ManagedMomentNodeType = 'opening' | 'highlight' | 'drinking' | 'private' | 'closing'
+export type ManagedMomentVisibility = 'private' | 'selected' | 'session' | 'share' | 'featured'
+export type ManagedMomentCompletionStatus = 'draft' | 'needs_media' | 'complete'
+export type ManagedMomentReviewStatus = 'pending' | 'approved' | 'rejected' | 'hidden'
+export type ManagedMomentSecondaryReviewStatus = 'pending' | 'approved' | 'rejected' | 'require_resubmit'
+export type ManagedSessionEventType = 'drink_debt' | 'drink_add' | 'wheel_result'
+export type ManagedShareImageTaskStatus = 'pending' | 'processing' | 'ready' | 'failed' | 'expired'
+export type ManagedRankingCategory = RemoteRankingCategory
+export type ManagedContractRecord = Record<string, unknown>
+
+export interface ManagedMomentUsageConsent {
+  session: boolean
+  brief: boolean
+  share: boolean
+  ranking: boolean
+}
+
+export interface ManagedMomentPayload {
+  caption?: string
+  clientDraftId?: string
+  imageUrl?: string
+  nodeType?: ManagedMomentNodeType
+  tags?: string[]
+  usageConsent?: Partial<ManagedMomentUsageConsent>
+  visibility?: ManagedMomentVisibility
+  visibleProfileIds?: string[]
+}
+
+export interface ManagedMomentRecord {
+  caption?: string
+  completionStatus: ManagedMomentCompletionStatus
+  createdAt: string
+  id: string
+  imageUrl?: string
+  isTimelinePlaceholder: boolean
+  mediaType: 'image'
+  nodeKind: 'moment'
+  nodeType: ManagedMomentNodeType
+  rankingEligible: boolean
+  rewardEligible: boolean
+  reviewStatus?: ManagedMomentReviewStatus
+  secondaryReviewStatus?: ManagedMomentSecondaryReviewStatus
+  sessionId: string
+  tags: string[]
+  timelineTitle: string
+  updatedAt: string
+  uploaderAvatarUrl?: string
+  uploaderName: string
+  uploaderProfileId: string
+  usageConsent?: ManagedMomentUsageConsent
+  visibility: ManagedMomentVisibility
+  visibleProfileIds?: string[]
+}
+
+export interface ManagedSessionEventPayload {
+  caption?: string
+  clientEventId: string
+  eventType: ManagedSessionEventType
+  scoreDelta?: number
+  targetName?: string
+  targetProfileId?: string
+}
+
+export interface ManagedSessionEventRecord {
+  caption: string
+  clientEventId: string
+  createdAt: string
+  eventType: ManagedSessionEventType
+  id: string
+  nodeKind: 'event'
+  operatorAvatarUrl: string
+  operatorName: string
+  operatorProfileId: string
+  scoreDelta: number
+  sessionId: string
+  syncStatus: string
+  targetAvatarUrl: string
+  targetName: string
+  targetProfileId: string
+  updatedAt: string
+}
+
+export type ManagedTimelineNode = ManagedMomentRecord | ManagedSessionEventRecord
+
+export interface ManagedSessionTimeline {
+  nodes: ManagedTimelineNode[]
+  pendingMediaCount: number
+  sessionId: string
+}
+
+export interface ManagedMomentUploadResult {
+  createdAt: string
+  fileName: string
+  id: string
+  mimeType: string
+  sessionId: string
+  size: number
+  uploaderProfileId: string
+  url: string
+}
+
+export interface ManagedSessionBrief {
+  accountingHighlights: ManagedContractRecord[]
+  closingMomentIds: string[]
+  coverMode: string
+  createdAt: string
+  eventHighlights: ManagedContractRecord[]
+  id: string
+  ledgerRankings: ManagedContractRecord
+  ledgerSummary: ManagedContractRecord
+  openingMomentIds: string[]
+  pendingMediaCount: number
+  rankingEligible: boolean
+  sessionId: string
+  settlementSummary: ManagedContractRecord
+  shareContentFilter: ManagedContractRecord
+  shareImageStatus: string
+  shareImageTaskId: string
+  timeline: ManagedSessionTimeline
+  timelineNodeIds: string[]
+  title: string
+  updatedAt: string
+}
+
+export interface ManagedShareImageTask {
+  briefId: string
+  createdAt: string
+  failedReason: string
+  finishedAt: string
+  id: string
+  imageUrl: string
+  includeLedger: boolean
+  ledgerIncluded: boolean
+  layoutMode: string
+  miniProgramQrUrl: string
+  qrCodeUrl: string
+  retryCount: number
+  selectedNodeIds: string[]
+  sessionId: string
+  startedAt: string
+  status: ManagedShareImageTaskStatus
+  updatedAt: string
+}
+
+export interface ManagedSessionMomentSummary {
+  briefId: string
+  canResume: boolean
+  canResumeMomentIds: string[]
+  canShare: boolean
+  coverPhotoUrl: string
+  createdAt: string
+  endedAt: string
+  pendingMediaCount: number
+  rankingEntryEnabled: boolean
+  readyShareImageUrl: string
+  reportId: string
+  sessionId: string
+  sessionName: string
+  shareImageStatus: string
+  shareImageTaskId: string
+  shareImageUrl: string
+  state: string
+  stateText: string
+  status: string
+  title: string
+  updatedAt: string
+}
+
+export interface ManagedRankingItem {
+  category: ManagedRankingCategory
+  latestNominationAt: string
+  moment: ManagedMomentRecord
+  nominationCount: number
+  pointsTotal: number
+  rank: number
+  score: number
+}
+
+export interface ManagedTodayRanking {
+  category: ManagedRankingCategory
+  date: string
+  items: ManagedRankingItem[]
+}
+
+export interface ManagedMomentNominationEligibility {
+  alreadyNominatedToday: boolean
+  category: ManagedRankingCategory
+  eligible: boolean
+  momentId: string
+  pointsCost: number
+  reason: string
+}
+
+export interface ManagedMomentNomination {
+  category: ManagedRankingCategory
+  clientNominationId: string
+  createdAt: string
+  id: string
+  momentId: string
+  pointsSpent: number
+  profileId: string
+  profileName: string
+  refundedAt: string
+  sessionId: string
+  status: string
+  updatedAt: string
+}
+
 const TOOLS_CATALOG_CACHE_TTL = 10000
 const REPORT_HISTORY_CACHE_TTL = 45000
 const SHARE_CONFIG_CACHE_TTL = 60000
@@ -374,17 +781,19 @@ const invalidateManagedReportHistoryCache = () => {
   reportHistoryCache = null
 }
 
-const DEFAULT_TOOLS_CATALOG: ManagedToolCatalog = {
-  categories: [],
-  categoryCards: [],
+const buildLocalToolsCatalog = (): ManagedToolCatalog => ({
+  categories: TOOL_CATEGORIES,
+  categoryCards: getToolCategoryCards(),
   hero: {
     imageUrl: '',
-    subtitle: '',
-    title: '',
+    subtitle: '常用图片、分享、计算和文本工具都在这里。',
+    title: '顺手工具',
   },
-  popularTools: [],
-  tools: [],
-}
+  popularTools: TOOL_LIST.filter((item) => item.placement !== 'home').slice(0, 4),
+  tools: TOOL_LIST,
+})
+
+const DEFAULT_TOOLS_CATALOG: ManagedToolCatalog = buildLocalToolsCatalog()
 
 const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', data?: Record<string, unknown>): Promise<T> =>
   new Promise((resolve, reject) => {
@@ -478,19 +887,26 @@ export const getManagedToolsCatalog = async (): Promise<ManagedToolCatalog> => {
         ? remote.categories.map((item) => ({ id: item.id, name: item.name }))
         : []
     const tools = remote.tools?.length ? await Promise.all(remote.tools.map(mergeToolDescriptor)) : []
+    const useLocalFallback = !tools.length
+    const localCatalog = useLocalFallback ? buildLocalToolsCatalog() : null
 
     const next: ManagedToolCatalog = {
-      categories,
-      categoryCards: buildCategoryCards(tools, categories),
+      categories: useLocalFallback ? localCatalog!.categories : categories,
+      categoryCards: useLocalFallback ? localCatalog!.categoryCards : buildCategoryCards(tools, categories),
       hero: {
         imageUrl:
           (await resolveCachedManagedImagePathQuick(normalizeManagedAssetPath(remote.hero?.imageUrl), 2000)) ||
+          localCatalog?.hero.imageUrl ||
           '',
-        subtitle: remote.hero?.subtitle || '',
-        title: remote.hero?.title || '',
+        subtitle: remote.hero?.subtitle || localCatalog?.hero.subtitle || '',
+        title: remote.hero?.title || localCatalog?.hero.title || '',
       },
-      popularTools: remote.popularTools?.length ? await Promise.all(remote.popularTools.map(mergeToolDescriptor)) : [],
-      tools,
+      popularTools: useLocalFallback
+        ? localCatalog!.popularTools
+        : remote.popularTools?.length
+          ? await Promise.all(remote.popularTools.map(mergeToolDescriptor))
+          : tools.slice(0, 4),
+      tools: useLocalFallback ? localCatalog!.tools : tools,
     }
 
     toolsCatalogCache = {
@@ -558,6 +974,37 @@ export const updateManagedSession = async (sessionId: string, payload: ManagedSe
   await requestJson(`/sessions/${encodeURIComponent(sessionId)}`, 'PUT', payload as Record<string, unknown>)
 }
 
+const normalizeSessionFinishResult = (result?: RemoteSessionFinishResult, sessionId = ''): ManagedSessionFinishResult => {
+  const endedAt = result?.endedAt || result?.finishedAt || result?.updatedAt || ''
+  return {
+    endedAt,
+    sessionId: result?.sessionId || result?.id || sessionId,
+    state: result?.state || '已结束',
+    status: result?.status || '已结束',
+    updatedAt: result?.updatedAt || endedAt,
+  }
+}
+
+export const finishManagedSession = async (sessionId: string): Promise<ManagedSessionFinishResult> => {
+  if (!sessionId) {
+    return normalizeSessionFinishResult(undefined, '')
+  }
+
+  const encodedSessionId = encodeURIComponent(sessionId)
+  try {
+    return normalizeSessionFinishResult(await requestJson<RemoteSessionFinishResult>(`/sessions/${encodedSessionId}/end`, 'POST'), sessionId)
+  } catch {
+    try {
+      return normalizeSessionFinishResult(await requestJson<RemoteSessionFinishResult>(`/sessions/${encodedSessionId}/finish`, 'POST'), sessionId)
+    } catch {
+      return normalizeSessionFinishResult(
+        await requestJson<RemoteSessionFinishResult>(`/sessions/${encodedSessionId}`, 'PUT', { state: '已结束', status: '已结束' }),
+        sessionId,
+      )
+    }
+  }
+}
+
 export const deleteManagedSession = async (sessionId: string): Promise<void> => {
   if (!sessionId) {
     return
@@ -589,6 +1036,218 @@ const normalizeManagedReport = (report?: RemoteManagedReport): ManagedReportDeta
   status: report?.status || '',
   templateName: report?.templateName || '',
   title: report?.title || '',
+})
+
+const normalizeUsageConsent = (value?: Partial<ManagedMomentUsageConsent>): ManagedMomentUsageConsent => ({
+  brief: value?.brief !== false,
+  ranking: value?.ranking !== false,
+  session: value?.session !== false,
+  share: value?.share !== false,
+})
+
+const normalizeMomentRecord = (item?: RemoteMomentRecord): ManagedMomentRecord => ({
+  caption: item?.caption || '',
+  completionStatus: item?.completionStatus || 'draft',
+  createdAt: item?.createdAt || '',
+  id: item?.id || '',
+  imageUrl: normalizeManagedAssetPath(item?.imageUrl),
+  isTimelinePlaceholder: Boolean(item?.isTimelinePlaceholder),
+  mediaType: 'image',
+  nodeKind: 'moment',
+  nodeType: item?.nodeType || 'highlight',
+  rankingEligible: Boolean(item?.rankingEligible),
+  reviewStatus: (item?.reviewStatus as ManagedMomentReviewStatus) || 'pending',
+  rewardEligible: Boolean(item?.rewardEligible),
+  secondaryReviewStatus: (item?.secondaryReviewStatus as ManagedMomentSecondaryReviewStatus) || 'pending',
+  sessionId: item?.sessionId || '',
+  tags: Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [],
+  timelineTitle: item?.timelineTitle || '',
+  updatedAt: item?.updatedAt || item?.createdAt || '',
+  uploaderAvatarUrl: normalizeManagedAvatarPath(item?.uploaderAvatarUrl),
+  uploaderName: item?.uploaderName || '',
+  uploaderProfileId: item?.uploaderProfileId || '',
+  usageConsent: normalizeUsageConsent(item?.usageConsent),
+  visibility: (item?.visibility as ManagedMomentVisibility) || 'session',
+  visibleProfileIds: Array.isArray(item?.visibleProfileIds) ? item.visibleProfileIds.filter(Boolean) : [],
+})
+
+const normalizeSessionEventRecord = (item?: RemoteSessionEventRecord): ManagedSessionEventRecord => ({
+  caption: item?.caption || '',
+  clientEventId: item?.clientEventId || '',
+  createdAt: item?.createdAt || '',
+  eventType: item?.eventType || 'drink_debt',
+  id: item?.id || '',
+  nodeKind: 'event',
+  operatorAvatarUrl: normalizeManagedAvatarPath(item?.operatorAvatarUrl),
+  operatorName: item?.operatorName || '',
+  operatorProfileId: item?.operatorProfileId || '',
+  scoreDelta: Number(item?.scoreDelta) || 0,
+  sessionId: item?.sessionId || '',
+  syncStatus: item?.syncStatus || '',
+  targetAvatarUrl: normalizeManagedAvatarPath(item?.targetAvatarUrl),
+  targetName: item?.targetName || '',
+  targetProfileId: item?.targetProfileId || '',
+  updatedAt: item?.updatedAt || item?.createdAt || '',
+})
+
+const normalizeTimelineNode = (item?: RemoteMomentRecord | RemoteSessionEventRecord): ManagedTimelineNode =>
+  item?.kind === 'event' || item?.nodeKind === 'event' ? normalizeSessionEventRecord(item) : normalizeMomentRecord(item as RemoteMomentRecord)
+
+const normalizeSessionTimeline = (timeline?: RemoteSessionTimeline): ManagedSessionTimeline => ({
+  nodes: Array.isArray(timeline?.nodes) ? timeline.nodes.map(normalizeTimelineNode) : [],
+  pendingMediaCount: Number(timeline?.pendingMediaCount) || 0,
+  sessionId: timeline?.sessionId || '',
+})
+
+const normalizeContractRecord = (value?: Record<string, unknown>): ManagedContractRecord =>
+  value && typeof value === 'object' && !Array.isArray(value) ? { ...value } : {}
+
+const normalizeContractRecords = (value?: Array<Record<string, unknown>>): ManagedContractRecord[] =>
+  Array.isArray(value) ? value.filter((item) => item && typeof item === 'object' && !Array.isArray(item)).map((item) => ({ ...item })) : []
+
+const buildTimelineNodesFromCleanBrief = (brief?: RemoteSessionBrief): ManagedTimelineNode[] => {
+  const sessionId = brief?.sessionId || brief?.partyId || ''
+  const photos = Array.isArray(brief?.photoHighlights)
+    ? brief.photoHighlights.map((item, index) =>
+        normalizeMomentRecord({
+          caption: String(item.caption || item.meta || ''),
+          completionStatus: 'complete',
+          createdAt: String(item.capturedAt || item.createdAt || brief?.createdAt || brief?.generatedAt || ''),
+          id: String(item.id || item.photoId || item.nodeId || `clean-photo-${index + 1}`),
+          imageUrl: String(item.imageUrl || ''),
+          nodeType: (String(item.photoType || item.nodeType || 'highlight') as ManagedMomentNodeType) || 'highlight',
+          rankingEligible: true,
+          reviewStatus: 'approved',
+          secondaryReviewStatus: 'approved',
+          sessionId,
+          timelineTitle: String(item.title || item.label || '聚会照片'),
+          updatedAt: String(item.updatedAt || item.capturedAt || brief?.updatedAt || brief?.generatedAt || ''),
+          uploaderName: String(item.uploaderName || ''),
+          usageConsent: { brief: true, ranking: true, session: true, share: true },
+          visibility: 'share',
+        }),
+      ).filter((item) => item.imageUrl)
+    : []
+
+  const events = Array.isArray(brief?.keyEvents)
+    ? brief.keyEvents.map((item, index) =>
+        normalizeSessionEventRecord({
+          caption: String(item.meta || item.text || item.summary || item.caption || ''),
+          clientEventId: String(item.id || item.eventId || `clean-event-${index + 1}`),
+          createdAt: String(item.time || item.createdAt || brief?.createdAt || brief?.generatedAt || ''),
+          eventType: String(item.eventType || item.type || 'drink_add') as ManagedSessionEventType,
+          id: String(item.id || item.eventId || `clean-event-${index + 1}`),
+          operatorName: String(item.operatorName || ''),
+          scoreDelta: Number(item.scoreDelta) || 0,
+          sessionId,
+          targetName: String(item.title || item.label || item.targetName || '聚会事件'),
+          updatedAt: String(item.updatedAt || item.time || item.createdAt || brief?.updatedAt || brief?.generatedAt || ''),
+        }),
+      )
+    : []
+
+  return [...photos, ...events]
+}
+
+const normalizeSessionBrief = (brief?: RemoteSessionBrief): ManagedSessionBrief => ({
+  accountingHighlights: normalizeContractRecords(brief?.accountingHighlights),
+  closingMomentIds: Array.isArray(brief?.closingMomentIds) ? brief.closingMomentIds.filter(Boolean) : [],
+  coverMode: brief?.coverMode || 'opening_collage',
+  createdAt: brief?.createdAt || brief?.generatedAt || '',
+  eventHighlights: normalizeContractRecords(brief?.eventHighlights || brief?.keyEvents),
+  id: brief?.id || brief?.briefId || '',
+  ledgerRankings: normalizeContractRecord(brief?.ledgerRankings),
+  ledgerSummary: normalizeContractRecord(brief?.ledgerSummary),
+  openingMomentIds: Array.isArray(brief?.openingMomentIds) ? brief.openingMomentIds.filter(Boolean) : [],
+  rankingEligible: Boolean(brief?.rankingEligible),
+  sessionId: brief?.sessionId || brief?.partyId || '',
+  settlementSummary: normalizeContractRecord(brief?.settlementSummary),
+  shareContentFilter: normalizeContractRecord(brief?.shareContentFilter),
+  shareImageStatus: brief?.shareImageStatus || '',
+  shareImageTaskId: brief?.shareImageTaskId || '',
+  pendingMediaCount: Number(brief?.timeline?.pendingMediaCount) || 0,
+  timeline: brief?.timeline
+    ? normalizeSessionTimeline(brief.timeline)
+    : {
+        nodes: buildTimelineNodesFromCleanBrief(brief),
+        pendingMediaCount: 0,
+        sessionId: brief?.sessionId || brief?.partyId || '',
+      },
+  timelineNodeIds: Array.isArray(brief?.timelineNodeIds) ? brief.timelineNodeIds.filter(Boolean) : [],
+  title: brief?.title || '',
+  updatedAt: brief?.updatedAt || brief?.generatedAt || brief?.createdAt || '',
+})
+
+const normalizeShareImageTask = (task?: RemoteShareImageTask): ManagedShareImageTask => ({
+  briefId: task?.briefId || '',
+  createdAt: task?.createdAt || '',
+  failedReason: task?.failedReason || task?.failureReason || task?.message || '',
+  finishedAt: task?.finishedAt || '',
+  id: task?.id || task?.shareImageId || '',
+  imageUrl: normalizeManagedAssetPath(task?.imageUrl),
+  includeLedger: task?.includeLedger === true,
+  ledgerIncluded: task?.ledgerIncluded === true || task?.includeLedger === true,
+  layoutMode: task?.layoutMode || task?.renderMode || 'timeline',
+  miniProgramQrUrl: normalizeManagedAssetPath(task?.miniProgramQrUrl),
+  qrCodeUrl: normalizeManagedAssetPath(task?.qrCodeUrl),
+  retryCount: Number(task?.retryCount) || 0,
+  selectedNodeIds: Array.isArray(task?.selectedNodeIds) ? task.selectedNodeIds.filter(Boolean) : [],
+  sessionId: task?.sessionId || task?.partyId || '',
+  startedAt: task?.startedAt || '',
+  status: task?.status || 'pending',
+  updatedAt: task?.updatedAt || task?.createdAt || '',
+})
+
+const RANKING_CATEGORIES: ManagedRankingCategory[] = [
+  'today_funny',
+  'today_debt',
+  'today_highlight',
+  'today_visual',
+  'best_opening',
+  'best_closing',
+]
+
+const normalizeRankingCategory = (category?: string): ManagedRankingCategory =>
+  RANKING_CATEGORIES.includes(category as ManagedRankingCategory) ? (category as ManagedRankingCategory) : 'today_highlight'
+
+const normalizeRankingItem = (item?: RemoteRankingItem): ManagedRankingItem => ({
+  category: normalizeRankingCategory(item?.category),
+  latestNominationAt: item?.latestNominationAt || '',
+  moment: normalizeMomentRecord(item?.moment),
+  nominationCount: Number(item?.nominationCount) || 0,
+  pointsTotal: Number(item?.pointsTotal) || 0,
+  rank: Number(item?.rank) || 0,
+  score: Number(item?.score) || 0,
+})
+
+const normalizeTodayRanking = (ranking?: RemoteTodayRanking): ManagedTodayRanking => ({
+  category: normalizeRankingCategory(ranking?.category),
+  date: ranking?.date || '',
+  items: Array.isArray(ranking?.items) ? ranking.items.map(normalizeRankingItem) : [],
+})
+
+const normalizeMomentNominationEligibility = (eligibility?: RemoteMomentNominationEligibility): ManagedMomentNominationEligibility => ({
+  alreadyNominatedToday: Boolean(eligibility?.alreadyNominatedToday),
+  category: normalizeRankingCategory(eligibility?.category),
+  eligible: Boolean(eligibility?.eligible),
+  momentId: eligibility?.momentId || '',
+  pointsCost: Number(eligibility?.pointsCost) || 0,
+  reason: eligibility?.reason || '',
+})
+
+const normalizeMomentNomination = (nomination?: RemoteMomentNomination): ManagedMomentNomination => ({
+  category: normalizeRankingCategory(nomination?.category),
+  clientNominationId: nomination?.clientNominationId || '',
+  createdAt: nomination?.createdAt || '',
+  id: nomination?.id || '',
+  momentId: nomination?.momentId || '',
+  pointsSpent: Number(nomination?.pointsSpent) || 0,
+  profileId: nomination?.profileId || '',
+  profileName: nomination?.profileName || '',
+  refundedAt: nomination?.refundedAt || '',
+  sessionId: nomination?.sessionId || '',
+  status: nomination?.status || '',
+  updatedAt: nomination?.updatedAt || '',
 })
 
 export const createManagedReport = async (payload: Record<string, unknown>): Promise<ManagedReportDetail> => {
@@ -767,4 +1426,176 @@ export const recordManagedToolUsage = async (toolId: string): Promise<void> => {
     return
   }
   await requestJson('/tools/history', 'POST', { id }).catch(() => undefined)
+}
+
+export const uploadManagedMomentImage = async (payload: {
+  dataUrl: string
+  fileName: string
+  sessionId: string
+}): Promise<ManagedMomentUploadResult> =>
+  requestJson<ManagedMomentUploadResult>('/moments/uploads/image', 'POST', payload)
+
+export const createManagedMoment = async (
+  sessionId: string,
+  payload: ManagedMomentPayload,
+): Promise<ManagedMomentRecord> =>
+  normalizeMomentRecord(
+    await requestJson<RemoteMomentRecord>(`/sessions/${encodeURIComponent(sessionId)}/moments`, 'POST', payload as unknown as Record<string, unknown>),
+  )
+
+export const updateManagedMoment = async (
+  momentId: string,
+  payload: ManagedMomentPayload,
+): Promise<ManagedMomentRecord> =>
+  normalizeMomentRecord(
+    await requestJson<RemoteMomentRecord>(`/moments/${encodeURIComponent(momentId)}`, 'PUT', payload as unknown as Record<string, unknown>),
+  )
+
+export const deleteManagedMoment = async (momentId: string): Promise<{ id: string; removed: boolean }> =>
+  requestJson<{ id: string; removed: boolean }>(`/moments/${encodeURIComponent(momentId)}`, 'DELETE')
+
+export const getManagedSessionTimeline = async (sessionId: string): Promise<ManagedSessionTimeline> =>
+  normalizeSessionTimeline(await requestJson<RemoteSessionTimeline>(`/sessions/${encodeURIComponent(sessionId)}/timeline`))
+
+export const createManagedSessionEvent = async (
+  sessionId: string,
+  payload: ManagedSessionEventPayload,
+): Promise<ManagedSessionEventRecord> =>
+  normalizeSessionEventRecord(
+    await requestJson<RemoteSessionEventRecord>(`/sessions/${encodeURIComponent(sessionId)}/events`, 'POST', payload as unknown as Record<string, unknown>),
+  )
+
+export const createOrRefreshManagedSessionBrief = async (sessionId: string): Promise<ManagedSessionBrief> =>
+  normalizeSessionBrief(await requestJson<RemoteSessionBrief>(`/sessions/${encodeURIComponent(sessionId)}/brief`, 'POST'))
+
+export const getManagedSessionBrief = async (briefId: string): Promise<ManagedSessionBrief> => {
+  try {
+    return normalizeSessionBrief(await requestJson<RemoteSessionBrief>(`/briefs/${encodeURIComponent(briefId)}`))
+  } catch (cleanError) {
+    try {
+      return normalizeSessionBrief(await requestJson<RemoteSessionBrief>(`/session-briefs/${encodeURIComponent(briefId)}`))
+    } catch {
+      throw cleanError
+    }
+  }
+}
+
+export const createManagedShareImageTask = async (
+  briefId: string,
+  payload: { includeLedger?: boolean; layoutMode?: string; selectedNodeIds?: string[] } = {},
+): Promise<ManagedShareImageTask> => {
+  try {
+    return normalizeShareImageTask(
+      await requestJson<RemoteShareImageTask>(`/briefs/${encodeURIComponent(briefId)}/share-images`, 'POST', payload),
+    )
+  } catch (cleanError) {
+    try {
+      return normalizeShareImageTask(
+        await requestJson<RemoteShareImageTask>(`/session-briefs/${encodeURIComponent(briefId)}/share-image-tasks`, 'POST', payload),
+      )
+    } catch {
+      throw cleanError
+    }
+  }
+}
+
+export const getManagedShareImageTask = async (taskId: string): Promise<ManagedShareImageTask> => {
+  try {
+    return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-images/${encodeURIComponent(taskId)}`))
+  } catch (cleanError) {
+    try {
+      return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-image-tasks/${encodeURIComponent(taskId)}`))
+    } catch {
+      throw cleanError
+    }
+  }
+}
+
+export const processManagedShareImageTask = async (taskId: string): Promise<ManagedShareImageTask> => {
+  try {
+    return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-images/${encodeURIComponent(taskId)}/process`, 'POST'))
+  } catch (cleanError) {
+    try {
+      return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-image-tasks/${encodeURIComponent(taskId)}/process`, 'POST'))
+    } catch {
+      throw cleanError
+    }
+  }
+}
+
+export const retryManagedShareImageTask = async (taskId: string): Promise<ManagedShareImageTask> =>
+  {
+    try {
+      return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-images/${encodeURIComponent(taskId)}/retry`, 'POST'))
+    } catch (cleanError) {
+      try {
+        return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-image-tasks/${encodeURIComponent(taskId)}/retry`, 'POST'))
+      } catch {
+        throw cleanError
+      }
+    }
+  }
+
+export const getManagedTodayRanking = async (
+  category: ManagedRankingCategory = 'today_highlight',
+  limit = 20,
+): Promise<ManagedTodayRanking> =>
+  normalizeTodayRanking(
+    await requestJson<RemoteTodayRanking>(
+      `/rankings/today?category=${encodeURIComponent(category)}&limit=${encodeURIComponent(String(limit))}`,
+    ),
+  )
+
+export const getManagedMomentNominationEligibility = async (
+  momentId: string,
+  category?: ManagedRankingCategory,
+): Promise<ManagedMomentNominationEligibility> => {
+  const query = category ? `?category=${encodeURIComponent(category)}` : ''
+  return normalizeMomentNominationEligibility(
+    await requestJson<RemoteMomentNominationEligibility>(`/moments/${encodeURIComponent(momentId)}/nomination-eligibility${query}`),
+  )
+}
+
+export const createManagedMomentNomination = async (
+  momentId: string,
+  payload: {
+    category?: ManagedRankingCategory
+    clientNominationId?: string
+  } = {},
+): Promise<ManagedMomentNomination> =>
+  normalizeMomentNomination(
+    await requestJson<RemoteMomentNomination>(
+      `/moments/${encodeURIComponent(momentId)}/nominations`,
+      'POST',
+      payload as Record<string, unknown>,
+    ),
+  )
+
+export const getManagedSessionMomentSummaries = async (): Promise<ManagedSessionMomentSummary[]> => {
+  const remote = await requestJson<RemoteSessionMomentSummary[]>('/user/session-moment-summaries')
+  return Array.isArray(remote)
+    ? remote.map((item) => ({
+        briefId: item?.briefId || '',
+        canResume: item?.canResume === true,
+        canResumeMomentIds: Array.isArray(item?.canResumeMomentIds) ? item.canResumeMomentIds.filter(Boolean) : [],
+        canShare: item?.canShare === true,
+        coverPhotoUrl: normalizeManagedAssetPath(item?.coverPhotoUrl || item?.coverImageUrl),
+        createdAt: item?.createdAt || '',
+        endedAt: item?.endedAt || '',
+        pendingMediaCount: Number(item?.pendingMediaCount) || 0,
+        rankingEntryEnabled: Boolean(item?.rankingEntryEnabled),
+        readyShareImageUrl: normalizeManagedAssetPath(item?.readyShareImageUrl),
+        reportId: item?.reportId || '',
+        sessionId: item?.sessionId || '',
+        sessionName: item?.sessionName || '',
+        shareImageStatus: item?.shareImageStatus || '',
+        shareImageTaskId: item?.shareImageTaskId || '',
+        shareImageUrl: normalizeManagedAssetPath(item?.shareImageUrl),
+        state: item?.state || '',
+        stateText: item?.stateText || '',
+        status: item?.status || '',
+        title: item?.title || '',
+        updatedAt: item?.updatedAt || '',
+      }))
+    : []
 }

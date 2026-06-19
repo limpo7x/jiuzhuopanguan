@@ -20,11 +20,13 @@ interface ResultReportState {
   reportId: string
   reportTitle: string
   secondaryRanks: ReportRank[]
+  sessionId: string
   sessionName: string
 }
 
 interface ResultReportMethods {
   handleBackTap: () => void
+  handleBriefTap: () => void
   handleRestartTap: () => void
   handleShareTap: () => void
   openPage: (url: string) => void
@@ -38,6 +40,7 @@ Page<ResultReportState, ResultReportMethods>({
     reportId: '',
     reportTitle: '这局快乐就完事了！',
     secondaryRanks: [],
+    sessionId: '',
     sessionName: '',
   },
 
@@ -77,6 +80,7 @@ Page<ResultReportState, ResultReportMethods>({
         reportId: report.id,
         reportTitle: report.title || '这局快乐就完事了！',
         secondaryRanks,
+        sessionId: report.sessionId || runtime.sessionId || '',
         sessionName: report.sessionName || '',
       })
 
@@ -96,6 +100,7 @@ Page<ResultReportState, ResultReportMethods>({
         reportId: '',
         reportTitle: '战报暂不可用',
         secondaryRanks: [],
+        sessionId: '',
         sessionName: '',
       })
       wx.showToast({
@@ -134,6 +139,18 @@ Page<ResultReportState, ResultReportMethods>({
       return
     }
     this.openPage(`/pages/share-poster/index?reportId=${encodeURIComponent(this.data.reportId)}`)
+  },
+
+  handleBriefTap() {
+    if (!this.data.sessionId) {
+      wx.showToast({
+        title: '缺少酒局信息',
+        icon: 'none',
+      })
+      return
+    }
+
+    this.openPage(`/pages/session-brief/index?sessionId=${encodeURIComponent(this.data.sessionId)}`)
   },
 
   openPage(url) {

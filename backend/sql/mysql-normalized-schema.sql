@@ -111,6 +111,164 @@ CREATE TABLE IF NOT EXISTS `wine_reports` (
   KEY `idx_wine_reports_profile_created` (`profile_id`, `created_at`)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `moment_records` (
+  `id` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `client_draft_id` VARCHAR(128) NULL,
+  `session_id` VARCHAR(64) NOT NULL,
+  `uploader_profile_id` VARCHAR(64) NOT NULL,
+  `uploader_name` VARCHAR(128) NULL,
+  `uploader_avatar_url` TEXT NULL,
+  `node_type` VARCHAR(32) NOT NULL,
+  `media_type` VARCHAR(32) NOT NULL DEFAULT 'image',
+  `image_url` TEXT NULL,
+  `video_url` TEXT NULL,
+  `cover_image_url` TEXT NULL,
+  `duration` INT NOT NULL DEFAULT 0,
+  `caption` TEXT NULL,
+  `tags_json` JSON NULL,
+  `visibility` VARCHAR(32) NOT NULL DEFAULT 'session',
+  `visible_profile_ids_json` JSON NULL,
+  `timeline_title` VARCHAR(255) NULL,
+  `is_timeline_placeholder` TINYINT(1) NOT NULL DEFAULT 0,
+  `usage_consent_json` JSON NULL,
+  `completion_status` VARCHAR(32) NOT NULL DEFAULT 'draft',
+  `review_status` VARCHAR(32) NOT NULL DEFAULT 'pending',
+  `secondary_review_status` VARCHAR(32) NOT NULL DEFAULT 'pending',
+  `ranking_eligible` TINYINT(1) NOT NULL DEFAULT 0,
+  `reward_eligible` TINYINT(1) NOT NULL DEFAULT 0,
+  `removed_at` DATETIME NULL,
+  `created_at` DATETIME NULL,
+  `updated_at` DATETIME NULL,
+  UNIQUE KEY `uk_moment_records_session_uploader_draft` (`session_id`, `uploader_profile_id`, `client_draft_id`),
+  KEY `idx_moment_records_session_created` (`session_id`, `created_at`),
+  KEY `idx_moment_records_uploader_created` (`uploader_profile_id`, `created_at`),
+  KEY `idx_moment_records_review` (`review_status`, `secondary_review_status`)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `session_events` (
+  `id` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `client_event_id` VARCHAR(128) NULL,
+  `session_id` VARCHAR(64) NOT NULL,
+  `event_type` VARCHAR(32) NOT NULL,
+  `operator_profile_id` VARCHAR(64) NOT NULL,
+  `operator_name` VARCHAR(128) NULL,
+  `target_profile_id` VARCHAR(64) NULL,
+  `target_name` VARCHAR(128) NULL,
+  `score_delta` INT NOT NULL DEFAULT 0,
+  `caption` TEXT NULL,
+  `sync_status` VARCHAR(32) NULL,
+  `created_at` DATETIME NULL,
+  `updated_at` DATETIME NULL,
+  UNIQUE KEY `uk_session_events_session_operator_client` (`session_id`, `operator_profile_id`, `client_event_id`),
+  KEY `idx_session_events_session_created` (`session_id`, `created_at`),
+  KEY `idx_session_events_operator_created` (`operator_profile_id`, `created_at`)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `session_briefs` (
+  `id` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `session_id` VARCHAR(64) NOT NULL,
+  `title` VARCHAR(255) NULL,
+  `cover_mode` VARCHAR(64) NULL,
+  `opening_moment_ids_json` JSON NULL,
+  `closing_moment_ids_json` JSON NULL,
+  `timeline_node_ids_json` JSON NULL,
+  `share_image_task_id` VARCHAR(64) NULL,
+  `share_image_status` VARCHAR(32) NULL,
+  `incomplete_moment_count` INT NOT NULL DEFAULT 0,
+  `ranking_eligible` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` DATETIME NULL,
+  `updated_at` DATETIME NULL,
+  UNIQUE KEY `uk_session_briefs_session` (`session_id`),
+  KEY `idx_session_briefs_created` (`created_at`)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `share_image_tasks` (
+  `id` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `session_id` VARCHAR(64) NOT NULL,
+  `brief_id` VARCHAR(64) NOT NULL,
+  `status` VARCHAR(32) NOT NULL DEFAULT 'pending',
+  `layout_mode` VARCHAR(64) NOT NULL DEFAULT 'timeline',
+  `selected_node_ids_json` JSON NULL,
+  `image_url` TEXT NULL,
+  `failure_reason` TEXT NULL,
+  `retry_count` INT NOT NULL DEFAULT 0,
+  `created_at` DATETIME NULL,
+  `started_at` DATETIME NULL,
+  `finished_at` DATETIME NULL,
+  `updated_at` DATETIME NULL,
+  KEY `idx_share_image_tasks_brief_status` (`brief_id`, `status`),
+  KEY `idx_share_image_tasks_session_created` (`session_id`, `created_at`)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `moment_reports` (
+  `id` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `moment_id` VARCHAR(64) NOT NULL,
+  `session_id` VARCHAR(64) NULL,
+  `reporter_profile_id` VARCHAR(64) NULL,
+  `reason` VARCHAR(255) NULL,
+  `description` TEXT NULL,
+  `status` VARCHAR(32) NOT NULL DEFAULT 'pending',
+  `handled_by` VARCHAR(64) NULL,
+  `handled_at` DATETIME NULL,
+  `created_at` DATETIME NULL,
+  KEY `idx_moment_reports_moment_status` (`moment_id`, `status`),
+  KEY `idx_moment_reports_created` (`created_at`)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `moment_nominations` (
+  `id` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `client_nomination_id` VARCHAR(128) NULL,
+  `moment_id` VARCHAR(64) NOT NULL,
+  `session_id` VARCHAR(64) NOT NULL,
+  `profile_id` VARCHAR(64) NOT NULL,
+  `profile_name` VARCHAR(128) NULL,
+  `category` VARCHAR(64) NOT NULL,
+  `points_spent` INT NOT NULL DEFAULT 0,
+  `status` VARCHAR(32) NOT NULL DEFAULT 'active',
+  `refunded_at` DATETIME NULL,
+  `refund_reason` TEXT NULL,
+  `created_at` DATETIME NULL,
+  `updated_at` DATETIME NULL,
+  KEY `idx_moment_nominations_category_created` (`category`, `created_at`),
+  KEY `idx_moment_nominations_profile_created` (`profile_id`, `created_at`),
+  KEY `idx_moment_nominations_moment` (`moment_id`)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ranking_reward_rules` (
+  `id` VARCHAR(64) NOT NULL PRIMARY KEY,
+  `category` VARCHAR(64) NOT NULL,
+  `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `rank_start` INT NOT NULL DEFAULT 1,
+  `rank_end` INT NOT NULL DEFAULT 1,
+  `points` INT NOT NULL DEFAULT 0,
+  `tiers_json` JSON NULL,
+  `effective_at` DATETIME NULL,
+  `reason` TEXT NULL,
+  `updated_at` DATETIME NULL,
+  KEY `idx_ranking_reward_rules_category_enabled` (`category`, `enabled`)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `ranking_reward_payouts` (
+  `id` VARCHAR(128) NOT NULL PRIMARY KEY,
+  `source_id` VARCHAR(255) NOT NULL,
+  `category` VARCHAR(64) NOT NULL,
+  `date` DATE NOT NULL,
+  `moment_id` VARCHAR(64) NOT NULL,
+  `session_id` VARCHAR(64) NULL,
+  `profile_id` VARCHAR(64) NOT NULL,
+  `profile_name` VARCHAR(128) NULL,
+  `rank` INT NOT NULL DEFAULT 1,
+  `points` INT NOT NULL DEFAULT 0,
+  `rule_id` VARCHAR(64) NULL,
+  `status` VARCHAR(32) NOT NULL DEFAULT 'granted',
+  `operator` VARCHAR(128) NULL,
+  `created_at` DATETIME NULL,
+  `updated_at` DATETIME NULL,
+  UNIQUE KEY `uk_ranking_reward_payouts_source` (`source_id`),
+  KEY `idx_ranking_reward_payouts_category_date` (`category`, `date`),
+  KEY `idx_ranking_reward_payouts_profile_created` (`profile_id`, `created_at`)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `points_tasks` (
   `id` VARCHAR(64) NOT NULL PRIMARY KEY,
   `title` VARCHAR(128) NULL,

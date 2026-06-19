@@ -1,0 +1,70 @@
+<navigation-bar
+  title="聚会账本"
+  back="{{true}}"
+  color="#111827"
+  background="rgba(255,255,252,0.96)"
+  ext-class="ledger-nav"
+></navigation-bar>
+
+<view class="ledger-page">
+  <scroll-view class="ledger-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="ledger-stage">
+      <text class="ledger-kicker">{{ledgerEditable ? '发起人可调整' : '仅查看，请发起人调整'}}</text>
+      <text class="ledger-title">{{sessionName}}</text>
+      <text wx:if="{{ledgerEventCount}}" class="ledger-subtitle">已同步 {{ledgerEventCount}} 条账本动态，欠酒和加酒会进入本局记录。</text>
+
+      <view class="ledger-stats">
+        <view wx:for="{{stats}}" wx:key="label" class="ledger-stat">
+          <text class="ledger-stat-value">{{item.value}}</text>
+          <text class="ledger-stat-label">{{item.label}}</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{players.length}}" class="ledger-player-list">
+      <view wx:for="{{players}}" wx:key="id" class="ledger-player-row">
+        <view class="ledger-player-user">
+          <image wx:if="{{item.avatarUrl}}" class="ledger-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+          <view wx:else class="ledger-avatar ledger-avatar-empty"></view>
+          <text class="ledger-player-name">{{item.name}}</text>
+        </view>
+
+        <view class="ledger-player-metrics">
+          <view class="ledger-metric">
+            <text class="ledger-metric-label">欠酒</text>
+            <view class="ledger-stepper">
+              <view wx:if="{{ledgerEditable}}" class="ledger-stepper-btn" data-id="{{item.id}}" data-field="debtCount" data-delta="-1" bindtap="handleAdjustTap">−</view>
+              <text class="ledger-metric-value">{{item.debtCount}}</text>
+              <view wx:if="{{ledgerEditable}}" class="ledger-stepper-btn ledger-stepper-btn-active" data-id="{{item.id}}" data-field="debtCount" data-delta="1" bindtap="handleAdjustTap">＋</view>
+            </view>
+          </view>
+          <view class="ledger-metric">
+            <text class="ledger-metric-label">加酒</text>
+            <view class="ledger-stepper">
+              <view wx:if="{{ledgerEditable}}" class="ledger-stepper-btn" data-id="{{item.id}}" data-field="drinkCount" data-delta="-1" bindtap="handleAdjustTap">−</view>
+              <text class="ledger-metric-value ledger-metric-value-warm">{{item.drinkCount}}</text>
+              <view wx:if="{{ledgerEditable}}" class="ledger-stepper-btn ledger-stepper-btn-active" data-id="{{item.id}}" data-field="drinkCount" data-delta="1" bindtap="handleAdjustTap">＋</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:else class="ledger-empty">
+      <text>进入聚会后，成员账本会显示在这里。</text>
+    </view>
+
+    <view wx:if="{{ledgerEditable && players.length}}" class="ledger-edit-note">
+      <text>可编辑</text>
+      <text>先调整欠酒和加酒，再点确定修改同步到本局记录。</text>
+      <view class="ledger-confirm-submit {{ledgerDirty ? 'ledger-confirm-submit-active' : ''}} {{ledgerSubmitting ? 'ledger-confirm-submit-loading' : ''}}" bindtap="handleConfirmTap">
+        {{ledgerSubmitting ? '提交中' : '确定修改'}}
+      </view>
+    </view>
+
+    <view class="ledger-actions">
+      <view class="ledger-primary" bindtap="handleRecordTap">{{hasSession ? '回到本局' : '暂无进行中聚会'}}</view>
+      <view wx:if="{{!hasSession}}" class="ledger-secondary" bindtap="handleCreateTap">创建聚会</view>
+    </view>
+  </scroll-view>
+</view>

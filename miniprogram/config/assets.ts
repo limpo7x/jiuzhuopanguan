@@ -73,16 +73,30 @@ export const normalizeManagedAvatarPath = (path?: string) => {
     return ''
   }
 
-  if (/^\/static\/avatar-(?:host|\d+)\.png$/i.test(text) || text.startsWith('/assets/avatars/')) {
-    return ''
-  }
-
   if (/^(wxfile|file):\/\//i.test(text) || /^https?:\/\/tmp\//i.test(text)) {
     return text
   }
 
   if (/^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(text) || /\/__tmp__\//i.test(text) || /\/__store__\//i.test(text)) {
     return ''
+  }
+
+  if (/^https?:\/\//i.test(text)) {
+    const origin = getApiOrigin()
+    if (origin && text.startsWith(origin)) {
+      const pathname = text.slice(origin.length)
+      return pathname.startsWith('/static/') || pathname.startsWith('/uploads/') ? text : `${origin}${pathname}`
+    }
+    return text
+  }
+
+  if (text.startsWith('/static/') || text.startsWith('/uploads/')) {
+    const origin = getApiOrigin()
+    return origin ? `${origin}${text}` : text
+  }
+
+  if (text.startsWith('/assets/avatars/')) {
+    return text
   }
 
   return normalizeManagedAssetPath(text)

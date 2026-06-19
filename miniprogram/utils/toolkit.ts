@@ -113,11 +113,11 @@ export const TOOL_MAP: Record<string, ToolDescriptor> = {
     heroImage: '',
     meta: '分享口令、链接和活动信息快速出码',
     subtitle: '输入口令或链接，立即生成分享码卡片。',
-    summary: '当前提供轻量码阵预览和分享口令生成，适合酒局邀人和活动卡片场景。',
+    summary: '当前提供轻量码阵预览和分享口令生成，适合聚会邀人和活动卡片场景。',
     tips: [
       { label: '输入对象', value: '链接/口令/文本' },
       { label: '输出形式', value: '分享码卡片' },
-      { label: '适合场景', value: '拉群/邀局' },
+      { label: '适合场景', value: '拉群/邀人' },
     ],
     steps: [
       { title: '输入分享内容', desc: '填写加入口令、链接或提示文案。' },

@@ -1,0 +1,128 @@
+{
+  "createdAt": "2026-06-19T11:06:23.749Z",
+  "sessionId": "session-1781787045680-8e406c",
+  "session": {
+    "id": "session-1781787045680-8e406c",
+    "createdAt": "2026-06-18T12:50:45.680Z",
+    "name": "周末聚会记录",
+    "players": 3,
+    "template": "聚会照片墙",
+    "templateImageUrl": "",
+    "hostName": "聚会记录师房主",
+    "hostProfileId": "user-1781787045678-c892b9",
+    "inviteCode": "J2BEL2",
+    "hostAvatarUrl": "",
+    "state": "进行中",
+    "source": "prcs-clean-slate-actual-prcs-008g",
+    "status": "进行中",
+    "members": [
+      {
+        "avatarUrl": "",
+        "clearedCount": 0,
+        "debtCount": 0,
+        "drinkCount": 0,
+        "isHost": true,
+        "meta": "",
+        "name": "聚会记录师房主",
+        "phone": "",
+        "profileId": "user-1781787045678-c892b9",
+        "status": "已加入",
+        "wheelHistory": []
+      },
+      {
+        "avatarUrl": "",
+        "clearedCount": 0,
+        "debtCount": 1,
+        "drinkCount": 0,
+        "isHost": false,
+        "meta": "",
+        "name": "聚会记录师成员A",
+        "phone": "",
+        "profileId": "user-1781787045679-f3f2eb",
+        "status": "已加入",
+        "wheelHistory": []
+      },
+      {
+        "avatarUrl": "",
+        "clearedCount": 0,
+        "debtCount": 0,
+        "drinkCount": 1,
+        "isHost": false,
+        "meta": "",
+        "name": "聚会记录师成员B",
+        "phone": "",
+        "profileId": "user-1781787045679-4cd6ea",
+        "status": "已加入",
+        "wheelHistory": []
+      }
+    ],
+    "joinedCount": 3
+  },
+  "profiles": [
+    {
+      "id": "user-1781787045679-4cd6ea",
+      "name": "聚会记录师成员B",
+      "avatarUrl": "",
+      "signature": "PRCS clean slate actual fixture",
+      "identityTag": "PRCS",
+      "phone": "",
+      "wechatOpenId": "prcs-clean-slate-prcs-008g-member-b",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "2026-06-18T12:50:45.679Z",
+      "loginCount": 1,
+      "createdAt": 1781787045679,
+      "updatedAt": 1781807920903
+    },
+    {
+      "id": "user-1781787045679-f3f2eb",
+      "name": "聚会记录师成员A",
+      "avatarUrl": "",
+      "signature": "PRCS clean slate actual fixture",
+      "identityTag": "PRCS",
+      "phone": "",
+      "wechatOpenId": "prcs-clean-slate-prcs-008g-member-a",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "2026-06-18T12:50:45.679Z",
+      "loginCount": 1,
+      "createdAt": 1781787045679,
+      "updatedAt": 1781807920903
+    },
+    {
+      "id": "user-1781787045678-c892b9",
+      "name": "聚会记录师房主",
+      "avatarUrl": "",
+      "signature": "PRCS clean slate actual fixture",
+      "identityTag": "PRCS",
+      "phone": "",
+      "wechatOpenId": "prcs-clean-slate-prcs-008g-host",
+      "wechatUnionId": "",
+      "phoneBoundAt": "",
+      "lastLoginAt": "2026-06-18T12:50:45.678Z",
+      "loginCount": 1,
+      "createdAt": 1781787045678,
+      "updatedAt": 1781807920903
+    }
+  ],
+  "userSessions": [
+    {
+      "profileId": "user-1781787045679-4cd6ea",
+      "tokenTail": "c9c5b046",
+      "createdAt": 1781787045679,
+      "expiresAt": 1784379045679
+    },
+    {
+      "profileId": "user-1781787045679-f3f2eb",
+      "tokenTail": "b8615971",
+      "createdAt": 1781787045679,
+      "expiresAt": 1784379045679
+    },
+    {
+      "profileId": "user-1781787045678-c892b9",
+      "tokenTail": "ddceb616",
+      "createdAt": 1781787045678,
+      "expiresAt": 1784379045678
+    }
+  ]
+}

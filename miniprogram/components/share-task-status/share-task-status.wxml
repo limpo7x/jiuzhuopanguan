@@ -1,0 +1,25 @@
+<view class="share-task-status {{compact ? 'share-task-status-compact' : ''}} share-task-status-{{statusClass}}">
+  <view class="share-task-status-main">
+    <view class="share-task-status-icon"></view>
+    <view class="share-task-status-copy">
+      <view class="share-task-status-head">
+        <text class="share-task-status-title">{{statusText}}</text>
+        <text wx:if="{{displayRetryCount}}" class="share-task-status-count">重试 {{displayRetryCount}} 次</text>
+      </view>
+      <text class="share-task-status-desc">{{displayFailedReason || statusDesc}}</text>
+    </view>
+  </view>
+
+  <view class="share-task-status-actions">
+    <view
+      wx:if="{{canPreview}}"
+      class="share-task-status-action"
+      bindtap="handlePreviewTap"
+    >预览</view>
+    <view
+      wx:if="{{canRetry}}"
+      class="share-task-status-action {{disabled ? 'share-task-status-action-disabled' : ''}}"
+      bindtap="handleRetryTap"
+    >重试</view>
+  </view>
+</view>

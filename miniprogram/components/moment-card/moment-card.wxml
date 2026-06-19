@@ -1,0 +1,26 @@
+<view class="moment-card {{compact ? 'moment-card-compact' : ''}}" data-id="{{node.id}}" data-node-kind="{{node.nodeKind}}" bindtap="handleTap">
+  <view class="moment-card-rail">
+    <view class="moment-card-dot {{node.nodeKind === 'event' ? 'moment-card-dot-event' : ''}}"></view>
+  </view>
+
+  <view class="moment-card-body">
+    <view class="moment-card-head">
+      <text class="moment-card-title">{{node.timelineTitle || node.caption || node.targetName || '精彩瞬间'}}</text>
+      <text class="moment-card-type">{{displayTypeText}}</text>
+    </view>
+
+    <image wx:if="{{node.imageUrl && !imageBroken}}" class="moment-card-image" src="{{node.imageUrl}}" mode="aspectFill" bindload="handleImageLoad" binderror="handleImageError"></image>
+    <view wx:elif="{{node.imageUrl && imageBroken}}" class="moment-card-image moment-card-image-fallback">
+      <text>{{node.timelineTitle || '聚会照片'}}</text>
+    </view>
+
+    <text wx:if="{{node.caption}}" class="moment-card-caption">{{node.caption}}</text>
+    <text wx:elif="{{node.nodeKind === 'event'}}" class="moment-card-caption">{{node.operatorName}} 记录了 {{node.targetName}}</text>
+    <text wx:else class="moment-card-caption moment-card-muted">继续记录这段回忆</text>
+
+    <view class="moment-card-meta">
+      <text>{{node.uploaderName || node.operatorName || '酒桌成员'}}</text>
+      <text wx:if="{{displayStatusText}}" class="moment-card-status">{{displayStatusText}}</text>
+    </view>
+  </view>
+</view>

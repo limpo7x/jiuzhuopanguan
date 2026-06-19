@@ -1,0 +1,64 @@
+.session-return-bar {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 66px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 197, 132, 0.5);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff7ed, #fffdf8);
+  color: #24160f;
+  box-shadow: 0 10px 24px rgba(128, 78, 36, 0.08);
+  box-sizing: border-box;
+}
+
+.session-return-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  background:
+    radial-gradient(circle at 30% 26%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 36%),
+    linear-gradient(135deg, #ff5b3d, #ff8a45);
+  box-shadow: 0 8px 18px rgba(255, 91, 61, 0.22);
+}
+
+.session-return-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.session-return-title {
+  overflow: hidden;
+  font-size: 16px;
+  line-height: 1.2;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-return-meta {
+  overflow: hidden;
+  color: #8f7f6d;
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.session-return-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #e8f6ec;
+  color: #259161;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 900;
+  white-space: nowrap;
+}

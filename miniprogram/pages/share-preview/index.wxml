@@ -1,6 +1,8 @@
 ﻿<navigation-bar
-  title="邀请海报"
+  title="邀请预览"
   back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
   color="#24160f"
   background="rgba(255,253,248,0.96)"
   ext-class="share-nav"
@@ -13,31 +15,76 @@
       <view class="share-chip {{showJoinStatus ? 'share-chip-active' : ''}}" data-tab="status" bindtap="handleTabTap">口令加入状态</view>
     </view>
 
-    <view wx:if="{{!showJoinStatus}}" class="share-poster-card">
+    <view wx:if="{{previewLoadFailed}}" class="share-preview-fallback">
+      <text class="share-preview-fallback-title">分享页暂时无法展示</text>
+      <text class="share-preview-fallback-desc">{{errorText}}</text>
+      <view class="share-preview-fallback-actions">
+        <view class="share-preview-fallback-primary" bindtap="handleRetryTap">重试</view>
+        <view class="share-preview-fallback-secondary" bindtap="handleReturnAlbumTap">查看相册</view>
+      </view>
+    </view>
+
+    <view wx:if="{{!showJoinStatus && !shareReturnMode}}" class="share-poster-card share-invite-minimal-card">
       <view class="share-poster-glow share-poster-glow-a"></view>
       <view class="share-poster-glow share-poster-glow-b"></view>
+      <image class="share-clean-stage-glow" src="/assets/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
       <view class="share-poster-copy">
-        <view class="share-poster-kicker">酒桌判官邀请函</view>
-        <text class="share-poster-title">这局快乐就完事了！</text>
-        <text class="share-poster-subtitle">{{sessionName}}</text>
+        <view class="share-poster-kicker">聚会记录师</view>
+        <text class="share-poster-title">邀请好友加入</text>
+        <text class="share-poster-subtitle">输入口令，一起进入这场聚会</text>
         <view class="share-poster-row">
           <view class="share-code-block">
             <text class="share-code-label">加入口令</text>
             <view class="share-code-box">{{inviteCode || '未生成'}}</view>
           </view>
-          <text class="share-poster-count">{{joinedCount}}/{{playerCount}} 已加入</text>
+          <text class="share-poster-count">{{inviteStatusText}}</text>
         </view>
       </view>
     </view>
 
-    <view wx:else class="share-poster-card">
+    <view wx:elif="{{!showJoinStatus}}" class="share-poster-card share020-return-card">
       <view class="share-poster-glow share-poster-glow-a"></view>
       <view class="share-poster-glow share-poster-glow-b"></view>
+      <image class="share-clean-stage-glow" src="/assets/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
+      <view class="share-poster-copy">
+        <view class="share-poster-kicker">聚会记录师</view>
+        <text class="share-poster-title">这场聚会的回忆</text>
+        <text class="share-poster-subtitle">和朋友一起留下的美好时刻</text>
+        <view class="share-auth-pill">公开分享</view>
+        <view wx:if="{{photoHighlights.length}}" class="share020-polaroid-row">
+          <view wx:for="{{photoHighlights}}" wx:key="id" class="share020-polaroid">
+            <image wx:if="{{item.imageUrl && !item.imageBroken}}" src="{{item.imageUrl}}" mode="aspectFill" data-id="{{item.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
+            <view wx:elif="{{item.imageUrl && item.imageBroken}}" class="share020-polaroid-fallback">{{item.title || '聚会照片'}}</view>
+            <text>{{item.title}}</text>
+          </view>
+        </view>
+        <view wx:else class="share020-polaroid-empty">{{photoHighlightsNotice}}</view>
+        <view class="share-scope-strip">
+          <view>
+            <text>可见范围</text>
+            <text>仅展示可分享内容</text>
+          </view>
+          <view>
+            <text>隐私保护</text>
+            <text>私密内容不会进入分享</text>
+          </view>
+          <view>
+            <text>加入提示</text>
+            <text>好友加入后再查看回忆</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:else class="share-poster-card share020-return-card">
+      <view class="share-poster-glow share-poster-glow-a"></view>
+      <view class="share-poster-glow share-poster-glow-b"></view>
+      <image class="share-clean-stage-glow" src="/assets/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
       <view class="share-poster-copy">
         <view class="share-poster-kicker">成员入局进度</view>
         <text class="share-poster-title">口令加入状态</text>
-        <text class="share-poster-subtitle">邀请码 {{inviteCode || '未生成'}} · 当前 {{joinedCount}}/{{playerCount}} 已加入</text>
-        <view class="share-status-list">
+        <text class="share-poster-subtitle">邀请码 {{inviteCode || '未生成'}} · {{inviteStatusText}}</text>
+        <view wx:if="{{joinStatusPlayers.length}}" class="share-status-list">
           <view wx:for="{{joinStatusPlayers}}" wx:key="name" class="share-status-item">
             <view class="share-status-user">
               <image wx:if="{{item.avatarUrl}}" class="share-status-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
@@ -47,19 +94,15 @@
             <view class="share-status-tag">{{item.status}}</view>
           </view>
         </view>
+        <view wx:else class="share-status-empty">
+          好友加入后会在这里显示状态；没有成员数据时不会展示生硬数字。
+        </view>
       </view>
     </view>
 
-    <view class="share-action-grid">
-      <button wx:for="{{shareItems}}" wx:key="id" class="share-action-item" open-type="share" data-id="{{item.id}}" bindtap="handleShareTap">
-        <view class="share-action-icon {{item.iconClass}}"></view>
-        <text class="share-action-label">{{item.name}}</text>
-      </button>
-    </view>
-
-    <view class="share-primary" bindtap="handleSaveTap">
-      <text>保存海报</text>
-      <view class="share-primary-icon"></view>
+    <view wx:if="{{shareReturnMode}}" class="share-risk-note">
+      <text>公开分享只展示可分享内容，私密记录不会进入分享页。</text>
+      <view class="share-report-entry" bindtap="handleReportHintTap">举报/反馈</view>
     </view>
   </scroll-view>
 

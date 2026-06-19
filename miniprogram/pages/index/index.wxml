@@ -1,109 +1,69 @@
 <navigation-bar
-  title="首页"
+  title="聚会记录师"
   back="{{false}}"
-  color="#24160f"
-  background="rgba(255,253,248,0.96)"
+  color="#111827"
+  background="rgba(255,255,252,0.96)"
   ext-class="home-nav"
 ></navigation-bar>
 
-<view class="page-shell">
-  <scroll-view class="screen-body scroll-body with-tabs" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="top-row">
-      <view class="top-profile-left">
-        <view wx:if="{{loggedIn}}" class="profile-chip">
-          <image wx:if="{{userAvatarUrl}}" class="profile-chip-avatar" src="{{userAvatarUrl}}" mode="aspectFill"></image>
-          <view wx:else class="profile-chip-avatar"></view>
-          <text class="profile-chip-name">{{userName}}</text>
+<view class="page-shell home-redesign">
+  <scroll-view class="screen-body scroll-body with-tabs home-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="home-stage">
+      <view class="home-sticker home-sticker-a">⌁</view>
+      <view class="home-sticker home-sticker-b">☆</view>
+      <view class="home-camera-mark">▣</view>
+
+      <view class="home-brand-lockup">
+        <text class="home-brand-title">聚会记录师</text>
+        <text class="home-brand-subtitle">轻松记录每一次聚会的美好时刻</text>
+      </view>
+
+      <view class="home-main-actions">
+        <button class="home-action-primary party-cta party-cta-primary" bindtap="handlePrimaryTap">
+          <text class="home-action-icon">＋</text>
+          <text>创建聚会</text>
+        </button>
+        <view class="home-action-secondary party-cta party-cta-tertiary" bindtap="handleJoinByCodeTap">
+          <text class="home-action-icon">⌗</text>
+          <text>加入口令/扫码</text>
         </view>
-        <view wx:else class="profile-chip profile-login-entry" bindtap="handleLoginTextTap">
-          <view class="profile-chip-avatar"></view>
-          <text class="profile-login-text">点击登录</text>
+        <view class="home-action-soft party-cta party-cta-secondary" bindtap="handleContinueRecordTap">
+          <text class="home-action-icon">◴</text>
+          <text>继续记录</text>
         </view>
       </view>
-      <view wx:if="{{canCheckIn}}" class="sign-tag" bindtap="handleCheckIn">
-        <view class="sign-tag-icon icon-coin"></view>
-        <text class="sign-tag-text">{{signingIn ? '签到中' : (checkedIn ? '今日已签' : '签到 +10')}}</text>
-      </view>
-      <view wx:else class="sign-tag sign-tag-disabled">
-        <view class="sign-tag-icon icon-coin"></view>
-        <text class="sign-tag-text">登录后签到</text>
-      </view>
-    </view>
 
-    <view class="home-search-box" bindtap="handleJoinByCodeTap">
-      <view class="search-glyph icon-search"></view>
-      <text class="search-text">输入口令加入</text>
-      <text class="search-action">加入</text>
-    </view>
-
-    <view class="spacer"></view>
-
-    <view class="hero">
-      <image wx:if="{{home.hero.imageUrl}}" class="hero-image" src="{{home.hero.imageUrl}}" mode="scaleToFill"></image>
-      <view class="hero-overlay"></view>
-      <view class="hero-content">
-        <view class="hero-title-wrap">
-          <text class="hero-title"></text>
-          <text class="hero-title">{{home.hero.title}}</text>
-        </view>
-        <text class="hero-subtitle">{{home.hero.subtitle}}</text>
-        <view class="hero-button-wrap">
-          <button class="primary-btn full-btn" bindtap="handlePrimaryTap">
-            <text>去开一局</text>
-            <view class="btn-glyph icon-flash"></view>
-          </button>
-        </view>
+      <view wx:if="{{!loggedIn}}" class="home-login-entry" bindtap="handleLoginTextTap">
+        <text class="home-login-title">登录后创建聚会</text>
+        <text class="home-login-desc">用于保存房间、相册和成员记录</text>
       </view>
     </view>
 
-    <view class="home-section-head">
-      <text class="home-section-title">常用工具</text>
-      <text class="home-section-link">编辑</text>
-    </view>
+    <session-return-bar
+      visible="{{sessionReturn.visible}}"
+      title="{{sessionReturn.title}}"
+      meta="{{sessionReturn.meta}}"
+      status="{{sessionReturn.status}}"
+      bind:open="handleSessionReturnOpen"
+    ></session-return-bar>
 
-    <view class="quick-tool-grid">
-      <view
-        wx:for="{{home.quickTools}}"
-        wx:key="id"
-        class="quick-tool-tile {{item.toneClass ? 'quick-tool-tile-' + item.toneClass : ''}}"
-        data-id="{{item.id}}"
-        data-name="{{item.name}}"
-        data-route="{{item.route}}"
-        bindtap="handleQuickToolTap"
-      >
-        <view class="quick-tool-icon">
-          <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
-          <view wx:else class="quick-tool-icon-glyph {{item.iconClass}}"></view>
+    <view class="home-lite-panel">
+      <view class="home-lite-head">
+        <text class="home-lite-title">最近相册</text>
+        <text class="home-lite-link" bindtap="handleAlbumListTap">全部相册</text>
+      </view>
+      <view class="home-album-strip">
+        <view wx:for="{{home.recentTools}}" wx:key="id" class="home-album-shot" data-id="{{item.id}}" data-name="{{item.name}}" data-route="{{item.route}}" bindtap="handleAlbumTap">
+          <view class="home-album-image home-album-placeholder">
+            <image wx:if="{{item.imageUrl}}" class="home-album-cover" src="{{item.imageUrl}}" mode="aspectFill"></image>
+            <text class="home-album-mark">{{item.badgeText}}</text>
+          </view>
+          <text class="home-album-label">{{item.name}}</text>
+          <text wx:if="{{item.usedAt}}" class="home-album-meta">{{item.usedAt}}</text>
         </view>
-        <text class="quick-tool-label">{{item.name}}</text>
       </view>
     </view>
 
-    <view class="home-section-head">
-      <text class="home-section-title">最近使用</text>
-      <text class="home-section-link">全部</text>
-    </view>
-
-    <view class="recent-list">
-      <view
-        wx:for="{{home.recentTools}}"
-        wx:key="id"
-        class="recent-list-item"
-        data-id="{{item.id}}"
-        data-name="{{item.name}}"
-        data-route="{{item.route}}"
-        bindtap="handleToolTap"
-      >
-        <view class="recent-thumb">
-          <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
-        </view>
-        <view class="recent-item-copy">
-          <text class="recent-item-title">{{item.name}}</text>
-          <text class="recent-item-meta">{{item.usedAt}}</text>
-        </view>
-        <view class="recent-tag {{item.badgeClass === 'green' ? 'recent-tag-green' : ''}}">{{item.badgeText}}</view>
-      </view>
-    </view>
   </scroll-view>
 
   <view class="bottom-nav">
@@ -112,12 +72,8 @@
       <text class="bottom-label">首页</text>
     </view>
     <view class="bottom-item" data-tab="tools" bindtap="handleTabTap">
-      <view class="bottom-icon nav-tools"></view>
-      <text class="bottom-label">工具箱</text>
-    </view>
-    <view class="bottom-item" data-tab="judge" bindtap="handleTabTap">
       <view class="bottom-icon nav-judge"></view>
-      <text class="bottom-label">酒桌判官</text>
+      <text class="bottom-label">工具箱</text>
     </view>
     <view class="bottom-item" data-tab="me" bindtap="handleTabTap">
       <view class="bottom-icon nav-me"></view>
@@ -138,7 +94,7 @@
         </button>
         <view class="auth-avatar-copy">
           <text class="auth-avatar-title">点击头像授权</text>
-          <text class="auth-avatar-desc">用于酒局身份展示，不会使用默认图片占位。</text>
+          <text class="auth-avatar-desc">用于聚会成员展示，不会使用默认图片占位。</text>
         </view>
       </view>
       <input

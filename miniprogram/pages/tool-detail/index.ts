@@ -183,7 +183,7 @@ const buildQrRows = (seed: string) => {
 }
 
 const buildShareCode = (text: string) => {
-  const normalized = (text || '酒桌判官').replace(/\s+/g, '').toUpperCase()
+  const normalized = (text || '聚会记录师').replace(/\s+/g, '').toUpperCase()
   let total = 0
   for (let index = 0; index < normalized.length; index += 1) {
     total += normalized.charCodeAt(index) * (index + 3)
@@ -252,9 +252,9 @@ Page<ToolDetailState, ToolDetailMethods>({
     imagePreviewSrc: '',
     isImageTool: true,
     qrInput: '',
-    qrCode: buildShareCode('酒桌判官'),
-    qrImageUrl: buildQrImageUrl('酒桌判官'),
-    qrRows: buildQrRows('酒桌判官'),
+    qrCode: buildShareCode('聚会记录师'),
+    qrImageUrl: buildQrImageUrl('聚会记录师'),
+    qrRows: buildQrRows('聚会记录师'),
     currencyAmount: '100',
     currencyOptions: CURRENCY_OPTIONS,
     currencyFromIndex: 0,
@@ -356,7 +356,7 @@ Page<ToolDetailState, ToolDetailMethods>({
   },
 
   handlePrimaryTap() {
-    this.openPage('/pages/usage-history/index')
+    wx.showToast({ title: '请在上方工具区完成处理', icon: 'none' })
   },
 
   handleSecondaryTap() {

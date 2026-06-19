@@ -12,12 +12,12 @@
       <view wx:else class="friend-hub-avatar"></view>
       <view class="friend-hub-copy">
         <text class="friend-hub-name">{{currentProfile.name}}</text>
-        <text class="friend-hub-meta">仅显示你参与过的酒局中的聚友，支持拍一拍和删除。</text>
+        <text class="friend-hub-meta">仅显示你参与过的聚会好友，支持拍一拍和删除。</text>
       </view>
     </view>
 
     <view class="friend-hub-create">
-      <input class="friend-hub-input" value="{{newFriendName}}" placeholder="搜索聚友昵称/ID" bindinput="handleNewFriendInput" />
+      <input class="friend-hub-input" value="{{newFriendName}}" placeholder="搜索好友昵称" bindinput="handleNewFriendInput" />
     </view>
 
     <view wx:if="{{newFriendMatches.length}}" class="friend-hub-search-list">

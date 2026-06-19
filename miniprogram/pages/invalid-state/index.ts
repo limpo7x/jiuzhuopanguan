@@ -30,20 +30,20 @@ Page<InvalidStateState, InvalidStateMethods>({
     ],
     quickItems: [
       { name: '邀请好友', iconClass: 'invalid-icon-user', route: '/pages/invite-group/index', toneClass: 'invalid-tile-green' },
-      { name: '使用新模板', iconClass: 'invalid-icon-magic', route: '/pages/premium-templates/index', toneClass: 'invalid-tile-blue' },
-      { name: '去积分中心', iconClass: 'invalid-icon-crown', route: '/pages/wine-points/index', toneClass: '' },
+      { name: '查看相册', iconClass: 'invalid-icon-magic', route: '/pages/album/index', toneClass: 'invalid-tile-blue' },
+      { name: '聚会账本', iconClass: 'invalid-icon-crown', route: '/pages/ledger/index', toneClass: '' },
     ],
   },
 
   handleReportTap() {
     wx.navigateTo({
-      url: '/pages/result-report/index',
+      url: '/pages/album/index',
     })
   },
 
   handleRestartTap() {
     wx.navigateTo({
-      url: '/pages/restart-state/index',
+      url: '/pages/create-session/index',
     })
   },
 

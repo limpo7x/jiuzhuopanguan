@@ -1,0 +1,142 @@
+{
+  "id": "INT-DATA-001",
+  "status": "blocked",
+  "environment": "api.pomer.cn",
+  "baseUrl": "https://api.pomer.cn/api/v1",
+  "prefix": "IT-MOMENTS-20260615",
+  "createdAt": null,
+  "createdBy": "interface-integration-owner",
+  "cleanupAuthorizedBy": null,
+  "canStartFirstHour": false,
+  "blockers": [
+    {
+      "owner": "PM/ops",
+      "missing": "online write window for api.pomer.cn"
+    },
+    {
+      "owner": "backend/API or ops",
+      "missing": "host/memberA/memberB/outsider profileId and X-JZP-User-Token values"
+    },
+    {
+      "owner": "PM/ops/admin",
+      "missing": "admin test account or admin session cookie"
+    },
+    {
+      "owner": "PM/ops",
+      "missing": "cleanup authorization and evidence-retention policy"
+    },
+    {
+      "owner": "backend/API",
+      "missing": "prepare-moments-integration-fixture.js or equivalent manifest create/cleanup path"
+    }
+  ],
+  "profiles": {
+    "host": {
+      "semanticId": "it-host-20260615",
+      "profileId": null,
+      "token": null,
+      "role": "host"
+    },
+    "memberA": {
+      "semanticId": "it-member-a-20260615",
+      "profileId": null,
+      "token": null,
+      "role": "member"
+    },
+    "memberB": {
+      "semanticId": "it-member-b-20260615",
+      "profileId": null,
+      "token": null,
+      "role": "member"
+    },
+    "outsider": {
+      "semanticId": "it-outsider-20260615",
+      "profileId": null,
+      "token": null,
+      "role": "outsider"
+    }
+  },
+  "session": {
+    "semanticId": "it-moments-20260615-a",
+    "sessionId": null,
+    "inviteCode": null,
+    "status": "missing"
+  },
+  "moments": {
+    "opening": {
+      "semanticId": "opening-host-20260615",
+      "momentId": null
+    },
+    "highlight": {
+      "semanticId": "highlight-a-20260615",
+      "momentId": null
+    },
+    "private": {
+      "semanticId": "private-a-to-b-20260615",
+      "momentId": null,
+      "visibleTo": "memberB"
+    },
+    "reviewPending": {
+      "semanticId": "review-secondary-20260615",
+      "momentId": null
+    }
+  },
+  "events": {
+    "drinkDebt": {
+      "semanticId": "event-drink-debt-20260615",
+      "eventId": null
+    }
+  },
+  "brief": {
+    "briefId": null
+  },
+  "shareTasks": {
+    "pending": {
+      "semanticId": "share-task-pending-20260615",
+      "taskId": null
+    },
+    "ready": {
+      "semanticId": "share-task-ready-20260615",
+      "taskId": null,
+      "imageUrl": null
+    },
+    "failed": {
+      "semanticId": "share-task-failed-20260615",
+      "taskId": null
+    },
+    "expired": {
+      "semanticId": "share-task-expired-20260615",
+      "taskId": null
+    }
+  },
+  "admin": {
+    "report": {
+      "semanticId": "report-private-20260615",
+      "reportId": null
+    },
+    "operationLogIds": []
+  },
+  "m5": {
+    "rankingCategory": "best_opening",
+    "rankingItemId": null,
+    "nomination": {
+      "semanticId": "nomination-b-highlight-20260615",
+      "nominationId": null
+    },
+    "rewardPayout": {
+      "semanticId": "reward-today-highlight-20260615",
+      "payoutId": null
+    },
+    "pointsLedgerIds": []
+  },
+  "firstHourReadiness": {
+    "testCanStart": false,
+    "reason": "Required sessionId, profileId/token, admin account, sample IDs, and cleanup authorization are missing."
+  },
+  "cleanup": {
+    "mode": "manifest-only",
+    "command": "node backend/scripts/prepare-moments-integration-fixture.js --mode cleanup --manifest docs/runtime/int-data-001-manifest.json --export-evidence docs/runtime/int-data-001-evidence.json",
+    "mustExportEvidenceBeforeCleanup": true,
+    "allowedPrefixOnly": "IT-MOMENTS-20260615"
+  }
+}

@@ -33,6 +33,27 @@ const hashPassword = (password) => crypto.createHash('sha256').update(password).
 const createId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
 const now = () => Date.now()
 const iso = (value = Date.now()) => new Date(value).toISOString()
+const SESSION_STATE_LIVE = '进行中'
+const SESSION_STATE_ENDED = '已结束'
+const isEndedSessionState = (value = '') => String(value || '').trim().includes('结束')
+const normalizeSessionState = (value = '', fallback = SESSION_STATE_LIVE) => {
+  const text = String(value || '').trim()
+  if (isEndedSessionState(text)) {
+    return SESSION_STATE_ENDED
+  }
+  if (text.includes('进行中') || text.includes('等待') || text.includes('正常')) {
+    return SESSION_STATE_LIVE
+  }
+  return fallback
+}
+const normalizeSessionStatusForState = (status = '', state = '') => {
+  const normalizedState = normalizeSessionState(state, SESSION_STATE_LIVE)
+  const text = String(status || '').trim()
+  if (isEndedSessionState(normalizedState) || isEndedSessionState(text)) {
+    return SESSION_STATE_ENDED
+  }
+  return normalizedState
+}
 const numberFromText = (value) => {
   const matched = String(value || '')
     .replace(/,/g, '')
@@ -588,12 +609,28 @@ const buildUserLoginLogRows = (socialStore = readSocialStore()) => {
     .sort((left, right) => String(right.loginAt).localeCompare(String(left.loginAt)))
 }
 
+const getOperationLogType = (entry = {}) => {
+  const explicitType = String(entry.logType || entry.type || '').trim()
+  if (explicitType) {
+    return explicitType
+  }
+  const text = `${entry.action || ''} ${entry.targetId || ''} ${entry.targetName || ''} ${entry.detail || ''}`
+  if (text.includes('精彩瞬间举报')) return '瞬间举报'
+  if (text.includes('精彩瞬间')) return '瞬间审核'
+  if (text.includes('分享图')) return '分享图任务'
+  if (text.includes('榜单奖励')) return '榜单奖励'
+  if (text.includes('积分')) return '积分调整'
+  return '后台操作'
+}
+
 const buildAdminOperationLogRows = (adminStore = readStore()) =>
   (adminStore.operationLogs || [])
     .map((entry) => ({
       id: entry.id,
+      logType: getOperationLogType(entry),
       operator: entry.operator || '',
       action: entry.action || '',
+      targetId: entry.targetId || '',
       targetName: entry.targetName || '',
       targetPhone: entry.targetPhone || '',
       targetOpenId: entry.targetOpenId || '',
@@ -602,50 +639,94 @@ const buildAdminOperationLogRows = (adminStore = readStore()) =>
     }))
     .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
 
-const buildMomentReviewRows = (adminStore = readStore()) =>
-  (adminStore.momentReviewItems || [])
+const readMomentsAdminStore = () => {
+  try {
+    return require('./moments').readMomentsStore()
+  } catch (error) {
+    return null
+  }
+}
+
+const writeMomentsAdminStore = (momentsStore) => {
+  try {
+    require('./moments').writeMomentsStore(momentsStore)
+  } catch (error) {
+    return false
+  }
+  return true
+}
+
+const getSessionNameById = (adminStore = readStore()) => {
+  const sessionMap = new Map()
+  ;(adminStore.liveSessions || []).forEach((session) => {
+    sessionMap.set(String(session.id || '').trim(), String(session.name || session.id || '').trim())
+  })
+  return sessionMap
+}
+
+const buildMomentReviewRows = (adminStore = readStore()) => {
+  const momentsStore = readMomentsAdminStore()
+  const sourceItems = momentsStore?.momentRecords || adminStore.momentReviewItems || []
+  const sessionNameById = getSessionNameById(adminStore)
+  const reportCountByMomentId = new Map()
+  ;(momentsStore?.momentReports || adminStore.momentReportItems || []).forEach((report) => {
+    const momentId = String(report.momentId || '').trim()
+    if (!momentId) return
+    reportCountByMomentId.set(momentId, (reportCountByMomentId.get(momentId) || 0) + 1)
+  })
+  return sourceItems
     .map((entry) => ({
       id: entry.id || entry.momentId || '',
-      thumbnailUrl: entry.thumbnailUrl || entry.imageUrl || '',
+      thumbnailUrl: entry.thumbnailUrl || entry.imageUrl || entry.coverImageUrl || '',
       caption: entry.caption || '',
       tagsText: Array.isArray(entry.tags) ? entry.tags.join('、') : entry.tagsText || '',
-      sessionName: entry.sessionName || entry.sessionId || '',
+      sessionName: entry.sessionName || sessionNameById.get(String(entry.sessionId || '').trim()) || entry.sessionId || '',
       uploaderName: entry.uploaderName || entry.uploaderProfileId || '',
       nodeType: entry.nodeType || '',
       visibility: entry.visibility || '',
-      consentText: entry.consentText || '',
+      consentText: entry.consentText || Object.entries(entry.usageConsent || {}).filter(([, value]) => value).map(([key]) => key).join(', '),
       completionStatus: entry.completionStatus || '',
       reviewStatus: entry.reviewStatus || '',
       secondaryReviewStatus: entry.secondaryReviewStatus || '',
       rankingEligible: entry.rankingEligible ? '是' : '否',
       rewardEligible: entry.rewardEligible ? '是' : '否',
-      reportCount: Number(entry.reportCount) || 0,
+      reportCount: Number(entry.reportCount) || reportCountByMomentId.get(entry.id) || 0,
       createdAt: entry.createdAt || '',
     }))
     .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+}
 
-const buildMomentReportRows = (adminStore = readStore()) =>
-  (adminStore.momentReportItems || [])
+const buildMomentReportRows = (adminStore = readStore()) => {
+  const momentsStore = readMomentsAdminStore()
+  const sourceItems = momentsStore?.momentReports || adminStore.momentReportItems || []
+  const momentMap = new Map((momentsStore?.momentRecords || []).map((moment) => [String(moment.id || '').trim(), moment]))
+  const sessionNameById = getSessionNameById(adminStore)
+  return sourceItems
     .map((entry) => ({
       id: entry.id || '',
       momentId: entry.momentId || '',
-      sessionName: entry.sessionName || entry.sessionId || '',
+      sessionName: entry.sessionName || sessionNameById.get(String(entry.sessionId || momentMap.get(entry.momentId)?.sessionId || '').trim()) || entry.sessionId || '',
       reporterName: entry.reporterName || entry.reporterProfileId || '',
-      uploaderName: entry.uploaderName || entry.uploaderProfileId || '',
+      uploaderName: entry.uploaderName || momentMap.get(entry.momentId)?.uploaderName || entry.uploaderProfileId || '',
       reason: entry.reason || '',
       note: entry.note || '',
       status: entry.status || '',
+      statusText: entry.statusText || entry.status || '',
       handler: entry.handler || '',
       handledAt: entry.handledAt || '',
       createdAt: entry.createdAt || '',
     }))
     .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+}
 
-const buildShareImageTaskRows = (adminStore = readStore()) =>
-  (adminStore.shareImageTasks || [])
+const buildShareImageTaskRows = (adminStore = readStore()) => {
+  const momentsStore = readMomentsAdminStore()
+  const sourceItems = momentsStore?.shareImageTasks || adminStore.shareImageTasks || []
+  const sessionNameById = getSessionNameById(adminStore)
+  return sourceItems
     .map((entry) => ({
       id: entry.id || '',
-      sessionName: entry.sessionName || entry.sessionId || '',
+      sessionName: entry.sessionName || sessionNameById.get(String(entry.sessionId || '').trim()) || entry.sessionId || '',
       briefId: entry.briefId || '',
       status: entry.status || '',
       layoutMode: entry.layoutMode || '',
@@ -658,6 +739,7 @@ const buildShareImageTaskRows = (adminStore = readStore()) =>
       finishedAt: entry.finishedAt || '',
     }))
     .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+}
 
 const appendAdminOperationLog = (adminStore, log = {}) => {
   adminStore.operationLogs = Array.isArray(adminStore.operationLogs) ? adminStore.operationLogs : []
@@ -1331,15 +1413,25 @@ const normalizeLiveSession = (session = {}, index = 0) => {
         },
         [],
       )
+  const state = normalizeSessionState(session.state || session.status, SESSION_STATE_LIVE)
+  const status = normalizeSessionStatusForState(session.status || session.state, state)
+  const updatedAt = String(session.updatedAt || session.createdAt || '').trim()
+  const endedAt = isEndedSessionState(state)
+    ? String(session.endedAt || updatedAt || '').trim()
+    : String(session.endedAt || '').trim()
 
   return {
     ...session,
+    endedAt,
     hostProfileId: String(session.hostProfileId || members.find((item) => item.isHost)?.profileId || '').trim(),
     hostAvatarUrl: String(session.hostAvatarUrl || members[0]?.avatarUrl || '').trim(),
     id: String(session.id || createId('session')).trim(),
     inviteCode: String(session.inviteCode || makeInviteCode()).trim() || makeInviteCode(),
     joinedCount: Number(session.joinedCount) || members.filter((item) => item.status === '已加入').length,
     members,
+    state,
+    status,
+    updatedAt,
   }
 }
 
@@ -1429,9 +1521,13 @@ const joinManagedSession = ({ inviteCode, profile }) => {
 const createManagedSession = (payload = {}) => {
   const store = readStore()
   const id = createId('session')
+  const createdAt = iso()
+  const state = normalizeSessionState(payload.state || payload.status, SESSION_STATE_LIVE)
+  const status = normalizeSessionStatusForState(payload.status || payload.state, state)
   const session = {
     id,
-    createdAt: iso(),
+    createdAt,
+    endedAt: isEndedSessionState(state) ? createdAt : '',
     name: String(payload.sessionName || '').trim(),
     players: Number(payload.playerCount) || 0,
     template: String(payload.templateName || '').trim(),
@@ -1440,9 +1536,10 @@ const createManagedSession = (payload = {}) => {
     hostProfileId: String(payload.hostProfileId || '').trim(),
     inviteCode: String(payload.inviteCode || makeUniqueInviteCode(store)).trim().toUpperCase() || makeUniqueInviteCode(store),
     hostAvatarUrl: String(payload.hostAvatarUrl || '').trim() || '',
-    state: String(payload.state || '').trim(),
+    state,
     source: String(payload.source || '').trim(),
-    status: String(payload.status || '').trim(),
+    status,
+    updatedAt: createdAt,
     members: buildSessionMembers(payload, []),
   }
   store.liveSessions = [session, ...store.liveSessions.filter((item) => item.id !== id)].slice(0, 50)
@@ -1461,10 +1558,18 @@ const createManagedSession = (payload = {}) => {
 
 const updateManagedSession = (sessionId, payload = {}) => {
   const store = readStore()
+  const updatedAt = String(payload.updatedAt || payload.endedAt || '').trim() || iso()
   const nextItems = store.liveSessions.map((item) => {
     if (item.id !== sessionId) {
       return item
     }
+    const requestedState = Object.prototype.hasOwnProperty.call(payload, 'state') ? payload.state : item.state
+    const requestedStatus = Object.prototype.hasOwnProperty.call(payload, 'status') ? payload.status : item.status
+    const state = normalizeSessionState(requestedState || requestedStatus, normalizeSessionState(item.state || item.status, SESSION_STATE_LIVE))
+    const status = normalizeSessionStatusForState(requestedStatus || requestedState, state)
+    const endedAt = isEndedSessionState(state)
+      ? String(payload.endedAt || item.endedAt || updatedAt).trim()
+      : String(payload.endedAt || item.endedAt || '').trim()
     return {
       ...item,
       name: payload.sessionName || item.name,
@@ -1475,9 +1580,11 @@ const updateManagedSession = (sessionId, payload = {}) => {
       hostProfileId: payload.hostProfileId || item.hostProfileId,
       hostAvatarUrl: payload.hostAvatarUrl || item.hostAvatarUrl,
       inviteCode: payload.inviteCode || item.inviteCode,
-      state: payload.state || item.state,
+      endedAt,
+      state,
       source: payload.source || item.source,
-      status: payload.status || item.status,
+      status,
+      updatedAt,
       members: Array.isArray(payload.selectedPlayers) || payload.hostProfileId
         ? buildSessionMembers(
             {
@@ -1502,6 +1609,14 @@ const updateManagedSession = (sessionId, payload = {}) => {
   writeStore(store)
   return store.liveSessions.find((item) => item.id === sessionId) || null
 }
+
+const endManagedSession = (sessionId, payload = {}) =>
+  updateManagedSession(sessionId, {
+    ...payload,
+    endedAt: String(payload.endedAt || payload.finishedAt || '').trim() || iso(),
+    state: SESSION_STATE_ENDED,
+    status: SESSION_STATE_ENDED,
+  })
 
 const deleteManagedSession = (sessionId) => {
   const normalizedSessionId = String(sessionId || '').trim()
@@ -1536,6 +1651,7 @@ const deleteManagedSession = (sessionId) => {
 const finishManagedSession = (payload = {}) => {
   const store = readStore()
   const sessionId = String(payload.sessionId || '').trim()
+  const finishedAt = String(payload.endedAt || payload.finishedAt || '').trim() || iso()
   const relatedSession = store.liveSessions.find((item) => item.id === sessionId)
   const sessionName = String(payload.sessionName || relatedSession?.name || '').trim()
   const templateName = String(payload.templateName || relatedSession?.template || '').trim()
@@ -1573,11 +1689,11 @@ const finishManagedSession = (payload = {}) => {
     viewCount: Math.max(Number(payload.viewCount) || 0, playerCount),
     shareCount: Math.max(0, Number(payload.shareCount) || 0),
     replayCount: Math.max(0, Number(payload.replayCount) || 0),
-    createdAt: iso(),
+    createdAt: finishedAt,
     playerCount,
     ranks,
     events,
-    status: String(payload.status || '').trim(),
+    status: String(payload.status || SESSION_STATE_ENDED).trim(),
   }
 
   const normalizedReport = normalizeReportItem(report, 0)
@@ -1594,11 +1710,16 @@ const finishManagedSession = (payload = {}) => {
   if (sessionId) {
     store.liveSessions = store.liveSessions.map((item) =>
       item.id === sessionId
-        ? {
-            ...item,
-            state: payload.sessionState || '',
-            status: payload.sessionStatus || '',
-          }
+        ? normalizeLiveSession(
+            {
+              ...item,
+              endedAt: String(payload.endedAt || item.endedAt || finishedAt).trim(),
+              state: normalizeSessionState(payload.sessionState || SESSION_STATE_ENDED, SESSION_STATE_ENDED),
+              status: normalizeSessionStatusForState(payload.sessionStatus || SESSION_STATE_ENDED, SESSION_STATE_ENDED),
+              updatedAt: finishedAt,
+            },
+            0,
+          )
         : item,
     )
   }
@@ -2704,23 +2825,26 @@ pageMap['user-login-logs'] = () => {
 
 pageMap['system-operation-logs'] = () => {
   const rows = buildAdminOperationLogRows()
+  const momentLogCount = countBy(rows, (item) => ['瞬间审核', '瞬间举报', '分享图任务', '榜单奖励'].includes(item.logType))
   return {
     slug: 'system-operation-logs',
-    title: '后台积分操作日志',
+    title: '后台操作日志',
     view: 'readonly',
     metrics: [
       { label: '操作日志数', value: formatNumber(rows.length), trend: `最近 ${rows[0]?.createdAt || '--'}`, tone: 'up' },
-      { label: '加分操作', value: formatNumber(countBy(rows, (item) => String(item.action).includes('增加'))), trend: `减分 ${formatNumber(countBy(rows, (item) => String(item.action).includes('减少')))} 次`, tone: 'up' },
-      { label: '操作用户数', value: formatNumber(new Set(rows.map((item) => item.targetOpenId || item.targetName).filter(Boolean)).size), trend: '积分管理可追溯', tone: 'up' },
+      { label: 'M4 动作日志', value: formatNumber(momentLogCount), trend: '审核、举报、分享图、奖励配置', tone: 'up' },
+      { label: '目标对象数', value: formatNumber(new Set(rows.map((item) => item.targetId || item.targetOpenId || item.targetName).filter(Boolean)).size), trend: '内容与积分均可追溯', tone: 'up' },
       { label: '操作人', value: formatNumber(new Set(rows.map((item) => item.operator).filter(Boolean)).size), trend: '当前默认 admin-console', tone: 'up' },
     ],
     tables: [
       {
-        title: '后台积分调整日志',
+        title: '后台操作日志',
         columns: [
+          { key: 'logType', label: '类型' },
           { key: 'operator', label: '操作人' },
           { key: 'action', label: '动作' },
-          { key: 'targetName', label: '目标用户' },
+          { key: 'targetId', label: '目标 ID' },
+          { key: 'targetName', label: '目标名称' },
           { key: 'targetOpenId', label: 'OpenID' },
           { key: 'targetPhone', label: '手机号' },
           { key: 'detail', label: '详情' },
@@ -2762,6 +2886,49 @@ pageMap['content-moments-review'] = () => {
           { key: 'rankingEligible', label: '可上榜' },
           { key: 'createdAt', label: '创建时间' },
         ],
+        rowActions: [
+          {
+            key: 'approve',
+            label: '通过',
+            endpoint: '/api/v1/admin/moments/:id/review',
+            payloadAction: 'approve',
+            reasonPrompt: '请输入通过审核的原因',
+            visibleWhen: { field: 'reviewStatus', values: ['pending', 'rejected', '待审核', '已拒绝'] },
+          },
+          {
+            key: 'hide',
+            label: '隐藏',
+            endpoint: '/api/v1/admin/moments/:id/review',
+            payloadAction: 'hide',
+            reasonPrompt: '请输入隐藏原因',
+            visibleWhen: { field: 'reviewStatus', notValues: ['hidden', '已隐藏'] },
+          },
+          {
+            key: 'require-resubmit',
+            label: '要求重传',
+            endpoint: '/api/v1/admin/moments/:id/require-resubmit',
+            reasonPrompt: '请输入要求重传原因',
+            visibleWhen: {
+              all: [
+                { field: 'reviewStatus', notValues: ['hidden', '已隐藏'] },
+                { field: 'secondaryReviewStatus', notValues: ['require_resubmit', '待重传'] },
+              ],
+            },
+          },
+          {
+            key: 'remove-ranking',
+            label: '移出榜单',
+            endpoint: '/api/v1/admin/moments/:id/review',
+            payloadAction: 'remove_ranking',
+            reasonPrompt: '请输入移出榜单候选原因',
+            visibleWhen: {
+              all: [
+                { field: 'rankingEligible', equals: '是' },
+                { field: 'reviewStatus', notValues: ['hidden', '已隐藏'] },
+              ],
+            },
+          },
+        ],
         rows,
       },
     ],
@@ -2790,10 +2957,44 @@ pageMap['content-moment-reports'] = () => {
           { key: 'reporterName', label: '举报人' },
           { key: 'uploaderName', label: '上传者' },
           { key: 'reason', label: '举报原因' },
-          { key: 'status', label: '处理状态' },
+          { key: 'statusText', label: '处理状态' },
           { key: 'handler', label: '处理人' },
           { key: 'handledAt', label: '处理时间' },
           { key: 'createdAt', label: '举报时间' },
+        ],
+        rowActions: [
+          {
+            key: 'valid-hide',
+            label: '有效并隐藏',
+            endpoint: '/api/v1/admin/moment-reports/:id/handle',
+            payloadAction: 'valid_hide',
+            reasonPrompt: '请输入判定有效并隐藏内容的原因',
+            visibleWhen: { field: 'status', values: ['pending', '待处理', ''] },
+          },
+          {
+            key: 'invalid-keep',
+            label: '无效保留',
+            endpoint: '/api/v1/admin/moment-reports/:id/handle',
+            payloadAction: 'invalid_keep',
+            reasonPrompt: '请输入判定举报无效的原因',
+            visibleWhen: { field: 'status', values: ['pending', '待处理', ''] },
+          },
+          {
+            key: 'require-resubmit',
+            label: '要求重传',
+            endpoint: '/api/v1/admin/moment-reports/:id/handle',
+            payloadAction: 'require_resubmit',
+            reasonPrompt: '请输入要求上传者重传的原因',
+            visibleWhen: { field: 'status', values: ['pending', '待处理', ''] },
+          },
+          {
+            key: 'remove-ranking',
+            label: '移出榜单',
+            endpoint: '/api/v1/admin/moment-reports/:id/handle',
+            payloadAction: 'remove_ranking',
+            reasonPrompt: '请输入移出榜单候选的原因',
+            visibleWhen: { field: 'status', values: ['pending', '待处理', ''] },
+          },
         ],
         rows,
       },
@@ -2830,6 +3031,15 @@ pageMap['growth-share-tasks'] = () => {
           { key: 'createdAt', label: '创建时间' },
           { key: 'finishedAt', label: '完成时间' },
         ],
+        rowActions: [
+          {
+            key: 'retry',
+            label: '重试',
+            endpoint: '/api/v1/admin/share-image-tasks/:id/retry',
+            reasonPrompt: '请输入重试原因',
+            visibleWhen: { field: 'status', values: ['failed', 'expired'] },
+          },
+        ],
         rows,
       },
     ],
@@ -2838,7 +3048,9 @@ pageMap['growth-share-tasks'] = () => {
 
 pageMap['commerce-ranking-rewards'] = () => {
   const store = readStore()
-  const rules = (store.rankingRewardRules || []).map((item, index) => normalizeRankingRewardRule(item, index))
+  const momentsStore = readMomentsAdminStore()
+  const sourceRules = momentsStore?.rankingRewardRules?.length ? momentsStore.rankingRewardRules : store.rankingRewardRules
+  const rules = (sourceRules || []).map((item, index) => normalizeRankingRewardRule(item, index))
   return {
     slug: 'commerce-ranking-rewards',
     title: '榜单奖励配置',
@@ -2849,6 +3061,16 @@ pageMap['commerce-ranking-rewards'] = () => {
       { label: '最高奖励', value: formatNumber(Math.max(0, ...rules.map((item) => Number(item.points) || 0))), trend: '积分', tone: 'up' },
       { label: '最近更新', value: rules.find((item) => item.updatedAt)?.updatedAt || '--', trend: '保存需写原因', tone: 'up' },
     ],
+    pageActions: RANKING_REWARD_CATEGORIES.map((item) => ({
+      key: `grant-${item.value}`,
+      label: `发放${item.label}`,
+      endpoint: '/api/v1/admin/ranking-rewards/grant',
+      method: 'POST',
+      body: {
+        category: item.value,
+      },
+      confirm: `确认按当前 ${item.label} 榜单发放奖励？重复发放会被后端幂等跳过。`,
+    })),
     collection: {
       key: 'rankingRewardRules',
       itemLabel: '奖励规则',
@@ -2955,6 +3177,303 @@ const saveCollectionArray = (items = [], fields = [], existingItems = []) => {
     })
     return next
   })
+}
+
+const assertRankingRewardRules = (rules = []) => {
+  const byCategory = new Map()
+  rules.forEach((rule) => {
+    if (!String(rule.reason || '').trim()) {
+      throw new Error('榜单奖励配置必须填写修改原因')
+    }
+    if (Number(rule.rankStart) > Number(rule.rankEnd)) {
+      throw new Error('榜单奖励名次区间不合法')
+    }
+    const categoryRules = byCategory.get(rule.category) || []
+    categoryRules.forEach((existed) => {
+      const overlaps = Number(rule.rankStart) <= Number(existed.rankEnd) && Number(rule.rankEnd) >= Number(existed.rankStart)
+      if (overlaps) {
+        throw new Error(`${getRankingCategoryLabel(rule.category)} 的奖励名次区间不能重叠`)
+      }
+    })
+    categoryRules.push(rule)
+    byCategory.set(rule.category, categoryRules)
+  })
+}
+
+const saveRankingRewardRules = (adminStore, items = []) => {
+  const fields = pageMap['commerce-ranking-rewards']().collection.fields
+  const nextRules = saveCollectionArray(items, fields, adminStore.rankingRewardRules).map((item, index) => ({
+    ...normalizeRankingRewardRule(item, index),
+    updatedAt: iso(),
+  }))
+  assertRankingRewardRules(nextRules)
+  const before = JSON.stringify(adminStore.rankingRewardRules || [])
+  const after = JSON.stringify(nextRules)
+  adminStore.rankingRewardRules = nextRules
+  const momentsStore = readMomentsAdminStore()
+  if (momentsStore) {
+    momentsStore.rankingRewardRules = nextRules
+    writeMomentsAdminStore(momentsStore)
+  }
+  if (before !== after) {
+    const changedCategories = [...new Set(nextRules.map((item) => getRankingCategoryLabel(item.category)))].join('、')
+    appendAdminOperationLog(adminStore, {
+      action: '保存榜单奖励配置',
+      targetId: 'commerce-ranking-rewards',
+      targetName: '榜单奖励配置',
+      detail: `更新 ${nextRules.length} 条规则；覆盖：${changedCategories}`,
+    })
+  }
+}
+
+const refundMomentNominationsAfterRankingRemoval = ({ momentId, action, reason, operator }) => {
+  if (!['hide', 'reject', 'require_resubmit', 'remove_ranking', 'valid_hide'].includes(String(action || '').trim())) {
+    return {
+      refundedCount: 0,
+      refundedPoints: 0,
+      nominations: [],
+    }
+  }
+  const { refundMomentNominationsForMoment } = require('./moments')
+  return refundMomentNominationsForMoment({
+    momentId,
+    reason: reason || `admin ${action}`,
+    operator,
+  })
+}
+
+const applyAdminMomentReviewState = (moment = {}, action = '') => {
+  const next = {
+    ...moment,
+    updatedAt: iso(),
+  }
+  if (action === 'approve' || action === 'approve_secondary') {
+    next.reviewStatus = 'approved'
+    next.secondaryReviewStatus = 'approved'
+  } else if (action === 'approve_primary') {
+    next.reviewStatus = 'approved'
+  } else if (action === 'hide') {
+    next.reviewStatus = 'hidden'
+    next.rankingEligible = false
+    next.rewardEligible = false
+  } else if (action === 'reject') {
+    next.reviewStatus = 'rejected'
+    next.secondaryReviewStatus = 'rejected'
+    next.rankingEligible = false
+    next.rewardEligible = false
+  } else if (action === 'require_resubmit') {
+    next.secondaryReviewStatus = 'require_resubmit'
+    next.completionStatus = 'needs_media'
+    next.rankingEligible = false
+    next.rewardEligible = false
+  } else if (action === 'remove_ranking') {
+    next.secondaryReviewStatus = 'rejected'
+    next.rankingEligible = false
+    next.rewardEligible = false
+  } else {
+    throw new Error('unsupported moment review action')
+  }
+  return next
+}
+
+const getReportStatusText = (action = '') => {
+  if (action === 'valid_hide') return '有效，已隐藏内容'
+  if (action === 'invalid_keep') return '无效，保留内容'
+  if (action === 'require_resubmit') return '有效，要求重传'
+  if (action === 'remove_ranking') return '有效，移出榜单候选'
+  return '已处理'
+}
+
+const applyMomentReportActionToMoment = (moment = {}, action = '') => {
+  if (action === 'valid_hide') {
+    return applyAdminMomentReviewState(moment, 'hide')
+  }
+  if (action === 'require_resubmit') {
+    return applyAdminMomentReviewState(moment, 'require_resubmit')
+  }
+  if (action === 'remove_ranking') {
+    return applyAdminMomentReviewState(moment, 'remove_ranking')
+  }
+  return {
+    ...moment,
+    updatedAt: iso(),
+  }
+}
+
+const handleManagedMomentReport = ({ reportId, action, reason, operator = 'admin-console' } = {}) => {
+  const normalizedReportId = String(reportId || '').trim()
+  const normalizedAction = String(action || '').trim()
+  const normalizedReason = String(reason || '').trim()
+  if (!normalizedReportId) {
+    throw new Error('reportId required')
+  }
+  if (!normalizedReason) {
+    throw new Error('report reason required')
+  }
+  if (!['valid_hide', 'invalid_keep', 'require_resubmit', 'remove_ranking'].includes(normalizedAction)) {
+    throw new Error('unsupported moment report action')
+  }
+  const momentsStore = readMomentsAdminStore()
+  if (!momentsStore) {
+    throw new Error('moments store not available')
+  }
+  const reportIndex = (momentsStore.momentReports || []).findIndex((item) => String(item.id || '').trim() === normalizedReportId)
+  if (reportIndex === -1) {
+    throw new Error('moment report not found')
+  }
+  const beforeReport = momentsStore.momentReports[reportIndex]
+  const momentId = String(beforeReport.momentId || '').trim()
+  const momentIndex = (momentsStore.momentRecords || []).findIndex((item) => String(item.id || '').trim() === momentId)
+  const beforeMoment = momentIndex >= 0 ? momentsStore.momentRecords[momentIndex] : null
+  const handledAt = iso()
+  const nextReport = {
+    ...beforeReport,
+    status: 'handled',
+    statusText: getReportStatusText(normalizedAction),
+    action: normalizedAction,
+    note: normalizedReason,
+    handler: operator,
+    handledAt,
+    updatedAt: handledAt,
+  }
+  momentsStore.momentReports[reportIndex] = nextReport
+  let nextMoment = beforeMoment
+  if (beforeMoment && normalizedAction !== 'invalid_keep') {
+    nextMoment = applyMomentReportActionToMoment(beforeMoment, normalizedAction)
+    momentsStore.momentRecords[momentIndex] = nextMoment
+  }
+  writeMomentsAdminStore(momentsStore)
+  const refund = nextMoment
+    ? refundMomentNominationsAfterRankingRemoval({
+        momentId,
+        action: normalizedAction,
+        reason: normalizedReason,
+        operator,
+      })
+    : {
+        refundedCount: 0,
+        refundedPoints: 0,
+        nominations: [],
+      }
+
+  const adminStore = readStore()
+  appendAdminOperationLog(adminStore, {
+    operator,
+    action: `处理精彩瞬间举报：${normalizedAction}`,
+    targetId: normalizedReportId,
+    targetName: momentId || normalizedReportId,
+    detail: `举报 ${normalizedReportId} -> ${nextReport.statusText}；原因：${normalizedReason}`,
+  })
+  writeStore(adminStore)
+  return {
+    refund,
+    report: nextReport,
+    moment: nextMoment,
+  }
+}
+
+const reviewManagedMoment = ({ momentId, action, reason, operator = 'admin-console' } = {}) => {
+  const normalizedMomentId = String(momentId || '').trim()
+  const normalizedAction = String(action || '').trim()
+  const normalizedReason = String(reason || '').trim()
+  if (!normalizedMomentId) {
+    throw new Error('momentId required')
+  }
+  if (!normalizedReason) {
+    throw new Error('review reason required')
+  }
+  const momentsStore = readMomentsAdminStore()
+  if (!momentsStore) {
+    throw new Error('moments store not available')
+  }
+  const index = (momentsStore.momentRecords || []).findIndex((item) => String(item.id || '').trim() === normalizedMomentId)
+  if (index === -1) {
+    throw new Error('moment not found')
+  }
+  const before = momentsStore.momentRecords[index]
+  const next = applyAdminMomentReviewState(before, normalizedAction)
+  momentsStore.momentRecords[index] = next
+  writeMomentsAdminStore(momentsStore)
+  const refund = refundMomentNominationsAfterRankingRemoval({
+    momentId: normalizedMomentId,
+    action: normalizedAction,
+    reason: normalizedReason,
+    operator,
+  })
+
+  const adminStore = readStore()
+  appendAdminOperationLog(adminStore, {
+    operator,
+    action: `审核精彩瞬间：${normalizedAction}`,
+    targetId: normalizedMomentId,
+    targetName: before.caption || before.timelineTitle || normalizedMomentId,
+    detail: `状态 ${before.reviewStatus || ''}/${before.secondaryReviewStatus || ''} -> ${next.reviewStatus || ''}/${next.secondaryReviewStatus || ''}；原因：${normalizedReason}`,
+  })
+  writeStore(adminStore)
+  return {
+    refund,
+    moment: next,
+  }
+}
+
+const retryManagedShareImageTask = ({ taskId, reason, operator = 'admin-console' } = {}) => {
+  const normalizedTaskId = String(taskId || '').trim()
+  const normalizedReason = String(reason || '').trim()
+  if (!normalizedTaskId) {
+    throw new Error('taskId required')
+  }
+  if (!normalizedReason) {
+    throw new Error('retry reason required')
+  }
+  const momentsStore = readMomentsAdminStore()
+  if (!momentsStore) {
+    throw new Error('moments store not available')
+  }
+  const index = (momentsStore.shareImageTasks || []).findIndex((item) => String(item.id || '').trim() === normalizedTaskId)
+  if (index === -1) {
+    throw new Error('share task not found')
+  }
+  const before = momentsStore.shareImageTasks[index]
+  if (!['failed', 'expired'].includes(String(before.status || '').trim())) {
+    throw new Error('only failed or expired share tasks can be retried')
+  }
+  const next = {
+    ...before,
+    status: 'pending',
+    failedReason: '',
+    retryCount: Number(before.retryCount || 0) + 1,
+    updatedAt: iso(),
+  }
+  momentsStore.shareImageTasks[index] = next
+  writeMomentsAdminStore(momentsStore)
+
+  const adminStore = readStore()
+  appendAdminOperationLog(adminStore, {
+    operator,
+    action: '重试分享图任务',
+    targetId: normalizedTaskId,
+    targetName: normalizedTaskId,
+    detail: `状态 ${before.status || ''} -> pending；原因：${normalizedReason}`,
+  })
+  writeStore(adminStore)
+  return {
+    task: next,
+  }
+}
+
+const grantRankingRewardsByAdmin = ({ category, limit, operator = 'admin-console' } = {}) => {
+  const { grantRankingRewards } = require('./moments')
+  const result = grantRankingRewards({ category, limit, operator })
+  const adminStore = readStore()
+  appendAdminOperationLog(adminStore, {
+    operator,
+    action: '发放榜单奖励',
+    targetId: `ranking-rewards:${result.category}:${result.date}`,
+    targetName: getRankingCategoryLabel(result.category),
+    detail: `发放 ${result.grantedCount} 条，跳过 ${result.skippedCount} 条，合计 ${result.totalPoints} 积分`,
+  })
+  writeStore(adminStore)
+  return result
 }
 
 const savePageData = (slug, payload = {}) => {
@@ -3102,6 +3621,12 @@ const savePageData = (slug, payload = {}) => {
     return getPageData(slug)
   }
 
+  if (slug === 'commerce-ranking-rewards') {
+    saveRankingRewardRules(adminStore, payload.items || [])
+    writeStore(adminStore)
+    return getPageData(slug)
+  }
+
   if (slug === 'system-permissions') {
     adminStore.adminUsers = (payload.collections.adminUsers || []).map((item) => {
       const existed = adminStore.adminUsers.find((user) => user.id === item.id)
@@ -3136,6 +3661,7 @@ const savePageData = (slug, payload = {}) => {
 module.exports = {
   createManagedSession,
   deleteManagedSession,
+  endManagedSession,
   finishManagedSession,
   getAdminStore: readStore,
   getManagedReportById,
@@ -3144,11 +3670,15 @@ module.exports = {
   getManagedSessionById,
   getManagedSessionByInviteCode,
   initAdminStore: storeAccessor.init,
+  grantRankingRewardsByAdmin,
   joinManagedSession,
   getPageData,
   getSession,
+  handleManagedMomentReport,
   loginAdmin,
   logoutAdmin,
+  retryManagedShareImageTask,
+  reviewManagedMoment,
   getSessionContactsByProfile,
   savePageData,
   trackAnalyticsEvent,

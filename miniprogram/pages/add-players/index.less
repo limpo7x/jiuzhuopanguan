@@ -329,9 +329,9 @@ page {
 }
 
 .players-footer-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(96px, 0.38fr) minmax(0, 0.62fr);
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
   margin-top: 12px;
 }
@@ -341,25 +341,30 @@ page {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 0;
   min-height: 40px;
+  padding: 0 12px;
   border-radius: 999px;
   font-size: 14px;
-  line-height: 1;
+  line-height: 1.15;
   font-weight: 900;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 .players-ghost {
-  flex: 1;
   border: 1px solid #eadfce;
   background: #fffdf8;
   color: #24160f;
+  white-space: nowrap;
 }
 
 .players-primary {
-  flex: 1;
   background: linear-gradient(135deg, #ff5b3d, #ff7645);
   color: #fff;
   box-shadow: 0 9px 18px rgba(255, 91, 61, 0.24);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .players-icon-search {
@@ -389,5 +394,5 @@ page {
 .players-ghost,
 .players-primary {
   min-height: 52px;
-  font-size: 17px;
+  font-size: 15px;
 }

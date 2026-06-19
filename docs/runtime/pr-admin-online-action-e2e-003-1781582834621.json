@@ -1,0 +1,582 @@
+{
+  "id": "PR-ADMIN-ONLINE-ACTION-E2E-003",
+  "target": "api.pomer.cn",
+  "forbiddenTargetNotTouched": "pomer.cn",
+  "startedAt": "2026-06-16T04:07:14.621Z",
+  "finishedAt": "2026-06-16T04:07:15.278Z",
+  "evidencePath": "docs\\runtime\\pr-admin-online-action-e2e-003-1781582834621.json",
+  "snapshots": {
+    "login": {
+      "entry": "https://api.pomer.cn/admin/login",
+      "api": "https://api.pomer.cn/api/v1/admin/auth/login",
+      "user": {
+        "id": "admin-root",
+        "username": "admin",
+        "name": "系统管理员",
+        "roleName": "超级管理员"
+      },
+      "cookie": "jiuzhuopanguan_admin_session=<redacted>"
+    },
+    "reviewBeforeRows": [
+      {
+        "id": "moment-1781549876193-29be0386",
+        "caption": "今晚最后一张，给这局收尾",
+        "sessionName": "Hxhxbz",
+        "uploaderName": ".Li",
+        "nodeType": "closing",
+        "visibility": "share",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T18:57:56.193Z"
+      },
+      {
+        "id": "moment-1781549829409-b3aece35",
+        "caption": "刚刚这一刻，值得留在时间线",
+        "sessionName": "Hxhxbz",
+        "uploaderName": ".Li",
+        "nodeType": "highlight",
+        "visibility": "session",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T18:57:09.409Z"
+      },
+      {
+        "id": "moment-1781549804535-b8b389b0",
+        "caption": "今晚开场，先留证",
+        "sessionName": "Hxhxbz",
+        "uploaderName": ".Li",
+        "nodeType": "opening",
+        "visibility": "session",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T18:56:44.535Z"
+      },
+      {
+        "id": "moment-1781549409858-bfdc15be",
+        "caption": "今晚开场，先留证",
+        "sessionName": "Hxhx",
+        "uploaderName": ".Li",
+        "nodeType": "opening",
+        "visibility": "session",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T18:50:09.858Z"
+      },
+      {
+        "id": "moment-1781540715200-111ce8bb",
+        "caption": "今晚最后一张，给这局收尾",
+        "sessionName": "周五快乐局",
+        "uploaderName": ".Li",
+        "nodeType": "closing",
+        "visibility": "share",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T16:25:15.200Z"
+      },
+      {
+        "id": "moment-1781540684967-c8d0930b",
+        "caption": "刚刚这一刻，值得留在时间线",
+        "sessionName": "周五快乐局",
+        "uploaderName": ".Li",
+        "nodeType": "highlight",
+        "visibility": "session",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T16:24:44.967Z"
+      },
+      {
+        "id": "moment-1781540671054-90a9122f",
+        "caption": "恶意我",
+        "sessionName": "周五快乐局",
+        "uploaderName": ".Li",
+        "nodeType": "highlight",
+        "visibility": "selected",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T16:24:31.054Z"
+      },
+      {
+        "id": "moment-1781536393102-c7bfdca5",
+        "caption": "今晚开场，先留证",
+        "sessionName": "周五快乐局",
+        "uploaderName": ".Li",
+        "nodeType": "opening",
+        "visibility": "session",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T15:13:13.103Z"
+      },
+      {
+        "id": "moment-1781536378209-448cfd24",
+        "caption": "今晚开场，先留证",
+        "sessionName": "周五快乐局",
+        "uploaderName": ".Li",
+        "nodeType": "opening",
+        "visibility": "session",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T15:12:58.209Z"
+      },
+      {
+        "id": "moment-1781527099498-31744936",
+        "caption": "今晚开场，先留证",
+        "sessionName": "周五快乐局",
+        "uploaderName": ".Li",
+        "nodeType": "opening",
+        "visibility": "session",
+        "completionStatus": "complete",
+        "reviewStatus": "approved",
+        "secondaryReviewStatus": "approved",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T12:38:19.498Z"
+      }
+    ],
+    "selectedSamples": {
+      "approve": {
+        "id": "moment-1781549804535-b8b389b0",
+        "caption": "今晚开场，先留证",
+        "sessionName": "Hxhxbz",
+        "uploaderName": ".Li",
+        "nodeType": "opening",
+        "visibility": "session",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T18:56:44.535Z"
+      },
+      "hide": {
+        "id": "moment-1781540671054-90a9122f",
+        "caption": "恶意我",
+        "sessionName": "周五快乐局",
+        "uploaderName": ".Li",
+        "nodeType": "highlight",
+        "visibility": "selected",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T16:24:31.054Z"
+      },
+      "requireResubmit": {
+        "id": "moment-1781549829409-b3aece35",
+        "caption": "刚刚这一刻，值得留在时间线",
+        "sessionName": "Hxhxbz",
+        "uploaderName": ".Li",
+        "nodeType": "highlight",
+        "visibility": "session",
+        "completionStatus": "complete",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T18:57:09.409Z"
+      }
+    },
+    "reportsBeforeCount": 0,
+    "shareTasksBeforeRows": [
+      {
+        "id": "share-task-1781540737500-7b517d92",
+        "sessionName": "周五快乐局",
+        "status": "pending",
+        "retryCount": 0,
+        "failedReason": "",
+        "imageUrl": "",
+        "createdAt": "2026-06-15T16:25:37.500Z"
+      },
+      {
+        "id": "share-task-1781527152182-0078e1ad",
+        "sessionName": "周五快乐局",
+        "status": "pending",
+        "retryCount": 0,
+        "failedReason": "",
+        "imageUrl": "",
+        "createdAt": "2026-06-15T12:39:12.183Z"
+      },
+      {
+        "id": "share-task-1781465622362-b11e8289",
+        "sessionName": "IT-Moments-1781465623681",
+        "status": "ready",
+        "retryCount": 0,
+        "failedReason": "",
+        "imageUrl": "/uploads/moments/share-tasks/share-task-1781465622362-b11e8289.png",
+        "createdAt": "2026-06-14T19:33:42.362Z"
+      },
+      {
+        "id": "share-task-1781464115687-938b6ad5",
+        "sessionName": "IT-MOMENTS-20260615-1781464116545",
+        "status": "pending",
+        "retryCount": 0,
+        "failedReason": "",
+        "imageUrl": "",
+        "createdAt": "2026-06-14T19:08:35.687Z"
+      }
+    ],
+    "rewardRuleBefore": {
+      "id": "reward-rule-best-opening-1",
+      "category": "best_opening",
+      "categoryName": "最佳开场",
+      "points": 60,
+      "reason": "初始榜单奖励配置",
+      "updatedAt": ""
+    },
+    "operationLogsAfter": [
+      {
+        "id": "admin-op-1781582831837-2c6dd5",
+        "operator": "admin-console",
+        "action": "保存榜单奖励配置",
+        "targetName": "榜单奖励配置",
+        "detail": "更新 7 条规则；覆盖：今日最有梗、今日最欠酒、今日最精彩、今日最有画面、最佳开场、最佳收尾",
+        "createdAt": "2026-06-16T04:07:11.837Z"
+      },
+      {
+        "id": "admin-op-1781582831811-89a318",
+        "operator": "admin-console",
+        "action": "保存榜单奖励配置",
+        "targetName": "榜单奖励配置",
+        "detail": "更新 7 条规则；覆盖：今日最有梗、今日最欠酒、今日最精彩、今日最有画面、最佳开场、最佳收尾",
+        "createdAt": "2026-06-16T04:07:11.811Z"
+      },
+      {
+        "id": "admin-op-1781582831706-aba238",
+        "operator": "admin",
+        "action": "审核精彩瞬间：require_resubmit",
+        "targetName": "刚刚这一刻，值得留在时间线",
+        "detail": "状态 pending/pending -> pending/require_resubmit；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 require resubmit smoke",
+        "createdAt": "2026-06-16T04:07:11.706Z"
+      },
+      {
+        "id": "admin-op-1781582831652-efa236",
+        "operator": "admin",
+        "action": "审核精彩瞬间：hide",
+        "targetName": "恶意我",
+        "detail": "状态 pending/pending -> hidden/pending；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 hide smoke",
+        "createdAt": "2026-06-16T04:07:11.652Z"
+      },
+      {
+        "id": "admin-op-1781582831602-b31020",
+        "operator": "admin",
+        "action": "审核精彩瞬间：approve",
+        "targetName": "今晚开场，先留证",
+        "detail": "状态 pending/pending -> approved/approved；原因：PR-ADMIN-ONLINE-ACTION-E2E-003 approve smoke",
+        "createdAt": "2026-06-16T04:07:11.602Z"
+      },
+      {
+        "id": "admin-op-1781529144358-98309e",
+        "operator": "admin",
+        "action": "审核精彩瞬间：approve",
+        "targetName": "今晚开场，先留证",
+        "detail": "状态 pending/pending -> approved/approved；原因：123",
+        "createdAt": "2026-06-15T13:12:24.358Z"
+      }
+    ],
+    "reviewAfterSelected": [
+      {
+        "id": "moment-1781549804535-b8b389b0",
+        "caption": "今晚开场，先留证",
+        "sessionName": "Hxhxbz",
+        "uploaderName": ".Li",
+        "nodeType": "opening",
+        "visibility": "session",
+        "completionStatus": "complete",
+        "reviewStatus": "approved",
+        "secondaryReviewStatus": "approved",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T18:56:44.535Z"
+      },
+      {
+        "id": "moment-1781540671054-90a9122f",
+        "caption": "恶意我",
+        "sessionName": "周五快乐局",
+        "uploaderName": ".Li",
+        "nodeType": "highlight",
+        "visibility": "selected",
+        "completionStatus": "complete",
+        "reviewStatus": "hidden",
+        "secondaryReviewStatus": "pending",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T16:24:31.054Z"
+      },
+      {
+        "id": "moment-1781549829409-b3aece35",
+        "caption": "刚刚这一刻，值得留在时间线",
+        "sessionName": "Hxhxbz",
+        "uploaderName": ".Li",
+        "nodeType": "highlight",
+        "visibility": "session",
+        "completionStatus": "needs_media",
+        "reviewStatus": "pending",
+        "secondaryReviewStatus": "require_resubmit",
+        "rankingEligible": "否",
+        "rewardEligible": "否",
+        "reportCount": 0,
+        "createdAt": "2026-06-15T18:57:09.409Z"
+      }
+    ],
+    "shareTasksAfterRows": [
+      {
+        "id": "share-task-1781540737500-7b517d92",
+        "sessionName": "周五快乐局",
+        "status": "pending",
+        "retryCount": 0,
+        "failedReason": "",
+        "imageUrl": "",
+        "createdAt": "2026-06-15T16:25:37.500Z"
+      },
+      {
+        "id": "share-task-1781527152182-0078e1ad",
+        "sessionName": "周五快乐局",
+        "status": "pending",
+        "retryCount": 0,
+        "failedReason": "",
+        "imageUrl": "",
+        "createdAt": "2026-06-15T12:39:12.183Z"
+      },
+      {
+        "id": "share-task-1781465622362-b11e8289",
+        "sessionName": "IT-Moments-1781465623681",
+        "status": "ready",
+        "retryCount": 0,
+        "failedReason": "",
+        "imageUrl": "/uploads/moments/share-tasks/share-task-1781465622362-b11e8289.png",
+        "createdAt": "2026-06-14T19:33:42.362Z"
+      },
+      {
+        "id": "share-task-1781464115687-938b6ad5",
+        "sessionName": "IT-MOMENTS-20260615-1781464116545",
+        "status": "pending",
+        "retryCount": 0,
+        "failedReason": "",
+        "imageUrl": "",
+        "createdAt": "2026-06-14T19:08:35.687Z"
+      }
+    ],
+    "rewardRuleAfterRollback": {
+      "id": "reward-rule-best-opening-1",
+      "category": "best_opening",
+      "categoryName": "最佳开场",
+      "points": 60,
+      "reason": "初始榜单奖励配置",
+      "updatedAt": "2026-06-16T04:07:11.836Z"
+    }
+  },
+  "actions": [
+    {
+      "name": "DEV-M4-01 approve",
+      "ok": true,
+      "result": {
+        "targetId": "moment-1781549804535-b8b389b0",
+        "before": {
+          "id": "moment-1781549804535-b8b389b0",
+          "caption": "今晚开场，先留证",
+          "sessionName": "Hxhxbz",
+          "uploaderName": ".Li",
+          "nodeType": "opening",
+          "visibility": "session",
+          "completionStatus": "complete",
+          "reviewStatus": "pending",
+          "secondaryReviewStatus": "pending",
+          "rankingEligible": "否",
+          "rewardEligible": "否",
+          "reportCount": 0,
+          "createdAt": "2026-06-15T18:56:44.535Z"
+        },
+        "after": {
+          "id": "moment-1781549804535-b8b389b0",
+          "caption": "今晚开场，先留证",
+          "sessionId": "session-1781549792201-343116",
+          "uploaderName": ".Li",
+          "nodeType": "opening",
+          "visibility": "session",
+          "completionStatus": "complete",
+          "reviewStatus": "approved",
+          "secondaryReviewStatus": "approved",
+          "rankingEligible": false,
+          "rewardEligible": false,
+          "updatedAt": "2026-06-16T04:07:11.600Z"
+        }
+      }
+    },
+    {
+      "name": "DEV-M4-01 hide",
+      "ok": true,
+      "result": {
+        "targetId": "moment-1781540671054-90a9122f",
+        "before": {
+          "id": "moment-1781540671054-90a9122f",
+          "caption": "恶意我",
+          "sessionName": "周五快乐局",
+          "uploaderName": ".Li",
+          "nodeType": "highlight",
+          "visibility": "selected",
+          "completionStatus": "complete",
+          "reviewStatus": "pending",
+          "secondaryReviewStatus": "pending",
+          "rankingEligible": "否",
+          "rewardEligible": "否",
+          "reportCount": 0,
+          "createdAt": "2026-06-15T16:24:31.054Z"
+        },
+        "after": {
+          "id": "moment-1781540671054-90a9122f",
+          "caption": "恶意我",
+          "sessionId": "session-1781536384432-305c8a",
+          "uploaderName": ".Li",
+          "nodeType": "highlight",
+          "visibility": "selected",
+          "completionStatus": "complete",
+          "reviewStatus": "hidden",
+          "secondaryReviewStatus": "pending",
+          "rankingEligible": false,
+          "rewardEligible": false,
+          "updatedAt": "2026-06-16T04:07:11.649Z"
+        }
+      }
+    },
+    {
+      "name": "DEV-M4-01 require_resubmit",
+      "ok": true,
+      "result": {
+        "targetId": "moment-1781549829409-b3aece35",
+        "before": {
+          "id": "moment-1781549829409-b3aece35",
+          "caption": "刚刚这一刻，值得留在时间线",
+          "sessionName": "Hxhxbz",
+          "uploaderName": ".Li",
+          "nodeType": "highlight",
+          "visibility": "session",
+          "completionStatus": "complete",
+          "reviewStatus": "pending",
+          "secondaryReviewStatus": "pending",
+          "rankingEligible": "否",
+          "rewardEligible": "否",
+          "reportCount": 0,
+          "createdAt": "2026-06-15T18:57:09.409Z"
+        },
+        "after": {
+          "id": "moment-1781549829409-b3aece35",
+          "caption": "刚刚这一刻，值得留在时间线",
+          "sessionId": "session-1781549792201-343116",
+          "uploaderName": ".Li",
+          "nodeType": "highlight",
+          "visibility": "session",
+          "completionStatus": "needs_media",
+          "reviewStatus": "pending",
+          "secondaryReviewStatus": "require_resubmit",
+          "rankingEligible": false,
+          "rewardEligible": false,
+          "updatedAt": "2026-06-16T04:07:11.703Z"
+        }
+      }
+    },
+    {
+      "name": "DEV-M4-02 report handle",
+      "ok": false,
+      "blocked": true,
+      "reason": "online content-moment-reports has 0 rows; no report sample to process"
+    },
+    {
+      "name": "DEV-M4-03 share task retry",
+      "ok": false,
+      "blocked": true,
+      "reason": "online growth-share-tasks has no failed/expired row; pending/ready only"
+    },
+    {
+      "name": "DEV-M4-04 reward config save temp",
+      "ok": true,
+      "result": {
+        "targetId": "reward-rule-best-opening-1",
+        "before": {
+          "id": "reward-rule-best-opening-1",
+          "category": "best_opening",
+          "categoryName": "最佳开场",
+          "points": 60,
+          "reason": "初始榜单奖励配置",
+          "updatedAt": ""
+        },
+        "after": {
+          "id": "reward-rule-best-opening-1",
+          "category": "best_opening",
+          "categoryName": "最佳开场",
+          "points": 61,
+          "reason": "PR-ADMIN-ONLINE-ACTION-E2E-003 temp config save",
+          "updatedAt": "2026-06-16T04:07:11.809Z"
+        }
+      }
+    },
+    {
+      "name": "DEV-M4-04 reward config rollback",
+      "ok": true,
+      "result": {
+        "targetId": "reward-rule-best-opening-1",
+        "restored": {
+          "id": "reward-rule-best-opening-1",
+          "category": "best_opening",
+          "categoryName": "最佳开场",
+          "points": 60,
+          "reason": "初始榜单奖励配置",
+          "updatedAt": "2026-06-16T04:07:11.836Z"
+        },
+        "rollbackMethod": "PUT original collection items back to /api/v1/admin/pages/commerce-ranking-rewards"
+      }
+    },
+    {
+      "name": "DEV-M5-05 ranking reward grant best_opening",
+      "ok": false,
+      "error": "POST /api/v1/admin/ranking-rewards/grant failed 500 {\"code\":500,\"message\":\"grantRankingRewardsByAdmin is not a function\",\"data\":null}",
+      "status": 500,
+      "payload": {
+        "code": 500,
+        "message": "grantRankingRewardsByAdmin is not a function",
+        "data": null
+      }
+    }
+  ]
+}

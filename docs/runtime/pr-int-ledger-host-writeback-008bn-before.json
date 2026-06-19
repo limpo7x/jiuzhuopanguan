@@ -1,0 +1,110 @@
+{
+  "createdAt": "2026-06-19T10:57:40.334Z",
+  "sessionId": "session-1781787045680-8e406c",
+  "session": {
+    "id": "session-1781787045680-8e406c",
+    "createdAt": "2026-06-18T12:50:45.680Z",
+    "name": "周末聚会记录",
+    "players": 3,
+    "template": "聚会照片墙",
+    "templateImageUrl": "",
+    "hostName": "聚会记录师房主",
+    "hostProfileId": "user-1781787045678-c892b9",
+    "inviteCode": "J2BEL2",
+    "hostAvatarUrl": "",
+    "state": "进行中",
+    "source": "prcs-clean-slate-actual-prcs-008g",
+    "status": "进行中",
+    "members": [
+      {
+        "avatarUrl": "",
+        "clearedCount": 0,
+        "debtCount": 0,
+        "drinkCount": 0,
+        "isHost": true,
+        "meta": "",
+        "name": "聚会记录师房主",
+        "phone": "",
+        "profileId": "user-1781787045678-c892b9",
+        "status": "已加入",
+        "wheelHistory": []
+      },
+      {
+        "avatarUrl": "",
+        "clearedCount": 0,
+        "debtCount": 0,
+        "drinkCount": 0,
+        "isHost": false,
+        "meta": "",
+        "name": "聚会记录师成员A",
+        "phone": "",
+        "profileId": "user-1781787045679-f3f2eb",
+        "status": "已加入",
+        "wheelHistory": []
+      },
+      {
+        "avatarUrl": "",
+        "clearedCount": 0,
+        "debtCount": 0,
+        "drinkCount": 0,
+        "isHost": false,
+        "meta": "",
+        "name": "聚会记录师成员B",
+        "phone": "",
+        "profileId": "user-1781787045679-4cd6ea",
+        "status": "已加入",
+        "wheelHistory": []
+      }
+    ],
+    "joinedCount": 3
+  },
+  "events": [
+    {
+      "id": "event-1781787045693-464dde2c",
+      "clientEventId": "prcs-008g-ledger-added",
+      "sessionId": "session-1781787045680-8e406c",
+      "eventType": "drink_add",
+      "operatorProfileId": "user-1781787045678-c892b9",
+      "operatorName": "聚会记录师房主",
+      "targetProfileId": "user-1781787045679-4cd6ea",
+      "targetName": "聚会记录师成员B",
+      "scoreDelta": 1,
+      "caption": "新增一条加酒记录",
+      "createdAt": "2026-06-18T12:50:45.693Z",
+      "updatedAt": "2026-06-18T12:50:45.693Z",
+      "syncStatus": "synced"
+    },
+    {
+      "id": "event-1781787045692-6dbe67d6",
+      "clientEventId": "prcs-008g-ledger-pending",
+      "sessionId": "session-1781787045680-8e406c",
+      "eventType": "drink_debt",
+      "operatorProfileId": "user-1781787045678-c892b9",
+      "operatorName": "聚会记录师房主",
+      "targetProfileId": "user-1781787045679-f3f2eb",
+      "targetName": "聚会记录师成员A",
+      "scoreDelta": 1,
+      "caption": "新增一条待处理记录",
+      "createdAt": "2026-06-18T12:50:45.692Z",
+      "updatedAt": "2026-06-18T12:50:45.692Z",
+      "syncStatus": "synced"
+    }
+  ],
+  "tasksPreserved": [
+    {
+      "id": "share-task-1781865942423-96fd9bd9",
+      "status": "ready",
+      "imageUrl": "/uploads/moments/share-tasks/share-task-1781865942423-96fd9bd9.png"
+    },
+    {
+      "id": "share-task-1781864833426-2696766c",
+      "status": "ready",
+      "imageUrl": "/uploads/moments/share-tasks/share-task-1781864833426-2696766c.png"
+    },
+    {
+      "id": "share-task-1781864781729-5aa63c1b",
+      "status": "ready",
+      "imageUrl": "/uploads/moments/share-tasks/share-task-1781864781729-5aa63c1b.png"
+    }
+  ]
+}

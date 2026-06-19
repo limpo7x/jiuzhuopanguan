@@ -1,0 +1,51 @@
+<navigation-bar
+  title="{{pageTitle}}"
+  back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
+  color="#111827"
+  background="rgba(255,255,252,0.96)"
+  ext-class="album-nav"
+></navigation-bar>
+
+<view class="album-page">
+  <scroll-view class="album-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="album-hero">
+      <text class="album-title">{{pageTitle}}</text>
+      <text class="album-subtitle">照片、简报和分享图集中整理，旧工具入口已收起。</text>
+      <view class="album-actions">
+        <view class="album-primary" bindtap="handleCreateTap">创建聚会</view>
+        <view class="album-secondary" bindtap="handleRefreshTap">刷新相册</view>
+      </view>
+    </view>
+
+    <view wx:if="{{loading}}" class="album-empty">相册加载中...</view>
+
+    <view wx:elif="{{items.length}}" class="album-list">
+      <view
+        wx:for="{{items}}"
+        wx:key="briefId"
+        class="album-card"
+        data-brief-id="{{item.briefId}}"
+        data-session-id="{{item.sessionId}}"
+        data-share-image-url="{{item.shareImageUrl}}"
+        bindtap="handleItemTap"
+      >
+        <view class="album-cover">
+          <image wx:if="{{item.coverUrl && !item.coverBroken}}" class="album-cover-image" src="{{item.coverUrl}}" mode="aspectFill" data-brief-id="{{item.briefId}}" data-session-id="{{item.sessionId}}" bindload="handleCoverLoad" binderror="handleCoverError"></image>
+          <view wx:else class="album-cover-empty">聚会记录师</view>
+        </view>
+        <view class="album-copy">
+          <text class="album-card-title">{{item.title}}</text>
+          <text class="album-card-meta">{{item.meta}}</text>
+        </view>
+        <view class="album-status">{{item.statusText}}</view>
+      </view>
+    </view>
+
+    <view wx:else class="album-empty">
+      <text>{{emptyText}}</text>
+      <view class="album-empty-action" bindtap="handleCreateTap">去创建聚会</view>
+    </view>
+  </scroll-view>
+</view>

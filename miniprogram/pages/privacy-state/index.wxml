@@ -1,0 +1,19 @@
+<navigation-bar
+  title="状态提示"
+  back="{{true}}"
+  color="#111827"
+  background="rgba(255,255,252,0.96)"
+  ext-class="privacy-nav"
+></navigation-bar>
+
+<view class="privacy-page">
+  <view class="privacy-card">
+    <view class="privacy-icon"></view>
+    <text class="privacy-title">{{title}}</text>
+    <text class="privacy-detail">{{detail}}</text>
+    <view class="privacy-actions">
+      <view class="privacy-primary" bindtap="handlePrimaryTap">{{actionText}}</view>
+      <view class="privacy-secondary" bindtap="handleSecondaryTap">查看相册</view>
+    </view>
+  </view>
+</view>

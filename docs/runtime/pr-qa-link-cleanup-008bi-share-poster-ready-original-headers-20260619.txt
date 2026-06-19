@@ -1,0 +1,9 @@
+HTTP/1.1 200 OK
+Content-Type: image/png
+Cache-Control: public, max-age=2592000, immutable
+ETag: W/"287373-19edf7c8e55.adc"
+Last-Modified: Fri, 19 Jun 2026 10:45:42 GMT
+Date: Fri, 19 Jun 2026 10:50:55 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked

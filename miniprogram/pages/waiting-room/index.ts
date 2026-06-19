@@ -26,6 +26,7 @@ interface WaitingRoomMethods {
   handleBackTap: () => Promise<void>
   handleCodeTap: () => void
   handleInviteTap: () => void
+  handleOpeningMomentTap: () => void
   handleOverviewTap: () => void
   handleRefreshTap: () => Promise<void>
   handleStartTap: () => Promise<void>
@@ -79,7 +80,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     } catch (error) {
       this.setData({ loading: false })
       wx.showToast({
-        title: error instanceof Error ? error.message : '酒局加载失败',
+        title: error instanceof Error ? error.message : '聚会加载失败',
         icon: 'none',
       })
     }
@@ -98,7 +99,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     } catch (error) {
       this.setData({ loading: false })
       wx.showToast({
-        title: error instanceof Error ? error.message : '酒局加载失败',
+        title: error instanceof Error ? error.message : '聚会加载失败',
         icon: 'none',
       })
     }
@@ -161,7 +162,19 @@ Page<WaitingRoomState, WaitingRoomMethods>({
   },
 
   handleOverviewTap() {
-    this.openPage('/pages/flow-overview/index')
+    this.openPage('/pages/privacy-state/index?type=feature')
+  },
+
+  handleOpeningMomentTap() {
+    if (!this.data.sessionId) {
+      wx.showToast({
+        title: '未找到当前聚会',
+        icon: 'none',
+      })
+      return
+    }
+
+    this.openPage(`/pages/moment-editor/index?sessionId=${encodeURIComponent(this.data.sessionId)}&nodeType=opening`)
   },
 
   async handleBackTap() {
@@ -171,7 +184,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     }
     await confirmLeaveSessionPage({
       clearRuntime: true,
-      content: '离开后可从参与场次重新进入当前酒局。',
+      content: '离开后可从参与场次重新进入当前聚会。',
     })
   },
 

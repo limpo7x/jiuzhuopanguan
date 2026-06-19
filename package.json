@@ -4,15 +4,28 @@
   "description": "",
   "scripts": {
     "check:encoding": "node scripts/check-encoding.js",
+    "wechat:auto": "node scripts/wechat-devtools-automator.js",
     "typecheck": "tsc --noEmit --pretty false"
   },
   "keywords": [],
   "author": "",
-  "license": "",
-  "dependencies": {
-  },
+  "license": "ISC",
   "devDependencies": {
     "miniprogram-api-typings": "^2.8.3-1",
+    "miniprogram-automator": "^0.12.1",
     "typescript": "^5.9.3"
-  }
+  },
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/limpo7x/jiuzhuopanguan.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/limpo7x/jiuzhuopanguan/issues"
+  },
+  "homepage": "https://github.com/limpo7x/jiuzhuopanguan#readme"
 }

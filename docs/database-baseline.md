@@ -1,6 +1,6 @@
 # 线上数据库基础信息与升级基线
 
-更新时间：2026-06-14
+更新时间：2026-06-15
 
 ## 1. 项目边界
 
@@ -49,6 +49,8 @@
 当前仍保留 `app_store` 作为配置和兼容主表，同时新增实体表作为后续前后端分离和数据库规范化升级基础。
 
 ## 4. 当前表结构分层
+
+说明：以下 2026-06-14 快照不包含 2026-06-15 “精彩瞬间时间线与分享增长”迭代新增的 moments 实体表验收结果。新增 DDL 草案已在 `backend/sql/mysql-normalized-schema.sql` 中出现，但本轮线上 `npm run mysql:test` 只证明 `app_store` 可用，不能替代 moments 实体表执行验收。
 
 ### 4.1 兼容配置表
 
@@ -108,6 +110,19 @@
 | `admin_sessions` | 后台登录态 |
 | `admin_operation_logs` | 后台操作日志 |
 | `analytics_events` | 埋点事件 |
+
+### 4.7 精彩瞬间新增实体表待验收
+
+| 表 | 用途 | 当前验收状态 |
+| --- | --- | --- |
+| `moment_records` | 精彩瞬间节点 | DDL 草案已出现，待 DBA/运维执行复核 |
+| `session_events` | 时间线辅助事件 | DDL 草案已出现，待 DBA/运维执行复核 |
+| `session_briefs` | 时间线简报 | DDL 草案已出现，待 DBA/运维执行复核 |
+| `share_image_tasks` | 分享图任务 | DDL 草案已出现，待 DBA/运维执行复核 |
+| `moment_reports` | UGC 举报记录 | DDL 草案已出现，待 DBA/运维执行复核 |
+| `moment_nominations` | 榜单推举记录，含退款状态字段 | DDL 草案已出现，待 DBA/运维执行复核 |
+| `ranking_reward_rules` | 榜单奖励规则，含 rank 区间和 points | DDL 草案已出现，待 DBA/运维执行复核 |
+| `ranking_reward_payouts` | 榜单奖励发放记录 | DDL 草案已出现，待 DBA/运维执行复核 |
 
 ## 5. 当前数据量快照
 
