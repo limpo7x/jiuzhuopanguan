@@ -322,20 +322,27 @@ const buildShareSummary = (photoCount: number, ledgerCount: number, eventCount: 
 const getLedgerEventMeta = (node: Extract<ManagedTimelineNode, { nodeKind: 'event' }>) => {
   const operator = cleanShareEventText(node.operatorName || '', '成员')
   const target = cleanShareEventText(node.targetName || '', '好友')
-  const score = Math.abs(Number(node.scoreDelta) || 1)
+  const delta = Number(node.scoreDelta) || 0
+  const score = Math.abs(delta) || 1
   if (node.eventType === 'drink_add') {
-    return `${operator} 为 ${target} 加酒 +${score}`
+    return delta < 0 ? `${operator} 为 ${target} 减少加酒 ${score} 杯` : `${operator} 为 ${target} 加酒 +${score}`
   }
   if (node.eventType === 'drink_debt') {
-    return `${target} 新增欠酒 ${score} 条`
+    return delta < 0 ? `${target} 消酒 ${score} 杯` : `${target} 新增欠酒 ${score} 杯`
   }
   return cleanShareEventText(node.caption || node.targetName || '', '聚会有新记录')
+}
+
+const getLedgerEventTitle = (node: Extract<ManagedTimelineNode, { nodeKind: 'event' }>) => {
+  const delta = Number(node.scoreDelta) || 0
+  if (node.eventType === 'drink_debt') return delta < 0 ? '消酒记录' : '欠酒记录'
+  if (node.eventType === 'drink_add') return delta < 0 ? '减少加酒' : '加酒记录'
+  return eventTitleMap[node.eventType] || '聚会关键时刻'
 }
 
 const buildPosterTimelineNodesFromTimeline = (nodes: ManagedTimelineNode[]): PosterTimelineNode[] =>
   nodes
     .filter((node) => isPublicMoment(node) || node.nodeKind === 'event')
-    .slice(0, 6)
     .map((node, index) => {
       if (isPublicMoment(node)) {
         return {
@@ -356,7 +363,7 @@ const buildPosterTimelineNodesFromTimeline = (nodes: ManagedTimelineNode[]): Pos
         id: eventNode.id || `ledger-node-${index}`,
         meta: getLedgerEventMeta(eventNode),
         time: pickRealTime(eventNode.createdAt, eventNode.updatedAt),
-        title: eventTitleMap[eventNode.eventType] || '聚会关键时刻',
+        title: getLedgerEventTitle(eventNode),
         tone: isDrinkAdd ? 'drink' : isDrinkDebt ? 'debt' : 'event',
         type: isDrinkAdd || isDrinkDebt ? 'ledger' : 'event',
       }

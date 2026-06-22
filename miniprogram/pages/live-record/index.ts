@@ -306,12 +306,13 @@ const buildEventDetail = (node: ManagedTimelineNode) => {
   }
   const operator = cleanDisplayName(node.operatorName, '成员')
   const target = cleanDisplayName(node.targetName, '成员')
-  const score = Math.abs(Number(node.scoreDelta) || 0)
+  const delta = Number(node.scoreDelta) || 0
+  const score = Math.abs(delta) || 1
   if (node.eventType === 'drink_debt') {
-    return `${operator} 给 ${target} 记了 ${score || 1} 杯欠酒`
+    return delta < 0 ? `${target} 消酒 ${score} 杯` : `${operator} 给 ${target} 记了 ${score} 杯欠酒`
   }
   if (node.eventType === 'drink_add') {
-    return `${operator} 为 ${target} 加了 ${score || 1} 杯酒`
+    return delta < 0 ? `${operator} 为 ${target} 减少加酒 ${score} 杯` : `${operator} 为 ${target} 加了 ${score} 杯酒`
   }
   return node.caption || `${operator} 记录了 ${target}`
 }
@@ -330,7 +331,9 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         const target = recordMap.get(node.targetProfileId) || recordMap.get(node.targetName)
         const targetName = cleanDisplayName(node.targetName, target?.name || '成员')
         const operatorName = cleanDisplayName(node.operatorName, '成员')
-        const score = Math.abs(Number(node.scoreDelta) || 0) || 1
+        const delta = Number(node.scoreDelta) || 0
+        const score = Math.abs(delta) || 1
+        const signText = delta < 0 ? '-' : '+'
         const chipAsset =
           node.eventType === 'drink_debt'
             ? (score === 1 ? '/pages/live-record/assets/pr-cs008ar-neon-debt-plus1.png' : '/pages/live-record/assets/pr-cs008ar-neon-plate-debt-base.png')
@@ -339,7 +342,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
           detail: buildEventDetail(node),
           id: node.id,
           scoreText: `${score} 杯`,
-          title: node.eventType === 'drink_debt' ? '欠酒记录' : '加酒记录',
+          title: node.eventType === 'drink_debt' ? (delta < 0 ? '消酒记录' : '欠酒记录') : (delta < 0 ? '减少加酒' : '加酒记录'),
           type: node.eventType === 'drink_debt' ? 'debt' : 'add',
           typeText: node.eventType === 'drink_debt' ? '欠酒' : '加酒',
         })
@@ -349,13 +352,13 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
           actorName: targetName,
           caption: '',
           chipAsset,
-          chipText: node.eventType === 'drink_debt' ? `欠酒 +${score}` : `加酒 +${score}`,
+          chipText: node.eventType === 'drink_debt' ? `欠酒 ${signText}${score}` : `加酒 ${signText}${score}`,
           chipTextVisible: chipAsset.includes('plate-'),
           createdAt: node.createdAt || node.updatedAt || '',
           detail:
             node.eventType === 'drink_debt'
-              ? `${operatorName} 给 ${targetName} 记了 ${score} 杯欠酒`
-              : `${operatorName} 为 ${targetName} 加了 ${score} 杯酒`,
+              ? (delta < 0 ? `${targetName} 消酒 ${score} 杯` : `${operatorName} 给 ${targetName} 记了 ${score} 杯欠酒`)
+              : (delta < 0 ? `${operatorName} 为 ${targetName} 减少加酒 ${score} 杯` : `${operatorName} 为 ${targetName} 加了 ${score} 杯酒`),
           iconAsset:
             node.eventType === 'drink_debt'
               ? '/pages/live-record/assets/pr-cs008ar-node-debt.png'
@@ -365,7 +368,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
           nodeKind: 'event',
           scoreText: `${score} 杯`,
           timeText: formatTimelineTime(node.createdAt || node.updatedAt),
-          title: node.eventType === 'drink_debt' ? '欠酒变动' : '加酒变动',
+          title: node.eventType === 'drink_debt' ? (delta < 0 ? '消酒变动' : '欠酒变动') : (delta < 0 ? '减少加酒' : '加酒变动'),
           type: node.eventType === 'drink_debt' ? 'debt' : 'drink',
         })
       }
@@ -559,12 +562,13 @@ const buildRecordsWithLedgerEvents = (records: LiveRecordItem[], nodes: ManagedT
     if (!target) {
       return
     }
-    const score = Math.abs(Number(node.scoreDelta) || 0) || 1
+    const delta = Number(node.scoreDelta) || 0
+    const score = Math.abs(delta) || 1
     if (node.eventType === 'drink_debt') {
-      target.debtCount += score
+      target.debtCount = Math.max(0, target.debtCount + (delta < 0 ? -score : score))
     }
     if (node.eventType === 'drink_add') {
-      target.drinkCount += score
+      target.drinkCount = Math.max(0, target.drinkCount + (delta < 0 ? -score : score))
     }
   })
 

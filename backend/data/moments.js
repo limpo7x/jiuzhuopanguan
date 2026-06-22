@@ -625,16 +625,18 @@ const buildSessionLedgerSnapshot = ({ sessionId, timeline } = {}) => {
   const events = store.sessionEvents.filter((item) => item.sessionId === normalizedSessionId)
   const debtEventCount = events
     .filter((item) => item.eventType === 'drink_debt')
-    .reduce((sum, item) => sum + Math.max(1, Math.abs(Number(item.scoreDelta) || 0)), 0)
+    .reduce((sum, item) => sum + (Number(item.scoreDelta) || 0), 0)
+  const safeDebtEventCount = Math.max(0, debtEventCount)
   const memberDebtCups = sumBy(members, (item) => item.debtCount)
-  const debtCups = memberDebtCups || debtEventCount
+  const debtCups = memberDebtCups || safeDebtEventCount
   const drunkCups = sumBy(members, (item) => item.drinkCount)
   const clearedCups = sumBy(members, (item) => item.clearedCount)
   const addWineCount = events
     .filter((item) => item.eventType === 'drink_add')
-    .reduce((sum, item) => sum + Math.max(1, Math.abs(Number(item.scoreDelta) || 0)), 0)
+    .reduce((sum, item) => sum + (Number(item.scoreDelta) || 0), 0)
+  const safeAddWineCount = Math.max(0, addWineCount)
   const keyEvents = events.filter((item) => item.eventType === 'wheel_result')
-  const ledgerCount = debtCups + drunkCups + clearedCups + addWineCount + keyEvents.length
+  const ledgerCount = debtCups + drunkCups + clearedCups + safeAddWineCount + keyEvents.length
   const eventHighlights = events
     .filter((item) => ['drink_debt', 'drink_add', 'wheel_result'].includes(item.eventType))
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
@@ -671,8 +673,8 @@ const buildSessionLedgerSnapshot = ({ sessionId, timeline } = {}) => {
       ledgerCount,
       debtCups,
       drunkCups,
-      addWineCount,
-      debtEventCount,
+      addWineCount: safeAddWineCount,
+      debtEventCount: safeDebtEventCount,
       clearedCups,
       keyEventCount: keyEvents.length,
       hasLedgerData: ledgerCount > 0,
@@ -1090,10 +1092,11 @@ const getPosterMomentCaptionMeta = (node = {}) => {
 
 const getPosterEventTitle = (node = {}) => {
   const targetName = toPosterSafeText(node.targetName || node.operatorName, '成员', 8)
-  const score = Math.max(1, Math.abs(Number(node.scoreDelta) || 0))
-  if (node.eventType === 'drink_add') return `${targetName} 喝了 ${score} 杯酒`
+  const delta = Number(node.scoreDelta) || 0
+  const score = Math.max(1, Math.abs(delta))
+  if (node.eventType === 'drink_add') return delta < 0 ? `${targetName} 减少加酒 ${score} 杯` : `${targetName} 喝了 ${score} 杯酒`
   if (node.eventType === 'wheel_result') return '记录关键互动'
-  return `${targetName} 又欠了 ${score} 杯酒`
+  return delta < 0 ? `${targetName} 消酒 ${score} 杯` : `${targetName} 又欠了 ${score} 杯酒`
 }
 
 const getPosterEventMeta = (node = {}) => {

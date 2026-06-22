@@ -132,8 +132,7 @@ const buildStats = (players = buildPlayers()): LedgerStat[] => {
 
 const applyLedgerEventsToPlayers = (players: LedgerPlayer[], nodes: ManagedTimelineNode[]) => {
   const eventPlayers = players.map((item) => ({ ...item, debtCount: 0, drinkCount: 0 }))
-  let pendingCount = 0
-  let addedCount = 0
+  let entryCount = 0
 
   nodes.forEach((node) => {
     if (node.nodeKind !== 'event') {
@@ -143,22 +142,23 @@ const applyLedgerEventsToPlayers = (players: LedgerPlayer[], nodes: ManagedTimel
       return
     }
 
-    const score = Math.max(1, Math.abs(Number(node.scoreDelta) || 1))
+    const rawDelta = Number(node.scoreDelta) || 0
+    const score = Math.max(1, Math.abs(rawDelta || 1))
+    const signedScore = rawDelta < 0 ? -score : score
     const targetId = node.targetProfileId || ''
     const targetName = cleanDisplayName(node.targetName, '')
     const matched = eventPlayers.find((item) => (targetId && item.profileId === targetId) || (!!targetName && item.name === targetName))
+    entryCount += 1
 
     if (node.eventType === 'drink_debt') {
-      pendingCount += score
       if (matched) {
-        matched.debtCount += score
+        matched.debtCount = Math.max(0, matched.debtCount + signedScore)
       }
       return
     }
 
-    addedCount += score
     if (matched) {
-      matched.drinkCount += score
+      matched.drinkCount = Math.max(0, matched.drinkCount + signedScore)
     }
   })
 
@@ -170,10 +170,12 @@ const applyLedgerEventsToPlayers = (players: LedgerPlayer[], nodes: ManagedTimel
       drinkCount: Math.max(Number(item.drinkCount) || 0, Number(eventPlayer?.drinkCount) || 0),
     }
   })
+  const pendingCount = nextPlayers.reduce((sum, item) => sum + (Number(item.debtCount) || 0), 0)
+  const addedCount = nextPlayers.reduce((sum, item) => sum + (Number(item.drinkCount) || 0), 0)
 
   return {
     addedCount,
-    entryCount: pendingCount + addedCount,
+    entryCount,
     pendingCount,
     players: nextPlayers,
   }
