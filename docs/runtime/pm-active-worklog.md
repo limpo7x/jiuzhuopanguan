@@ -1188,3 +1188,69 @@ OSS 环境注入：
 当前 PM 判断：
 
 - 小程序记录页照片不显示问题已修复并在开发者工具预览框验证通过。
+
+## 2026-06-22 分享图权限与首页封面 PM 总台账更新
+
+触发背景：
+
+- 用户确认小程序已发布上线，并追问“房主/成员/聚会/分享”链路是否存在隐藏漏洞。
+- 用户进一步明确产品规则：成员应必须等房主结束聚会后，才可以查看、保存或分享最终分享图。
+- 用户反馈首页“待分享回忆”封面仍未使用第一张上传图。
+
+已核验证据：
+
+- 最新线上部署版本：`c9dc0b05 fix(home): use first uploaded photo as memory cover`。
+- 近期相关提交：
+  - `f51ec12b fix(invite): support host member removal`
+  - `641d760b fix(invite): sync removed members to normalized storage`
+  - `0858f8be fix(invite): harden invite membership visibility`
+  - `c9dc0b05 fix(home): use first uploaded photo as memory cover`
+- 线上部署验证：
+  - `jiuzhuopanguan-backend` 已部署到 `api.pomer.cn` 对应服务并在线。
+  - `GET https://api.pomer.cn/api/v1/config/home` 返回 HTTP 200。
+  - 本次部署未改动、未重启、未代理 `pomer.cn` 公司官网服务。
+- 首页封面链路：
+  - 前端首页 `mapRecentAlbumsFromSummaries()` 已优先读取 `coverPhotoUrl || readyShareImageUrl || shareImageUrl`。
+  - 后端 `backend/data/moments.js` 与 `backend/data/normalized-read.js` 已补齐 `coverPhotoUrl`，取同一 `sessionId` 下最早一张有 `imageUrl` 的上传照片。
+  - 该修复为后端字段补齐，小程序包无需因本次封面修复单独重发；用户重新进入首页或刷新后应读取新字段。
+- 邀请/踢人链路：
+  - 房主可在邀请页踢出成员。
+  - 踢出后删除当前 `sessionId + profileId` 成员绑定，并同步删除 normalized/MySQL `wine_session_members` 对应记录。
+  - 被踢用户不能从自己的“我的/历史/分享图合集/直接 sessionId 入口”继续进入该局。
+  - 被踢用户仍可从分享链接/口令重新加入；重新加入成功后恢复该局成员关系。
+  - 无 token 或非成员通过 inviteCode 查询时，后端只返回邀请必要信息，`joinedPlayers/joinStatusPlayers` 为空，避免暴露成员头像/昵称。
+
+当前未闭环权限缺口：
+
+- 当前分享图后端权限不是“仅房主可生成/保存/分享”。
+- `createShareImageTask()` 当前调用 `getSessionBrief()`，而 `getSessionBrief()` / `createOrRefreshSessionBrief()` 使用 `assertSessionMember()`，即本局成员即可生成分享图任务。
+- `getShareImageTask()`、`retryShareImageTask()`、`processShareImageTask()` 等任务读取/刷新/处理路径同样按成员校验，不是房主校验。
+- 前端分享图页 `handleSaveTap()` 本地保存动作只依赖任务 ready 与相册权限；只要成员能进入分享图页并拿到 ready task，就可能保存。
+- `getUserShareImageSummaries()` / normalized 版本当前允许房主或成员看到该局 ready 分享图。
+- 进行中状态页的分享 tab/按钮虽已按用户要求移除，但后端尚未强制“聚会未结束不得创建/刷新/保存最终分享图”。如果旧入口、历史链接或直接参数打开分享页，仍存在绕过前端入口的风险。
+
+PM 判断：
+
+- 首页第一张上传图作为封面：后端字段已修复并上线，待前端/测试在已发布小程序或开发者工具中刷新验证。
+- 成员分享权限：不能标记完成。当前只能说“主 UI 链路不鼓励进行中分享”，不能说“后端已禁止成员或进行中分享”。
+- 新增权限 P0：分享图必须改为结束后开放；未结束时所有角色不得创建最终分享图任务。是否仅房主可生成，仍需按用户产品口径最终确认；当前用户明确的是“成员必须等房主结束聚会后才可以分享”。
+
+下一步责任人：
+
+- 后端/API 负责人 `SHARE-AUTH-011`：
+  - 在后端强制校验 session 状态：未结束时 `createShareImageTask()`、`retryShareImageTask()`、`processShareImageTask()` 返回明确错误，如 `409 session not ended`。
+  - 保持被踢成员不可访问分享图合集和任务详情。
+  - 若产品决定“只有房主可生成最终分享图”，生成/重试/处理接口需改为 `assertSessionHost()`；若允许结束后成员保存，则读取 ready task 可继续按成员校验，但创建权限仍应收紧。
+  - 补本地 smoke：进行中成员/房主创建分享图应失败；结束后房主创建成功；结束后成员按最终规则可读或不可读；被踢用户不可读。
+- 前端负责人 `SHARE-AUTH-011-FE`：
+  - 等后端合同确认后，隐藏进行中分享图入口和生成/保存按钮。
+  - 分享页遇到 `session not ended` 或权限错误时展示“聚会结束后可查看分享图”，不能让按钮停留在可点击状态。
+  - 已发布小程序若涉及前端改动，需要重新上传小程序包。
+- 接口联调负责人 `SHARE-AUTH-011-INT`：
+  - 后端补齐后，用有效 `jzp-user-token` 只读/写入最小样本验证：进行中禁止、结束后允许、被踢禁止、重新通过 inviteCode 加入后恢复归属。
+  - 证据只记录 token 后 8 位，不泄露完整 token。
+- 测试验收负责人 `SHARE-AUTH-011-QA`：
+  - 开发者工具预览框复测：进行中无分享入口；结束聚会后跳转分享页；成员在结束前不能生成/保存；被踢后不能从“我的/历史/分享图合集”进入。
+  - 复测首页“待分享回忆/最近相册”封面是否使用首张上传图。
+- UI/UX 负责人 `SHARE-AUTH-011-UX`：
+  - 如后端返回未结束/无权限，补齐分享页提示文案和按钮状态建议，不改业务源码。
