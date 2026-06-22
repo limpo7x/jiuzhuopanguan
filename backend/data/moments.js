@@ -1058,9 +1058,19 @@ const getPosterMomentCaptionMeta = (node = {}) => {
 }
 
 const getPosterEventTitle = (node = {}) => {
-  if (node.eventType === 'drink_add') return '新增加酒记录'
+  const targetName = toPosterSafeText(node.targetName || node.operatorName, '成员', 8)
+  const score = Math.max(1, Math.abs(Number(node.scoreDelta) || 0))
+  if (node.eventType === 'drink_add') return `${targetName} 喝了 ${score} 杯酒`
   if (node.eventType === 'wheel_result') return '记录关键互动'
-  return '新增待处理记录'
+  return `${targetName} 又欠了 ${score} 杯酒`
+}
+
+const getPosterEventMeta = (node = {}) => {
+  const operatorName = toPosterSafeText(node.operatorName, '记录人', 8)
+  if (node.eventType === 'wheel_result') {
+    return toPosterSafeText(node.caption || node.operatorName, '聚会互动', 18)
+  }
+  return `${operatorName} 记录了这次变动`
 }
 
 const buildPosterParticipants = (session = {}) => {
@@ -1236,7 +1246,7 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
       const desc =
         item.nodeKind === 'moment'
           ? getPosterMomentCaptionMeta(item)
-          : toPosterSafeText(item.caption || item.targetName || item.operatorName, '聚会账本', 18)
+          : getPosterEventMeta(item)
       const toneColor = item.nodeKind === 'moment' ? '#ff6846' : item.eventType === 'drink_add' ? '#63dfae' : '#ffc75a'
       const imageDataUri = item.nodeKind === 'moment' ? imageDataUriById.get(item.id) : ''
       const cardCopyX = imageDataUri ? 238 : 164
