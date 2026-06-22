@@ -1,12 +1,14 @@
 import {
   formatElapsed,
   getSessionRuntime,
+  markSessionEndedOverride,
   resolveSessionParticipants,
   setSessionRuntime,
   type SessionParticipant,
   type SessionPlayerStat,
 } from '../../utils/session'
 import {
+  createManagedSessionEvent,
   finishManagedSession,
   getManagedLiveSession,
   getManagedSessionTimeline,
@@ -15,6 +17,7 @@ import {
 } from '../../services/operations'
 import { confirmAndExitSession, confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized, getCurrentDisplayProfile } from '../../utils/social'
+import { resolveCachedManagedImagePath } from '../../utils/imageCache'
 
 interface LivePlayer {
   avatarUrl: string
@@ -59,6 +62,7 @@ interface LiveRecordTimelineItem {
   actorAvatarUrl: string
   actorInitial: string
   actorName: string
+  caption: string
   chipAsset: string
   createdAt: string
   detail: string
@@ -71,6 +75,16 @@ interface LiveRecordTimelineItem {
   timeText: string
   title: string
   type: 'debt' | 'drink' | 'photo'
+}
+
+interface LiveTimelinePhotoDiagnostic {
+  hasRenderableImage: boolean
+  id: string
+  imageBroken: boolean
+  renderedTail: string
+  renderedType: string
+  sourceTail: string
+  sourceType: string
 }
 
 interface LiveRecordTimelineDisplayItem extends LiveRecordTimelineItem {
@@ -93,9 +107,12 @@ interface LiveRecordState {
   events: LiveEvent[]
   finishMatchLabel: string
   isJudge: boolean
+  ledgerDirty: boolean
+  ledgerSubmitting: boolean
   memberCountText: string
   playerCount: number
   players: LivePlayer[]
+  baselineRecords: LiveRecordItem[]
   records: LiveRecordItem[]
   sessionId: string
   sessionName: string
@@ -109,6 +126,7 @@ interface LiveRecordState {
   timelineEmptyText: string
   timelineLoading: boolean
   timelineNodes: ManagedTimelineNode[]
+  timelinePhotoDiagnostics: LiveTimelinePhotoDiagnostic[]
 }
 
 interface LiveRecordMethods {
@@ -118,13 +136,13 @@ interface LiveRecordMethods {
   handleAddPlayerTap: () => void
   handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleBackTap: () => Promise<void>
+  handleConfirmLedgerTap: () => Promise<void>
   handleFinishTap: () => Promise<void>
   handleHighlightMomentTap: () => void
-  handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => void
+  handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handlePhotoImageLoad: (event: WechatMiniprogram.BaseEvent) => void
   handleLedgerTap: () => Promise<void>
   handleNextRoundTap: () => void
-  handleReportHintTap: () => void
   handleTimerTick: () => void
   handleTimelineSelect: (event: WechatMiniprogram.BaseEvent | WechatMiniprogram.CustomEvent<{ id: string; nodeKind: string }>) => void
   loadTimeline: () => Promise<void>
@@ -132,6 +150,7 @@ interface LiveRecordMethods {
   handleSaveTap: () => Promise<void>
   handleSegmentTap: (event: WechatMiniprogram.BaseEvent) => void
   handleWheelTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
+  createLedgerEventsForDiff: (previousRecords: LiveRecordItem[], nextRecords: LiveRecordItem[]) => Promise<boolean>
   persistRecordsToManagedSession: (records: LiveRecordItem[]) => Promise<boolean>
   showPreviewToast: (message: string) => void
   syncRecordsToRuntime: (records: LiveRecordItem[]) => void
@@ -141,7 +160,7 @@ const JUDGE_WHEEL_RESULT_KEY = 'judge-wheel-result'
 const MAX_CLEAR_PER_PLAYER = 3
 const SAMPLE_008AS_SESSION_ID = 'session-1781787045680-8e406c'
 const SAMPLE_008AS_SESSION_NAME = '周末聚会记录'
-const SAMPLE_008AS_TITLE_ASSET = '/assets/party-recorder/pr-cs008at-title-sample-zhoumojuhuijilu.png'
+const SAMPLE_008AS_TITLE_ASSET = '/pages/live-record/assets/pr-cs008at-title-sample-zhoumojuhuijilu.png'
 let liveTimer = 0
 
 const internalDisplayPattern = /(PR\s+Seed|PR-BE-DB-LOGIN|IT-MOMENTS|DEBUG|openid|openId|unionId|signature)/i
@@ -322,10 +341,11 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
           actorAvatarUrl: mergeRuntimeAvatar(node.targetProfileId, node.targetAvatarUrl || target?.avatarUrl || ''),
           actorInitial: getInitial(targetName),
           actorName: targetName,
+          caption: '',
           chipAsset:
             node.eventType === 'drink_debt'
-              ? (score === 1 ? '/assets/party-recorder/pr-cs008ar-neon-debt-plus1.png' : '/assets/party-recorder/pr-cs008ar-neon-plate-debt-base.png')
-              : (score === 1 ? '/assets/party-recorder/pr-cs008au-neon-drink-plus1.png' : score === 2 ? '/assets/party-recorder/pr-cs008ar-neon-drink-plus2.png' : '/assets/party-recorder/pr-cs008ar-neon-plate-drink-base.png'),
+              ? (score === 1 ? '/pages/live-record/assets/pr-cs008ar-neon-debt-plus1.png' : '/pages/live-record/assets/pr-cs008ar-neon-plate-debt-base.png')
+              : (score === 1 ? '/pages/live-record/assets/pr-cs008au-neon-drink-plus1.png' : score === 2 ? '/pages/live-record/assets/pr-cs008ar-neon-drink-plus2.png' : '/pages/live-record/assets/pr-cs008ar-neon-plate-drink-base.png'),
           createdAt: node.createdAt || node.updatedAt || '',
           detail:
             node.eventType === 'drink_debt'
@@ -333,8 +353,8 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
               : `${operatorName} 为 ${targetName} 加了 ${score} 杯酒`,
           iconAsset:
             node.eventType === 'drink_debt'
-              ? '/assets/party-recorder/pr-cs008ar-node-debt.png'
-              : '/assets/party-recorder/pr-cs008ar-node-drink.png',
+              ? '/pages/live-record/assets/pr-cs008ar-node-debt.png'
+              : '/pages/live-record/assets/pr-cs008ar-node-drink.png',
           id: node.id,
           imageUrl: '',
           nodeKind: 'event',
@@ -359,10 +379,11 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         actorAvatarUrl: mergeRuntimeAvatar(node.uploaderProfileId, node.uploaderAvatarUrl || ''),
         actorInitial: getInitial(cleanDisplayName(node.uploaderName, '成员')),
         actorName: cleanDisplayName(node.uploaderName, '成员'),
+        caption: node.caption || '',
         chipAsset: '',
         createdAt: node.createdAt || node.updatedAt || '',
         detail: node.caption || '照片已进入相册和分享记录',
-        iconAsset: '/assets/party-recorder/pr-cs008ar-node-camera.png',
+        iconAsset: '/pages/live-record/assets/pr-cs008ar-node-camera.png',
         id: node.id,
         imageUrl: node.imageUrl,
         nodeKind: 'moment',
@@ -422,7 +443,7 @@ const buildRecordTimelineDisplayItems = (items: LiveRecordTimelineItem[]): LiveR
     compactPhotos: compactPhotos.slice(0, 1),
     detail: '',
     displayKind: 'photoGroup',
-    iconAsset: '/assets/party-recorder/pr-cs008ar-node-camera.png',
+    iconAsset: '/pages/live-record/assets/pr-cs008ar-node-camera.png',
     id: `photo-group-${compactPhotos.map((item) => item.id).join('-')}`,
     scoreText: '',
     title: compactPhotos.length > 1 ? `还有 ${compactPhotos.length} 张照片` : '还有 1 张照片',
@@ -433,6 +454,106 @@ const buildRecordTimelineDisplayItems = (items: LiveRecordTimelineItem[]): LiveR
     photoGroup,
     ...items.slice(nextIndex).map(toDisplayNode),
   ]
+}
+
+const findLiveRecordImageUrl = (
+  id: string,
+  photoNodes: LivePhotoNode[],
+  recordTimelineItems: LiveRecordTimelineItem[],
+) =>
+  photoNodes.find((item) => item.id === id)?.imageUrl ||
+  recordTimelineItems.find((item) => item.id === id)?.imageUrl ||
+  ''
+
+const updateLiveRecordImageState = (
+  id: string,
+  patch: Partial<Pick<LivePhotoNode, 'imageBroken' | 'imageUrl'>>,
+  photoNodes: LivePhotoNode[],
+  recordTimelineItems: LiveRecordTimelineItem[],
+) => {
+  const nextPhotoNodes = photoNodes.map((item) => (item.id === id ? { ...item, ...patch } : item))
+  const nextRecordTimelineItems = recordTimelineItems.map((item) => (item.id === id ? { ...item, ...patch } : item))
+
+  return {
+    photoNodes: nextPhotoNodes,
+    recordTimelineDisplayItems: buildRecordTimelineDisplayItems(nextRecordTimelineItems),
+    recordTimelineItems: nextRecordTimelineItems,
+  }
+}
+
+const resolveImageDebugType = (source?: string) => {
+  const text = String(source || '').trim()
+  if (!text) {
+    return 'empty'
+  }
+  if (/^(wxfile|file):\/\//i.test(text) || /\/__tmp__\//i.test(text) || /\/tmp\//i.test(text)) {
+    return 'local-temp'
+  }
+  if (/\/__store__\//i.test(text)) {
+    return 'local-store'
+  }
+  if (/^https?:\/\//i.test(text)) {
+    return /\/uploads\//i.test(text) ? 'remote-upload' : 'remote-other'
+  }
+  if (text.startsWith('/uploads/')) {
+    return 'relative-upload'
+  }
+  if (text.startsWith('/assets/')) {
+    return 'bundled-asset'
+  }
+  return 'other'
+}
+
+const resolveImageDebugTail = (source?: string) => {
+  const text = String(source || '').trim().replace(/[?#].*$/, '')
+  if (!text) {
+    return ''
+  }
+  return text.split('/').filter(Boolean).slice(-2).join('/')
+}
+
+const buildTimelinePhotoDiagnostics = (
+  timelineNodes: ManagedTimelineNode[],
+  photoNodes: LivePhotoNode[],
+  recordTimelineItems: LiveRecordTimelineItem[],
+): LiveTimelinePhotoDiagnostic[] => {
+  const renderedById = new Map<string, LivePhotoNode | LiveRecordTimelineItem>()
+  photoNodes.forEach((item) => renderedById.set(item.id, item))
+  recordTimelineItems.forEach((item) => {
+    if (item.type === 'photo') {
+      renderedById.set(item.id, item)
+    }
+  })
+
+  return timelineNodes
+    .filter((node) => node.nodeKind === 'moment')
+    .map((node) => {
+      const rendered = renderedById.get(node.id)
+      const source = 'imageUrl' in node ? node.imageUrl || '' : ''
+      const renderedImageUrl = rendered?.imageUrl || ''
+      const imageBroken = Boolean(rendered?.imageBroken)
+      return {
+        hasRenderableImage: Boolean(renderedImageUrl && !imageBroken),
+        id: node.id,
+        imageBroken,
+        renderedTail: resolveImageDebugTail(renderedImageUrl),
+        renderedType: resolveImageDebugType(renderedImageUrl),
+        sourceTail: resolveImageDebugTail(source),
+        sourceType: resolveImageDebugType(source),
+      }
+    })
+}
+
+const resolveLiveRecordTimelineImages = async (viewState: ReturnType<typeof buildTimelineViewState>) => {
+  return {
+    ...viewState,
+    photoNodes: viewState.photoNodes.map((item) => ({ ...item, imageUrl: item.imageUrl.trim(), imageBroken: false })),
+    recordTimelineItems: viewState.recordTimelineItems.map((item) => ({
+      ...item,
+      imageBroken: item.imageUrl ? false : item.imageBroken,
+      imageUrl: item.imageUrl ? item.imageUrl.trim() : item.imageUrl,
+    })),
+  }
 }
 
 const buildRecordsWithLedgerEvents = (records: LiveRecordItem[], nodes: ManagedTimelineNode[]) => {
@@ -494,8 +615,11 @@ Page<LiveRecordState, LiveRecordMethods>({
     players: [],
     finishMatchLabel: '结束聚会',
     isJudge: false,
+    ledgerDirty: false,
+    ledgerSubmitting: false,
     memberCountText: '成员待加入',
     records: [],
+    baselineRecords: [],
     sessionId: '',
     sessionName: '',
     startTimeText: '开始时间未记录',
@@ -509,6 +633,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     timelineEmptyText: '还没有精彩瞬间，先记录一条',
     timelineLoading: false,
     timelineNodes: [],
+    timelinePhotoDiagnostics: [],
   },
 
   async onLoad(query) {
@@ -553,6 +678,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       isJudge,
       playerCount: runtime.playerCount,
       players,
+      baselineRecords: records.map((item) => ({ ...item })),
       records,
       sessionId,
       sessionName,
@@ -615,6 +741,9 @@ Page<LiveRecordState, LiveRecordMethods>({
       isJudge: inferredIsJudge,
       playerCount: liveSession.playerCount,
       players,
+      baselineRecords: records.map((item) => ({ ...item })),
+      ledgerDirty: false,
+      ledgerSubmitting: false,
       records,
       sessionId: liveSession.id,
       sessionName: liveSession.sessionName,
@@ -682,6 +811,9 @@ Page<LiveRecordState, LiveRecordMethods>({
       this.setData({
         playerCount: liveSession.playerCount,
         players,
+        baselineRecords: records.map((item) => ({ ...item })),
+        ledgerDirty: false,
+        ledgerSubmitting: false,
         records,
         sessionId: liveSession.id,
         sessionName: liveSession.sessionName,
@@ -758,13 +890,23 @@ Page<LiveRecordState, LiveRecordMethods>({
     try {
       const timeline = await getManagedSessionTimeline(sessionId)
       const records = buildRecordsWithLedgerEvents(this.data.records, timeline.nodes)
-      const timelineViewState = buildTimelineViewState(timeline.nodes, records)
+      const timelineViewState = await resolveLiveRecordTimelineImages(buildTimelineViewState(timeline.nodes, records))
       const recordTimelineDisplayItems = buildRecordTimelineDisplayItems(timelineViewState.recordTimelineItems)
+      const timelinePhotoDiagnostics = buildTimelinePhotoDiagnostics(
+        timeline.nodes,
+        timelineViewState.photoNodes,
+        timelineViewState.recordTimelineItems,
+      )
+      if (timelinePhotoDiagnostics.length) {
+        console.info('[live-record] timeline photo diagnostics', timelinePhotoDiagnostics)
+      }
       this.syncRecordsToRuntime(records)
       this.setData({
+        baselineRecords: records.map((item) => ({ ...item })),
         timelineEmptyText: timeline.pendingMediaCount > 0 ? `还有 ${timeline.pendingMediaCount} 条记录待补充` : '还没有聚会照片，先记录一张',
         timelineLoading: false,
         timelineNodes: timeline.nodes,
+        timelinePhotoDiagnostics,
         records,
         recordTimelineDisplayItems,
         ...timelineViewState,
@@ -870,6 +1012,9 @@ Page<LiveRecordState, LiveRecordMethods>({
       this.showPreviewToast('当前账号只能查看账本，请发起人调整')
       return
     }
+    if (this.data.ledgerSubmitting) {
+      return
+    }
 
     const { delta, field, id } = event.currentTarget.dataset as {
       delta: string
@@ -889,13 +1034,78 @@ Page<LiveRecordState, LiveRecordMethods>({
       }
     })
 
-    const prevRecords = this.data.records
     this.syncRecordsToRuntime(records)
-    this.setData({ records })
-    const persisted = await this.persistRecordsToManagedSession(records)
-    if (!persisted) {
-      this.syncRecordsToRuntime(prevRecords)
-      this.setData({ records: prevRecords })
+    this.setData({ ledgerDirty: true, records })
+  },
+
+  async handleConfirmLedgerTap() {
+    if (!this.data.isJudge) {
+      this.showPreviewToast('当前账号只能查看账本，请发起人调整')
+      return
+    }
+    if (!this.data.records.length || this.data.ledgerSubmitting) {
+      return
+    }
+    if (!this.data.ledgerDirty) {
+      this.showPreviewToast('账本没有新的修改')
+      return
+    }
+
+    this.setData({ ledgerSubmitting: true })
+    const records = this.data.records.map((item) => ({ ...item }))
+    try {
+      const persisted = await this.persistRecordsToManagedSession(records)
+      if (!persisted) {
+        return
+      }
+      const eventsSynced = await this.createLedgerEventsForDiff(this.data.baselineRecords, records)
+      if (!eventsSynced) {
+        return
+      }
+      await this.loadTimeline()
+      this.setData({ ledgerDirty: false })
+      this.showPreviewToast('账本修改已进入记录')
+    } finally {
+      this.setData({ ledgerSubmitting: false })
+    }
+  },
+
+  async createLedgerEventsForDiff(previousRecords, nextRecords) {
+    const sessionId = this.data.sessionId || getSessionRuntime().sessionId || ''
+    if (!sessionId) {
+      return true
+    }
+
+    const previousMap = new Map(previousRecords.map((item) => [item.id, item]))
+    const changes = nextRecords.flatMap((record) => {
+      const previous = previousMap.get(record.id)
+      const debtDelta = (Number(record.debtCount) || 0) - (Number(previous?.debtCount) || 0)
+      const drinkDelta = (Number(record.drinkCount) || 0) - (Number(previous?.drinkCount) || 0)
+      return [
+        { delta: debtDelta, eventType: 'drink_debt' as const, record },
+        { delta: drinkDelta, eventType: 'drink_add' as const, record },
+      ].filter((item) => item.delta !== 0)
+    })
+
+    if (!changes.length) {
+      return true
+    }
+
+    try {
+      await Promise.all(changes.map((change, index) =>
+        createManagedSessionEvent(sessionId, {
+          caption: change.eventType === 'drink_debt' ? '账本确认修改：欠酒变动' : '账本确认修改：加酒变动',
+          clientEventId: `live-ledger-confirm-${change.record.id}-${change.eventType}-${Date.now()}-${index}`,
+          eventType: change.eventType,
+          scoreDelta: change.delta,
+          targetName: change.record.name,
+          targetProfileId: change.record.profileId,
+        }),
+      ))
+      return true
+    } catch (error) {
+      this.showPreviewToast(isForbiddenError(error) ? '当前账号无权写入账本动态，请使用发起人账号' : '账本动态暂未同步，请稍后重试')
+      return false
     }
   },
 
@@ -924,27 +1134,62 @@ Page<LiveRecordState, LiveRecordMethods>({
     const detail = (event as unknown as { detail?: { height?: number; width?: number } }).detail || {}
     const width = Number(detail.width)
     const height = Number(detail.height)
-    if (!id || !Number.isFinite(width) || !Number.isFinite(height) || width >= 8 || height >= 8) {
+    if (!id || !Number.isFinite(width) || !Number.isFinite(height)) {
       return
     }
-    const recordTimelineItems = this.data.recordTimelineItems.map((item) => (item.id === id ? { ...item, imageBroken: true } : item))
+    const nextImageState = updateLiveRecordImageState(
+      id,
+      { imageBroken: width < 8 && height < 8 },
+      this.data.photoNodes,
+      this.data.recordTimelineItems,
+    )
     this.setData({
-      photoNodes: this.data.photoNodes.map((item) => (item.id === id ? { ...item, imageBroken: true } : item)),
-      recordTimelineDisplayItems: buildRecordTimelineDisplayItems(recordTimelineItems),
-      recordTimelineItems,
+      ...nextImageState,
+      timelinePhotoDiagnostics: buildTimelinePhotoDiagnostics(
+        this.data.timelineNodes,
+        nextImageState.photoNodes,
+        nextImageState.recordTimelineItems,
+      ),
     })
   },
 
-  handlePhotoImageError(event) {
+  async handlePhotoImageError(event) {
     const { id } = event.currentTarget.dataset as { id?: string }
     if (!id) {
       return
     }
-    const recordTimelineItems = this.data.recordTimelineItems.map((item) => (item.id === id ? { ...item, imageBroken: true } : item))
+    const source = findLiveRecordImageUrl(id, this.data.photoNodes, this.data.recordTimelineItems)
+    const fallbackPath = await resolveCachedManagedImagePath(source).catch(() => source)
+    if (fallbackPath && fallbackPath !== source) {
+      const nextImageState = updateLiveRecordImageState(
+        id,
+        { imageBroken: false, imageUrl: fallbackPath },
+        this.data.photoNodes,
+        this.data.recordTimelineItems,
+      )
+      this.setData({
+        ...nextImageState,
+        timelinePhotoDiagnostics: buildTimelinePhotoDiagnostics(
+          this.data.timelineNodes,
+          nextImageState.photoNodes,
+          nextImageState.recordTimelineItems,
+        ),
+      })
+      return
+    }
+    const nextImageState = updateLiveRecordImageState(
+      id,
+      { imageBroken: true },
+      this.data.photoNodes,
+      this.data.recordTimelineItems,
+    )
     this.setData({
-      photoNodes: this.data.photoNodes.map((item) => (item.id === id ? { ...item, imageBroken: true } : item)),
-      recordTimelineDisplayItems: buildRecordTimelineDisplayItems(recordTimelineItems),
-      recordTimelineItems,
+      ...nextImageState,
+      timelinePhotoDiagnostics: buildTimelinePhotoDiagnostics(
+        this.data.timelineNodes,
+        nextImageState.photoNodes,
+        nextImageState.recordTimelineItems,
+      ),
     })
   },
 
@@ -961,7 +1206,25 @@ Page<LiveRecordState, LiveRecordMethods>({
       return
     }
 
-    this.showPreviewToast('瞬间详情编辑待接口复核后接入')
+    const displayItem = this.data.recordTimelineDisplayItems.find((item) => item.id === id)
+    const compactPhoto = displayItem?.displayKind === 'photoGroup' ? displayItem.compactPhotos[0] : undefined
+    const item =
+      compactPhoto ||
+      this.data.recordTimelineItems.find((current) => current.id === id) ||
+      this.data.photoNodes.find((current) => current.id === id)
+    if (!item?.imageUrl) {
+      this.showPreviewToast('这条记录还没有可查看照片')
+      return
+    }
+    const sessionId = this.data.sessionId || getSessionRuntime().sessionId || ''
+    wx.setStorageSync('live-record-selected-moment-detail', {
+      caption: 'caption' in item ? item.caption || '' : '',
+      imageUrl: item.imageUrl,
+      momentId: item.id,
+      sessionId,
+      title: 'timelineTitle' in item ? item.timelineTitle : item.title,
+    })
+    this.openPage(`/pages/moment-editor/index?mode=detail&sessionId=${encodeURIComponent(sessionId)}&momentId=${encodeURIComponent(item.id)}&nodeType=highlight`)
   },
 
   handleSegmentTap(event) {
@@ -1037,6 +1300,13 @@ Page<LiveRecordState, LiveRecordMethods>({
 
     try {
       const result = await finishManagedSession(sessionId)
+      markSessionEndedOverride({
+        endedAt: result.endedAt || result.updatedAt,
+        sessionId,
+        state: result.state || '已结束',
+        status: result.status || '已结束',
+        updatedAt: result.updatedAt || result.endedAt,
+      })
       disableSessionLeaveAlert()
       setSessionRuntime({
         endedAt: result.endedAt || result.updatedAt,
@@ -1096,10 +1366,6 @@ Page<LiveRecordState, LiveRecordMethods>({
 
   handleNextRoundTap() {
     this.openPage('/pages/ledger/index')
-  },
-
-  handleReportHintTap() {
-    this.showPreviewToast('举报入口待后台联调，当前可先联系发起人处理')
   },
 
   async handleBackTap() {

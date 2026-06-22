@@ -1419,6 +1419,51 @@ page {
   line-height: 34px;
 }
 
+.live-ledger-confirm {
+  display: grid;
+  gap: 10px;
+  margin: 12px 10px 0;
+  padding: 12px;
+  border: 1px solid rgba(244, 199, 104, 0.18);
+  border-radius: 14px;
+  background: rgba(255, 240, 216, 0.08);
+}
+
+.live-ledger-confirm-copy {
+  display: grid;
+  gap: 4px;
+  color: rgba(255, 240, 216, 0.72);
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.live-ledger-confirm-copy text:first-child {
+  color: #fff0d8;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.live-ledger-confirm-submit {
+  min-height: 42px;
+  border-radius: 10px;
+  background: rgba(255, 240, 216, 0.12);
+  color: rgba(255, 240, 216, 0.62);
+  font-size: 14px;
+  line-height: 42px;
+  text-align: center;
+  font-weight: 950;
+}
+
+.live-ledger-confirm-submit-active {
+  background: #f4c768;
+  color: #23160d;
+}
+
+.live-ledger-confirm-submit-loading {
+  opacity: 0.72;
+}
+
 .live-redesign .live-bottom-actions {
   right: 24px;
   bottom: calc(18px + env(safe-area-inset-bottom));
@@ -1776,6 +1821,7 @@ page {
 .live-record008as-page .live-record-photo-image,
 .live-record008as-photo-failed {
   position: absolute;
+  z-index: 3;
   top: 18px;
   left: 17px;
   width: calc(100% - 34px);
@@ -2032,4 +2078,44 @@ page {
 .live-record008as-page .live-record-timeline-item-debt .live-record-timeline-marker,
 .live-record008as-page .live-record-timeline-item-drink .live-record-timeline-marker {
   padding-top: 4px;
+}
+
+/* 008CU package pass: replace heavy page-specific shell images with shared structure. */
+.live-record008as-page {
+  background: #12100e;
+}
+
+.live-record008as-bg {
+  opacity: 1;
+}
+
+.live-record008as-page .live-segment-tabs {
+  overflow: hidden;
+  min-height: 56px;
+  margin: 0 0 12px;
+  border: 1px solid rgba(255, 238, 204, 0.16);
+  border-radius: 18px;
+  background: rgba(35, 27, 23, 0.76);
+}
+
+.live-record008as-tabbar-bg {
+  display: none;
+}
+
+.live-record008as-page .live-segment-tab {
+  min-height: 54px;
+}
+
+.live-record008as-page .live-record-photo-card {
+  width: min(168px, 100%);
+  height: 202px;
+}
+
+.live-record008as-page .live-record-photo-image,
+.live-record008as-photo-failed {
+  top: 22px;
+  left: 18px;
+  width: calc(100% - 36px);
+  height: 126px;
+  border-radius: 10px;
 }
