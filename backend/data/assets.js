@@ -3,6 +3,7 @@ const fs = require('fs')
 const path = require('path')
 const sharp = require('sharp')
 const { createStoreAccessor } = require('./store-accessor')
+const { putObject } = require('./object-storage')
 
 const manifestPath = path.join(__dirname, 'asset-manifest.json')
 const uploadRoot = path.join(__dirname, '..', 'public', 'uploads', 'admin')
@@ -118,12 +119,12 @@ const saveAdminImage = async ({ category, dataUrl, fileName }) => {
   const folder = normalizeCategory(category)
   const safeBaseName = slugify(path.parse(String(fileName || '')).name) || 'asset'
   const storedName = `${Date.now()}-${safeBaseName}-${crypto.randomBytes(3).toString('hex')}.${compressed.extension}`
-  const targetDir = path.join(uploadRoot, folder)
-  const targetPath = path.join(targetDir, storedName)
-
-  ensureUploadRoot()
-  fs.mkdirSync(targetDir, { recursive: true })
-  fs.writeFileSync(targetPath, compressed.buffer)
+  const objectKey = `admin/${folder}/${storedName}`
+  const storedObject = await putObject({
+    key: objectKey,
+    buffer: compressed.buffer,
+    contentType: compressed.mimeType,
+  })
 
   const entry = {
     id: `asset-${Date.now()}-${crypto.randomBytes(2).toString('hex')}`,
@@ -132,7 +133,11 @@ const saveAdminImage = async ({ category, dataUrl, fileName }) => {
     mimeType: compressed.mimeType,
     originalSize: compressed.originalSize,
     size: compressed.storedSize,
-    url: `/uploads/admin/${folder}/${storedName}`,
+    url: storedObject.url,
+    objectKey: storedObject.objectKey,
+    publicUrl: storedObject.publicUrl,
+    localCompatUrl: storedObject.localCompatUrl,
+    storageProvider: storedObject.provider,
     createdAt: new Date().toISOString(),
     source: 'upload',
   }

@@ -6,6 +6,7 @@ const { getAdminStore, getManagedSessionById, listManagedReports } = require('./
 const { createDefaultUserCommerceState, readContentStore, writeContentStore } = require('./content')
 const { listProfiles } = require('./social')
 const { createStoreAccessor } = require('./store-accessor')
+const { putObject, readObjectForRender } = require('./object-storage')
 
 const storePath = path.join(__dirname, 'moments-store.json')
 const momentsUploadRoot = path.join(__dirname, '..', 'public', 'uploads', 'moments')
@@ -192,6 +193,10 @@ const normalizeShareImageTask = (item = {}) => {
     ledgerIncluded: item.ledgerIncluded === true || item.includeLedger === true || layoutMode === 'dual_flow',
     selectedNodeIds: normalizeStringArray(item.selectedNodeIds),
     imageUrl: cleanText(item.imageUrl),
+    objectKey: cleanText(item.objectKey),
+    publicUrl: cleanText(item.publicUrl),
+    localCompatUrl: cleanText(item.localCompatUrl),
+    storageProvider: cleanText(item.storageProvider),
     failedReason: cleanText(item.failedReason),
     retryCount: Math.max(0, Number(item.retryCount) || 0),
     createdAt,
@@ -953,12 +958,12 @@ const resolveLocalUploadPath = (imageUrl = '') => {
 }
 
 const resolveImageDataUri = async (imageUrl = '') => {
-  const imagePath = resolveLocalUploadPath(imageUrl)
-  if (!imagePath || !fs.existsSync(imagePath)) {
+  const imageBuffer = await readObjectForRender({ url: imageUrl })
+  if (!imageBuffer) {
     return ''
   }
   try {
-    const image = sharp(imagePath).resize({ width: 720, height: 420, fit: 'cover' }).png()
+    const image = sharp(imageBuffer).resize({ width: 720, height: 420, fit: 'cover' }).png()
     const stats = await image.clone().stats()
     const deviation = stats.channels
       .slice(0, 3)
@@ -1537,14 +1542,16 @@ const processShareImageTask = async ({ taskId, profile }) => {
     if (!nodes.length) {
       throw createHttpError('share task has no visible nodes', 400)
     }
-    fs.mkdirSync(shareImageOutputRoot, { recursive: true })
     const timeline = getSessionTimeline({ sessionId: task.sessionId, profile })
     const ledgerSnapshot = buildSessionLedgerSnapshot({ sessionId: task.sessionId, timeline })
     const svg = await buildShareImageSvg({ brief, task, nodes, ledgerSnapshot })
     const buffer = await sharp(Buffer.from(svg)).png().toBuffer()
     const fileName = `${task.id}.png`
-    const targetPath = path.join(shareImageOutputRoot, fileName)
-    fs.writeFileSync(targetPath, buffer)
+    const storedObject = await putObject({
+      key: `moments/share-tasks/${fileName}`,
+      buffer,
+      contentType: 'image/png',
+    })
 
     const latestStore = readMomentsStore()
     const latestIndex = latestStore.shareImageTasks.findIndex((item) => item.id === task.id)
@@ -1554,7 +1561,11 @@ const processShareImageTask = async ({ taskId, profile }) => {
     const readyTask = normalizeShareImageTask({
       ...latestStore.shareImageTasks[latestIndex],
       status: 'ready',
-      imageUrl: `/uploads/moments/share-tasks/${fileName}`,
+      imageUrl: storedObject.url,
+      objectKey: storedObject.objectKey,
+      publicUrl: storedObject.publicUrl,
+      localCompatUrl: storedObject.localCompatUrl,
+      storageProvider: storedObject.provider,
       failedReason: '',
       finishedAt: nowIso(),
       updatedAt: nowIso(),
@@ -1829,10 +1840,7 @@ const uploadMomentImage = async ({ profile, payload = {} }) => {
       .toLowerCase()
       .replace(/[^a-z0-9_-]+/g, '-')
       .replace(/^-+|-+$/g, '') || 'moment'
-  const targetDir = path.join(momentsUploadRoot, sessionId || 'general')
   const storedName = `${Date.now()}-${safeBaseName}-${crypto.randomBytes(3).toString('hex')}.webp`
-  const targetPath = path.join(targetDir, storedName)
-  fs.mkdirSync(targetDir, { recursive: true })
   const output = await sharp(buffer)
     .rotate()
     .resize({
@@ -1843,7 +1851,11 @@ const uploadMomentImage = async ({ profile, payload = {} }) => {
     })
     .webp({ quality: MOMENT_IMAGE_QUALITY, effort: 5 })
     .toBuffer()
-  fs.writeFileSync(targetPath, output)
+  const storedObject = await putObject({
+    key: `moments/${sessionId || 'general'}/${storedName}`,
+    buffer: output,
+    contentType: 'image/webp',
+  })
 
   const asset = {
     id: createId('moment-asset'),
@@ -1852,7 +1864,11 @@ const uploadMomentImage = async ({ profile, payload = {} }) => {
     fileName: cleanText(payload.fileName) || storedName,
     mimeType: 'image/webp',
     size: output.length,
-    url: `/uploads/moments/${sessionId || 'general'}/${storedName}`,
+    url: storedObject.url,
+    objectKey: storedObject.objectKey,
+    publicUrl: storedObject.publicUrl,
+    localCompatUrl: storedObject.localCompatUrl,
+    storageProvider: storedObject.provider,
     createdAt: nowIso(),
   }
   const store = readMomentsStore()
@@ -1867,6 +1883,7 @@ module.exports = {
   createSessionEvent,
   createShareImageTask,
   deleteMoment,
+  flushMomentsStore: storeAccessor.flush,
   getSessionBrief,
   getSessionTimeline,
   getShareImageTask,
