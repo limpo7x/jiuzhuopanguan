@@ -1,4 +1,4 @@
-import { getManagedLiveSession, type ManagedLiveSession } from '../../services/operations'
+import { getManagedLiveSession, kickManagedSessionMember, type ManagedLiveSession } from '../../services/operations'
 import { normalizeManagedAvatarPath } from '../../config/assets'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 import { confirmAndExitSession, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
@@ -10,7 +10,9 @@ interface InviteAvatarSlot {
   filled: boolean
   id: string
   initial: string
+  kickable: boolean
   name: string
+  profileId: string
 }
 
 interface InviteSlotPlayer {
@@ -22,6 +24,8 @@ interface InviteSlotPlayer {
 interface InviteGroupState {
   avatarSlots: InviteAvatarSlot[]
   inviteCode: string
+  currentProfileId: string
+  isJudge: boolean
   joinedCount: number
   playerCount: number
   shareCardImagePath: string
@@ -36,6 +40,7 @@ interface InviteGroupMethods {
   handleAvatarError: (event: WechatMiniprogram.BaseEvent) => void
   handleNextTap: () => void
   handlePreviewTap: () => void
+  handleKickTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleRefreshTap: () => Promise<void>
   hydrateLiveSession: (sessionId: string, inviteCode?: string) => Promise<void>
   generateShareCardImage: () => Promise<void>
@@ -68,18 +73,38 @@ const buildJoinStatusText = (joinedCount: number, playerCount: number) => {
   return '等待好友加入'
 }
 
-const buildAvatarSlots = (players: InviteSlotPlayer[] = [], playerCount = 0): InviteAvatarSlot[] => {
+const buildAvatarSlots = (
+  players: InviteSlotPlayer[] = [],
+  playerCount = 0,
+  options: { currentProfileId?: string; isJudge?: boolean; previousSlots?: InviteAvatarSlot[] } = {},
+): InviteAvatarSlot[] => {
+  const previousAvatarMap = new Map<string, string>()
+  ;(options.previousSlots || []).forEach((slot) => {
+    if (!slot.avatarUrl || slot.avatarBroken) {
+      return
+    }
+    if (slot.profileId) {
+      previousAvatarMap.set(slot.profileId, slot.avatarUrl)
+    }
+    if (slot.name) {
+      previousAvatarMap.set(slot.name, slot.avatarUrl)
+    }
+  })
   const slotCount = Math.max(playerCount || players.length || 0, players.length)
   return Array.from({ length: slotCount }).map((_, index) => {
     const player = players[index]
     const name = cleanDisplayName(player?.name, player ? `好友 ${index + 1}` : '待加入')
+    const profileId = String(player?.profileId || '').trim()
+    const avatarUrl = normalizeInviteAvatar(player?.avatarUrl) || (profileId ? previousAvatarMap.get(profileId) || '' : '') || previousAvatarMap.get(name) || ''
     return {
       avatarBroken: false,
-      avatarUrl: normalizeInviteAvatar(player?.avatarUrl),
+      avatarUrl,
       filled: Boolean(player),
-      id: player?.profileId || `invite-slot-${index + 1}`,
+      id: profileId || `invite-slot-${index + 1}`,
       initial: player ? getInitial(name) : '',
+      kickable: Boolean(options.isJudge && profileId && profileId !== options.currentProfileId),
       name,
+      profileId,
     }
   })
 }
@@ -88,6 +113,8 @@ Page<InviteGroupState, InviteGroupMethods>({
   data: {
     avatarSlots: [],
     inviteCode: '',
+    currentProfileId: '',
+    isJudge: false,
     joinedCount: 0,
     playerCount: 0,
     shareCardImagePath: '',
@@ -113,6 +140,7 @@ Page<InviteGroupState, InviteGroupMethods>({
     ].filter(Boolean).join('&')
     const profile = await ensureUserAuthorized(`/pages/invite-group/index${redirectQuery ? `?${redirectQuery}` : ''}`)
     if (!profile) return
+    this.setData({ currentProfileId: profile.id || '' })
 
     try {
       await this.hydrateLiveSession(sessionId, inviteCode)
@@ -121,8 +149,14 @@ Page<InviteGroupState, InviteGroupMethods>({
       const playerCount = runtime.playerCount || 0
       const selectedPlayers = runtime.selectedPlayers || []
       this.setData({
-        avatarSlots: buildAvatarSlots(selectedPlayers, playerCount),
+        avatarSlots: buildAvatarSlots(selectedPlayers, playerCount, {
+          currentProfileId: profile.id || '',
+          isJudge: Boolean(runtime.isJudge),
+          previousSlots: this.data.avatarSlots,
+        }),
         inviteCode,
+        currentProfileId: profile.id || '',
+        isJudge: Boolean(runtime.isJudge),
         joinedCount: selectedPlayers.length,
         playerCount,
         sessionId,
@@ -138,11 +172,33 @@ Page<InviteGroupState, InviteGroupMethods>({
 
   async hydrateLiveSession(sessionId, inviteCode = '') {
     const liveSession: ManagedLiveSession = await getManagedLiveSession(sessionId, inviteCode)
+    const statusAvatarMap = new Map<string, string>()
+    liveSession.joinStatusPlayers.forEach((item) => {
+      const avatarUrl = normalizeInviteAvatar(item.avatarUrl)
+      if (!avatarUrl) {
+        return
+      }
+      if (item.profileId) {
+        statusAvatarMap.set(item.profileId, avatarUrl)
+      }
+      if (item.name) {
+        statusAvatarMap.set(item.name, avatarUrl)
+      }
+    })
     const joinedPlayers = (liveSession.joinedPlayers.length ? liveSession.joinedPlayers : liveSession.joinStatusPlayers)
       .filter((item) => item.profileId || item.avatarUrl || item.name)
+      .map((item) => ({
+        ...item,
+        avatarUrl: normalizeInviteAvatar(item.avatarUrl) || (item.profileId ? statusAvatarMap.get(item.profileId) || '' : '') || statusAvatarMap.get(item.name) || '',
+      }))
       .slice(0, liveSession.playerCount)
+    const runtime = getSessionRuntime()
+    const currentProfileId = this.data.currentProfileId || runtime.currentUser?.id || ''
+    const isJudge = Boolean(currentProfileId && currentProfileId === liveSession.hostProfileId)
     setSessionRuntime({
+      currentUser: runtime.currentUser,
       inviteCode: liveSession.inviteCode,
+      isJudge,
       playerCount: liveSession.playerCount,
       selectedPlayers: liveSession.joinStatusPlayers.length ? liveSession.joinStatusPlayers : joinedPlayers,
       sessionId: liveSession.id,
@@ -150,8 +206,14 @@ Page<InviteGroupState, InviteGroupMethods>({
       templateName: liveSession.templateName,
     })
     this.setData({
-      avatarSlots: buildAvatarSlots(joinedPlayers, liveSession.playerCount),
+      avatarSlots: buildAvatarSlots(joinedPlayers, liveSession.playerCount, {
+        currentProfileId,
+        isJudge,
+        previousSlots: this.data.avatarSlots,
+      }),
       inviteCode: liveSession.inviteCode,
+      currentProfileId,
+      isJudge,
       joinedCount: liveSession.joinedCount,
       playerCount: liveSession.playerCount,
       sessionId: liveSession.id,
@@ -274,6 +336,38 @@ Page<InviteGroupState, InviteGroupMethods>({
       return
     }
     this.openPage(`/pages/share-preview/index?sessionId=${encodeURIComponent(this.data.sessionId)}&inviteCode=${encodeURIComponent(this.data.inviteCode)}`)
+  },
+
+  async handleKickTap(event) {
+    const { name, profileId } = event.currentTarget.dataset as { name?: string; profileId?: string }
+    const targetProfileId = String(profileId || '').trim()
+    if (!this.data.isJudge || !targetProfileId || targetProfileId === this.data.currentProfileId) {
+      return
+    }
+    const confirmed = await new Promise<boolean>((resolve) => {
+      wx.showModal({
+        cancelText: '取消',
+        confirmColor: '#ff5b3d',
+        confirmText: '踢出',
+        content: `确定将 ${name || '该成员'} 移出本场聚会？对方仍可通过分享链接重新加入。`,
+        fail: () => resolve(false),
+        success: (result) => resolve(Boolean(result.confirm)),
+        title: '踢出成员',
+      })
+    })
+    if (!confirmed) {
+      return
+    }
+    wx.showLoading({ title: '处理中', mask: true })
+    try {
+      const liveSession = await kickManagedSessionMember(this.data.sessionId, targetProfileId)
+      await this.hydrateLiveSession(liveSession.id, liveSession.inviteCode)
+      wx.showToast({ title: '已踢出', icon: 'success' })
+    } catch {
+      wx.showToast({ title: '踢出失败', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+    }
   },
 
   async handleRefreshTap() {

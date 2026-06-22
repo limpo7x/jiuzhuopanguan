@@ -990,6 +990,14 @@ export const joinManagedSession = async (inviteCode: string): Promise<ManagedLiv
   }
 }
 
+export const kickManagedSessionMember = async (sessionId: string, profileId: string): Promise<ManagedLiveSession> =>
+  normalizeRemoteLiveSession(
+    await requestJson<RemoteLiveSession>(
+      `/sessions/${encodeURIComponent(sessionId)}/members/${encodeURIComponent(profileId)}/kick`,
+      'POST',
+    ),
+  )
+
 export const createManagedSession = async (payload: ManagedSessionMutationPayload): Promise<ManagedLiveSession> => {
   return normalizeRemoteLiveSession(await requestJson<RemoteLiveSession>('/sessions', 'POST', payload as Record<string, unknown>))
 }

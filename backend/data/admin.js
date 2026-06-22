@@ -1749,6 +1749,9 @@ const normalizeLiveSession = (session = {}, index = 0) => {
     id: String(session.id || createId('session')).trim(),
     inviteCode: String(session.inviteCode || makeInviteCode()).trim() || makeInviteCode(),
     joinedCount: Number(session.joinedCount) || members.filter((item) => item.status === '已加入').length,
+    kickedProfileIds: Array.isArray(session.kickedProfileIds)
+      ? [...new Set(session.kickedProfileIds.map((item) => String(item || '').trim()).filter(Boolean))]
+      : [],
     members,
     state,
     status,
@@ -1825,6 +1828,9 @@ const joinManagedSession = ({ inviteCode, profile }) => {
         : item,
     )
   }
+  if (profileId) {
+    target.kickedProfileIds = (Array.isArray(target.kickedProfileIds) ? target.kickedProfileIds : []).filter((item) => item !== profileId)
+  }
   target.joinedCount = target.members.filter((item) => item.status === '已加入').length
   pushAnalyticsEvent(store, {
     type: 'session_joined',
@@ -1837,6 +1843,50 @@ const joinManagedSession = ({ inviteCode, profile }) => {
   })
   writeStore(store)
   return target
+}
+
+const kickManagedSessionMember = ({ sessionId, profileId, operatorProfileId }) => {
+  const normalizedSessionId = String(sessionId || '').trim()
+  const normalizedProfileId = String(profileId || '').trim()
+  const normalizedOperatorProfileId = String(operatorProfileId || '').trim()
+  if (!normalizedSessionId || !normalizedProfileId) {
+    return null
+  }
+  const store = readStore()
+  const session = store.liveSessions.find((item) => String(item.id || '').trim() === normalizedSessionId)
+  if (!session) {
+    return null
+  }
+  const members = Array.isArray(session.members) ? session.members : []
+  const hostProfileId = String(session.hostProfileId || members.find((item) => item?.isHost)?.profileId || '').trim()
+  if (!hostProfileId || hostProfileId !== normalizedOperatorProfileId) {
+    const error = new Error('forbidden')
+    error.code = 'FORBIDDEN'
+    throw error
+  }
+  if (normalizedProfileId === hostProfileId) {
+    const error = new Error('host cannot be kicked')
+    error.code = 'HOST_CANNOT_BE_KICKED'
+    throw error
+  }
+
+  session.members = members.filter((item) => String(item?.profileId || '').trim() !== normalizedProfileId)
+  session.kickedProfileIds = [...new Set([...(Array.isArray(session.kickedProfileIds) ? session.kickedProfileIds : []), normalizedProfileId])]
+  session.joinedCount = session.members.filter((item) => item.status === '已加入').length
+  session.updatedAt = iso()
+  pushAnalyticsEvent(store, {
+    type: 'session_member_kicked',
+    profileId: normalizedOperatorProfileId,
+    meta: {
+      kickedProfileId: normalizedProfileId,
+      sessionId: normalizedSessionId,
+    },
+  })
+  store.liveSessions = store.liveSessions.map((item, index) =>
+    item.id === normalizedSessionId ? normalizeLiveSession(session, index) : normalizeLiveSession(item, index),
+  )
+  writeStore(store)
+  return store.liveSessions.find((item) => item.id === normalizedSessionId) || null
 }
 
 const createManagedSession = (payload = {}) => {
@@ -4024,6 +4074,7 @@ module.exports = {
   initAdminStore: storeAccessor.init,
   grantRankingRewardsByAdmin,
   joinManagedSession,
+  kickManagedSessionMember,
   getPageData,
   getSession,
   handleManagedMomentReport,

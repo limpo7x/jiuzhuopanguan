@@ -26,15 +26,24 @@
         <text class="invite-code">{{inviteCode || '生成中'}}</text>
         <text class="invite-code-expire">{{joinStatusText}}</text>
 
-        <view class="invite-avatar-slots">
+        <view class="invite-avatar-slots {{avatarSlots.length > 6 ? 'invite-avatar-slots-two-row' : ''}}">
           <view
             wx:for="{{avatarSlots}}"
             wx:key="id"
-            class="invite-avatar-slot {{item.filled ? 'invite-avatar-slot-filled' : ''}}"
+            class="invite-avatar-slot-wrap"
           >
-            <image wx:if="{{item.avatarUrl && !item.avatarBroken}}" class="invite-avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" data-id="{{item.id}}" binderror="handleAvatarError"></image>
-            <text wx:elif="{{item.filled}}" class="invite-avatar-initial">{{item.initial}}</text>
-            <text wx:else class="invite-avatar-empty">+</text>
+            <view class="invite-avatar-slot {{item.filled ? 'invite-avatar-slot-filled' : ''}}">
+              <image wx:if="{{item.avatarUrl && !item.avatarBroken}}" class="invite-avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" data-id="{{item.id}}" binderror="handleAvatarError"></image>
+              <text wx:elif="{{item.filled}}" class="invite-avatar-initial">{{item.initial}}</text>
+              <text wx:else class="invite-avatar-empty">+</text>
+            </view>
+            <view
+              wx:if="{{item.kickable}}"
+              class="invite-kick-btn"
+              data-name="{{item.name}}"
+              data-profile-id="{{item.profileId}}"
+              bindtap="handleKickTap"
+            >踢出</view>
           </view>
         </view>
       </view>

@@ -86,6 +86,7 @@ const {
   handleManagedMomentReport,
   initAdminStore,
   joinManagedSession,
+  kickManagedSessionMember,
   getSession,
   loginAdmin,
   logoutAdmin,
@@ -1340,6 +1341,23 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/sessions/live') {
+      if (query.sessionId && !query.inviteCode) {
+        const userSession = requireUserSession(request, response)
+        if (!userSession) {
+          return
+        }
+        const directSession = getManagedSessionById(String(query.sessionId || '').trim())
+        const directProfileId = String(userSession.profile.id || '').trim()
+        const directIsMember = directProfileId && (directSession?.members || []).some((item) => String(item?.profileId || '').trim() === directProfileId)
+        if (!directSession) {
+          sendError(response, 404, 'session not found')
+          return
+        }
+        if (!directIsMember) {
+          sendError(response, 403, 'not session member')
+          return
+        }
+      }
       if (shouldReadNormalized('sessions')) {
         try {
           const liveSession = await getLiveSessionConfigFromNormalized(query.sessionId, query.inviteCode)
@@ -1377,6 +1395,23 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/parties/live') {
+      if (query.partyId && !query.inviteCode) {
+        const userSession = requireUserSession(request, response)
+        if (!userSession) {
+          return
+        }
+        const directParty = getManagedSessionById(String(query.partyId || '').trim())
+        const directProfileId = String(userSession.profile.id || '').trim()
+        const directIsMember = directProfileId && (directParty?.members || []).some((item) => String(item?.profileId || '').trim() === directProfileId)
+        if (!directParty) {
+          sendError(response, 404, 'party not found')
+          return
+        }
+        if (!directIsMember) {
+          sendError(response, 403, 'not party member')
+          return
+        }
+      }
       if (query.partyId && !getManagedSessionById(String(query.partyId || '').trim())) {
         sendError(response, 404, 'party not found')
         return
@@ -1703,6 +1738,36 @@ const server = http.createServer((request, response) => {
           return
         }
         sendOk(response, updated)
+        return
+      }
+      if (request.method === 'POST' && sessionAction === 'members' && sessionSegments[6] === 'kick') {
+        if (!isHost) {
+          sendError(response, 403, 'forbidden')
+          return
+        }
+        const targetProfileId = decodeURIComponent(sessionSegments[5] || '')
+        try {
+          const updated = kickManagedSessionMember({
+            operatorProfileId: userProfileId,
+            profileId: targetProfileId,
+            sessionId,
+          })
+          if (!updated) {
+            sendError(response, 404, 'session not found')
+            return
+          }
+          sendOk(response, getLiveSessionConfig(updated.id, updated.inviteCode))
+        } catch (error) {
+          if (error?.code === 'HOST_CANNOT_BE_KICKED') {
+            sendError(response, 400, 'host cannot be kicked')
+            return
+          }
+          if (error?.code === 'FORBIDDEN') {
+            sendError(response, 403, 'forbidden')
+            return
+          }
+          throw error
+        }
         return
       }
       if (request.method === 'POST' && sessionAction === 'moments') {
