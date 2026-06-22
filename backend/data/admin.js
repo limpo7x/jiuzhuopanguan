@@ -507,7 +507,7 @@ const normalizeStore = (store = {}) => {
     ...(store.toolsHero && typeof store.toolsHero === 'object' ? store.toolsHero : {}),
   }
   next.toolsCatalog = normalizeToolsCatalog(
-    Array.isArray(store.toolsCatalog) && store.toolsCatalog.length ? store.toolsCatalog : next.toolsCatalog,
+    Array.isArray(store.toolsCatalog) && store.toolsCatalog.length ? store.toolsCatalog : DEFAULT_TOOLS_CATALOG,
   )
   next.shareAssets = (Array.isArray(store.shareAssets) ? store.shareAssets : next.shareAssets).map((item, index) =>
     normalizeShareAsset(item, index),
