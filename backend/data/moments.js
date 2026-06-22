@@ -339,6 +339,22 @@ const assertSessionHost = (sessionId, profile = {}) => {
   return context
 }
 
+const isSessionEndedForShareImage = (session = {}) =>
+  Boolean(cleanText(session?.endedAt)) ||
+  cleanText(session?.state).includes('结束') ||
+  cleanText(session?.status).includes('结束')
+
+const assertEndedSessionHostForShareImage = (sessionId, profile = {}) => {
+  const context = assertSessionMember(sessionId, profile)
+  if (!isSessionEndedForShareImage(context.session)) {
+    throw createHttpError('session not ended', 409)
+  }
+  if (!context.member.isHost) {
+    throw createHttpError('forbidden', 403)
+  }
+  return context
+}
+
 const normalizeVisibleProfileIds = ({ session, nodeType, visibility, visibleProfileIds }) => {
   const nextVisibleProfileIds = normalizeStringArray(visibleProfileIds)
   if ((nodeType === 'private' || visibility === 'private' || visibility === 'selected') && !nextVisibleProfileIds.length) {
@@ -1629,6 +1645,7 @@ const getSessionBrief = ({ briefId, profile }) => {
 
 const createShareImageTask = ({ briefId, profile, payload = {} }) => {
   const brief = getSessionBrief({ briefId, profile })
+  assertEndedSessionHostForShareImage(brief.sessionId, profile)
   const layoutMode = cleanText(payload.layoutMode) || 'timeline'
   const store = readMomentsStore()
   const availableNodeIds = brief.timeline.nodes.filter(isTimelineNodeShareImageEligible).map((item) => item.id)
@@ -1752,7 +1769,7 @@ const processShareImageTask = async ({ taskId, profile }) => {
     throw createHttpError('share task not found', 404)
   }
   const existed = store.shareImageTasks[index]
-  assertSessionMember(existed.sessionId, profile)
+  assertEndedSessionHostForShareImage(existed.sessionId, profile)
   if (!['pending', 'failed', 'expired'].includes(existed.status)) {
     throw createHttpError('share task is not processable', 409)
   }
@@ -1838,7 +1855,7 @@ const retryShareImageTask = ({ taskId, profile }) => {
     throw createHttpError('share task not found', 404)
   }
   const existed = store.shareImageTasks[index]
-  assertSessionMember(existed.sessionId, profile)
+  assertEndedSessionHostForShareImage(existed.sessionId, profile)
   if (!['failed', 'expired'].includes(existed.status)) {
     throw createHttpError('only failed or expired share tasks can be retried', 409)
   }

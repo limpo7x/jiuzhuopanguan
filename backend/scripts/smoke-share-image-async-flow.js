@@ -89,6 +89,25 @@ const api = async (pathname, { method = 'GET', token = '', body } = {}) => {
   return payload.data
 }
 
+const expectApiError = async (pathname, { method = 'GET', token = '', body } = {}, expectedStatus, expectedMessage = '') => {
+  try {
+    await api(pathname, { method, token, body })
+  } catch (error) {
+    assert(error.statusCode === expectedStatus, `${method} ${pathname} expected ${expectedStatus}, got ${error.statusCode || error.message}`)
+    if (expectedMessage) {
+      assert(
+        String(error.payload?.message || '').includes(expectedMessage),
+        `${method} ${pathname} expected message ${expectedMessage}, got ${error.payload?.message || ''}`,
+      )
+    }
+    return {
+      status: error.statusCode,
+      message: error.payload?.message || '',
+    }
+  }
+  throw new Error(`${method} ${pathname} should have failed with ${expectedStatus}`)
+}
+
 const createMiniSession = ({ openId, name }) =>
   bindWechatUser({
     wechatOpenId: openId,
@@ -202,6 +221,72 @@ const markTaskFailed = (taskId, reason) => {
   writeMomentsStore(store)
 }
 
+const seedManualShareTask = ({ marker, hostSession, memberSession, layoutMode, status, ended = false }) => {
+  const now = new Date().toISOString()
+  const session = createManagedSession({
+    sessionName: `QA-${marker}-${layoutMode}`,
+    playerCount: 2,
+    templateName: 'Share Image Auth Smoke',
+    hostProfileId: hostSession.profile.id,
+    hostName: hostSession.profile.name,
+    hostAvatarUrl: hostSession.profile.avatarUrl,
+    state: ended ? '已结束' : '进行中',
+    status: ended ? '已结束' : '正常',
+    endedAt: ended ? now : '',
+    selectedPlayers: [
+      {
+        profileId: memberSession.profile.id,
+        name: memberSession.profile.name,
+        avatarUrl: memberSession.profile.avatarUrl,
+      },
+    ],
+  })
+  const event = createSessionEvent({
+    sessionId: session.id,
+    profile: hostSession.profile,
+    payload: {
+      clientEventId: `${marker}-${layoutMode}-event`,
+      eventType: 'drink_debt',
+      targetProfileId: memberSession.profile.id,
+      scoreDelta: 1,
+      caption: 'manual share image auth event',
+    },
+  })
+  const brief = createOrRefreshSessionBrief({ sessionId: session.id, profile: hostSession.profile })
+  const task = {
+    id: `share-task-${marker}-${layoutMode}`,
+    sessionId: session.id,
+    briefId: brief.id,
+    status,
+    layoutMode,
+    ledgerIncluded: false,
+    selectedNodeIds: [event.id],
+    failedReason: status === 'failed' ? 'preset smoke failure' : '',
+    retryCount: 0,
+    createdAt: now,
+    updatedAt: now,
+    finishedAt: status === 'failed' ? now : '',
+  }
+  const store = readMomentsStore()
+  store.shareImageTasks = [task, ...(store.shareImageTasks || []).filter((item) => item.id !== task.id)]
+  store.sessionBriefs = (store.sessionBriefs || []).map((item) =>
+    item.id === brief.id
+      ? {
+          ...item,
+          shareImageTaskId: task.id,
+          shareImageStatus: task.status,
+          updatedAt: now,
+        }
+      : item,
+  )
+  writeMomentsStore(store)
+  return {
+    sessionId: session.id,
+    briefId: brief.id,
+    taskId: task.id,
+  }
+}
+
 const seedFailedRetryTask = ({ marker, hostSession, memberSession, layoutMode }) => {
   const session = createManagedSession({
     sessionName: `QA-${marker}-${layoutMode}`,
@@ -210,8 +295,9 @@ const seedFailedRetryTask = ({ marker, hostSession, memberSession, layoutMode })
     hostProfileId: hostSession.profile.id,
     hostName: hostSession.profile.name,
     hostAvatarUrl: hostSession.profile.avatarUrl,
-    state: '进行中',
-    status: '正常',
+    state: '已结束',
+    status: '已结束',
+    endedAt: new Date().toISOString(),
     selectedPlayers: [
       {
         profileId: memberSession.profile.id,
@@ -255,6 +341,20 @@ const main = async () => {
   const hostSession = createMiniSession({ openId: `${marker}-host`, name: `Share Async Host ${stamp}` })
   const memberSession = createMiniSession({ openId: `${marker}-member`, name: `Share Async Member ${stamp}` })
   createdProfileIds.push(hostSession.profile.id, memberSession.profile.id)
+  const ongoingRetrySeed = seedManualShareTask({
+    marker,
+    hostSession,
+    memberSession,
+    layoutMode: 'auth-ongoing-retry',
+    status: 'failed',
+  })
+  const ongoingProcessSeed = seedManualShareTask({
+    marker,
+    hostSession,
+    memberSession,
+    layoutMode: 'auth-ongoing-process',
+    status: 'pending',
+  })
   const legacyRetrySeed = seedFailedRetryTask({
     marker,
     hostSession,
@@ -267,10 +367,29 @@ const main = async () => {
     memberSession,
     layoutMode: 'async-retry-modern',
   })
-  createdSessionIds.push(legacyRetrySeed.sessionId, modernRetrySeed.sessionId)
+  createdSessionIds.push(ongoingRetrySeed.sessionId, ongoingProcessSeed.sessionId, legacyRetrySeed.sessionId, modernRetrySeed.sessionId)
 
   try {
     child = await startServer()
+    const ongoingRetryDenied = await expectApiError(
+      `/api/v1/share-image-tasks/${encodeURIComponent(ongoingRetrySeed.taskId)}/retry`,
+      {
+        method: 'POST',
+        token: hostSession.token,
+      },
+      409,
+      'session not ended',
+    )
+    const ongoingProcessDenied = await expectApiError(
+      `/api/v1/share-image-tasks/${encodeURIComponent(ongoingProcessSeed.taskId)}/process`,
+      {
+        method: 'POST',
+        token: hostSession.token,
+      },
+      409,
+      'session not ended',
+    )
+
     const legacyRetry = await api(`/api/v1/share-image-tasks/${encodeURIComponent(legacyRetrySeed.taskId)}/retry`, {
       method: 'POST',
       token: hostSession.token,
@@ -326,6 +445,44 @@ const main = async () => {
       body: {},
     })
 
+    const ongoingHostCreateDenied = await expectApiError(
+      `/api/v1/session-briefs/${encodeURIComponent(brief.id)}/share-image-tasks`,
+      {
+        method: 'POST',
+        token: hostSession.token,
+        body: { layoutMode: 'auth-ongoing-host' },
+      },
+      409,
+      'session not ended',
+    )
+    const ongoingMemberCreateDenied = await expectApiError(
+      `/api/v1/session-briefs/${encodeURIComponent(brief.id)}/share-image-tasks`,
+      {
+        method: 'POST',
+        token: memberSession.token,
+        body: { layoutMode: 'auth-ongoing-member' },
+      },
+      409,
+      'session not ended',
+    )
+
+    await api(`/api/v1/sessions/${encodeURIComponent(created.id)}/end`, {
+      method: 'POST',
+      token: hostSession.token,
+      body: { endedAt: new Date().toISOString() },
+    })
+
+    const endedMemberCreateDenied = await expectApiError(
+      `/api/v1/session-briefs/${encodeURIComponent(brief.id)}/share-image-tasks`,
+      {
+        method: 'POST',
+        token: memberSession.token,
+        body: { layoutMode: 'auth-ended-member' },
+      },
+      403,
+      'forbidden',
+    )
+
     const legacyCreate = await api(`/api/v1/session-briefs/${encodeURIComponent(brief.id)}/share-image-tasks`, {
       method: 'POST',
       token: hostSession.token,
@@ -347,6 +504,28 @@ const main = async () => {
       routePrefix: 'share-images',
     })
 
+    const memberReadReady = await api(`/api/v1/share-image-tasks/${encodeURIComponent(legacyCreate.id)}`, {
+      token: memberSession.token,
+    })
+    assert(memberReadReady.status === 'ready', `member ready read returned ${memberReadReady.status}`)
+
+    await api(`/api/v1/sessions/${encodeURIComponent(created.id)}/members/${encodeURIComponent(memberSession.profile.id)}/kick`, {
+      method: 'POST',
+      token: hostSession.token,
+    })
+    const kickedReadDenied = await expectApiError(
+      `/api/v1/share-image-tasks/${encodeURIComponent(legacyCreate.id)}`,
+      {
+        token: memberSession.token,
+      },
+      403,
+      'not session member',
+    )
+    const kickedSummaries = await api('/api/v1/user/share-image-summaries', {
+      token: memberSession.token,
+    })
+    const kickedSummaryBlocked = !kickedSummaries.some((item) => item.taskId === legacyCreate.id || item.shareImageId === legacyCreate.id)
+
     uploadedUrls.push(...collectUploadedUrls(legacyResult.task, modernResult.task))
     uploadedUrls.push(...collectUploadedUrls(legacyRetryResult.task, modernRetryResult.task))
     const result = {
@@ -355,6 +534,16 @@ const main = async () => {
       marker,
       sessionId: created.id,
       briefId: brief.id,
+      auth: {
+        ongoingHostCreate: ongoingHostCreateDenied,
+        ongoingMemberCreate: ongoingMemberCreateDenied,
+        ongoingRetry: ongoingRetryDenied,
+        ongoingProcess: ongoingProcessDenied,
+        endedMemberCreate: endedMemberCreateDenied,
+        memberReadReadyStatus: memberReadReady.status,
+        kickedRead: kickedReadDenied,
+        kickedSummaryBlocked,
+      },
       retryLegacy: {
         createdStatus: legacyRetry.status,
         statuses: legacyRetryResult.statuses,
@@ -381,6 +570,7 @@ const main = async () => {
     assert(['ready', 'failed'].includes(result.modern.finalStatus), `modern final status ${result.modern.finalStatus}`)
     assert(['ready', 'failed'].includes(result.retryLegacy.finalStatus), `legacy retry final status ${result.retryLegacy.finalStatus}`)
     assert(['ready', 'failed'].includes(result.retryModern.finalStatus), `modern retry final status ${result.retryModern.finalStatus}`)
+    assert(result.auth.kickedSummaryBlocked === true, 'kicked member can still see share image summary')
     console.log(JSON.stringify(result, null, 2))
   } finally {
     await stopServer(child)
