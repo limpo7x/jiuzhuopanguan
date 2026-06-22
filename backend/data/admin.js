@@ -1,7 +1,7 @@
 const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
-const { createStoreAccessor, isMySQLEnabled } = require('./store-accessor')
+const { createStoreAccessor, ensureMysqlPool, isMySQLEnabled } = require('./store-accessor')
 const {
   createDefaultUserCommerceState,
   getCompliance,
@@ -1845,7 +1845,7 @@ const joinManagedSession = ({ inviteCode, profile }) => {
   return target
 }
 
-const kickManagedSessionMember = ({ sessionId, profileId, operatorProfileId }) => {
+const kickManagedSessionMember = async ({ sessionId, profileId, operatorProfileId }) => {
   const normalizedSessionId = String(sessionId || '').trim()
   const normalizedProfileId = String(profileId || '').trim()
   const normalizedOperatorProfileId = String(operatorProfileId || '').trim()
@@ -1870,7 +1870,18 @@ const kickManagedSessionMember = ({ sessionId, profileId, operatorProfileId }) =
     throw error
   }
 
-  session.members = members.filter((item) => String(item?.profileId || '').trim() !== normalizedProfileId)
+  const nextMembers = members.filter((item) => String(item?.profileId || '').trim() !== normalizedProfileId)
+  if (isMySQLEnabled()) {
+    const pool = await ensureMysqlPool()
+    if (pool) {
+      await pool.query('DELETE FROM `wine_session_members` WHERE `session_id` = ? AND `profile_id` = ?', [
+        normalizedSessionId,
+        normalizedProfileId,
+      ])
+    }
+  }
+
+  session.members = nextMembers
   session.kickedProfileIds = [...new Set([...(Array.isArray(session.kickedProfileIds) ? session.kickedProfileIds : []), normalizedProfileId])]
   session.joinedCount = session.members.filter((item) => item.status === '已加入').length
   session.updatedAt = iso()
@@ -1886,6 +1897,7 @@ const kickManagedSessionMember = ({ sessionId, profileId, operatorProfileId }) =
     item.id === normalizedSessionId ? normalizeLiveSession(session, index) : normalizeLiveSession(item, index),
   )
   writeStore(store)
+  await storeAccessor.flush()
   return store.liveSessions.find((item) => item.id === normalizedSessionId) || null
 }
 

@@ -1747,7 +1747,7 @@ const server = http.createServer((request, response) => {
         }
         const targetProfileId = decodeURIComponent(sessionSegments[5] || '')
         try {
-          const updated = kickManagedSessionMember({
+          const updated = await kickManagedSessionMember({
             operatorProfileId: userProfileId,
             profileId: targetProfileId,
             sessionId,
