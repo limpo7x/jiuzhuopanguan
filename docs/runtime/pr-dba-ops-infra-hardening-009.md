@@ -117,7 +117,7 @@
 
 ## 4. 对象存储 / CDN 接入方案
 
-状态：基础链路已验收，后端 OSS provider 已接入并完成线上真实上传 E2E；当前仅剩测试对象自动删除所需的 `oss:DeleteObject` 权限待决策。
+状态：基础链路已验收，后端 OSS provider 已接入并完成线上真实上传 E2E；`oss:DeleteObject` 最小权限已补齐，上传、CDN 读取和 OSS 删除清理链路已闭环。
 
 已验收基础链路：
 
@@ -390,7 +390,7 @@ echo | openssl s_client -servername cdn.pomer.cn -connect cdn.pomer.cn:443 2>/de
 ## 8. 当前结论
 
 - 实体表：有 DDL、同步脚本和线上 36 表影子对账通过证据，仍未完全替代 `app_store`；运行时读写切换继续由后端/API 推进。
-- 对象存储/CDN：`pomer-party-recorder-prod` 私有 OSS Bucket + `cdn.pomer.cn` CDN 基础链路已验收，OSS RAM 环境变量已注入，provider 已切到 `oss`，接口联调真实上传 CDN URL 已闭环；当前仍有 `oss:DeleteObject` 权限缺口，测试对象不能由脚本自动删除。
+- 对象存储/CDN：`pomer-party-recorder-prod` 私有 OSS Bucket + `cdn.pomer.cn` CDN 基础链路已验收，OSS RAM 环境变量已注入，provider 已切到 `oss`，接口联调真实上传 CDN URL 已闭环；`oss:DeleteObject` 最小权限已补齐，测试对象可由脚本自动清理。
 - 备份监控：Nginx/MySQL/PM2 已具备一次性备份恢复证据、健康监控脚本和 cron 定时落地证据。
 - `app_store` 当前仍是主存储，不得删除或退役。
 
@@ -425,6 +425,9 @@ echo | openssl s_client -servername cdn.pomer.cn -connect cdn.pomer.cn:443 2>/de
 - OSS 真实上传 E2E 证据：`/www/backup/jiuzhuopanguan/ops-009-oss-upload-20260622125500`。
 - OSS 上传清理后实体表修复证据：`/www/backup/jiuzhuopanguan/ops-009-oss-upload-20260622125500/post-sync/verify-normalized-shadow.json`。
 - OSS 上传后健康监控证据：`/www/backup/jiuzhuopanguan/ops-009-health-20260622130000`，结果 `status=0`。
+- OSS DeleteObject 权限补齐与旧 smoke 对象清理证据：`/www/backup/jiuzhuopanguan/ops-009-oss-delete-20260622162000`。
+- OSS 上传 E2E 最终复跑证据：`/www/backup/jiuzhuopanguan/ops-009-oss-upload-20260622180000`。
+- 最终 E2E 后残留对账：`/www/backup/jiuzhuopanguan/ops-009-post-final-oss-clean-20260622180500`。
 
 ### 9.3 已执行证据摘要
 
@@ -435,8 +438,9 @@ echo | openssl s_client -servername cdn.pomer.cn -connect cdn.pomer.cn:443 2>/de
 - CDN：`https://cdn.pomer.cn/cdn-check.png` HTTP 200，`Content-Type=image/png`，`Content-Length=45947`，`x-oss-cdn-auth=success`。
 - cron：已安装 `# BEGIN jiuzhuopanguan ops-009` 到 `# END jiuzhuopanguan ops-009` 标记块；每 15 分钟执行健康监控；每日 03:20 执行 Nginx/MySQL/PM2 备份与恢复演练。
 - OSS env：`UPLOAD_PROVIDER=oss`、`UPLOAD_BUCKET=pomer-party-recorder-prod`、`UPLOAD_REGION=oss-cn-beijing`、`UPLOAD_PUBLIC_BASE_URL=https://cdn.pomer.cn`、`OSS_SOURCE_HOST=pomer-party-recorder-prod.oss-cn-beijing.aliyuncs.com`、`UPLOAD_LOCAL_MIRROR=1`；密钥仅记录长度，未写原文。
-- OSS 上传 E2E：上传接口返回 `uploadHttp=201`、`provider=oss`、URL 为 `https://cdn.pomer.cn/moments/session-1782103396743-3160eb/1782103398209-ops009-oss-smoke-1782103398099-67b747.webp`；CDN HEAD 返回 `status=200`、`Content-Type=image/webp`、`Content-Length=44`、`x-oss-cdn-auth=success`、`Cache-Control=public, max-age=2592000, immutable`。
-- 清理：store 残留扫描 `profiles=0`、`userSessions=0`、`uploadedAssets=0`、`liveSessions=0`；OSS 测试对象因 RAM 缺少 `oss:DeleteObject` 未能自动删除，遗留对象为 1x1 smoke 图片，非用户数据。
+- OSS DeleteObject 权限补齐：用户已在 RAM 用户 `jzp-oss-uploader-prod` 下新增 `DeleteObject` 权限策略；旧 smoke 对象 `client.delete(objectKey)` 返回 `ok=true`、HTTP status `204`；删除后 `client.head(objectKey)` 返回 `exists=false`、`code=NoSuchKey`、HTTP status `404`。
+- OSS 上传 E2E 最终复跑：上传接口返回 `uploadHttp=201`、`provider=oss`、URL 为 `https://cdn.pomer.cn/moments/session-1782112459649-56e4e0/1782112461643-ops009-oss-smoke-1782112461563-5a8acd.webp`；CDN HEAD 返回 `status=200`、`Content-Type=image/webp`、`x-oss-cdn-auth=success`；`deletedObject=true`；PM2 前后重启均 `exit=0` 且 `apiReady=true`。
+- 清理：最终 E2E 后残留对账通过，`verify-normalized-shadow.json` 通过，`verify-session-read.json` 通过且 `mismatchCount=0`，`verify-share-image-read.json` 通过，健康监控通过。
 - 实体表：修复后 `verify-normalized-shadow.json` 为 `ok=true`、`checkedTables=36`、`mismatches=[]`；仍不能宣称实体表已完全替代 `app_store`。
 
 ### 9.4 当前状态
@@ -445,5 +449,5 @@ echo | openssl s_client -servername cdn.pomer.cn -connect cdn.pomer.cn:443 2>/de
 - PM2：`jiuzhuopanguan-backend` online，已按 OSS env 重启；`pomer` 官网服务未重启。
 - Nginx：`api.pomer.cn` 相关配置已备份，`nginx -t` 成功；未改 `pomer.cn` 官网 server block。
 - MySQL：已完成 dump 与同库临时表恢复演练；临时表已删除；实体表影子对账通过。
-- OSS/CDN：provider 已切到 `oss`，真实上传 URL 与 CDN HEAD 已通过；当前待决策是否给 `jzp-oss-uploader-prod` 追加限定前缀的 `oss:DeleteObject` 权限。
+- OSS/CDN：provider 已切到 `oss`，真实上传 URL 与 CDN HEAD 已通过；`oss:DeleteObject` 已补齐，上传后删除清理已通过最终复跑。
 - 官网边界：本次证据和脚本均面向 `api.pomer.cn` / `jiuzhuopanguan`；`pomer.cn` 公司官网未改动、未重启、未部署。
