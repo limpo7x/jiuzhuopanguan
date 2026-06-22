@@ -28,6 +28,8 @@ const {
 
 const storePath = path.join(__dirname, 'admin-store.json')
 const SESSION_TTL = 1000 * 60 * 60 * 12
+const ADMIN_LOGIN_MAX_FAILURES = 5
+const ADMIN_LOGIN_LOCK_MS = 1000 * 60 * 15
 
 const hashPassword = (password) => crypto.createHash('sha256').update(password).digest('hex')
 const createId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
@@ -151,6 +153,9 @@ const createDefaultStore = () => ({
       roleId: 'role-super-admin',
       status: 'active',
       lastLoginAt: '',
+      failedLoginCount: 0,
+      lockedUntil: '',
+      passwordUpdatedAt: '',
     },
     {
       id: 'admin-content',
@@ -160,6 +165,9 @@ const createDefaultStore = () => ({
       roleId: 'role-content-ops',
       status: 'active',
       lastLoginAt: '',
+      failedLoginCount: 0,
+      lockedUntil: '',
+      passwordUpdatedAt: '',
     },
   ],
   roles: [
@@ -386,6 +394,12 @@ const normalizeStore = (store = {}) => {
   next.merchants = (Array.isArray(store.merchants) ? store.merchants : next.merchants).map((item, index) => normalizeMerchant(item, index))
   next.campaigns = (Array.isArray(store.campaigns) ? store.campaigns : next.campaigns).map((item, index) => normalizeCampaign(item, index))
   next.operationLogs = Array.isArray(store.operationLogs) ? store.operationLogs : []
+  next.adminUsers = (Array.isArray(store.adminUsers) ? store.adminUsers : next.adminUsers).map((user) => ({
+    ...user,
+    failedLoginCount: Math.max(0, Number(user.failedLoginCount) || 0),
+    lockedUntil: String(user.lockedUntil || '').trim(),
+    passwordUpdatedAt: String(user.passwordUpdatedAt || '').trim(),
+  }))
   next.analyticsEvents = Array.isArray(store.analyticsEvents) ? store.analyticsEvents : []
   next.momentReviewItems = Array.isArray(store.momentReviewItems) ? store.momentReviewItems : []
   next.momentReportItems = Array.isArray(store.momentReportItems) ? store.momentReportItems : []
@@ -415,13 +429,93 @@ const getAdminUserView = (user, roles) => ({
   roleName: roles.find((item) => item.id === user.roleId)?.name || '',
   status: user.status,
   lastLoginAt: user.lastLoginAt || '',
+  failedLoginCount: Math.max(0, Number(user.failedLoginCount) || 0),
+  lockedUntil: user.lockedUntil || '',
+  passwordUpdatedAt: user.passwordUpdatedAt || '',
 })
 
-const loginAdmin = ({ username, password }) => {
+const createAdminAuthError = (message, statusCode = 401, code = 'ADMIN_AUTH_FAILED') =>
+  Object.assign(new Error(message), {
+    statusCode,
+    code,
+  })
+
+const getLoginClientLabel = ({ ip = '', userAgent = '' } = {}) =>
+  [
+    String(ip || '').trim(),
+    String(userAgent || '').trim().slice(0, 120),
+  ].filter(Boolean).join(' / ')
+
+const isUserLocked = (user = {}, timestamp = now()) => {
+  const lockedUntilMs = Date.parse(user.lockedUntil || '')
+  return Number.isFinite(lockedUntilMs) && lockedUntilMs > timestamp
+}
+
+const recordAdminLoginFailure = (store, { user, username, reason, ip, userAgent }) => {
+  const current = now()
+  const client = getLoginClientLabel({ ip, userAgent })
+  if (user) {
+    user.failedLoginCount = Math.max(0, Number(user.failedLoginCount) || 0) + 1
+    user.lastFailedLoginAt = iso(current)
+    if (user.failedLoginCount >= ADMIN_LOGIN_MAX_FAILURES) {
+      user.lockedUntil = iso(current + ADMIN_LOGIN_LOCK_MS)
+      store.sessions = (store.sessions || []).filter((item) => item.userId !== user.id)
+    }
+  }
+  appendAdminOperationLog(store, {
+    operator: 'admin-auth',
+    action: user?.lockedUntil && isUserLocked(user, current) ? '后台登录失败并锁定账号' : '后台登录失败',
+    targetId: user?.id || '',
+    targetName: user?.username || String(username || '').trim(),
+    detail: [
+      reason || '账号或密码错误',
+      user ? `失败次数 ${user.failedLoginCount}/${ADMIN_LOGIN_MAX_FAILURES}` : '账号不存在或不可用',
+      user?.lockedUntil ? `锁定至 ${user.lockedUntil}` : '',
+      client ? `来源 ${client}` : '',
+    ].filter(Boolean).join('；'),
+  })
+}
+
+const loginAdmin = ({ username, password, ip = '', userAgent = '' }) => {
   const store = readStore()
-  const user = store.adminUsers.find((item) => item.username === String(username || '').trim())
-  if (!user || user.status !== 'active' || user.passwordHash !== hashPassword(String(password || ''))) {
-    throw new Error('账号或密码错误')
+  const normalizedUsername = String(username || '').trim()
+  const user = store.adminUsers.find((item) => item.username === normalizedUsername)
+  if (!user || user.status !== 'active') {
+    recordAdminLoginFailure(store, {
+      username: normalizedUsername,
+      reason: '账号不存在或已停用',
+      ip,
+      userAgent,
+    })
+    writeStore(store)
+    throw createAdminAuthError('账号或密码错误')
+  }
+
+  if (isUserLocked(user)) {
+    appendAdminOperationLog(store, {
+      operator: 'admin-auth',
+      action: '后台登录被锁定拦截',
+      targetId: user.id,
+      targetName: user.username,
+      detail: `账号已锁定至 ${user.lockedUntil}${getLoginClientLabel({ ip, userAgent }) ? `；来源 ${getLoginClientLabel({ ip, userAgent })}` : ''}`,
+    })
+    writeStore(store)
+    throw createAdminAuthError(`账号已锁定，请在 ${user.lockedUntil} 后重试`, 423, 'ADMIN_LOCKED')
+  }
+
+  if (user.passwordHash !== hashPassword(String(password || ''))) {
+    recordAdminLoginFailure(store, {
+      user,
+      username: normalizedUsername,
+      reason: '密码错误',
+      ip,
+      userAgent,
+    })
+    writeStore(store)
+    if (isUserLocked(user)) {
+      throw createAdminAuthError(`账号已锁定，请在 ${user.lockedUntil} 后重试`, 423, 'ADMIN_LOCKED')
+    }
+    throw createAdminAuthError(`账号或密码错误，还可尝试 ${Math.max(0, ADMIN_LOGIN_MAX_FAILURES - user.failedLoginCount)} 次`)
   }
 
   const token = crypto.randomBytes(24).toString('hex')
@@ -432,11 +526,55 @@ const loginAdmin = ({ username, password }) => {
     expiresAt: now() + SESSION_TTL,
   }
   user.lastLoginAt = iso()
+  user.failedLoginCount = 0
+  user.lockedUntil = ''
+  user.lastFailedLoginAt = ''
   store.sessions = store.sessions.filter((item) => item.userId !== user.id)
   store.sessions.unshift(session)
+  appendAdminOperationLog(store, {
+    operator: user.username,
+    action: '后台登录成功',
+    targetId: user.id,
+    targetName: user.username,
+    detail: getLoginClientLabel({ ip, userAgent }) ? `来源 ${getLoginClientLabel({ ip, userAgent })}` : '管理员登录后台',
+  })
   writeStore(store)
   return {
     token,
+    user: getAdminUserView(user, store.roles),
+  }
+}
+
+const resetAdminPassword = ({ userId, newPassword, operator = 'admin-console', preserveToken = '' } = {}) => {
+  const normalizedUserId = String(userId || '').trim()
+  const normalizedPassword = String(newPassword || '')
+  if (!normalizedUserId) {
+    throw createAdminAuthError('缺少管理员账号 ID', 400, 'ADMIN_USER_REQUIRED')
+  }
+  if (normalizedPassword.length < 8) {
+    throw createAdminAuthError('新密码至少 8 位', 400, 'ADMIN_PASSWORD_WEAK')
+  }
+
+  const store = readStore()
+  const user = store.adminUsers.find((item) => item.id === normalizedUserId)
+  if (!user) {
+    throw createAdminAuthError('管理员账号不存在', 404, 'ADMIN_USER_NOT_FOUND')
+  }
+  user.passwordHash = hashPassword(normalizedPassword)
+  user.passwordUpdatedAt = iso()
+  user.failedLoginCount = 0
+  user.lockedUntil = ''
+  user.lastFailedLoginAt = ''
+  store.sessions = (store.sessions || []).filter((item) => item.userId !== user.id || (preserveToken && item.token === preserveToken))
+  appendAdminOperationLog(store, {
+    operator,
+    action: '重置后台管理员密码',
+    targetId: user.id,
+    targetName: user.username,
+    detail: preserveToken ? '已重置密码、清空失败次数并保留当前操作会话' : '已重置密码、清空失败次数并注销该账号现有后台会话',
+  })
+  writeStore(store)
+  return {
     user: getAdminUserView(user, store.roles),
   }
 }
@@ -2545,6 +2683,12 @@ const pageMap = {
             { key: 'name', label: '姓名' },
             { key: 'roleId', label: '角色 ID' },
             { key: 'status', label: '状态' },
+            { key: 'failedLoginCount', label: '失败次数' },
+            { key: 'lockedUntil', label: '锁定至' },
+            { key: 'passwordUpdatedAt', label: '密码更新时间' },
+          ],
+          customActions: [
+            { key: 'reset-password', label: '重置密码', type: 'passwordReset' },
           ],
           items: store.adminUsers.map((item) => ({
             id: item.id,
@@ -2552,6 +2696,9 @@ const pageMap = {
             name: item.name,
             roleId: item.roleId,
             status: item.status,
+            failedLoginCount: Math.max(0, Number(item.failedLoginCount) || 0),
+            lockedUntil: item.lockedUntil || '',
+            passwordUpdatedAt: item.passwordUpdatedAt || '',
           })),
         },
         {
@@ -3642,6 +3789,10 @@ const savePageData = (slug, payload = {}) => {
         status: parseStatus(item.status, 'active'),
         passwordHash: existed?.passwordHash || hashPassword('Admin@123456'),
         lastLoginAt: existed?.lastLoginAt || '',
+        failedLoginCount: Math.max(0, Number(existed?.failedLoginCount) || 0),
+        lockedUntil: existed?.lockedUntil || '',
+        lastFailedLoginAt: existed?.lastFailedLoginAt || '',
+        passwordUpdatedAt: existed?.passwordUpdatedAt || '',
       }
     })
     adminStore.roles = (payload.collections.roles || []).map((item) => ({
@@ -3682,6 +3833,7 @@ module.exports = {
   loginAdmin,
   logoutAdmin,
   retryManagedShareImageTask,
+  resetAdminPassword,
   reviewManagedMoment,
   getSessionContactsByProfile,
   savePageData,

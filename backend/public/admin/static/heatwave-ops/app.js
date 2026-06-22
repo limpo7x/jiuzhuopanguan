@@ -19,11 +19,11 @@ const navGroups = [
   },
   {
     key: 'community',
-    title: '用户与酒局',
+    title: '用户与聚会',
     items: [
       { slug: 'user-profiles', title: '用户中心', icon: 'icon-user' },
       { slug: 'user-login-logs', title: '用户登录记录', icon: 'icon-user' },
-      { slug: 'sessions', title: '酒局管理', icon: 'icon-session' },
+      { slug: 'sessions', title: '聚会管理', icon: 'icon-session' },
       { slug: 'reports', title: '战报中心', icon: 'icon-report' },
     ],
   },
@@ -263,7 +263,7 @@ const getFieldCondition = (field) => {
     return 'OpenID 是小程序用户唯一身份标识，仅用于排障或核对，非必要不要手动更改。'
   }
   if (key.includes('invitecode')) {
-    return '仅对当前酒局生效；重复邀请码可能导致用户入局错误。'
+    return '仅对当前聚会生效；重复邀请码可能导致用户加入错误。'
   }
   if (key.includes('point') || key.includes('cost') || key.includes('delta')) {
     return '积分类字段会直接影响用户资产或兑换门槛，保存前需确认数值单位。'
@@ -453,6 +453,79 @@ const requestActionConfirm = (message = '确认执行这个操作？') =>
     document.body.appendChild(shell)
     requestAnimationFrame(() => {
       shell.querySelector('[data-action="confirm-ok"]')?.focus()
+    })
+  })
+
+const requestPasswordReset = (username = '') =>
+  new Promise((resolve) => {
+    document.querySelector('[data-role="password-reset-dialog"]')?.remove()
+
+    const shell = document.createElement('div')
+    shell.className = 'editor-overlay-shell'
+    shell.dataset.role = 'password-reset-dialog'
+    shell.innerHTML = `
+      <div class="editor-overlay-backdrop" data-action="password-reset-cancel"></div>
+      <section class="editor-dialog reason-dialog" role="dialog" aria-modal="true" aria-label="重置管理员密码" tabindex="-1">
+        <div class="editor-dialog-head">
+          <div>
+            <div class="editor-dialog-title">重置管理员密码</div>
+            <div class="editor-dialog-copy">为 ${escapeHtml(username || '该账号')} 设置新密码。新密码至少 8 位，提交后会注销该账号现有后台会话。</div>
+          </div>
+          <button class="dialog-close-btn" type="button" data-action="password-reset-cancel">关闭</button>
+        </div>
+        <div class="editor-dialog-body">
+          <label class="field">
+            <span>新密码</span>
+            <input data-role="password-reset-input" type="password" autocomplete="new-password" />
+          </label>
+          <label class="field">
+            <span>确认新密码</span>
+            <input data-role="password-reset-confirm" type="password" autocomplete="new-password" />
+          </label>
+          <div class="login-note" data-role="password-reset-note" role="status" aria-live="polite"></div>
+        </div>
+        <div class="editor-dialog-foot">
+          <button class="dialog-close-btn" type="button" data-action="password-reset-cancel">取消</button>
+          <button class="action-btn" type="button" data-action="password-reset-confirm-action">确认重置</button>
+        </div>
+      </section>`
+
+    let resolved = false
+    const finish = (value) => {
+      if (resolved) return
+      resolved = true
+      shell.remove()
+      resolve(value)
+    }
+    const input = shell.querySelector('[data-role="password-reset-input"]')
+    const confirmInput = shell.querySelector('[data-role="password-reset-confirm"]')
+    const note = shell.querySelector('[data-role="password-reset-note"]')
+    shell.querySelectorAll('[data-action="password-reset-cancel"]').forEach((node) => {
+      node.addEventListener('click', () => finish(''))
+    })
+    shell.querySelector('[data-action="password-reset-confirm-action"]')?.addEventListener('click', () => {
+      const value = input?.value || ''
+      const confirmed = confirmInput?.value || ''
+      if (value.length < 8) {
+        note.textContent = '新密码至少 8 位'
+        return
+      }
+      if (value !== confirmed) {
+        note.textContent = '两次输入的新密码不一致'
+        return
+      }
+      finish(value)
+    })
+    shell.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        finish('')
+      }
+    })
+
+    document.body.appendChild(shell)
+    requestAnimationFrame(() => {
+      input?.focus()
     })
   })
 
@@ -1057,6 +1130,33 @@ const runAdminRowAction = async (tableKey, rowId, actionKey) => {
   }
 }
 
+const resetAdminPassword = async (collectionKey, itemId) => {
+  const collection = getCollectionDefinition(collectionKey)
+  const item = (state.collections[collectionKey] || []).find((entry) => entry.id === itemId)
+  if (!collection || !item) {
+    setStatus('未找到要重置密码的管理员账号', 'error')
+    return
+  }
+  const newPassword = await requestPasswordReset(item.username || item.name || item.id)
+  if (!newPassword) {
+    setStatus('已取消密码重置', 'normal')
+    return
+  }
+  try {
+    setStatus('重置密码中…', 'normal')
+    await request(`/api/v1/admin/users/${encodeURIComponent(item.id)}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify({ newPassword }),
+    })
+    const data = await request(`/api/v1/admin/pages/${state.slug}`)
+    resetPageState(data)
+    render()
+    setStatus('密码已重置，失败次数和锁定状态已清空', 'success')
+  } catch (error) {
+    setStatus(error.message || '密码重置失败', 'error')
+  }
+}
+
 const renderCollectionEditor = (collection, options = {}) => {
   const items = getCollectionState(collection)
   const readOnly = Boolean(options.readOnly)
@@ -1105,7 +1205,10 @@ const renderCollectionEditor = (collection, options = {}) => {
                                   <div class="table-actions">
                                     ${customActions
                                       .map(
-                                        (action) => `<button class="mini-btn" type="button" data-action="custom-item-action" data-collection="${collection.key}" data-item-id="${item.id}" data-custom-action="${action.key}">${item[action.labelKey] || action.label}</button>`,
+                                        (action) =>
+                                          action.type === 'passwordReset'
+                                            ? `<button class="mini-btn" type="button" data-action="reset-admin-password" data-collection="${collection.key}" data-item-id="${item.id}">${escapeHtml(item[action.labelKey] || action.label)}</button>`
+                                            : `<button class="mini-btn" type="button" data-action="custom-item-action" data-collection="${collection.key}" data-item-id="${item.id}" data-custom-action="${action.key}">${escapeHtml(item[action.labelKey] || action.label)}</button>`,
                                       )
                                       .join('')}
                                     <button class="mini-btn" type="button" data-action="edit-item" data-collection="${collection.key}" data-item-id="${item.id}">&#32534;&#36753;</button>
@@ -1538,14 +1641,14 @@ const runPageAction = async (actionKey) => {
 const render = () => {
   const page = state.page
   const showPageSave = false
-  document.title = `${page.title} - 酒桌判官后台`
+  document.title = `${page.title} - 聚会记录师后台`
   const app = document.getElementById('app')
   app.innerHTML = `
     <div class="layout">
       <aside class="sidebar">
         <div class="brand">
           <span class="brand-badge">${icon('icon-dashboard')} Heatwave Ops</span>
-          <div class="brand-title">酒桌判官后台</div>
+          <div class="brand-title">聚会记录师后台</div>
         </div>
         ${renderSidebar()}
       </aside>
@@ -1699,6 +1802,12 @@ const bindEvents = () => {
       }
       captureEditorReturnFocus()
       render()
+    })
+  })
+
+  document.querySelectorAll('[data-action="reset-admin-password"]').forEach((node) => {
+    node.addEventListener('click', () => {
+      void resetAdminPassword(node.dataset.collection, node.dataset.itemId)
     })
   })
 

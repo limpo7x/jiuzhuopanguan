@@ -84,6 +84,7 @@ const {
   loginAdmin,
   logoutAdmin,
   retryManagedShareImageTask,
+  resetAdminPassword,
   reviewManagedMoment,
   savePageData,
   trackAnalyticsEvent,
@@ -776,7 +777,11 @@ const server = http.createServer((request, response) => {
 
     if (request.method === 'POST' && pathname === '/api/v1/admin/auth/login') {
       const payload = await readJsonBody(request)
-      const session = loginAdmin(payload)
+      const session = loginAdmin({
+        ...payload,
+        ip: request.headers['x-forwarded-for'] || request.socket?.remoteAddress || '',
+        userAgent: request.headers['user-agent'] || '',
+      })
       sendOk(response, { user: session.user }, 200, [makeSessionCookie(session.token)])
       return
     }
@@ -797,6 +802,26 @@ const server = http.createServer((request, response) => {
         logoutAdmin(session.token)
       }
       sendOk(response, { loggedOut: true }, 200, [clearSessionCookie()])
+      return
+    }
+
+    if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/admin/users/') && pathname.endsWith('/reset-password')) {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
+      if (session.user?.roleId !== 'role-super-admin') {
+        sendError(response, 403, 'forbidden')
+        return
+      }
+      const userId = pathname.replace('/api/v1/admin/users/', '').replace('/reset-password', '').replace(/^\/+|\/+$/g, '')
+      const payload = await readJsonBody(request)
+      sendOk(response, resetAdminPassword({
+        userId,
+        newPassword: payload.newPassword,
+        operator: session.user?.username || session.user?.name || 'admin-console',
+        preserveToken: session.token,
+      }))
       return
     }
 
