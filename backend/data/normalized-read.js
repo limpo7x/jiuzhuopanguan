@@ -357,6 +357,13 @@ const listUserSessionMomentSummariesFromNormalized = async ({ profile } = {}) =>
     const sessionMoments = momentsBySessionId.get(sessionId) || []
     const brief = (briefsBySessionId.get(sessionId) || [])[0] || null
     const task = brief?.share_image_task_id ? taskById.get(cleanText(brief.share_image_task_id)) : null
+    const coverPhotoUrl = cleanText(
+      sessionMoments
+        .filter((item) => cleanText(item.image_url))
+        .sort((left, right) =>
+          toDateText(left.created_at, left.id).localeCompare(toDateText(right.created_at, right.id)),
+        )[0]?.image_url,
+    )
     const resumableMomentIds = isEndedSession
       ? []
       : sessionMoments
@@ -375,6 +382,7 @@ const listUserSessionMomentSummariesFromNormalized = async ({ profile } = {}) =>
       updatedAt: stateFields.updatedAt,
       canResume: resumableMomentIds.length > 0,
       canShare: Boolean(brief?.id && (task?.status === 'ready' ? readyShareImageUrl : brief.share_image_task_id || task?.id)),
+      coverPhotoUrl,
       pendingMediaCount: sessionMoments.filter((item) => cleanText(item.uploader_profile_id) === profileId && cleanText(item.completion_status) === 'needs_media').length,
       canResumeMomentIds: resumableMomentIds,
       briefId: cleanText(brief?.id),

@@ -1912,6 +1912,11 @@ const getUserSessionMomentSummaries = ({ profile }) => {
     const moments = store.momentRecords.filter((item) => item.sessionId === sessionId && !item.removedAt)
     const brief = getReadableBriefForSummary({ store, sessionId, profile })
     const task = brief?.shareImageTaskId ? store.shareImageTasks.find((item) => item.id === brief.shareImageTaskId) : null
+    const coverPhotoUrl = cleanText(
+      moments
+        .filter((item) => cleanText(item.imageUrl))
+        .sort((left, right) => cleanText(left.createdAt || left.id).localeCompare(cleanText(right.createdAt || right.id)))[0]?.imageUrl,
+    )
     const resumableMomentIds = isEndedSession
       ? []
       : moments
@@ -1930,6 +1935,7 @@ const getUserSessionMomentSummaries = ({ profile }) => {
       updatedAt: stateFields.updatedAt,
       canResume: resumableMomentIds.length > 0,
       canShare: Boolean(brief?.id && (task?.status === 'ready' ? readyShareImageUrl : brief.shareImageTaskId || task?.id)),
+      coverPhotoUrl,
       pendingMediaCount: moments.filter((item) => item.uploaderProfileId === profileId && item.completionStatus === 'needs_media').length,
       canResumeMomentIds: resumableMomentIds,
       briefId: brief?.id || '',
