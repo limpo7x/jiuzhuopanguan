@@ -348,6 +348,7 @@ module.exports = {
   getProfile,
   getTemplateConfig,
   getToolHistory,
+  flushContentStore: storeAccessor.flush,
   initContentStore: storeAccessor.init,
   readContentStore: readStore,
   recordToolUsage,

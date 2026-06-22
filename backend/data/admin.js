@@ -3672,6 +3672,7 @@ module.exports = {
   getUserJudgeStats,
   getManagedSessionById,
   getManagedSessionByInviteCode,
+  flushAdminStore: storeAccessor.flush,
   initAdminStore: storeAccessor.init,
   grantRankingRewardsByAdmin,
   joinManagedSession,

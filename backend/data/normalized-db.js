@@ -18,6 +18,11 @@ const text = (value = '') => {
 const number = (value = 0) => Number(value) || 0
 const bool = (value) => (value ? 1 : 0)
 const json = (value) => (value === undefined || value === null ? null : JSON.stringify(value))
+const memberMetaJson = (member = {}) =>
+  json({
+    meta: text(member.meta) || '',
+    wheelHistory: Array.isArray(member.wheelHistory) ? member.wheelHistory : [],
+  })
 const safeId = (...parts) =>
   parts
     .map((part) =>
@@ -58,6 +63,32 @@ const splitSqlStatements = (sql) =>
 
 const quote = (name) => `\`${name}\``
 
+const ensureColumn = async (pool, table, column, definition, afterColumn = '') => {
+  const [rows] = await pool.query(
+    'SELECT COUNT(*) AS count FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+    [table, column],
+  )
+  if (Number(rows?.[0]?.count) > 0) {
+    return 0
+  }
+  const afterSql = afterColumn ? ` AFTER ${quote(afterColumn)}` : ''
+  await pool.query(`ALTER TABLE ${quote(table)} ADD COLUMN ${quote(column)} ${definition}${afterSql}`)
+  return 1
+}
+
+const modifyColumn = async (pool, table, column, definition) => {
+  const [rows] = await pool.query(
+    'SELECT COLUMN_TYPE AS columnType FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1',
+    [table, column],
+  )
+  const columnType = String(rows?.[0]?.columnType || '').toLowerCase()
+  if (columnType === definition.split(/\s+/)[0].toLowerCase()) {
+    return 0
+  }
+  await pool.query(`ALTER TABLE ${quote(table)} MODIFY COLUMN ${quote(column)} ${definition}`)
+  return 1
+}
+
 const upsertMany = async (pool, table, rows, columns, updateColumns = columns.slice(1)) => {
   if (!rows.length) {
     return 0
@@ -79,6 +110,18 @@ const upsertMany = async (pool, table, rows, columns, updateColumns = columns.sl
   return rows.length
 }
 
+const pruneMissingRows = async (pool, table, rows, keyColumn) => {
+  const values = [...new Set(rows.map((row) => row[keyColumn]).filter((value) => value !== undefined && value !== null))]
+  if (!values.length) {
+    const [result] = await pool.query(`DELETE FROM ${quote(table)}`)
+    return Number(result.affectedRows) || 0
+  }
+
+  const placeholders = values.map(() => '?').join(', ')
+  const [result] = await pool.query(`DELETE FROM ${quote(table)} WHERE ${quote(keyColumn)} NOT IN (${placeholders})`, values)
+  return Number(result.affectedRows) || 0
+}
+
 const ensureNormalizedSchema = async () => {
   if (!isMySQLEnabled()) {
     return { enabled: false, statements: 0 }
@@ -89,7 +132,22 @@ const ensureNormalizedSchema = async () => {
   for (const statement of statements) {
     await pool.query(statement)
   }
-  return { enabled: true, statements: statements.length }
+  let migrations = 0
+  migrations += await ensureColumn(pool, 'wine_sessions', 'image_url', 'TEXT NULL', 'source')
+  migrations += await ensureColumn(pool, 'wine_reports', 'name', 'VARCHAR(255) NULL', 'profile_id')
+  migrations += await ensureColumn(pool, 'wine_reports', 'image_url', 'TEXT NULL', 'title')
+  migrations += await ensureColumn(pool, 'wine_reports', 'player_count', 'INT NOT NULL DEFAULT 0', 'highlight3')
+  migrations += await ensureColumn(pool, 'wine_reports', 'share_rate', 'VARCHAR(32) NULL', 'share_count')
+  migrations += await modifyColumn(pool, 'wine_sessions', 'started_at', 'DATETIME(3) NULL')
+  migrations += await modifyColumn(pool, 'wine_sessions', 'ended_at', 'DATETIME(3) NULL')
+  migrations += await modifyColumn(pool, 'wine_sessions', 'created_at', 'DATETIME(3) NULL')
+  migrations += await modifyColumn(pool, 'wine_sessions', 'updated_at', 'DATETIME(3) NULL')
+  migrations += await modifyColumn(pool, 'wine_reports', 'created_at', 'DATETIME(3) NULL')
+  migrations += await modifyColumn(pool, 'share_image_tasks', 'created_at', 'DATETIME(3) NULL')
+  migrations += await modifyColumn(pool, 'share_image_tasks', 'started_at', 'DATETIME(3) NULL')
+  migrations += await modifyColumn(pool, 'share_image_tasks', 'finished_at', 'DATETIME(3) NULL')
+  migrations += await modifyColumn(pool, 'share_image_tasks', 'updated_at', 'DATETIME(3) NULL')
+  return { enabled: true, migrations, statements: statements.length }
 }
 
 const mapUsers = (socialStore) =>
@@ -158,6 +216,7 @@ const mapWineSessions = (adminStore) =>
     state: text(item.state),
     status: text(item.status),
     source: text(item.source),
+    image_url: text(item.templateImageUrl || item.imageUrl),
     started_at: toDate(item.startedAt),
     ended_at: toDate(item.endedAt),
     created_at: toDate(item.createdAt),
@@ -178,7 +237,7 @@ const mapWineSessionMembers = (adminStore) =>
       debt_count: number(member.debtCount),
       drink_count: number(member.drinkCount),
       cleared_count: number(member.clearedCount),
-      meta_json: json(member.meta || {}),
+      meta_json: memberMetaJson(member),
       created_at: toDate(member.createdAt || session.createdAt),
       updated_at: toDate(member.updatedAt || session.updatedAt),
     })).filter((item) => item.id && item.session_id),
@@ -189,14 +248,18 @@ const mapWineReports = (adminStore) =>
     id: text(item.id) || safeId('report', index),
     session_id: text(item.sessionId),
     profile_id: text(item.profileId || item.hostProfileId),
+    name: text(item.name),
     template_name: text(item.template || item.templateName),
     title: text(item.title || item.name),
+    image_url: text(item.imageUrl),
     scene: text(item.scene),
     highlight1: text(item.highlight1),
     highlight2: text(item.highlight2),
     highlight3: text(item.highlight3),
+    player_count: number(item.playerCount),
     view_count: number(item.viewCount),
     share_count: number(item.shareCount),
+    share_rate: text(item.shareRate),
     replay_count: number(item.replayCount),
     status: text(item.status),
     created_at: toDate(item.createdAt),
@@ -596,9 +659,9 @@ const syncNormalizedTables = async ({ logger = console } = {}) => {
     ['user_login_logs', mapUserLoginLogs(socialStore), ['id', 'user_id', 'wechat_open_id', 'phone', 'source', 'login_at']],
     ['friendships', mapFriendships(socialStore), ['id', 'owner_id', 'friend_id', 'alias', 'meta_json', 'updated_at']],
     ['poke_threads', mapPokeThreads(socialStore), ['id', 'sender_id', 'receiver_id', 'status', 'created_at', 'updated_at']],
-    ['wine_sessions', mapWineSessions(adminStore), ['id', 'invite_code', 'host_profile_id', 'name', 'template_id', 'template_name', 'player_count', 'state', 'status', 'source', 'started_at', 'ended_at', 'created_at', 'updated_at']],
+    ['wine_sessions', mapWineSessions(adminStore), ['id', 'invite_code', 'host_profile_id', 'name', 'template_id', 'template_name', 'player_count', 'state', 'status', 'source', 'image_url', 'started_at', 'ended_at', 'created_at', 'updated_at']],
     ['wine_session_members', mapWineSessionMembers(adminStore), ['id', 'session_id', 'profile_id', 'name', 'avatar_url', 'phone', 'is_host', 'status', 'debt_count', 'drink_count', 'cleared_count', 'meta_json', 'created_at', 'updated_at']],
-    ['wine_reports', mapWineReports(adminStore), ['id', 'session_id', 'profile_id', 'template_name', 'title', 'scene', 'highlight1', 'highlight2', 'highlight3', 'view_count', 'share_count', 'replay_count', 'status', 'created_at']],
+    ['wine_reports', mapWineReports(adminStore), ['id', 'session_id', 'profile_id', 'name', 'template_name', 'title', 'image_url', 'scene', 'highlight1', 'highlight2', 'highlight3', 'player_count', 'view_count', 'share_count', 'share_rate', 'replay_count', 'status', 'created_at']],
     ['moment_records', mapMomentRecords(momentsStore), ['id', 'client_draft_id', 'session_id', 'uploader_profile_id', 'uploader_name', 'uploader_avatar_url', 'node_type', 'media_type', 'image_url', 'video_url', 'cover_image_url', 'duration', 'caption', 'tags_json', 'visibility', 'visible_profile_ids_json', 'timeline_title', 'is_timeline_placeholder', 'usage_consent_json', 'completion_status', 'review_status', 'secondary_review_status', 'ranking_eligible', 'reward_eligible', 'removed_at', 'created_at', 'updated_at']],
     ['session_events', mapSessionEvents(momentsStore), ['id', 'client_event_id', 'session_id', 'event_type', 'operator_profile_id', 'operator_name', 'target_profile_id', 'target_name', 'score_delta', 'caption', 'sync_status', 'created_at', 'updated_at']],
     ['session_briefs', mapSessionBriefs(momentsStore), ['id', 'session_id', 'title', 'cover_mode', 'opening_moment_ids_json', 'closing_moment_ids_json', 'timeline_node_ids_json', 'share_image_task_id', 'share_image_status', 'incomplete_moment_count', 'ranking_eligible', 'created_at', 'updated_at']],
@@ -630,12 +693,15 @@ const syncNormalizedTables = async ({ logger = console } = {}) => {
   ]
 
   const synced = {}
+  const pruned = {}
   for (const [table, rows, columns] of tasks) {
     synced[table] = await upsertMany(pool, table, rows, columns)
-    logger.log(`[normalized-db] synced ${synced[table]} rows into ${table}`)
+    pruned[table] = await pruneMissingRows(pool, table, rows, columns[0])
+    logger.log(`[normalized-db] synced ${synced[table]} rows into ${table}; pruned ${pruned[table]} stale rows`)
   }
 
   return {
+    pruned,
     schema,
     synced,
   }

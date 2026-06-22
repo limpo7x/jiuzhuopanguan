@@ -100,6 +100,7 @@ const {
   getSessionBrief,
   getSessionTimeline,
   getShareImageTask,
+  getUserShareImageSummaries,
   getUserSessionMomentSummaries,
   initMomentsStore,
   listTodayRankings,
@@ -108,6 +109,13 @@ const {
   updateMoment,
   uploadMomentImage,
 } = require('./data/moments')
+const {
+  getLiveSessionConfigFromNormalized,
+  listUserShareImageSummariesFromNormalized,
+  listManagedReportsFromNormalized,
+  listUserSessionMomentSummariesFromNormalized,
+  shouldReadNormalized,
+} = require('./data/normalized-read')
 
 const port = Number(process.env.PORT || 3010)
 const publicDir = path.join(__dirname, 'public')
@@ -1163,11 +1171,55 @@ const server = http.createServer((request, response) => {
       if (!userSession) {
         return
       }
+      if (shouldReadNormalized('summaries')) {
+        try {
+          sendOk(response, await listUserSessionMomentSummariesFromNormalized({ profile: userSession.profile }))
+          return
+        } catch (error) {
+          console.error('[normalized-read] user/session-moment-summaries fallback:', error)
+        }
+      }
       sendOk(response, getUserSessionMomentSummaries({ profile: userSession.profile }))
       return
     }
 
+    if (request.method === 'GET' && pathname === '/api/v1/user/share-image-summaries') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      if (shouldReadNormalized('share-images')) {
+        try {
+          sendOk(response, await listUserShareImageSummariesFromNormalized({ profile: userSession.profile }))
+          return
+        } catch (error) {
+          console.error('[normalized-read] user/share-image-summaries fallback:', error)
+        }
+      }
+      sendOk(response, getUserShareImageSummaries({ profile: userSession.profile }))
+      return
+    }
+
     if (request.method === 'GET' && pathname === '/api/v1/sessions/live') {
+      if (shouldReadNormalized('sessions')) {
+        try {
+          const liveSession = await getLiveSessionConfigFromNormalized(query.sessionId, query.inviteCode)
+          if (!query.sessionId && !query.inviteCode) {
+            sendOk(response, liveSession)
+            return
+          }
+          if (liveSession.id) {
+            sendOk(response, liveSession)
+            return
+          }
+          console.warn('[normalized-read] sessions/live miss, fallback to app_store:', {
+            inviteCode: query.inviteCode ? String(query.inviteCode).slice(-6) : '',
+            sessionId: query.sessionId || '',
+          })
+        } catch (error) {
+          console.error('[normalized-read] sessions/live fallback:', error)
+        }
+      }
       if (query.sessionId && !getManagedSessionById(String(query.sessionId || '').trim())) {
         sendError(response, 404, 'session not found')
         return
@@ -1299,6 +1351,14 @@ const server = http.createServer((request, response) => {
       const userSession = requireUserSession(request, response)
       if (!userSession) {
         return
+      }
+      if (shouldReadNormalized('reports')) {
+        try {
+          sendOk(response, await listManagedReportsFromNormalized(userSession.profile.id, String(query.mode || 'all')))
+          return
+        } catch (error) {
+          console.error('[normalized-read] reports/history fallback:', error)
+        }
       }
       sendOk(response, listManagedReports(userSession.profile.id, String(query.mode || 'all')))
       return

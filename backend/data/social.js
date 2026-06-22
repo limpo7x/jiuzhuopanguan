@@ -406,6 +406,7 @@ module.exports = {
   bindPhoneToMiniUser,
   bindWechatUser,
   ensureProfile,
+  flushSocialStore: storeAccessor.flush,
   getBootstrap,
   getMiniUserSession,
   getProfileById,

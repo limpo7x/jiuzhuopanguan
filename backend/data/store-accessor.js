@@ -8,12 +8,56 @@ const FILE_MIRROR_ENABLED = process.env.STORE_FILE_MIRROR !== '0'
 let mysqlModule = null
 let pool = null
 let schemaReadyPromise = null
+let normalizedSyncPromise = Promise.resolve()
+
+const NORMALIZED_WRITE_KEYS = new Set([
+  'admin_store',
+  'asset_manifest',
+  'content_store',
+  'moments_store',
+  'social_store',
+])
 
 const isMySQLEnabled = () =>
   Boolean(process.env.MYSQL_HOST && process.env.MYSQL_USER && process.env.MYSQL_DATABASE)
 
 const ensureDirForFile = (filePath) => {
   fs.mkdirSync(path.dirname(filePath), { recursive: true })
+}
+
+const getNormalizedWriteScopes = () =>
+  String(process.env.NORMALIZED_DB_WRITE || '')
+    .split(/[,\s]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+const shouldSyncNormalizedWrite = (key) => {
+  if (!isMySQLEnabled() || !NORMALIZED_WRITE_KEYS.has(key)) {
+    return false
+  }
+  const scopes = getNormalizedWriteScopes()
+  return scopes.includes('all') || scopes.includes('shadow') || scopes.includes(key) || scopes.includes(key.replace(/_store$/, ''))
+}
+
+const syncNormalizedAfterWrite = async (key) => {
+  if (!shouldSyncNormalizedWrite(key)) {
+    return
+  }
+  normalizedSyncPromise = normalizedSyncPromise
+    .catch(() => null)
+    .then(async () => {
+      const { syncNormalizedTables } = require('./normalized-db')
+      await syncNormalizedTables({
+        logger: {
+          log: (message) => {
+            if (process.env.NORMALIZED_DB_WRITE_LOG === '1') {
+              console.log(`[normalized-db-write:${key}] ${message}`)
+            }
+          },
+        },
+      })
+    })
+  await normalizedSyncPromise
 }
 
 const ensureMysqlPool = async () => {
@@ -85,6 +129,7 @@ const createStoreAccessor = ({ createDefaultStore, filePath, key, normalizeStore
       `INSERT INTO \`${MYSQL_TABLE}\` (store_key, data_json) VALUES (?, ?) ON DUPLICATE KEY UPDATE data_json = VALUES(data_json), updated_at = CURRENT_TIMESTAMP`,
       [key, JSON.stringify(store)],
     )
+    await syncNormalizedAfterWrite(key)
     return store
   }
 

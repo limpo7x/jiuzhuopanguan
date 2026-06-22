@@ -1495,6 +1495,58 @@ const getShareImageTask = ({ taskId, profile }) => {
   return decorateShareImageTask(task)
 }
 
+const canAccessSessionShareImages = (session = {}, profileId = '') => {
+  const normalizedProfileId = cleanText(profileId)
+  if (!normalizedProfileId || !session) {
+    return false
+  }
+  if (cleanText(session.hostProfileId) === normalizedProfileId) {
+    return true
+  }
+  return Boolean(getSessionMember(session, normalizedProfileId))
+}
+
+const serializeShareImageSummary = ({ task, session }) => {
+  const decoratedTask = decorateShareImageTask(task)
+  const imageUrl = cleanText(task.imageUrl)
+  return {
+    taskId: cleanText(task.id),
+    sessionId: cleanText(task.sessionId),
+    sessionName: cleanText(session?.name || session?.sessionName),
+    briefId: cleanText(task.briefId),
+    status: cleanText(task.status),
+    imageUrl,
+    readyShareImageUrl: cleanText(decoratedTask.readyShareImageUrl),
+    posterImageUrl: cleanText(decoratedTask.posterImageUrl),
+    miniProgramQrUrl: cleanText(decoratedTask.miniProgramQrUrl),
+    qrCodeUrl: cleanText(decoratedTask.qrCodeUrl),
+    createdAt: cleanText(task.createdAt),
+    updatedAt: cleanText(task.updatedAt),
+    finishedAt: cleanText(task.finishedAt),
+  }
+}
+
+const getUserShareImageSummaries = ({ profile }) => {
+  const profileId = getProfileId(profile)
+  if (!profileId) {
+    throw createHttpError('unauthorized', 401)
+  }
+  const store = readMomentsStore()
+  return store.shareImageTasks
+    .filter((task) => cleanText(task.status) === 'ready' && cleanText(task.imageUrl))
+    .map((task) => {
+      const session = getManagedSessionById(task.sessionId)
+      return { task, session }
+    })
+    .filter(({ session }) => canAccessSessionShareImages(session, profileId))
+    .map(serializeShareImageSummary)
+    .sort((left, right) => {
+      const rightTime = cleanText(right.finishedAt || right.updatedAt || right.createdAt)
+      const leftTime = cleanText(left.finishedAt || left.updatedAt || left.createdAt)
+      return rightTime.localeCompare(leftTime)
+    })
+}
+
 const updateBriefTaskStatus = (store, task) => {
   store.sessionBriefs = store.sessionBriefs.map((item) =>
     item.id === task.briefId
@@ -1928,6 +1980,7 @@ module.exports = {
   getSessionBrief,
   getSessionTimeline,
   getShareImageTask,
+  getUserShareImageSummaries,
   getUserSessionMomentSummaries,
   getPublicSessionShareSummary,
   grantRankingRewards,
