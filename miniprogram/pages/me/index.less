@@ -28,15 +28,15 @@ page {
   position: relative;
   z-index: 1;
   height: 100vh;
-  padding: 0 24px calc(92px + env(safe-area-inset-bottom));
+  padding: 0 24px calc(180px + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
 .me-hero {
   position: relative;
-  min-height: 254px;
+  min-height: 230px;
   margin: 0 -24px;
-  padding: 24px 24px 0;
+  padding: 0 24px;
   overflow: visible;
   box-sizing: border-box;
 }
@@ -380,57 +380,72 @@ page {
 }
 
 .me-action-list {
-  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
   padding: 0 0 2px;
   border-top: 0;
 }
 
 .me-action-row {
   position: relative;
-  justify-content: space-between;
-  gap: 16px;
-  width: 342px;
-  height: 74px;
-  margin-bottom: 14px;
-  padding: 0 22px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  height: 82px;
+  margin-bottom: 0;
+  padding: 8px 4px;
   border-bottom: 0;
+  border-radius: 16px;
+  background: rgba(35, 27, 23, 0.72);
   box-sizing: border-box;
 }
 
 .me-action-shell {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  width: 342px;
-  height: 74px;
+  display: none;
 }
 
-.me-action-row > view,
-.me-action-arrow {
+.me-action-icon,
+.me-action-title {
   position: relative;
   z-index: 1;
 }
 
-.me-action-title {
-  color: #fffaf1;
-  font-size: 18px;
-  line-height: 1.2;
+.me-action-icon {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(244, 199, 104, 0.16);
+  color: #f3cc7b;
+  font-size: 15px;
+  line-height: 1;
   font-weight: 900;
 }
 
+.me-action-title {
+  max-width: 100%;
+  overflow: hidden;
+  color: #fffaf1;
+  font-size: 12px;
+  line-height: 1.15;
+  font-weight: 900;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .me-action-desc {
-  margin-top: 6px;
-  color: rgba(255, 240, 216, 0.58);
-  font-size: 13px;
-  line-height: 1.25;
-  font-weight: 700;
+  display: none;
 }
 
 .me-action-arrow {
-  flex: none;
-  color: rgba(255, 240, 216, 0.54);
-  font-size: 32px;
-  line-height: 1;
+  display: none;
 }
 
 .bottom-nav {
