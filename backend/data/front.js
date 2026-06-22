@@ -4,6 +4,14 @@ const { getPublicSessionShareSummary } = require('./moments')
 const { listProfiles } = require('./social')
 
 const toText = (value, fallback = '') => String(value || fallback || '').trim()
+const CDN_BASE_URL = 'https://cdn.pomer.cn'
+const toPublicAssetUrl = (value = '') => {
+  const text = toText(value)
+  if (text.startsWith('/static/')) {
+    return `${CDN_BASE_URL}${text}`
+  }
+  return text
+}
 const normalizeTemplateImageUrl = (value = '') => {
   const text = toText(value)
   if (/^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(text) || /\/__store__\//i.test(text) || /\/__tmp__\//i.test(text)) {
@@ -197,8 +205,8 @@ const listFrontendTools = () => {
       placement: toText(item.placement),
       iconClass: '',
       toneClass: '',
-      imageUrl: toText(item.imageUrl),
-      heroImage: toText(item.heroImage),
+      imageUrl: toPublicAssetUrl(item.imageUrl),
+      heroImage: toPublicAssetUrl(item.heroImage),
       meta: [toText(item.target), toText(item.favoriteRate) ? `收藏率 ${toText(item.favoriteRate)}` : ''].filter(Boolean).join(' · '),
     }
   })
@@ -211,7 +219,7 @@ const listFrontendTools = () => {
   ]
   return {
     hero: {
-      imageUrl: toText(toolsHero.imageUrl),
+      imageUrl: toPublicAssetUrl(toolsHero.imageUrl),
       subtitle: toText(toolsHero.subtitle),
       title: toText(toolsHero.title),
     },
