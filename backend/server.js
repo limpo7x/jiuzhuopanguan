@@ -211,6 +211,29 @@ const sendError = (response, statusCode, message) =>
     data: null,
   })
 
+const asyncShareImageTaskIds = new Set()
+
+const scheduleShareImageTaskProcessing = ({ task, profile }) => {
+  const taskId = String(task?.id || task?.taskId || '').trim()
+  const status = String(task?.status || '').trim()
+  if (!taskId || status !== 'pending' || asyncShareImageTaskIds.has(taskId)) {
+    return
+  }
+  asyncShareImageTaskIds.add(taskId)
+  setImmediate(() => {
+    processShareImageTask({ taskId, profile })
+      .catch((error) => {
+        console.error('[share-image-task] async processing failed:', {
+          taskId,
+          message: error instanceof Error ? error.message : String(error),
+        })
+      })
+      .finally(() => {
+        asyncShareImageTaskIds.delete(taskId)
+      })
+  })
+}
+
 const sendBinary = (response, buffer, contentType, statusCode = 200) => {
   response.writeHead(statusCode, {
     'Content-Type': contentType,
@@ -1299,7 +1322,9 @@ const server = http.createServer((request, response) => {
       }
       if (request.method === 'POST' && briefId && action === 'share-image-tasks') {
         const payload = await readJsonBody(request)
-        sendOk(response, createShareImageTask({ briefId, profile: userSession.profile, payload }), 201)
+        const task = createShareImageTask({ briefId, profile: userSession.profile, payload })
+        scheduleShareImageTaskProcessing({ task, profile: userSession.profile })
+        sendOk(response, task, 201)
         return
       }
     }
@@ -1318,7 +1343,9 @@ const server = http.createServer((request, response) => {
       }
       if (request.method === 'POST' && briefId && action === 'share-images') {
         const payload = await readJsonBody(request)
-        sendOk(response, mapShareImage(createShareImageTask({ briefId, profile: userSession.profile, payload })), 201)
+        const task = createShareImageTask({ briefId, profile: userSession.profile, payload })
+        scheduleShareImageTaskProcessing({ task, profile: userSession.profile })
+        sendOk(response, mapShareImage(task), 201)
         return
       }
     }
@@ -1336,7 +1363,9 @@ const server = http.createServer((request, response) => {
         return
       }
       if (request.method === 'POST' && taskId && action === 'retry') {
-        sendOk(response, retryShareImageTask({ taskId, profile: userSession.profile }))
+        const task = retryShareImageTask({ taskId, profile: userSession.profile })
+        scheduleShareImageTaskProcessing({ task, profile: userSession.profile })
+        sendOk(response, task)
         return
       }
       if (request.method === 'POST' && taskId && action === 'process') {
@@ -1358,7 +1387,9 @@ const server = http.createServer((request, response) => {
         return
       }
       if (request.method === 'POST' && taskId && action === 'retry') {
-        sendOk(response, mapShareImage(retryShareImageTask({ taskId, profile: userSession.profile })))
+        const task = retryShareImageTask({ taskId, profile: userSession.profile })
+        scheduleShareImageTaskProcessing({ task, profile: userSession.profile })
+        sendOk(response, mapShareImage(task))
         return
       }
       if (request.method === 'POST' && taskId && action === 'process') {
