@@ -1,12 +1,13 @@
 <navigation-bar
   title="工具箱"
   back="{{false}}"
-  color="#24160f"
-  background="rgba(255,253,248,0.96)"
+  color="#fff2dd"
+  background="rgba(18,16,14,0.72)"
   ext-class="tools-nav"
 ></navigation-bar>
 
 <view class="tools-page">
+  <image class="tools-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="tools-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="tools-search">
       <view class="tools-search-icon tools-icon-search"></view>
@@ -33,6 +34,21 @@
       <view class="tools-hero-content">
         <text class="tools-hero-title">{{heroTitle}}</text>
         <text class="tools-hero-subtitle">{{heroSubtitle}}</text>
+      </view>
+    </view>
+
+    <view class="tools-feature-zones">
+      <view class="tools-feature-card" data-zone="templates" bindtap="handleFeatureZoneTap">
+        <text class="tools-feature-title">模板中心</text>
+        <text class="tools-feature-meta">高级模板与解锁状态</text>
+      </view>
+      <view class="tools-feature-card" data-zone="merchants" bindtap="handleFeatureZoneTap">
+        <text class="tools-feature-title">合作优惠</text>
+        <text class="tools-feature-meta">商户配置与可用状态</text>
+      </view>
+      <view class="tools-feature-card" data-zone="usage" bindtap="handleFeatureZoneTap">
+        <text class="tools-feature-title">使用记录</text>
+        <text class="tools-feature-meta">新路径工具记录</text>
       </view>
     </view>
 
@@ -136,6 +152,10 @@
     <view class="bottom-item active" data-tab="tools" bindtap="handleTabTap">
       <view class="bottom-icon nav-judge active"></view>
       <text class="bottom-label">工具箱</text>
+    </view>
+    <view class="bottom-item" data-tab="rankings" bindtap="handleTabTap">
+      <view class="bottom-icon nav-rank"></view>
+      <text class="bottom-label">排行榜</text>
     </view>
     <view class="bottom-item" data-tab="me" bindtap="handleTabTap">
       <view class="bottom-icon nav-me"></view>

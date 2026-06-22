@@ -11,9 +11,24 @@ const { readSocialStore } = require('./social')
 const isoNow = () => new Date().toISOString()
 const createId = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
 const createHttpError = (message, statusCode) => Object.assign(new Error(message), { statusCode })
+const cleanText = (value = '') => String(value || '').trim()
 const CLAIM_TASK_TIMEZONE = 'Asia/Shanghai'
 const FIRST_LOGIN_TASK_ID = 'task-first-login'
 const FIRST_LOGIN_BONUS_POINTS = 500
+const isDisabledText = (value = '') => ['停用', '下线', 'disabled', 'offline'].some((word) => cleanText(value).toLowerCase().includes(word))
+const normalizeToolId = (item = {}) => {
+  const aliases = {
+    'tool-compress': 'image-compress',
+    'tool-json': 'json',
+    'tool-qr': 'qr-code',
+    'tool-loan': 'loan-calc',
+    'tool-currency': 'currency',
+    'tool-unit': 'unit',
+    'tool-9-grid': 'nine-grid',
+    'tool-watermark': 'watermark',
+  }
+  return aliases[item.id] || item.id || ''
+}
 
 const getDateYmd = (value = Date.now()) =>
   new Intl.DateTimeFormat('en-CA', {
@@ -352,6 +367,11 @@ const serializeCommerceState = (profileId) => {
       points: 0,
       pointsLedger: guest.pointsLedger,
       rewardRedemptions: guest.rewardRedemptions,
+      favoriteToolIds: guest.favoriteToolIds,
+      usageRecords: guest.usageRecords,
+      benefitUsages: guest.benefitUsages,
+      inviteRewardClaims: guest.inviteRewardClaims,
+      templateUsageRecords: guest.templateUsageRecords,
       templateUnlockProgress: guest.templateUnlockProgress,
       templateUnlockRequiredViews: guest.templateUnlockRequiredViews,
       unlockedTemplateIds: guest.unlockedTemplateIds,
@@ -374,6 +394,11 @@ const serializeCommerceState = (profileId) => {
     points: Number(state.points) || 0,
     pointsLedger: state.pointsLedger.slice(0, 20),
     rewardRedemptions: state.rewardRedemptions.slice(0, 20),
+    favoriteToolIds: state.favoriteToolIds || [],
+    usageRecords: (state.usageRecords || []).slice(0, 50),
+    benefitUsages: (state.benefitUsages || []).slice(0, 50),
+    inviteRewardClaims: (state.inviteRewardClaims || []).slice(0, 50),
+    templateUsageRecords: (state.templateUsageRecords || []).slice(0, 50),
     templateUnlockProgress: state.templateUnlockProgress,
     templateUnlockRequiredViews: Number(state.templateUnlockRequiredViews) || 3,
     unlockedTemplateIds: state.unlockedTemplateIds,
@@ -445,6 +470,56 @@ const updateMerchantAfterRewardRedemption = (adminStore, rewardId) => {
     return {
       ...item,
       claimCount: String(numberFromText(item.claimCount) + 1),
+    }
+  })
+}
+
+const appendOperationLog = (adminStore, log = {}) => {
+  adminStore.operationLogs = Array.isArray(adminStore.operationLogs) ? adminStore.operationLogs : []
+  adminStore.operationLogs.unshift({
+    id: createId('admin-op'),
+    operator: log.operator || 'user-api',
+    action: log.action || '用户操作',
+    targetId: cleanText(log.targetId),
+    targetName: cleanText(log.targetName),
+    targetPhone: '',
+    targetOpenId: '',
+    detail: cleanText(log.detail),
+    createdAt: isoNow(),
+  })
+  adminStore.operationLogs = adminStore.operationLogs.slice(0, 1000)
+}
+
+const findEnabledTool = (adminStore, toolId = '') => {
+  const normalizedToolId = cleanText(toolId)
+  return (adminStore.toolsCatalog || []).find((item) => {
+    const rawId = cleanText(item.id)
+    const mappedId = cleanText(normalizeToolId(item))
+    return !isDisabledText(item.status) && (rawId === normalizedToolId || mappedId === normalizedToolId)
+  }) || null
+}
+
+const isMembershipActive = (membership = {}) => {
+  if (!membership.active) {
+    return false
+  }
+  const expiresAt = cleanText(membership.expiresAt)
+  return !expiresAt || Number.isNaN(Date.parse(expiresAt)) || Date.parse(expiresAt) > Date.now()
+}
+
+const updateToolStats = (adminStore, toolId = '', updater) => {
+  adminStore.toolsCatalog = (adminStore.toolsCatalog || []).map((item) => {
+    if (![cleanText(item.id), cleanText(normalizeToolId(item))].includes(cleanText(toolId))) {
+      return item
+    }
+    const next = updater({ ...item })
+    const usageCount = Math.max(0, Number(next.usageCount) || 0)
+    const favoriteCount = Math.max(0, Number(next.favoriteCount) || numberFromText(next.favoriteCount))
+    return {
+      ...next,
+      usageCount,
+      favoriteCount,
+      favoriteRate: formatPercent(usageCount ? (favoriteCount / usageCount) * 100 : 0),
     }
   })
 }
@@ -625,6 +700,450 @@ const activateMembershipPlan = (profileId, planId) => {
   return getMembershipCatalog(profileId)
 }
 
+const getEnabledMerchants = (adminStore) => (adminStore.merchants || [])
+  .filter((item) => !isDisabledText(item.status))
+  .map((item) => ({
+    id: cleanText(item.id),
+    name: cleanText(item.name),
+    category: cleanText(item.category),
+    imageUrl: cleanText(item.imageUrl),
+    inventory: cleanText(item.inventory),
+    claimCount: cleanText(item.claimCount),
+    verifiedCount: Number(item.verifiedCount) || 0,
+    verifyRate: cleanText(item.verifyRate),
+    status: cleanText(item.status),
+    claimAction: {
+      disabled: true,
+      reason: '商户优惠领取合同未闭环，当前仅展示商户优惠状态',
+    },
+    redeemAction: {
+      disabled: true,
+      reason: '商户核销、券包和对账流水未闭环',
+    },
+  }))
+  .filter((item) => item.id || item.name)
+
+const getFavoriteTools = (adminStore, favoriteToolIds = []) => {
+  const favoriteSet = new Set((favoriteToolIds || []).map(cleanText).filter(Boolean))
+  return (adminStore.toolsCatalog || [])
+    .map((item) => ({
+      id: cleanText(normalizeToolId(item)),
+      rawId: cleanText(item.id),
+      name: cleanText(item.name),
+      category: cleanText(item.category),
+      status: cleanText(item.status),
+      imageUrl: cleanText(item.imageUrl),
+    }))
+    .filter((item) => !isDisabledText(item.status) && (favoriteSet.has(item.id) || favoriteSet.has(item.rawId)))
+}
+
+const getInviteRewardSummary = (adminStore, state) => {
+  const activeCampaigns = (adminStore.campaigns || []).filter((item) => {
+    const text = `${item.name || ''} ${item.reward || ''}`.toLowerCase()
+    return !isDisabledText(item.status) && !cleanText(item.status).includes('已结束') && (text.includes('邀请') || text.includes('invite'))
+  })
+  const claimableCampaign = pickInviteRewardCampaign(adminStore)
+  const disabledReason = claimableCampaign
+    ? '需房主、有效邀请成员和未重复领取后才可发放'
+    : '邀请奖励缺少结构化数值奖励配置，本轮禁用领取'
+  const items = activeCampaigns.map((item) => ({
+    id: cleanText(item.id),
+    name: cleanText(item.name),
+    title: cleanText(item.name),
+    reward: cleanText(item.reward),
+    status: cleanText(item.status),
+    tag: '邀请奖励',
+    type: 'inviteReward',
+    disabled: true,
+    reason: cleanText(item.id) === cleanText(claimableCampaign?.id) ? '需通过有效 inviteCode 领取' : disabledReason,
+    actionLabel: cleanText(item.id) === cleanText(claimableCampaign?.id) ? '按邀请码领取' : '暂未开放',
+  }))
+  return {
+    disabled: !claimableCampaign,
+    reason: disabledReason,
+    items,
+    campaigns: items,
+    claims: (state.inviteRewardClaims || []).slice(0, 20),
+  }
+}
+
+const getPointsActionState = (profileId, commerce) => {
+  const config = getPointsConfig()
+  const tasks = (config.tasks || []).map((task) => {
+    const claimState = commerce.taskClaimStates?.[task.id] || {}
+    const canClaim = Boolean(claimState.canClaim)
+    return {
+      ...task,
+      canClaim,
+      disabled: !canClaim,
+      reason: canClaim ? '' : cleanText(claimState.statusText || claimState.buttonText || '任务条件未满足或已领取'),
+      action: {
+        method: 'POST',
+        endpoint: `/api/v1/points/tasks/${encodeURIComponent(task.id)}/claim`,
+        disabled: !canClaim,
+        reason: canClaim ? '' : cleanText(claimState.statusText || claimState.buttonText || '任务条件未满足或已领取'),
+      },
+    }
+  })
+  const rewards = (config.rewards || []).map((reward) => {
+    const owned = (commerce.ownedRewardIds || []).includes(reward.id)
+    const insufficient = Number(commerce.points || 0) < Number(reward.cost || 0)
+    const disabled = owned || insufficient
+    return {
+      ...reward,
+      canRedeem: !disabled,
+      disabled,
+      reason: owned ? '已兑换，不能重复领取' : insufficient ? '积分不足' : '',
+      action: {
+        method: 'POST',
+        endpoint: `/api/v1/points/rewards/${encodeURIComponent(reward.id)}/redeem`,
+        disabled,
+        reason: owned ? '已兑换，不能重复领取' : insufficient ? '积分不足' : '',
+      },
+    }
+  })
+  return {
+    ...config,
+    profileId,
+    tasks,
+    rewards,
+  }
+}
+
+const getMembershipActionState = (profileId, catalog) => {
+  const membershipDisabled = catalog.membershipEnabled === false
+  const active = isMembershipActive(catalog.membership || {})
+  return {
+    ...catalog,
+    profileId,
+    disabled: membershipDisabled,
+    reason: membershipDisabled ? '会员功能后台总开关关闭' : '',
+    plans: (catalog.plans || []).map((plan) => {
+      const disabled = membershipDisabled || isDisabledText(plan.status)
+      return {
+        ...plan,
+        disabled,
+        reason: membershipDisabled ? '会员功能后台总开关关闭' : disabled ? '套餐未启用' : '',
+        action: {
+          method: 'POST',
+          endpoint: '/api/v1/membership/activate',
+          disabled,
+          reason: membershipDisabled ? '会员功能后台总开关关闭' : disabled ? '套餐未启用' : '',
+        },
+      }
+    }),
+    benefits: (catalog.benefits || []).map((benefit) => {
+      const disabled = membershipDisabled || !active || isDisabledText(benefit.status)
+      return {
+        ...benefit,
+        disabled,
+        reason: membershipDisabled ? '会员功能后台总开关关闭' : !active ? '需开通会员后使用' : isDisabledText(benefit.status) ? '权益未启用' : '',
+        action: {
+          method: 'POST',
+          endpoint: `/api/v1/membership/benefits/${encodeURIComponent(benefit.id)}/use`,
+          disabled,
+          reason: membershipDisabled ? '会员功能后台总开关关闭' : !active ? '需开通会员后使用' : isDisabledText(benefit.status) ? '权益未启用' : '',
+        },
+      }
+    }),
+  }
+}
+
+const getTemplateActionState = (commerce) => {
+  const config = getTemplateConfig()
+  const templates = (config.templates || []).map((template) => {
+    const unlockState = getTemplateUnlockState({
+      membership: commerce.membership || {},
+      templateUnlockProgress: commerce.templateUnlockProgress || {},
+      templateUnlockRequiredViews: commerce.templateUnlockRequiredViews,
+      unlockedTemplateIds: commerce.unlockedTemplateIds || [],
+    }, template.id)
+    const paid = Number(template.cost || 0) > 0
+    const canUse = !paid || unlockState.unlocked
+    return {
+      ...template,
+      unlockState,
+      canUse,
+      disabled: !canUse,
+      reason: canUse ? '' : '高级模板需会员或完成解锁后使用',
+      useAction: {
+        method: 'POST',
+        endpoint: `/api/v1/templates/${encodeURIComponent(template.id)}/use`,
+        disabled: !canUse,
+        reason: canUse ? '' : '高级模板需会员或完成解锁后使用',
+      },
+      unlockAction: {
+        method: 'POST',
+        endpoint: `/api/v1/templates/${encodeURIComponent(template.id)}/unlock`,
+        disabled: !paid || unlockState.unlocked,
+        reason: !paid ? '免费模板无需解锁' : unlockState.unlocked ? '模板已解锁' : '',
+      },
+    }
+  })
+  return {
+    ...config,
+    templates,
+  }
+}
+
+const getUserFeatureZones = (profileId) => {
+  const normalizedProfileId = cleanText(profileId)
+  if (!normalizedProfileId) {
+    throw createHttpError('login required', 401)
+  }
+  const contentStore = readContentStore()
+  const state = ensureUserCommerceState(contentStore, normalizedProfileId)
+  const adminStore = getAdminStore()
+  const commerce = serializeCommerceState(normalizedProfileId)
+  const membership = getMembershipActionState(normalizedProfileId, getMembershipCatalog(normalizedProfileId))
+  const templates = getTemplateActionState(commerce)
+  return {
+    profileId: normalizedProfileId,
+    points: {
+      config: getPointsActionState(normalizedProfileId, commerce),
+      state: commerce,
+    },
+    membership,
+    merchants: getEnabledMerchants(adminStore),
+    favorites: getFavoriteTools(adminStore, state.favoriteToolIds),
+    usageRecords: (state.usageRecords || []).slice(0, 50),
+    inviteRewards: getInviteRewardSummary(adminStore, state),
+    templates: {
+      config: templates,
+      unlockedTemplateIds: commerce.unlockedTemplateIds,
+      templateUnlockProgress: commerce.templateUnlockProgress,
+      templateUsageRecords: commerce.templateUsageRecords,
+    },
+  }
+}
+
+const toggleToolFavorite = (profileId, toolId, favorite = true) => {
+  const contentStore = readContentStore()
+  const state = ensureUserCommerceState(contentStore, profileId)
+  const adminStore = getAdminStore()
+  const tool = findEnabledTool(adminStore, toolId)
+  if (!tool) {
+    throw createHttpError('tool not found', 404)
+  }
+  const normalizedToolId = cleanText(normalizeToolId(tool))
+  const currentSet = new Set((state.favoriteToolIds || []).map(cleanText).filter(Boolean))
+  const changed = favorite ? !currentSet.has(normalizedToolId) : currentSet.has(normalizedToolId)
+  if (favorite) {
+    currentSet.add(normalizedToolId)
+  } else {
+    currentSet.delete(normalizedToolId)
+  }
+  state.favoriteToolIds = Array.from(currentSet)
+
+  if (changed) {
+    updateToolStats(adminStore, normalizedToolId, (item) => ({
+      ...item,
+      favoriteCount: Math.max(0, (Number(item.favoriteCount) || numberFromText(item.favoriteCount)) + (favorite ? 1 : -1)),
+    }))
+    appendOperationLog(adminStore, {
+      action: favorite ? '收藏工具' : '取消收藏工具',
+      targetId: normalizedToolId,
+      targetName: tool.name,
+      detail: `profileId=${profileId}`,
+    })
+  }
+  writeContentStore(contentStore)
+  writeAdminStore(adminStore)
+  return {
+    ...serializeCommerceState(profileId),
+    favorites: getFavoriteTools(adminStore, state.favoriteToolIds),
+  }
+}
+
+const recordUserToolUsage = (profileId, toolId) => {
+  const contentStore = readContentStore()
+  const state = ensureUserCommerceState(contentStore, profileId)
+  const adminStore = getAdminStore()
+  const tool = findEnabledTool(adminStore, toolId)
+  if (!tool) {
+    throw createHttpError('tool not found', 404)
+  }
+  const normalizedToolId = cleanText(normalizeToolId(tool))
+  const record = {
+    id: createId('usage'),
+    toolId: normalizedToolId,
+    name: cleanText(tool.name),
+    category: cleanText(tool.category),
+    usedAt: isoNow(),
+  }
+  state.usageRecords = [record, ...(state.usageRecords || [])].slice(0, 80)
+  updateToolStats(adminStore, normalizedToolId, (item) => ({
+    ...item,
+    usageCount: Math.max(0, Number(item.usageCount) || 0) + 1,
+  }))
+  appendOperationLog(adminStore, {
+    action: '使用工具',
+    targetId: normalizedToolId,
+    targetName: tool.name,
+    detail: `profileId=${profileId}`,
+  })
+  writeContentStore(contentStore)
+  writeAdminStore(adminStore)
+  return {
+    ...serializeCommerceState(profileId),
+    usageRecord: record,
+  }
+}
+
+const useMembershipBenefit = (profileId, benefitId) => {
+  const adminStore = getAdminStore()
+  if (adminStore.membershipEnabled === false) {
+    throw createHttpError('会员体系暂未对外开放', 403)
+  }
+  const contentStore = readContentStore()
+  const state = ensureUserCommerceState(contentStore, profileId)
+  if (!isMembershipActive(state.membership)) {
+    throw createHttpError('会员权益需开通会员后使用', 403)
+  }
+  const benefit = (adminStore.membershipBenefits || []).find((item) => cleanText(item.id) === cleanText(benefitId) && !isDisabledText(item.status))
+  if (!benefit) {
+    throw createHttpError('benefit not found', 404)
+  }
+  const record = {
+    id: createId('benefit-usage'),
+    benefitId: cleanText(benefit.id),
+    name: cleanText(benefit.name),
+    usedAt: isoNow(),
+  }
+  state.benefitUsages = [record, ...(state.benefitUsages || [])].slice(0, 80)
+  appendOperationLog(adminStore, {
+    action: '使用会员权益',
+    targetId: benefit.id,
+    targetName: benefit.name,
+    detail: `profileId=${profileId}`,
+  })
+  writeContentStore(contentStore)
+  writeAdminStore(adminStore)
+  return {
+    ...getMembershipCatalog(profileId),
+    benefitUsage: record,
+  }
+}
+
+const useTemplate = (profileId, templateId) => {
+  const contentStore = readContentStore()
+  const state = ensureUserCommerceState(contentStore, profileId)
+  const adminStore = getAdminStore()
+  const template = (getTemplateConfig().templates || []).find((item) => cleanText(item.id) === cleanText(templateId))
+  if (!template) {
+    throw createHttpError('template not found', 404)
+  }
+  const unlockState = getTemplateUnlockState(state, templateId)
+  if (Number(template.cost || 0) > 0 && !unlockState.unlocked) {
+    throw createHttpError('template not unlocked', 403)
+  }
+  const record = {
+    id: createId('template-usage'),
+    templateId: cleanText(template.id),
+    title: cleanText(template.title),
+    usedAt: isoNow(),
+  }
+  state.templateUsageRecords = [record, ...(state.templateUsageRecords || [])].slice(0, 80)
+  appendOperationLog(adminStore, {
+    action: '使用高级模板',
+    targetId: template.id,
+    targetName: template.title,
+    detail: `profileId=${profileId}`,
+  })
+  writeContentStore(contentStore)
+  writeAdminStore(adminStore)
+  return {
+    ...serializeCommerceState(profileId),
+    templateUsage: record,
+  }
+}
+
+const pickInviteRewardCampaign = (adminStore) =>
+  (adminStore.campaigns || []).find((item) => {
+    const text = `${item.name || ''} ${item.reward || ''}`.toLowerCase()
+    const rewardText = cleanText(item.reward).toLowerCase()
+    return !isDisabledText(item.status)
+      && !cleanText(item.status).includes('已结束')
+      && (text.includes('邀请') || text.includes('invite'))
+      && (rewardText.includes('积分') || rewardText.includes('point'))
+      && numberFromText(item.reward) > 0
+  }) || null
+
+const claimInviteReward = (profileId, inviteCode) => {
+  const normalizedInviteCode = cleanText(inviteCode)
+  if (!normalizedInviteCode) {
+    throw createHttpError('invite code required', 400)
+  }
+  const adminStore = getAdminStore()
+  const session = (adminStore.liveSessions || []).find((item) => cleanText(item.inviteCode) === normalizedInviteCode || cleanText(item.id) === normalizedInviteCode)
+  if (!session) {
+    throw createHttpError('session not found', 404)
+  }
+  const normalizedProfileId = cleanText(profileId)
+  const hostProfileId = cleanText(session.hostProfileId)
+  const memberRows = Array.isArray(session.members) ? session.members : []
+  const isHost = hostProfileId === normalizedProfileId || memberRows.some((item) => cleanText(item.profileId) === normalizedProfileId && (item.isHost || cleanText(item.role).includes('host')))
+  if (!isHost) {
+    throw createHttpError('only session host can claim invite reward', 403)
+  }
+  const joinedGuestCount = memberRows.filter((item) => cleanText(item.profileId) !== normalizedProfileId && cleanText(item.status).includes('已加入')).length
+  if (joinedGuestCount <= 0) {
+    throw createHttpError('invite reward requires joined members', 400)
+  }
+  const campaign = pickInviteRewardCampaign(adminStore)
+  if (!campaign) {
+    throw createHttpError('invite reward not configured', 403)
+  }
+
+  const contentStore = readContentStore()
+  const state = ensureUserCommerceState(contentStore, normalizedProfileId)
+  const sessionId = cleanText(session.id)
+  const duplicated = (state.inviteRewardClaims || []).some((item) => cleanText(item.sessionId) === sessionId || cleanText(item.inviteCode) === normalizedInviteCode)
+  if (duplicated) {
+    throw createHttpError('invite reward already claimed', 409)
+  }
+
+  const points = Math.max(0, numberFromText(campaign.reward))
+  state.points = Number(state.points || 0) + points
+  state.pointsLedger.unshift(
+    createLedgerEntry({
+      delta: points,
+      kind: 'invite-reward',
+      sourceId: sessionId || normalizedInviteCode,
+      title: cleanText(campaign.name) || '邀请奖励',
+    }),
+  )
+  const claim = {
+    id: createId('invite-reward'),
+    inviteCode: normalizedInviteCode,
+    sessionId,
+    points,
+    claimedAt: isoNow(),
+  }
+  state.inviteRewardClaims = [claim, ...(state.inviteRewardClaims || [])].slice(0, 80)
+  adminStore.campaigns = (adminStore.campaigns || []).map((item) =>
+    cleanText(item.id) === cleanText(campaign.id)
+      ? {
+          ...item,
+          participants: String(numberFromText(item.participants) + 1),
+          returnCount: Math.max(0, Number(item.returnCount) || 0) + 1,
+        }
+      : item,
+  )
+  appendOperationLog(adminStore, {
+    action: '领取邀请奖励',
+    targetId: sessionId || normalizedInviteCode,
+    targetName: cleanText(session.name || session.sessionName),
+    detail: `profileId=${profileId}; points=${points}`,
+  })
+  writeContentStore(contentStore)
+  writeAdminStore(adminStore)
+  return {
+    ...serializeCommerceState(normalizedProfileId),
+    inviteRewardClaim: claim,
+  }
+}
+
 const adjustUserPointsByAdmin = ({ profileId, delta, reason = '', operator = 'admin' }) => {
   const contentStore = readContentStore()
   const state = ensureUserCommerceState(contentStore, profileId)
@@ -655,11 +1174,17 @@ const getAllUserCommerceStates = () => {
 module.exports = {
   activateMembershipPlan,
   adjustUserPointsByAdmin,
+  claimInviteReward,
   claimPointsTask,
   grantFirstLoginBonus,
   getAllUserCommerceStates,
   getMembershipCatalog,
+  getUserFeatureZones,
   getUserCommerceState: serializeCommerceState,
+  recordUserToolUsage,
   redeemPointsReward,
+  toggleToolFavorite,
   unlockTemplateByAd,
+  useMembershipBenefit,
+  useTemplate,
 }

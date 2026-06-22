@@ -1,12 +1,13 @@
 <navigation-bar
   title="聚会记录师"
   back="{{false}}"
-  color="#111827"
-  background="rgba(255,255,252,0.96)"
+  color="#fff2dd"
+  background="rgba(18,16,14,0.72)"
   ext-class="home-nav"
 ></navigation-bar>
 
 <view class="page-shell home-redesign">
+  <image class="home-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="screen-body scroll-body with-tabs home-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="home-stage">
       <view class="home-sticker home-sticker-a">⌁</view>
@@ -29,7 +30,7 @@
         </view>
         <view class="home-action-soft party-cta party-cta-secondary" bindtap="handleContinueRecordTap">
           <text class="home-action-icon">◴</text>
-          <text>继续记录</text>
+          <text>{{continueRecordLabel}}</text>
         </view>
       </view>
 
@@ -74,6 +75,10 @@
     <view class="bottom-item" data-tab="tools" bindtap="handleTabTap">
       <view class="bottom-icon nav-judge"></view>
       <text class="bottom-label">工具箱</text>
+    </view>
+    <view class="bottom-item" data-tab="rankings" bindtap="handleTabTap">
+      <view class="bottom-icon nav-rank"></view>
+      <text class="bottom-label">排行榜</text>
     </view>
     <view class="bottom-item" data-tab="me" bindtap="handleTabTap">
       <view class="bottom-icon nav-me"></view>

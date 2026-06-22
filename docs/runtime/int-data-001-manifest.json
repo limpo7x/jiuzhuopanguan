@@ -1,0 +1,682 @@
+{
+  "id": "INT-DATA-001",
+  "prefix": "IT-MOMENTS-20260615",
+  "environment": "local",
+  "baseUrl": "http://127.0.0.1:3221/api/v1",
+  "createdAt": "2026-06-15T07:14:47.008Z",
+  "createdBy": "backend/API fixture script",
+  "cleanupAuthorizedBy": "",
+  "profiles": {
+    "host": {
+      "profileId": "user-1781507686650-a33705",
+      "token": "975eb90e27c89f9738be0988e084533ab07a597da9f69589",
+      "role": "host",
+      "name": "IT-MOMENTS-20260615 Host"
+    },
+    "memberA": {
+      "profileId": "user-1781507686651-a46952",
+      "token": "b1dcef1962aca3173119369e37a4502ea01511a09b36b0b6",
+      "role": "member",
+      "name": "IT-MOMENTS-20260615 Member A"
+    },
+    "memberB": {
+      "profileId": "user-1781507686651-000860",
+      "token": "e3be94e1130c5cf16879635ff665f19c6f7b1d83d5d48f60",
+      "role": "member",
+      "name": "IT-MOMENTS-20260615 Member B"
+    },
+    "outsider": {
+      "profileId": "user-1781507686651-093df4",
+      "token": "b984607ecb362e66510179b9cc27a66ed06ec6d993281c81",
+      "role": "outsider",
+      "name": "IT-MOMENTS-20260615 Outsider"
+    }
+  },
+  "session": {
+    "sessionId": "session-1781507687012-e4343d",
+    "inviteCode": "C56EVT",
+    "status": "created"
+  },
+  "moments": {
+    "openingId": "moment-1781507687032-eb1806a4",
+    "highlightId": "moment-1781507687034-93c8676b",
+    "privateId": "moment-1781507687036-c0cc62cc",
+    "reviewMomentId": "",
+    "failedCandidateMomentId": "moment-1781507687039-ee0677bb"
+  },
+  "events": {
+    "drinkDebtEventId": "event-1781507687041-e380feb7"
+  },
+  "brief": {
+    "briefId": "brief-1781507687042-d1990edd"
+  },
+  "shareTasks": {
+    "pendingTaskId": "share-task-1781507687044-805585b3",
+    "readyTaskId": "share-task-1781507687046-d1098582",
+    "readyImageUrl": "/uploads/moments/share-tasks/share-task-1781507687046-d1098582.png",
+    "failedTaskId": "share-task-1781507687115-e4df874c",
+    "expiredTaskId": "share-task-it-moments-20260615-expired"
+  },
+  "admin": {
+    "reportId": "moment-report-it-moments-20260615",
+    "operationLogIds": []
+  },
+  "m5": {
+    "rankingCategory": "best_opening",
+    "rankingItemId": "moment-1781507687032-eb1806a4",
+    "nominationId": "nomination-1781507687124-4ad71db9",
+    "rewardPayoutId": "ranking-reward-payout-1781507687129-1ea46263",
+    "pointsLedgerIds": []
+  },
+  "cleanup": {
+    "mode": "manifest-only",
+    "command": "node backend/scripts/prepare-moments-integration-fixture.js --mode cleanup --manifest docs/runtime/int-data-001-manifest.json",
+    "mustExportEvidenceBeforeCleanup": true
+  },
+  "warnings": [],
+  "evidence": {
+    "exportedAt": "2026-06-15T07:14:47.132Z",
+    "manifestId": "INT-DATA-001",
+    "prefix": "IT-MOMENTS-20260615",
+    "timeline": {
+      "sessionId": "session-1781507687012-e4343d",
+      "nodes": [
+        {
+          "id": "moment-1781507687032-eb1806a4",
+          "nodeKind": "moment",
+          "sessionId": "session-1781507687012-e4343d",
+          "nodeType": "opening",
+          "mediaType": "image",
+          "uploaderProfileId": "user-1781507686650-a33705",
+          "uploaderName": "IT-MOMENTS-20260615 Host",
+          "tags": [
+            "INT-DATA-001",
+            "IT-MOMENTS-20260615"
+          ],
+          "visibility": "session",
+          "timelineTitle": "IT-MOMENTS-20260615 Host 上传了开场打卡",
+          "usageConsent": {
+            "session": true,
+            "brief": true,
+            "share": true,
+            "ranking": true
+          },
+          "completionStatus": "complete",
+          "reviewStatus": "approved",
+          "secondaryReviewStatus": "approved",
+          "rankingEligible": true,
+          "rewardEligible": true,
+          "isTimelinePlaceholder": false,
+          "createdAt": "2026-06-15T07:14:47.032Z",
+          "updatedAt": "2026-06-15T07:14:47.111Z",
+          "imageUrl": "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+          "caption": "IT-MOMENTS-20260615 opening",
+          "visibleProfileIds": []
+        },
+        {
+          "id": "moment-1781507687034-93c8676b",
+          "nodeKind": "moment",
+          "sessionId": "session-1781507687012-e4343d",
+          "nodeType": "highlight",
+          "mediaType": "image",
+          "uploaderProfileId": "user-1781507686651-a46952",
+          "uploaderName": "IT-MOMENTS-20260615 Member A",
+          "tags": [
+            "INT-DATA-001",
+            "highlight"
+          ],
+          "visibility": "session",
+          "timelineTitle": "IT-MOMENTS-20260615 Member A 添加了精彩瞬间",
+          "usageConsent": {
+            "session": true,
+            "brief": true,
+            "share": true,
+            "ranking": true
+          },
+          "completionStatus": "complete",
+          "reviewStatus": "pending",
+          "secondaryReviewStatus": "pending",
+          "rankingEligible": false,
+          "rewardEligible": false,
+          "isTimelinePlaceholder": false,
+          "createdAt": "2026-06-15T07:14:47.034Z",
+          "updatedAt": "2026-06-15T07:14:47.034Z",
+          "imageUrl": "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+          "caption": "IT-MOMENTS-20260615 highlight",
+          "visibleProfileIds": []
+        },
+        {
+          "id": "moment-1781507687036-c0cc62cc",
+          "nodeKind": "moment",
+          "sessionId": "session-1781507687012-e4343d",
+          "nodeType": "private",
+          "mediaType": "image",
+          "uploaderProfileId": "user-1781507686651-a46952",
+          "uploaderName": "IT-MOMENTS-20260615 Member A",
+          "tags": [],
+          "visibility": "private",
+          "timelineTitle": "IT-MOMENTS-20260615 Member A 发送了一条私密爆料",
+          "completionStatus": "complete",
+          "rankingEligible": false,
+          "rewardEligible": false,
+          "isTimelinePlaceholder": true,
+          "createdAt": "2026-06-15T07:14:47.036Z",
+          "updatedAt": "2026-06-15T07:14:47.036Z"
+        },
+        {
+          "id": "moment-1781507687039-ee0677bb",
+          "nodeKind": "moment",
+          "sessionId": "session-1781507687012-e4343d",
+          "nodeType": "highlight",
+          "mediaType": "image",
+          "uploaderProfileId": "user-1781507686651-a46952",
+          "uploaderName": "IT-MOMENTS-20260615 Member A",
+          "tags": [
+            "INT-DATA-001",
+            "failed-candidate"
+          ],
+          "visibility": "session",
+          "timelineTitle": "IT-MOMENTS-20260615 Member A 添加了精彩瞬间",
+          "usageConsent": {
+            "session": true,
+            "brief": true,
+            "share": true,
+            "ranking": true
+          },
+          "completionStatus": "complete",
+          "reviewStatus": "hidden",
+          "secondaryReviewStatus": "approved",
+          "rankingEligible": false,
+          "rewardEligible": false,
+          "isTimelinePlaceholder": false,
+          "createdAt": "2026-06-15T07:14:47.039Z",
+          "updatedAt": "2026-06-15T07:14:47.116Z",
+          "imageUrl": "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+          "caption": "IT-MOMENTS-20260615 failed share candidate",
+          "visibleProfileIds": []
+        },
+        {
+          "id": "event-1781507687041-e380feb7",
+          "clientEventId": "IT-MOMENTS-20260615-drink-debt",
+          "sessionId": "session-1781507687012-e4343d",
+          "eventType": "drink_debt",
+          "operatorProfileId": "user-1781507686650-a33705",
+          "operatorName": "IT-MOMENTS-20260615 Host",
+          "targetProfileId": "user-1781507686651-a46952",
+          "targetName": "IT-MOMENTS-20260615 Member A",
+          "scoreDelta": 1,
+          "caption": "IT-MOMENTS-20260615 drink debt",
+          "createdAt": "2026-06-15T07:14:47.041Z",
+          "updatedAt": "2026-06-15T07:14:47.041Z",
+          "syncStatus": "synced",
+          "nodeKind": "event"
+        }
+      ],
+      "pendingMediaCount": 0
+    },
+    "memberBTimeline": {
+      "sessionId": "session-1781507687012-e4343d",
+      "nodes": [
+        {
+          "id": "moment-1781507687032-eb1806a4",
+          "nodeKind": "moment",
+          "sessionId": "session-1781507687012-e4343d",
+          "nodeType": "opening",
+          "mediaType": "image",
+          "uploaderProfileId": "user-1781507686650-a33705",
+          "uploaderName": "IT-MOMENTS-20260615 Host",
+          "tags": [
+            "INT-DATA-001",
+            "IT-MOMENTS-20260615"
+          ],
+          "visibility": "session",
+          "timelineTitle": "IT-MOMENTS-20260615 Host 上传了开场打卡",
+          "usageConsent": {
+            "session": true,
+            "brief": true,
+            "share": true,
+            "ranking": true
+          },
+          "completionStatus": "complete",
+          "reviewStatus": "approved",
+          "secondaryReviewStatus": "approved",
+          "rankingEligible": true,
+          "rewardEligible": true,
+          "isTimelinePlaceholder": false,
+          "createdAt": "2026-06-15T07:14:47.032Z",
+          "updatedAt": "2026-06-15T07:14:47.111Z",
+          "imageUrl": "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+          "caption": "IT-MOMENTS-20260615 opening",
+          "visibleProfileIds": []
+        },
+        {
+          "id": "moment-1781507687034-93c8676b",
+          "nodeKind": "moment",
+          "sessionId": "session-1781507687012-e4343d",
+          "nodeType": "highlight",
+          "mediaType": "image",
+          "uploaderProfileId": "user-1781507686651-a46952",
+          "uploaderName": "IT-MOMENTS-20260615 Member A",
+          "tags": [
+            "INT-DATA-001",
+            "highlight"
+          ],
+          "visibility": "session",
+          "timelineTitle": "IT-MOMENTS-20260615 Member A 添加了精彩瞬间",
+          "usageConsent": {
+            "session": true,
+            "brief": true,
+            "share": true,
+            "ranking": true
+          },
+          "completionStatus": "complete",
+          "reviewStatus": "pending",
+          "secondaryReviewStatus": "pending",
+          "rankingEligible": false,
+          "rewardEligible": false,
+          "isTimelinePlaceholder": false,
+          "createdAt": "2026-06-15T07:14:47.034Z",
+          "updatedAt": "2026-06-15T07:14:47.034Z",
+          "imageUrl": "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+          "caption": "IT-MOMENTS-20260615 highlight",
+          "visibleProfileIds": []
+        },
+        {
+          "id": "moment-1781507687036-c0cc62cc",
+          "nodeKind": "moment",
+          "sessionId": "session-1781507687012-e4343d",
+          "nodeType": "private",
+          "mediaType": "image",
+          "uploaderProfileId": "user-1781507686651-a46952",
+          "uploaderName": "IT-MOMENTS-20260615 Member A",
+          "tags": [
+            "INT-DATA-001",
+            "private"
+          ],
+          "visibility": "selected",
+          "timelineTitle": "IT-MOMENTS-20260615 Member A 发送了一条私密爆料",
+          "usageConsent": {
+            "session": true,
+            "brief": true,
+            "share": true,
+            "ranking": true
+          },
+          "completionStatus": "complete",
+          "reviewStatus": "pending",
+          "secondaryReviewStatus": "pending",
+          "rankingEligible": false,
+          "rewardEligible": false,
+          "isTimelinePlaceholder": false,
+          "createdAt": "2026-06-15T07:14:47.036Z",
+          "updatedAt": "2026-06-15T07:14:47.036Z",
+          "imageUrl": "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+          "caption": "IT-MOMENTS-20260615 private for member B",
+          "visibleProfileIds": [
+            "user-1781507686651-000860"
+          ]
+        },
+        {
+          "id": "moment-1781507687039-ee0677bb",
+          "nodeKind": "moment",
+          "sessionId": "session-1781507687012-e4343d",
+          "nodeType": "highlight",
+          "mediaType": "image",
+          "uploaderProfileId": "user-1781507686651-a46952",
+          "uploaderName": "IT-MOMENTS-20260615 Member A",
+          "tags": [
+            "INT-DATA-001",
+            "failed-candidate"
+          ],
+          "visibility": "session",
+          "timelineTitle": "IT-MOMENTS-20260615 Member A 添加了精彩瞬间",
+          "usageConsent": {
+            "session": true,
+            "brief": true,
+            "share": true,
+            "ranking": true
+          },
+          "completionStatus": "complete",
+          "reviewStatus": "hidden",
+          "secondaryReviewStatus": "approved",
+          "rankingEligible": false,
+          "rewardEligible": false,
+          "isTimelinePlaceholder": false,
+          "createdAt": "2026-06-15T07:14:47.039Z",
+          "updatedAt": "2026-06-15T07:14:47.116Z",
+          "imageUrl": "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+          "caption": "IT-MOMENTS-20260615 failed share candidate",
+          "visibleProfileIds": []
+        },
+        {
+          "id": "event-1781507687041-e380feb7",
+          "clientEventId": "IT-MOMENTS-20260615-drink-debt",
+          "sessionId": "session-1781507687012-e4343d",
+          "eventType": "drink_debt",
+          "operatorProfileId": "user-1781507686650-a33705",
+          "operatorName": "IT-MOMENTS-20260615 Host",
+          "targetProfileId": "user-1781507686651-a46952",
+          "targetName": "IT-MOMENTS-20260615 Member A",
+          "scoreDelta": 1,
+          "caption": "IT-MOMENTS-20260615 drink debt",
+          "createdAt": "2026-06-15T07:14:47.041Z",
+          "updatedAt": "2026-06-15T07:14:47.041Z",
+          "syncStatus": "synced",
+          "nodeKind": "event"
+        }
+      ],
+      "pendingMediaCount": 0
+    },
+    "brief": {
+      "id": "brief-1781507687042-d1990edd",
+      "sessionId": "session-1781507687012-e4343d",
+      "title": "酒局时间线简报",
+      "coverMode": "opening_collage",
+      "openingMomentIds": [
+        "moment-1781507687032-eb1806a4"
+      ],
+      "closingMomentIds": [],
+      "timelineNodeIds": [
+        "moment-1781507687032-eb1806a4",
+        "moment-1781507687034-93c8676b",
+        "moment-1781507687036-c0cc62cc",
+        "moment-1781507687039-ee0677bb",
+        "event-1781507687041-e380feb7"
+      ],
+      "shareImageTaskId": "share-task-1781507687115-e4df874c",
+      "shareImageStatus": "failed",
+      "pendingMediaCount": 0,
+      "rankingEligible": false,
+      "createdAt": "2026-06-15T07:14:47.042Z",
+      "updatedAt": "2026-06-15T07:14:47.118Z",
+      "timeline": {
+        "sessionId": "session-1781507687012-e4343d",
+        "nodes": [
+          {
+            "id": "moment-1781507687032-eb1806a4",
+            "nodeKind": "moment",
+            "sessionId": "session-1781507687012-e4343d",
+            "nodeType": "opening",
+            "mediaType": "image",
+            "uploaderProfileId": "user-1781507686650-a33705",
+            "uploaderName": "IT-MOMENTS-20260615 Host",
+            "tags": [
+              "INT-DATA-001",
+              "IT-MOMENTS-20260615"
+            ],
+            "visibility": "session",
+            "timelineTitle": "IT-MOMENTS-20260615 Host 上传了开场打卡",
+            "usageConsent": {
+              "session": true,
+              "brief": true,
+              "share": true,
+              "ranking": true
+            },
+            "completionStatus": "complete",
+            "reviewStatus": "approved",
+            "secondaryReviewStatus": "approved",
+            "rankingEligible": true,
+            "rewardEligible": true,
+            "isTimelinePlaceholder": false,
+            "createdAt": "2026-06-15T07:14:47.032Z",
+            "updatedAt": "2026-06-15T07:14:47.111Z",
+            "imageUrl": "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+            "caption": "IT-MOMENTS-20260615 opening",
+            "visibleProfileIds": []
+          },
+          {
+            "id": "moment-1781507687034-93c8676b",
+            "nodeKind": "moment",
+            "sessionId": "session-1781507687012-e4343d",
+            "nodeType": "highlight",
+            "mediaType": "image",
+            "uploaderProfileId": "user-1781507686651-a46952",
+            "uploaderName": "IT-MOMENTS-20260615 Member A",
+            "tags": [
+              "INT-DATA-001",
+              "highlight"
+            ],
+            "visibility": "session",
+            "timelineTitle": "IT-MOMENTS-20260615 Member A 添加了精彩瞬间",
+            "usageConsent": {
+              "session": true,
+              "brief": true,
+              "share": true,
+              "ranking": true
+            },
+            "completionStatus": "complete",
+            "reviewStatus": "pending",
+            "secondaryReviewStatus": "pending",
+            "rankingEligible": false,
+            "rewardEligible": false,
+            "isTimelinePlaceholder": false,
+            "createdAt": "2026-06-15T07:14:47.034Z",
+            "updatedAt": "2026-06-15T07:14:47.034Z",
+            "imageUrl": "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+            "caption": "IT-MOMENTS-20260615 highlight",
+            "visibleProfileIds": []
+          },
+          {
+            "id": "moment-1781507687036-c0cc62cc",
+            "nodeKind": "moment",
+            "sessionId": "session-1781507687012-e4343d",
+            "nodeType": "private",
+            "mediaType": "image",
+            "uploaderProfileId": "user-1781507686651-a46952",
+            "uploaderName": "IT-MOMENTS-20260615 Member A",
+            "tags": [],
+            "visibility": "private",
+            "timelineTitle": "IT-MOMENTS-20260615 Member A 发送了一条私密爆料",
+            "completionStatus": "complete",
+            "rankingEligible": false,
+            "rewardEligible": false,
+            "isTimelinePlaceholder": true,
+            "createdAt": "2026-06-15T07:14:47.036Z",
+            "updatedAt": "2026-06-15T07:14:47.036Z"
+          },
+          {
+            "id": "moment-1781507687039-ee0677bb",
+            "nodeKind": "moment",
+            "sessionId": "session-1781507687012-e4343d",
+            "nodeType": "highlight",
+            "mediaType": "image",
+            "uploaderProfileId": "user-1781507686651-a46952",
+            "uploaderName": "IT-MOMENTS-20260615 Member A",
+            "tags": [
+              "INT-DATA-001",
+              "failed-candidate"
+            ],
+            "visibility": "session",
+            "timelineTitle": "IT-MOMENTS-20260615 Member A 添加了精彩瞬间",
+            "usageConsent": {
+              "session": true,
+              "brief": true,
+              "share": true,
+              "ranking": true
+            },
+            "completionStatus": "complete",
+            "reviewStatus": "hidden",
+            "secondaryReviewStatus": "approved",
+            "rankingEligible": false,
+            "rewardEligible": false,
+            "isTimelinePlaceholder": false,
+            "createdAt": "2026-06-15T07:14:47.039Z",
+            "updatedAt": "2026-06-15T07:14:47.116Z",
+            "imageUrl": "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+            "caption": "IT-MOMENTS-20260615 failed share candidate",
+            "visibleProfileIds": []
+          },
+          {
+            "id": "event-1781507687041-e380feb7",
+            "clientEventId": "IT-MOMENTS-20260615-drink-debt",
+            "sessionId": "session-1781507687012-e4343d",
+            "eventType": "drink_debt",
+            "operatorProfileId": "user-1781507686650-a33705",
+            "operatorName": "IT-MOMENTS-20260615 Host",
+            "targetProfileId": "user-1781507686651-a46952",
+            "targetName": "IT-MOMENTS-20260615 Member A",
+            "scoreDelta": 1,
+            "caption": "IT-MOMENTS-20260615 drink debt",
+            "createdAt": "2026-06-15T07:14:47.041Z",
+            "updatedAt": "2026-06-15T07:14:47.041Z",
+            "syncStatus": "synced",
+            "nodeKind": "event"
+          }
+        ],
+        "pendingMediaCount": 0
+      }
+    },
+    "readyTask": {
+      "id": "share-task-1781507687046-d1098582",
+      "sessionId": "session-1781507687012-e4343d",
+      "briefId": "brief-1781507687042-d1990edd",
+      "status": "ready",
+      "layoutMode": "IT-MOMENTS-20260615-ready",
+      "selectedNodeIds": [
+        "event-1781507687041-e380feb7"
+      ],
+      "imageUrl": "/uploads/moments/share-tasks/share-task-1781507687046-d1098582.png",
+      "failedReason": "",
+      "retryCount": 0,
+      "createdAt": "2026-06-15T07:14:47.046Z",
+      "startedAt": "2026-06-15T07:14:47.047Z",
+      "finishedAt": "2026-06-15T07:14:47.107Z",
+      "updatedAt": "2026-06-15T07:14:47.107Z"
+    },
+    "failedTask": {
+      "id": "share-task-1781507687115-e4df874c",
+      "sessionId": "session-1781507687012-e4343d",
+      "briefId": "brief-1781507687042-d1990edd",
+      "status": "failed",
+      "layoutMode": "IT-MOMENTS-20260615-failed",
+      "selectedNodeIds": [
+        "moment-1781507687039-ee0677bb"
+      ],
+      "imageUrl": "",
+      "failedReason": "share task has no visible nodes",
+      "retryCount": 0,
+      "createdAt": "2026-06-15T07:14:47.115Z",
+      "startedAt": "2026-06-15T07:14:47.118Z",
+      "finishedAt": "2026-06-15T07:14:47.118Z",
+      "updatedAt": "2026-06-15T07:14:47.118Z"
+    },
+    "ranking": {
+      "category": "best_opening",
+      "date": "2026-06-15",
+      "items": [
+        {
+          "category": "best_opening",
+          "moment": {
+            "id": "moment-1781507687032-eb1806a4",
+            "nodeKind": "moment",
+            "sessionId": "session-1781507687012-e4343d",
+            "nodeType": "opening",
+            "mediaType": "image",
+            "uploaderProfileId": "user-1781507686650-a33705",
+            "uploaderName": "IT-MOMENTS-20260615 Host",
+            "tags": [
+              "INT-DATA-001",
+              "IT-MOMENTS-20260615"
+            ],
+            "visibility": "session",
+            "timelineTitle": "IT-MOMENTS-20260615 Host 上传了开场打卡",
+            "usageConsent": {
+              "session": true,
+              "brief": true,
+              "share": true,
+              "ranking": true
+            },
+            "completionStatus": "complete",
+            "reviewStatus": "approved",
+            "secondaryReviewStatus": "approved",
+            "rankingEligible": true,
+            "rewardEligible": true,
+            "isTimelinePlaceholder": false,
+            "createdAt": "2026-06-15T07:14:47.032Z",
+            "updatedAt": "2026-06-15T07:14:47.111Z",
+            "imageUrl": "/uploads/moments/session-1781507687012-e4343d/1781507687025-it-moments-20260615-opening-faff97.webp",
+            "caption": "IT-MOMENTS-20260615 opening",
+            "visibleProfileIds": []
+          },
+          "nominationCount": 1,
+          "pointsTotal": 10,
+          "rank": 1,
+          "score": 11,
+          "latestNominationAt": "2026-06-15T07:14:47.124Z"
+        }
+      ]
+    },
+    "memberBCommerce": {
+      "claimedTaskIds": [],
+      "taskStates": {
+        "task-first-login": {},
+        "task-signin": {
+          "lastClaimAt": ""
+        },
+        "task-share-report": {
+          "claimHistory": []
+        },
+        "task-reopen": {
+          "claimedSessionIds": []
+        }
+      },
+      "taskClaimStates": {
+        "task-first-login": {
+          "canClaim": false,
+          "buttonText": "自动发放",
+          "statusText": "首次登录后自动到账",
+          "remaining": 1,
+          "max": 1,
+          "reward": 500
+        },
+        "task-signin": {
+          "canClaim": true,
+          "buttonText": "+ 10",
+          "statusText": "签到可领",
+          "remaining": 1,
+          "max": 1,
+          "reward": 10
+        },
+        "task-share-report": {
+          "canClaim": false,
+          "buttonText": "先分享后领取",
+          "statusText": "先分享1次再领",
+          "remaining": 0,
+          "max": 2,
+          "reward": 20
+        },
+        "task-reopen": {
+          "canClaim": false,
+          "buttonText": "需完成1场聚会",
+          "statusText": "完成一场聚会后可领取",
+          "remaining": 0,
+          "max": 9999,
+          "reward": 20
+        }
+      },
+      "membership": {
+        "active": false,
+        "activatedAt": "",
+        "expiresAt": "",
+        "planId": "",
+        "activePlanName": ""
+      },
+      "ownedRewardIds": [],
+      "points": 70,
+      "pointsLedger": [
+        {
+          "id": "ledger-1781507687124-c80dfdf1",
+          "title": "推举精彩瞬间：best_opening",
+          "createdAt": "2026-06-15T07:14:47.124Z",
+          "delta": -10,
+          "kind": "moment-nomination",
+          "sourceId": "nomination-1781507687124-4ad71db9"
+        }
+      ],
+      "rewardRedemptions": [],
+      "templateUnlockProgress": {},
+      "templateUnlockRequiredViews": 3,
+      "unlockedTemplateIds": []
+    },
+    "errors": []
+  }
+}

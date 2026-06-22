@@ -2493,7 +2493,7 @@ button.poster-share-item {
 
 .poster-action-panel {
   display: grid;
-  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.25fr) minmax(0, 0.82fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 12px;
 }
@@ -2569,4 +2569,41 @@ button.poster-share-item {
   background: rgba(255, 202, 92, 0.13);
   color: #ffe19a;
   font-weight: 800;
+}
+
+.poster-later-tip {
+  margin-top: 8px;
+  color: rgba(255, 230, 204, 0.68);
+  font-size: 11px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.poster-exit-bar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  padding: 10px 18px calc(10px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(14, 10, 8, 0), rgba(14, 10, 8, 0.94) 28%, rgba(14, 10, 8, 0.98));
+  box-sizing: border-box;
+}
+
+.poster-exit-button {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffe9a7, #ffb04f);
+  color: #3b170b;
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 950;
+  box-shadow: 0 12px 24px rgba(255, 119, 54, 0.24);
+}
+
+.poster-flow-015 .poster-scroll {
+  padding-bottom: 92px;
 }

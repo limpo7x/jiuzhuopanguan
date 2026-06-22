@@ -1,8 +1,10 @@
 import { getMembershipCatalog } from '../../services/content'
 import {
   getManagedJudgeStats,
+  getManagedShareImageSummaries,
   getManagedSessionMomentSummaries,
   retryManagedShareImageTask,
+  type ManagedShareImageSummary,
   type ManagedSessionMomentSummary,
 } from '../../services/operations'
 import { showFirstLoginBonusModal } from '../../utils/firstLoginBonus'
@@ -23,6 +25,7 @@ interface PendingAlbumItem {
   briefId: string
   actionLabel: string
   canResume: boolean
+  coverUrl: string
   endedAt: string
   isEnded: boolean
   meta: string
@@ -34,6 +37,24 @@ interface PendingAlbumItem {
   stateLabel: string
   status: string
   title: string
+}
+
+interface ShareGalleryItem {
+  imageUrl: string
+  meta: string
+  sessionId: string
+  taskId: string
+  title: string
+}
+
+interface SessionMomentClassificationDebug {
+  canResume: boolean
+  endedAt: string
+  isEnded: boolean
+  sessionId: string
+  state: string
+  stateText: string
+  status: string
 }
 
 interface NicknameInputDetail {
@@ -52,11 +73,20 @@ interface MePageState {
   authPanelVisible: boolean
   authSubmitting: boolean
   currentProfile: SocialProfile
+  headerActionStyle: string
   membershipEnabled: boolean
   features: FeatureItem[]
   loggedIn: boolean
   momentSummaries: ManagedSessionMomentSummary[]
+  sessionMomentClassificationDebug: SessionMomentClassificationDebug[]
+  sessionMomentClassificationTotals: {
+    ended: number
+    ongoing: number
+    total: number
+  }
   pendingAlbumTotal: number
+  shareGalleryTotal: number
+  visibleShareImages: ShareGalleryItem[]
   visiblePendingAlbums: PendingAlbumItem[]
   wineStats: StatItem[]
 }
@@ -77,24 +107,27 @@ interface MePageMethods {
   handleFeatureTap: (event: WechatMiniprogram.BaseEvent) => void
   handleLoginSubmit: (event: WechatMiniprogram.CustomEvent<{ value?: Record<string, string> }>) => Promise<void>
   handleLoginTextTap: () => void
-  handleMemberTap: () => void
   handleMomentBriefTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => void
   handleMomentPreviewTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => void
   handleMomentResumeTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => void
   handleMomentRetryTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => Promise<void>
   handlePendingAlbumAllTap: () => void
   handlePendingAlbumTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleShareGalleryAllTap: () => void
+  handleShareGalleryTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
   handleWineStatTap: (event: WechatMiniprogram.BaseEvent) => void
   loadSocialData: () => Promise<void>
   noop: () => void
   openPage: (url: string) => void
   showPreviewToast: (message: string) => void
+  updateHeaderActionStyle: () => void
 }
 
 const TAB_ROUTES: Record<string, string> = {
   home: '/pages/index/index',
   tools: '/pages/tools/index',
+  rankings: '/pages/rankings/index',
   judge: '/pages/ledger/index',
   me: '/pages/me/index',
 }
@@ -111,8 +144,15 @@ const DEFAULT_PROFILE: SocialProfile = {
 }
 
 const DEFAULT_ASSET_STATS: StatItem[] = [
-  { value: '0', label: '回忆数' },
-  { value: '0', label: '分享图' },
+  { value: '0', label: '总回忆数' },
+  { value: '0', label: '进行中' },
+  { value: '0', label: '已结束' },
+]
+
+const UNAVAILABLE_ASSET_STATS: StatItem[] = [
+  { value: '--', label: '总回忆数' },
+  { value: '--', label: '进行中' },
+  { value: '--', label: '已结束' },
 ]
 
 const DEFAULT_WINE_STATS: StatItem[] = [
@@ -164,12 +204,23 @@ const normalizePendingAlbumTitle = (title?: string, sessionName?: string, index 
 
 const isEndedSessionSummary = (item: ManagedSessionMomentSummary) => {
   const stateText = `${item.state || ''} ${item.status || ''} ${item.stateText || ''}`.trim()
-  return Boolean(item.endedAt) || /已结束|结束|已完成|ended|finished|closed/i.test(stateText)
+  return Boolean(item.endedAt) || /已结束|结束|已完成|ended|finished|closed|complete|completed|done/i.test(stateText)
 }
 
 const hasGeneratedShareImage = (item: ManagedSessionMomentSummary) => Boolean(item.readyShareImageUrl || item.shareImageUrl)
 
 const isPendingShareMemory = (item: ManagedSessionMomentSummary) => !isEndedSessionSummary(item) && !hasGeneratedShareImage(item)
+
+const buildSessionMomentClassificationDebug = (items: ManagedSessionMomentSummary[]): SessionMomentClassificationDebug[] =>
+  items.map((item) => ({
+    canResume: item.canResume === true,
+    endedAt: item.endedAt || '',
+    isEnded: isEndedSessionSummary(item),
+    sessionId: item.sessionId || '',
+    state: item.state || '',
+    stateText: item.stateText || '',
+    status: item.status || '',
+  }))
 
 const buildSummaryStateLabel = (item: ManagedSessionMomentSummary, isEnded: boolean) => {
   if (isEnded) return '已结束'
@@ -199,6 +250,7 @@ const buildPendingAlbumItems = (items: ManagedSessionMomentSummary[]): PendingAl
       actionLabel,
       briefId: item.briefId || '',
       canResume,
+      coverUrl: item.coverPhotoUrl || '',
       endedAt: item.endedAt || '',
       isEnded,
       meta: statusText,
@@ -213,11 +265,65 @@ const buildPendingAlbumItems = (items: ManagedSessionMomentSummary[]): PendingAl
     }
   })
 
+const buildShareGalleryItems = (
+  items: ManagedSessionMomentSummary[],
+  shareImages: ManagedShareImageSummary[] = [],
+): ShareGalleryItem[] => {
+  const seen = new Set<string>()
+  const result: ShareGalleryItem[] = []
+  const pushItem = (item: ShareGalleryItem) => {
+    const key = item.taskId || item.imageUrl
+    if (!key || seen.has(key)) return
+    seen.add(key)
+    result.push(item)
+  }
+
+  shareImages.forEach((item, index) => {
+    pushItem({
+      imageUrl: item.readyShareImageUrl || item.imageUrl || '',
+      meta: formatSummaryDate(item.finishedAt || item.updatedAt || item.createdAt) || '分享图已生成',
+      sessionId: item.sessionId || '',
+      taskId: item.id || '',
+      title: normalizePendingAlbumTitle(item.sessionName, item.sessionName, index),
+    })
+  })
+
+  items.filter(hasGeneratedShareImage).forEach((item, index) => {
+    pushItem({
+      imageUrl: item.readyShareImageUrl || item.shareImageUrl || '',
+      meta: formatSummaryDate(item.updatedAt || item.endedAt || item.createdAt) || '分享图已生成',
+      sessionId: item.sessionId || '',
+      taskId: item.shareImageTaskId || '',
+      title: normalizePendingAlbumTitle(item.title, item.sessionName, index),
+    })
+  })
+
+  return result.slice(0, 6)
+}
+
 const persistAvatar = (avatarUrl: string) =>
   new Promise<string>((resolve) => {
     const source = normalizeAvatar(avatarUrl)
     resolve(source)
   })
+
+const buildHeaderActionStyle = () => {
+  try {
+    const rect = wx.getMenuButtonBoundingClientRect()
+    const system = wx.getSystemInfoSync()
+    const windowWidth = Number(system.windowWidth || 375)
+    const menuTop = Number(rect.top || Number(system.statusBarHeight || 0) + 4)
+    const menuHeight = Number(rect.height || 32)
+    const menuLeft = Number(rect.left || windowWidth - 96)
+    const capsuleReserveWidth = Math.max(88, windowWidth - menuLeft)
+    const size = Math.max(32, Math.min(40, menuHeight))
+    const top = menuTop + Math.max(0, (menuHeight - size) / 2)
+    const right = capsuleReserveWidth + 12
+    return `position: fixed; top: ${top}px; right: ${right}px; width: ${size}px; height: ${size}px;`
+  } catch {
+    return ''
+  }
+}
 
 Page<MePageState, MePageMethods>({
   data: {
@@ -228,50 +334,93 @@ Page<MePageState, MePageMethods>({
     authPanelVisible: false,
     authSubmitting: false,
     currentProfile: DEFAULT_PROFILE,
+    headerActionStyle: '',
     membershipEnabled: true,
     features: DEFAULT_FEATURES,
     loggedIn: false,
     momentSummaries: [],
+    sessionMomentClassificationDebug: [],
+    sessionMomentClassificationTotals: {
+      ended: 0,
+      ongoing: 0,
+      total: 0,
+    },
     pendingAlbumTotal: 0,
+    shareGalleryTotal: 0,
+    visibleShareImages: [],
     visiblePendingAlbums: [],
     wineStats: DEFAULT_WINE_STATS,
   },
 
   async onLoad() {
+    this.updateHeaderActionStyle()
     await this.loadSocialData()
   },
 
   async onShow() {
+    this.updateHeaderActionStyle()
     await this.loadSocialData()
   },
 
   async loadSocialData() {
-    const [authSession, currentProfile, judgeStats, membershipCatalog, momentSummaries] = await Promise.all([
+    const [authSession, currentProfile, judgeStats, membershipCatalog, momentSummariesResult, shareImageSummariesResult] = await Promise.all([
       getUserAuthSession().catch(() => ({ loggedIn: false, profile: null })),
       getCurrentDisplayProfile().catch(() => DEFAULT_PROFILE),
       getManagedJudgeStats().catch(() => null),
       getMembershipCatalog().catch(() => null),
-      getManagedSessionMomentSummaries().catch(() => []),
+      getManagedSessionMomentSummaries()
+        .then((items) => ({ ok: true as const, items }))
+        .catch((error) => {
+          console.warn('[me] failed to load session moment summaries', error)
+          return { ok: false as const, items: this.data.momentSummaries }
+        }),
+      getManagedShareImageSummaries()
+        .then((items) => ({ ok: true as const, items }))
+        .catch((error) => {
+          console.warn('[me] failed to load share image summaries', error)
+          return { ok: false as const, items: [] as ManagedShareImageSummary[] }
+        }),
     ])
     const displayProfile = authSession.profile || currentProfile || DEFAULT_PROFILE
     const loggedIn = Boolean(authSession.loggedIn && authSession.profile?.wechatOpenId)
-    const pendingShareSummaries = momentSummaries.filter(isPendingShareMemory)
-    const generatedShareSummaries = momentSummaries.filter(hasGeneratedShareImage)
-    const endedSummaries = momentSummaries.filter(isEndedSessionSummary)
+    const resolvedMomentSummaries = momentSummariesResult.items
+    const pendingShareSummaries = resolvedMomentSummaries.filter(isPendingShareMemory)
+    const resolvedShareImageSummaries = shareImageSummariesResult.items
+    const generatedShareSummaries = resolvedMomentSummaries.filter(hasGeneratedShareImage)
+    const endedSummaries = resolvedMomentSummaries.filter(isEndedSessionSummary)
+    const ongoingSummaries = resolvedMomentSummaries.filter((item) => !isEndedSessionSummary(item))
+    const assetStats = momentSummariesResult.ok
+      ? [
+          { value: String(resolvedMomentSummaries.length), label: '总回忆数' },
+          { value: String(ongoingSummaries.length), label: '进行中' },
+          { value: String(endedSummaries.length), label: '已结束' },
+        ]
+      : UNAVAILABLE_ASSET_STATS
+    const sessionMomentClassificationDebug = buildSessionMomentClassificationDebug(resolvedMomentSummaries)
+    const sessionMomentClassificationTotals = {
+      ended: endedSummaries.length,
+      ongoing: ongoingSummaries.length,
+      total: resolvedMomentSummaries.length,
+    }
+    console.info('[me] session moment classification', {
+      items: sessionMomentClassificationDebug,
+      totals: sessionMomentClassificationTotals,
+    })
     this.setData({
-      assetStats: [
-        { value: String(momentSummaries.length), label: '回忆数' },
-        { value: String(generatedShareSummaries.length), label: '分享图' },
-      ],
+      assetStats,
       authAvatarUrl: loggedIn ? '' : this.data.authAvatarUrl || normalizeAvatar(displayProfile.avatarUrl),
       authName: loggedIn ? '' : this.data.authName || normalizeName(displayProfile.name),
       authPanelVisible: loggedIn ? false : this.data.authPanelVisible,
       currentProfile: { ...displayProfile, name: normalizeName(displayProfile.name), avatarUrl: normalizeAvatar(displayProfile.avatarUrl) },
       loggedIn,
       membershipEnabled: Boolean(membershipCatalog ? membershipCatalog.membershipEnabled : true),
-      momentSummaries,
+      momentSummaries: resolvedMomentSummaries,
+      sessionMomentClassificationDebug,
+      sessionMomentClassificationTotals,
       pendingAlbumTotal: pendingShareSummaries.length,
-      visiblePendingAlbums: buildPendingAlbumItems(momentSummaries),
+      shareGalleryTotal: shareImageSummariesResult.ok ? resolvedShareImageSummaries.length : generatedShareSummaries.length,
+      visibleShareImages: buildShareGalleryItems(resolvedMomentSummaries, resolvedShareImageSummaries),
+      visiblePendingAlbums: buildPendingAlbumItems(resolvedMomentSummaries),
       wineStats: [
         { value: String(judgeStats?.hostedCount ?? 0), label: '我创建的' },
         { value: String(judgeStats?.joinedCount ?? 0), label: '我参与的' },
@@ -346,20 +495,14 @@ Page<MePageState, MePageMethods>({
     }
   },
 
-  handleMemberTap() {
-    if (!this.data.membershipEnabled) {
-      wx.showToast({ title: '会员功能暂未开放', icon: 'none' })
-      return
-    }
-    this.openPage('/pages/privacy-state/index?type=feature')
-  },
-
   handleAssetTap(event) {
     const { label } = event.currentTarget.dataset as { label: string }
     const routes: Record<string, string> = {
+      总回忆数: '/pages/album/index?mode=records',
       回忆数: '/pages/album/index?mode=records',
       相册数: '/pages/album/index?mode=records',
-      分享图: '/pages/album/index?mode=shares',
+      进行中: '/pages/album/index?mode=records&filter=ongoing',
+      已结束: '/pages/album/index?mode=records&filter=ended',
     }
     const target = routes[label]
     if (target) {
@@ -439,12 +582,33 @@ Page<MePageState, MePageMethods>({
     this.showPreviewToast('缺少回忆信息')
   },
 
+  handleShareGalleryAllTap() {
+    this.openPage('/pages/album/index?mode=shares')
+  },
+
+  handleShareGalleryTap(event) {
+    const { imageUrl } = event.currentTarget.dataset as { imageUrl?: string }
+    if (imageUrl) {
+      wx.previewImage({ current: imageUrl, urls: [imageUrl] })
+      return
+    }
+    this.showPreviewToast('分享图还未生成')
+  },
+
   handleFeatureTap(event) {
     const { name } = event.currentTarget.dataset as { name: string }
     const routes: Record<string, string> = {
       聚会账本: '/pages/ledger/index',
       工具箱: '/pages/tools/index',
       好友管理: '/pages/friend-hub/index',
+      我的权益: '/pages/feature-zones/index?zone=benefits',
+      会员权益: '/pages/feature-zones/index?zone=membership',
+      积分与奖励: '/pages/feature-zones/index?zone=points',
+      合作优惠: '/pages/feature-zones/index?zone=merchants',
+      我的收藏: '/pages/feature-zones/index?zone=favorites',
+      使用记录: '/pages/feature-zones/index?zone=usage',
+      邀请奖励: '/pages/feature-zones/index?zone=invite',
+      模板中心: '/pages/feature-zones/index?zone=templates',
       资料设置: '/pages/settings/index',
     }
     const target = routes[name]
@@ -480,6 +644,10 @@ Page<MePageState, MePageMethods>({
 
   openPage(url) {
     wx.navigateTo({ url, fail: () => wx.redirectTo({ url }) })
+  },
+
+  updateHeaderActionStyle() {
+    this.setData({ headerActionStyle: buildHeaderActionStyle() })
   },
 })
 

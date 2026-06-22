@@ -11,8 +11,8 @@
 <view class="moment-editor-page moment-redesign">
   <scroll-view class="moment-editor-scroll moment-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="moment-editor-hero">
-      <text class="moment-editor-title">拍照/上传</text>
-      <text class="moment-editor-subtitle">准备记录第一张照片</text>
+      <text class="moment-editor-title">{{detailMode ? '照片详情' : '拍照/上传'}}</text>
+      <text class="moment-editor-subtitle">{{detailMode ? '查看这条聚会记录' : '准备记录第一张照片'}}</text>
     </view>
 
     <view class="moment-camera-stage">
@@ -21,13 +21,17 @@
         src="{{uploadError ? '/assets/party-recorder/party-recorder-upload-failed-retry-sticker.png' : (uploading ? '/assets/party-recorder/party-recorder-uploading-sticker.png' : '/assets/party-recorder/party-recorder-photo-guide-sticker.png')}}"
         mode="aspectFit"
       ></image>
-      <view wx:if="{{draftImageFilePath || imageUrl}}" class="moment-editor-image-wrap" bindtap="handleChooseImage">
+      <view wx:if="{{detailMode && (draftImageFilePath || imageUrl)}}" class="moment-editor-image-wrap">
+        <image class="moment-editor-image" src="{{draftImageFilePath || imageUrl}}" mode="aspectFill"></image>
+        <text class="moment-editor-image-action">照片详情</text>
+      </view>
+      <view wx:elif="{{draftImageFilePath || imageUrl}}" class="moment-editor-image-wrap" bindtap="handleChooseImage">
         <image class="moment-editor-image" src="{{draftImageFilePath || imageUrl}}" mode="aspectFill"></image>
         <text class="moment-editor-image-action">{{uploading ? '上传中...' : '更换图片'}}</text>
       </view>
     </view>
 
-    <view wx:if="{{!draftImageFilePath && !imageUrl}}" class="moment-photo-actions">
+    <view wx:if="{{!detailMode && !draftImageFilePath && !imageUrl}}" class="moment-photo-actions">
       <view class="moment-photo-primary party-cta party-cta-secondary" bindtap="handleChooseImage">
         <text class="moment-photo-icon">▣</text>
         <text>{{uploading ? '上传中...' : (uploadError ? '重试选择照片' : '拍照')}}</text>
@@ -38,7 +42,7 @@
       </view>
     </view>
 
-    <view wx:if="{{uploadError}}" class="moment-editor-upload-failed">
+    <view wx:if="{{!detailMode && uploadError}}" class="moment-editor-upload-failed">
       <text class="moment-editor-upload-error">{{uploadError}}</text>
       <text class="moment-editor-upload-draft">已保留文字、可见范围和授权选择。</text>
       <view class="moment-editor-upload-actions">
@@ -60,8 +64,9 @@
         maxlength="80"
         placeholder="例如：今晚第一张合影，大家都笑得很开心"
         bindinput="handleCaptionInput"
+        disabled="{{detailMode}}"
       ></textarea>
-      <view class="moment-caption-presets">
+      <view wx:if="{{!detailMode}}" class="moment-caption-presets">
         <view
           wx:for="{{captionPresets}}"
           wx:key="text"
@@ -70,7 +75,7 @@
           bindtap="handleCaptionPresetTap"
         >{{item.text}}</view>
       </view>
-      <text class="moment-editor-counter">{{caption.length}} / 80</text>
+      <text wx:if="{{!detailMode}}" class="moment-editor-counter">{{caption.length}} / 80</text>
     </view>
 
     <view class="moment-editor-section moment-privacy-section">

@@ -4,6 +4,8 @@
     "pages/album/index",
     "pages/ledger/index",
     "pages/tools/index",
+    "pages/rankings/index",
+    "pages/feature-zones/index",
     "pages/tool-detail/index",
     "pages/me/index",
     "pages/create-session/index",
@@ -11,7 +13,6 @@
     "pages/share-preview/index",
     "pages/compliance-guide/index",
     "pages/moment-editor/index",
-    "pages/live-record/index",
     "pages/session-brief/index",
     "pages/share-poster/index",
     "pages/invalid-state/index",
@@ -19,6 +20,14 @@
     "pages/settings/index",
     "pages/friend-hub/index",
     "pages/waiting-room/index"
+  ],
+  "subPackages": [
+    {
+      "root": "pages/live-record",
+      "pages": [
+        "index"
+      ]
+    }
   ],
   "window": {
     "navigationBarTextStyle": "black",

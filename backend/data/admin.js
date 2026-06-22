@@ -879,6 +879,60 @@ const buildShareImageTaskRows = (adminStore = readStore()) => {
     .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
 }
 
+const buildSessionRelationSummary = (adminStore = readStore()) => {
+  const momentsStore = readMomentsAdminStore()
+  const reportBySessionId = new Map()
+  ;(adminStore.reports || []).forEach((report) => {
+    const sessionId = String(report.sessionId || '').trim()
+    if (!sessionId || reportBySessionId.has(sessionId)) return
+    reportBySessionId.set(sessionId, report)
+  })
+
+  const briefBySessionId = new Map()
+  ;(momentsStore?.sessionBriefs || []).forEach((brief) => {
+    const sessionId = String(brief.sessionId || '').trim()
+    if (!sessionId) return
+    const current = briefBySessionId.get(sessionId)
+    if (!current || String(brief.updatedAt || brief.createdAt || '').localeCompare(String(current.updatedAt || current.createdAt || '')) > 0) {
+      briefBySessionId.set(sessionId, brief)
+    }
+  })
+
+  const shareTasksBySessionId = new Map()
+  ;(momentsStore?.shareImageTasks || adminStore.shareImageTasks || []).forEach((task) => {
+    const sessionId = String(task.sessionId || '').trim()
+    if (!sessionId) return
+    if (!shareTasksBySessionId.has(sessionId)) {
+      shareTasksBySessionId.set(sessionId, [])
+    }
+    shareTasksBySessionId.get(sessionId).push(task)
+  })
+
+  return (sessionId = '') => {
+    const normalizedSessionId = String(sessionId || '').trim()
+    const report = reportBySessionId.get(normalizedSessionId) || null
+    const brief = briefBySessionId.get(normalizedSessionId) || null
+    const shareTasks = (shareTasksBySessionId.get(normalizedSessionId) || []).sort((left, right) =>
+      String(right.updatedAt || right.createdAt || '').localeCompare(String(left.updatedAt || left.createdAt || '')),
+    )
+    const latestShareTask = shareTasks[0] || null
+    return {
+      reportId: report?.id || '',
+      reportStatus: report?.status || '',
+      briefId: brief?.id || '',
+      briefStatus: brief?.shareImageStatus || (brief ? '已生成简报' : ''),
+      shareTaskId: latestShareTask?.id || '',
+      shareTaskStatus: latestShareTask?.status || '',
+      shareTaskCount: shareTasks.length,
+      manageLinks: [
+        report?.id ? `战报:${report.id}` : '',
+        brief?.id ? `简报:${brief.id}` : '',
+        latestShareTask?.id ? `分享图:${latestShareTask.id}` : '',
+      ].filter(Boolean).join(' | '),
+    }
+  }
+}
+
 const appendAdminOperationLog = (adminStore, log = {}) => {
   adminStore.operationLogs = Array.isArray(adminStore.operationLogs) ? adminStore.operationLogs : []
   adminStore.operationLogs.unshift({
@@ -1129,9 +1183,9 @@ const getSessionMetrics = () => {
   const activeCount = countBy(store.liveSessions, (item) => String(item.state || '').includes('进行中'))
   const waitingCount = countBy(store.liveSessions, (item) => String(item.state || '').includes('等待'))
   return [
-    { label: '酒局总数', value: String(store.liveSessions.length), trend: `等待 ${waitingCount} 个`, tone: 'up' },
+    { label: '聚会总数', value: String(store.liveSessions.length), trend: `等待 ${waitingCount} 个`, tone: 'up' },
     { label: '进行中', value: String(activeCount), trend: `已结束 ${countBy(store.liveSessions, (item) => String(item.state || '').includes('结束'))} 个`, tone: 'up' },
-    { label: '异常酒局', value: String(countBy(store.liveSessions, (item) => String(item.status || '').includes('异常'))), trend: `待观察 ${countBy(store.liveSessions, (item) => String(item.status || '').includes('观察'))} 个`, tone: 'down' },
+    { label: '异常聚会', value: String(countBy(store.liveSessions, (item) => String(item.status || '').includes('异常'))), trend: `待观察 ${countBy(store.liveSessions, (item) => String(item.status || '').includes('观察'))} 个`, tone: 'down' },
     { label: '战报覆盖率', value: ratioPercent(store.reports.length, store.liveSessions.length), trend: `战报 ${store.reports.length} 份`, tone: 'up' },
   ]
 }
@@ -2429,50 +2483,67 @@ const pageMap = {
   },
   'sessions': () => {
     const store = readStore()
+    const getRelationSummary = buildSessionRelationSummary(store)
     const sessions = (store.liveSessions || []).map((item) => {
       const members = Array.isArray(item.members) ? item.members : []
       const host = getSessionHost(item)
       const participants = members.filter((member) => !member.isHost)
+      const relationSummary = getRelationSummary(item.id)
       return {
         ...item,
         hostName: item.hostName || host?.name || '',
         hostProfileId: item.hostProfileId || host?.profileId || '',
         participantsText: participants.map((member) => member.name || member.profileId).filter(Boolean).join('、'),
         participantProfileIds: participants.map((member) => member.profileId).filter(Boolean).join('、'),
+        memberCount: members.length,
+        memberSummary: members.map((member) => `${member.isHost ? '房主' : '成员'}:${member.name || member.profileId || '-'}`).join('、'),
+        ...relationSummary,
       }
     })
     return {
       slug: 'sessions',
-      title: '酒局管理',
+      title: '聚会管理',
       view: 'collection',
       metrics: getSessionMetrics(),
       collection: {
         key: 'liveSessions',
-        itemLabel: '酒局',
+        itemLabel: '聚会',
         fields: [
-          { key: 'name', label: '酒局名称', type: 'text' },
+          { key: 'name', label: '聚会名称', type: 'text' },
           { key: 'players', label: '人数', type: 'number' },
           { key: 'template', label: '模板', type: 'select', options: getSessionTemplateOptions() },
-          { key: 'hostName', label: '发起人', type: 'select', options: getProfileNameOptions() },
-          { key: 'hostProfileId', label: '判官唯一ID', type: 'text' },
+          { key: 'hostName', label: '记录人', type: 'select', options: getProfileNameOptions() },
+          { key: 'hostProfileId', label: '记录人唯一ID', type: 'text' },
           { key: 'inviteCode', label: '口令', type: 'text' },
           { key: 'participantsText', label: '参与人', type: 'textarea' },
           { key: 'participantProfileIds', label: '参与人唯一ID', type: 'textarea' },
           { key: 'state', label: '流程状态', type: 'select', options: getSessionStateOptions() },
           { key: 'source', label: '分享来源', type: 'select', options: getSessionSourceOptions() },
           { key: 'status', label: '运营状态', type: 'select', options: getSessionStatusOptions() },
+          { key: 'endedAt', label: '结束时间', type: 'text' },
         ],
         columns: [
-          { key: 'name', label: '酒局名称' },
+          { key: 'name', label: '聚会名称' },
           { key: 'players', label: '人数' },
           { key: 'template', label: '模板' },
-          { key: 'hostName', label: '判官' },
-          { key: 'hostProfileId', label: '判官唯一ID' },
+          { key: 'hostName', label: '记录人' },
+          { key: 'hostProfileId', label: '记录人唯一ID' },
           { key: 'participantsText', label: '参与人' },
           { key: 'participantProfileIds', label: '参与人唯一ID' },
           { key: 'inviteCode', label: '口令' },
           { key: 'state', label: '流程状态' },
           { key: 'status', label: '状态' },
+          { key: 'endedAt', label: '结束时间' },
+          { key: 'memberCount', label: '成员数' },
+          { key: 'memberSummary', label: '成员摘要' },
+          { key: 'reportId', label: '战报' },
+          { key: 'reportStatus', label: '战报状态' },
+          { key: 'briefId', label: '简报' },
+          { key: 'briefStatus', label: '简报状态' },
+          { key: 'shareTaskId', label: '分享图任务' },
+          { key: 'shareTaskStatus', label: '分享图状态' },
+          { key: 'shareTaskCount', label: '分享图任务数' },
+          { key: 'manageLinks', label: '管理入口' },
         ],
         items: sessions,
       },
@@ -3841,6 +3912,3 @@ module.exports = {
   updateManagedSession,
   writeAdminStore: writeStore,
 }
-
-
-

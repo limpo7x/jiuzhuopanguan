@@ -158,7 +158,13 @@ interface RemoteMomentRecord {
   completionStatus?: 'draft' | 'needs_media' | 'complete'
   createdAt?: string
   id?: string
+  assetUrl?: string
+  coverImageUrl?: string
   imageUrl?: string
+  mediaUrl?: string
+  photoUrl?: string
+  thumbnailUrl?: string
+  url?: string
   isTimelinePlaceholder?: boolean
   kind?: 'moment'
   mediaType?: 'image'
@@ -250,11 +256,15 @@ interface RemoteShareImageTask {
   message?: string
   miniProgramQrUrl?: string
   partyId?: string
+  posterImageUrl?: string
+  readyShareImageUrl?: string
   renderMode?: string
   retryCount?: number
   qrCodeUrl?: string
   selectedNodeIds?: string[]
+  sessionName?: string
   shareImageId?: string
+  taskId?: string
   sessionId?: string
   startedAt?: string
   status?: 'pending' | 'processing' | 'ready' | 'failed' | 'expired'
@@ -703,6 +713,19 @@ export interface ManagedShareImageTask {
   updatedAt: string
 }
 
+export interface ManagedShareImageSummary {
+  briefId: string
+  createdAt: string
+  finishedAt: string
+  id: string
+  imageUrl: string
+  readyShareImageUrl: string
+  sessionId: string
+  sessionName: string
+  status: ManagedShareImageTaskStatus
+  updatedAt: string
+}
+
 export interface ManagedSessionMomentSummary {
   briefId: string
   canResume: boolean
@@ -809,7 +832,10 @@ const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' 
           resolve(payload.data)
           return
         }
-        reject(new Error(payload?.message || 'request failed'))
+        const fallbackMessage = response.statusCode === 404 ? 'not found' : 'request failed'
+        const error = new Error(payload?.message || fallbackMessage)
+        ;(error as Error & { statusCode?: number }).statusCode = response.statusCode
+        reject(error)
       },
       fail: reject,
     })
@@ -928,6 +954,10 @@ export const getManagedLiveSession = async (sessionId?: string, inviteCode?: str
     .filter(Boolean)
     .join('&')
   const remote = await requestJson<RemoteLiveSession>(`/sessions/live${query ? `?${query}` : ''}`)
+  return normalizeRemoteLiveSession(remote)
+}
+
+const normalizeRemoteLiveSession = (remote: RemoteLiveSession): ManagedLiveSession => {
   const joinedPlayers = remote.joinedPlayers?.length ? remote.joinedPlayers.map(normalizeSessionPlayer) : []
   const joinStatusPlayers = remote.joinStatusPlayers?.length ? remote.joinStatusPlayers.map(normalizeSessionPlayer) : []
 
@@ -961,9 +991,7 @@ export const joinManagedSession = async (inviteCode: string): Promise<ManagedLiv
 }
 
 export const createManagedSession = async (payload: ManagedSessionMutationPayload): Promise<ManagedLiveSession> => {
-  return getManagedLiveSession(
-    (await requestJson<RemoteLiveSession>('/sessions', 'POST', payload as Record<string, unknown>)).id,
-  )
+  return normalizeRemoteLiveSession(await requestJson<RemoteLiveSession>('/sessions', 'POST', payload as Record<string, unknown>))
 }
 
 export const updateManagedSession = async (sessionId: string, payload: ManagedSessionMutationPayload): Promise<void> => {
@@ -1045,12 +1073,23 @@ const normalizeUsageConsent = (value?: Partial<ManagedMomentUsageConsent>): Mana
   share: value?.share !== false,
 })
 
+const resolveRemoteMomentImageUrl = (item?: RemoteMomentRecord) =>
+  normalizeManagedAssetPath(
+    item?.imageUrl ||
+    item?.thumbnailUrl ||
+    item?.photoUrl ||
+    item?.mediaUrl ||
+    item?.assetUrl ||
+    item?.coverImageUrl ||
+    item?.url,
+  )
+
 const normalizeMomentRecord = (item?: RemoteMomentRecord): ManagedMomentRecord => ({
   caption: item?.caption || '',
   completionStatus: item?.completionStatus || 'draft',
   createdAt: item?.createdAt || '',
   id: item?.id || '',
-  imageUrl: normalizeManagedAssetPath(item?.imageUrl),
+  imageUrl: resolveRemoteMomentImageUrl(item),
   isTimelinePlaceholder: Boolean(item?.isTimelinePlaceholder),
   mediaType: 'image',
   nodeKind: 'moment',
@@ -1197,6 +1236,22 @@ const normalizeShareImageTask = (task?: RemoteShareImageTask): ManagedShareImage
   status: task?.status || 'pending',
   updatedAt: task?.updatedAt || task?.createdAt || '',
 })
+
+const normalizeShareImageSummary = (task?: RemoteShareImageTask): ManagedShareImageSummary => {
+  const imageUrl = normalizeManagedAssetPath(task?.readyShareImageUrl || task?.imageUrl || task?.posterImageUrl)
+  return {
+    briefId: task?.briefId || '',
+    createdAt: task?.createdAt || '',
+    finishedAt: task?.finishedAt || '',
+    id: task?.taskId || task?.id || task?.shareImageId || '',
+    imageUrl,
+    readyShareImageUrl: normalizeManagedAssetPath(task?.readyShareImageUrl) || imageUrl,
+    sessionId: task?.sessionId || task?.partyId || '',
+    sessionName: task?.sessionName || '',
+    status: task?.status || 'ready',
+    updatedAt: task?.updatedAt || task?.finishedAt || task?.createdAt || '',
+  }
+}
 
 const RANKING_CATEGORIES: ManagedRankingCategory[] = [
   'today_funny',
@@ -1597,5 +1652,14 @@ export const getManagedSessionMomentSummaries = async (): Promise<ManagedSession
         title: item?.title || '',
         updatedAt: item?.updatedAt || '',
       }))
+    : []
+}
+
+export const getManagedShareImageSummaries = async (): Promise<ManagedShareImageSummary[]> => {
+  const remote = await requestJson<RemoteShareImageTask[]>('/user/share-image-summaries')
+  return Array.isArray(remote)
+    ? remote
+        .map(normalizeShareImageSummary)
+        .filter((item) => item.status === 'ready' && Boolean(item.imageUrl || item.readyShareImageUrl))
     : []
 }

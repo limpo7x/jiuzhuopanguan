@@ -1763,3 +1763,184 @@ page {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 008CU: align home with the accepted "我的" stage system. */
+page {
+  background: #12100e;
+}
+
+.home-nav {
+  border-bottom: 0;
+  box-shadow: none;
+}
+
+.home-redesign {
+  background: #12100e;
+  color: #fff2dd;
+}
+
+.home-stage-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+.home-redesign-scroll {
+  position: relative;
+  z-index: 1;
+  padding: 20px 24px calc(98px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.home-stage {
+  overflow: visible;
+  width: 342px;
+  max-width: 100%;
+  margin: 0 auto 24px;
+  padding: 24px 0 0;
+  background: transparent;
+}
+
+.home-brand-title,
+.home-lite-title {
+  color: #fff2dd;
+}
+
+.home-brand-subtitle,
+.home-album-label,
+.home-album-meta {
+  color: rgba(255, 240, 216, 0.72);
+}
+
+.home-main-actions .party-cta,
+.home-login-entry,
+.home-album-image {
+  border: 1px solid rgba(255, 238, 204, 0.18);
+  background: rgba(35, 27, 23, 0.78);
+  box-shadow: none;
+}
+
+.home-action-secondary {
+  color: #f4c768;
+}
+
+.home-action-secondary .home-action-icon,
+.home-action-soft .home-action-icon {
+  background: rgba(244, 199, 104, 0.18);
+}
+
+.home-action-soft {
+  color: #8ee0c1;
+}
+
+.home-login-title {
+  color: #fff2dd;
+}
+
+.home-login-desc {
+  color: rgba(255, 240, 216, 0.68);
+}
+
+.home-lite-panel {
+  position: relative;
+  z-index: 1;
+  width: 342px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.home-lite-link {
+  color: #f4c768;
+}
+
+.home-album-mark {
+  background: rgba(18, 16, 14, 0.72);
+  color: #fff2dd;
+}
+
+.bottom-nav {
+  border-top: 1px solid rgba(255, 238, 204, 0.14);
+  background: rgba(18, 16, 14, 0.86);
+}
+
+.bottom-item {
+  color: rgba(255, 240, 216, 0.58);
+}
+
+.bottom-item.active {
+  color: #f4c768;
+}
+
+/* PR-FE-008DM-COMPLETE final cascade guard */
+.bottom-nav {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  height: calc(84px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.bottom-item {
+  height: 60px;
+}
+
+/* PR-FE-008DM-COMPLETE: four-tab primary navigation */
+.bottom-nav {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  height: calc(84px + env(safe-area-inset-bottom));
+  padding: 0 0 env(safe-area-inset-bottom);
+  border-top: 1px solid rgba(255, 242, 221, 0.12);
+  background: rgba(18, 16, 14, 0.94);
+}
+
+.bottom-item {
+  position: relative;
+  height: 60px;
+  gap: 4px;
+  color: rgba(255, 240, 216, 0.56);
+  font-size: 11px;
+  font-weight: 500;
+  transition: transform 0.16s ease;
+}
+
+.bottom-item:active {
+  transform: scale(0.96) translateY(1px);
+}
+
+.bottom-item.active {
+  color: #f4c768;
+  font-weight: 600;
+}
+
+.bottom-item.active::after {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 18px;
+  height: 3px;
+  border-radius: 999px;
+  background: #f4c768;
+  transform: translateX(-50%);
+  content: "";
+}
+
+.bottom-label {
+  font-size: 11px;
+  line-height: 1;
+  font-weight: inherit;
+}
+
+.bottom-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.nav-rank {
+  background-image: url("data:image/svg+xml,%3Csvg width='22' height='22' viewBox='0 0 22 22' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23A99A83' d='M7 3h8v2h3v3.2c0 2.2-1.3 4-3.3 4.7-.6 1.6-1.8 2.8-3.2 3.1V18h3v2h-7v-2h3v-2c-1.5-.4-2.6-1.5-3.2-3.1C5.3 12.2 4 10.4 4 8.2V5h3V3Zm1.8 2v5.2c0 2.2.9 3.8 2.2 3.8s2.2-1.6 2.2-3.8V5H8.8ZM6 7v1.2c0 .9.3 1.7.9 2.3C7 9.9 7 9.3 7 8.6V7H6Zm9 0v1.6c0 .7 0 1.3.1 1.9.6-.6.9-1.4.9-2.3V7h-1Z'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+
+.nav-rank.active {
+  background-image: url("data:image/svg+xml,%3Csvg width='22' height='22' viewBox='0 0 22 22' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23F4C768' d='M7 3h8v2h3v3.2c0 2.2-1.3 4-3.3 4.7-.6 1.6-1.8 2.8-3.2 3.1V18h3v2h-7v-2h3v-2c-1.5-.4-2.6-1.5-3.2-3.1C5.3 12.2 4 10.4 4 8.2V5h3V3Zm1.8 2v5.2c0 2.2.9 3.8 2.2 3.8s2.2-1.6 2.2-3.8V5H8.8ZM6 7v1.2c0 .9.3 1.7.9 2.3C7 9.9 7 9.3 7 8.6V7H6Zm9 0v1.6c0 .7 0 1.3.1 1.9.6-.6.9-1.4.9-2.3V7h-1Z'/%3E%3C/svg%3E");
+}

@@ -11,12 +11,18 @@ const { initAssetsManifest, listAdminAssets, saveAdminImage } = require('./data/
 const {
   activateMembershipPlan,
   adjustUserPointsByAdmin,
+  claimInviteReward,
   claimPointsTask,
   grantFirstLoginBonus,
   getMembershipCatalog,
+  getUserFeatureZones,
   getUserCommerceState,
+  recordUserToolUsage,
   redeemPointsReward,
+  toggleToolFavorite,
   unlockTemplateByAd,
+  useMembershipBenefit,
+  useTemplate,
 } = require('./data/commerce')
 const {
   getFeaturedReport,
@@ -1072,6 +1078,41 @@ const server = http.createServer((request, response) => {
       return
     }
 
+    if (request.method === 'GET' && pathname === '/api/v1/user/feature-zones') {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
+      sendOk(response, getUserFeatureZones(session.profile.id))
+      return
+    }
+
+    if (request.method === 'GET' && pathname === '/api/v1/user/favorites') {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
+      const favorites = getUserFeatureZones(session.profile.id).favorites
+      sendOk(response, {
+        items: favorites,
+        favorites,
+      })
+      return
+    }
+
+    if (request.method === 'GET' && pathname === '/api/v1/user/usage-records') {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
+      const usageRecords = getUserFeatureZones(session.profile.id).usageRecords
+      sendOk(response, {
+        items: usageRecords,
+        usageRecords,
+      })
+      return
+    }
+
     if (request.method === 'GET' && pathname === '/api/v1/user/judge-stats') {
       const session = resolveUserSession(request)
       sendOk(response, getUserJudgeStats(session?.profile?.id || ''))
@@ -1091,6 +1132,26 @@ const server = http.createServer((request, response) => {
 
     if (request.method === 'GET' && pathname === '/api/v1/tools/catalog') {
       sendOk(response, listFrontendTools())
+      return
+    }
+
+    if ((request.method === 'POST' || request.method === 'DELETE') && pathname && pathname.startsWith('/api/v1/tools/') && pathname.endsWith('/favorite')) {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
+      const toolId = pathname.replace('/api/v1/tools/', '').replace('/favorite', '').replace(/^\/+|\/+$/g, '')
+      sendOk(response, toggleToolFavorite(session.profile.id, toolId, request.method === 'POST'))
+      return
+    }
+
+    if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/tools/') && pathname.endsWith('/usage')) {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
+      const toolId = pathname.replace('/api/v1/tools/', '').replace('/usage', '').replace(/^\/+|\/+$/g, '')
+      sendOk(response, recordUserToolUsage(session.profile.id, toolId))
       return
     }
 
@@ -1155,6 +1216,16 @@ const server = http.createServer((request, response) => {
       return
     }
 
+    if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/membership/benefits/') && pathname.endsWith('/use')) {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
+      const benefitId = pathname.replace('/api/v1/membership/benefits/', '').replace('/use', '').replace(/^\/+|\/+$/g, '')
+      sendOk(response, useMembershipBenefit(session.profile.id, benefitId))
+      return
+    }
+
     if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/templates/') && pathname.endsWith('/unlock')) {
       const session = requireUserSession(request, response)
       if (!session) {
@@ -1162,6 +1233,26 @@ const server = http.createServer((request, response) => {
       }
       const templateId = pathname.replace('/api/v1/templates/', '').replace('/unlock', '').replace(/^\/+|\/+$/g, '')
       sendOk(response, unlockTemplateByAd(session.profile.id, templateId))
+      return
+    }
+
+    if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/templates/') && pathname.endsWith('/use')) {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
+      const templateId = pathname.replace('/api/v1/templates/', '').replace('/use', '').replace(/^\/+|\/+$/g, '')
+      sendOk(response, useTemplate(session.profile.id, templateId))
+      return
+    }
+
+    if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/invite-rewards/') && pathname.endsWith('/claim')) {
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
+      const inviteCode = pathname.replace('/api/v1/invite-rewards/', '').replace('/claim', '').replace(/^\/+|\/+$/g, '')
+      sendOk(response, claimInviteReward(session.profile.id, inviteCode))
       return
     }
 

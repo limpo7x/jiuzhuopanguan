@@ -102,7 +102,7 @@
 
     <view wx:if="{{shareReturnMode}}" class="share-risk-note">
       <text>公开分享只展示可分享内容，私密记录不会进入分享页。</text>
-      <view class="share-report-entry" bindtap="handleReportHintTap">举报/反馈</view>
+      <view class="share-report-entry">举报/反馈待后台开通</view>
     </view>
   </scroll-view>
 

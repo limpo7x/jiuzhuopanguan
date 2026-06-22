@@ -35,32 +35,46 @@ if ($existing) {
   exit 0
 }
 
-$arguments = @(
+function Start-AutomationPort {
+  param(
+    [string[]]$Arguments,
+    [string]$Mode
+  )
+
+  $process = Start-Process -FilePath $CliPath -ArgumentList $Arguments -PassThru -WindowStyle Hidden
+  $deadline = (Get-Date).AddSeconds(45)
+  do {
+    Start-Sleep -Seconds 1
+    $listener = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue |
+      Where-Object { $_.State -eq "Listen" } |
+      Select-Object -First 1
+    if ($listener) {
+      [PSCustomObject]@{
+        ok = $true
+        action = "started"
+        mode = $Mode
+        port = $Port
+        cliPid = $process.Id
+        owningProcess = $listener.OwningProcess
+        projectPath = $ProjectPath
+      } | ConvertTo-Json -Compress
+      exit 0
+    }
+  } while ((Get-Date) -lt $deadline)
+}
+
+Start-AutomationPort -Mode "port" -Arguments @(
+  "auto",
+  "--project", $ProjectPath,
+  "--port", [string]$Port,
+  "--trust-project"
+)
+
+Start-AutomationPort -Mode "auto-port-fallback" -Arguments @(
   "auto",
   "--project", $ProjectPath,
   "--auto-port", [string]$Port,
   "--trust-project"
 )
-
-$process = Start-Process -FilePath $CliPath -ArgumentList $arguments -PassThru -WindowStyle Hidden
-
-$deadline = (Get-Date).AddSeconds(45)
-do {
-  Start-Sleep -Seconds 1
-  $listener = Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue |
-    Where-Object { $_.State -eq "Listen" } |
-    Select-Object -First 1
-  if ($listener) {
-    [PSCustomObject]@{
-      ok = $true
-      action = "started"
-      port = $Port
-      cliPid = $process.Id
-      owningProcess = $listener.OwningProcess
-      projectPath = $ProjectPath
-    } | ConvertTo-Json -Compress
-    exit 0
-  }
-} while ((Get-Date) -lt $deadline)
 
 throw "Timed out waiting for WeChat DevTools automation port $Port."

@@ -76,7 +76,6 @@ interface ToolDetailMethods {
   handleJsonInput: (event: WechatMiniprogram.Input) => void
   handleLoanInput: (event: WechatMiniprogram.Input) => void
   handleMinifyJson: () => void
-  handlePrimaryTap: () => void
   handleQrInput: (event: WechatMiniprogram.Input) => void
   handleRunCompress: () => void
   handleSaveImageResult: () => void
@@ -353,10 +352,6 @@ Page<ToolDetailState, ToolDetailMethods>({
         }
       },
     )
-  },
-
-  handlePrimaryTap() {
-    wx.showToast({ title: '请在上方工具区完成处理', icon: 'none' })
   },
 
   handleSecondaryTap() {

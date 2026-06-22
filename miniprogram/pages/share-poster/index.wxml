@@ -53,7 +53,6 @@
       </view>
 
       <view class="poster-share021-action-row poster-action-panel">
-        <view class="poster-action-secondary" bindtap="handleBackTap">返回聚会</view>
         <view class="poster-primary-action {{posterSaved || saveState === 'saved' || saveState === 'saving' || saveState === 'generating' || (shareTask && (shareTask.status === 'pending' || shareTask.status === 'processing')) ? 'poster-primary-action-disabled' : ''}} {{posterSaved || saveState === 'saved' ? 'poster-primary-action-saved' : ''}}" bindtap="handleSaveTap" data-save-selector="share-flow-015-save-poster">
           {{savePosterLabel}}
         </view>
@@ -66,8 +65,13 @@
       </view>
 
       <view class="poster-status-line {{saveState === 'failed' ? 'poster-status-line-warn' : ''}} {{saveState === 'saved' || (shareTask && shareTask.status === 'ready' && saveState !== 'failed') ? 'poster-status-line-success' : ''}}">{{posterStatusLine}}</view>
+      <view class="poster-later-tip">稍后可在“我的”页面查看分享图</view>
     </view>
   </scroll-view>
+
+  <view class="poster-exit-bar">
+    <view class="poster-exit-button" bindtap="handleExitShareTap">退出分享</view>
+  </view>
 
   <canvas
     canvas-id="sharePosterCanvas"

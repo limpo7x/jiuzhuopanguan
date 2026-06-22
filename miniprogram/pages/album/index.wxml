@@ -1,51 +1,155 @@
 <navigation-bar
-  title="{{pageTitle}}"
+  title=""
   back="{{true}}"
   customBack="{{true}}"
   bind:back="handleBackTap"
-  color="#111827"
-  background="rgba(255,255,252,0.96)"
+  color="#f3cc7b"
+  background="rgba(18,16,14,0.96)"
   ext-class="album-nav"
 ></navigation-bar>
 
-<view class="album-page">
+<view wx:if="{{isShareMode}}" class="album-manage-link" style="{{headerActionStyle}}">管</view>
+
+<view class="album-page {{isShareMode ? 'album-share-page' : 'album-memory-page'}}">
+  <image class="album-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="album-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="album-hero">
-      <text class="album-title">{{pageTitle}}</text>
-      <text class="album-subtitle">照片、简报和分享图集中整理，旧工具入口已收起。</text>
-      <view class="album-actions">
-        <view class="album-primary" bindtap="handleCreateTap">创建聚会</view>
-        <view class="album-secondary" bindtap="handleRefreshTap">刷新相册</view>
+    <view class="album-header">
+      <view wx:if="{{!isShareMode}}" class="album-paper-title">
+        <image class="album-title-paper" src="/assets/party-recorder/pr-cs008cn-title-paper-label.svg" mode="aspectFill"></image>
+        <text>{{pageTitle}}</text>
+      </view>
+      <view wx:else class="album-share-title-wrap">
+        <text class="album-share-hero-title">{{pageTitle}}</text>
+        <text class="album-share-hero-subtitle">已生成的聚会分享图作品</text>
       </view>
     </view>
 
-    <view wx:if="{{loading}}" class="album-empty">相册加载中...</view>
+    <view wx:if="{{!isShareMode}}" class="album-filter-bar">
+      <image class="album-filter-bg" src="/assets/party-recorder/pr-cs008cn-segmented-bg.svg" mode="aspectFill"></image>
+      <view class="album-filter {{activeRecordFilter === 'all' ? 'album-filter-active' : ''}}" data-filter="all" bindtap="handleFilterTap">
+        <image wx:if="{{activeRecordFilter === 'all'}}" class="album-filter-pill" src="/assets/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
+        <text>全部</text>
+      </view>
+      <view class="album-filter {{activeRecordFilter === 'ongoing' ? 'album-filter-active' : ''}}" data-filter="ongoing" bindtap="handleFilterTap">
+        <image wx:if="{{activeRecordFilter === 'ongoing'}}" class="album-filter-pill" src="/assets/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
+        <text>进行中</text>
+      </view>
+      <view class="album-filter {{activeRecordFilter === 'ended' ? 'album-filter-active' : ''}}" data-filter="ended" bindtap="handleFilterTap">
+        <image wx:if="{{activeRecordFilter === 'ended'}}" class="album-filter-pill" src="/assets/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
+        <text>已结束</text>
+      </view>
+    </view>
 
-    <view wx:elif="{{items.length}}" class="album-list">
+    <view wx:if="{{loading}}" class="album-open-empty">正在整理聚会记录...</view>
+
+    <view wx:elif="{{items.length && isShareMode}}" class="album-share-grid">
       <view
         wx:for="{{items}}"
-        wx:key="briefId"
-        class="album-card"
-        data-brief-id="{{item.briefId}}"
-        data-session-id="{{item.sessionId}}"
+        wx:key="shareImageUrl"
+        class="album-share-item"
         data-share-image-url="{{item.shareImageUrl}}"
+        data-session-id="{{item.sessionId}}"
         bindtap="handleItemTap"
       >
-        <view class="album-cover">
-          <image wx:if="{{item.coverUrl && !item.coverBroken}}" class="album-cover-image" src="{{item.coverUrl}}" mode="aspectFill" data-brief-id="{{item.briefId}}" data-session-id="{{item.sessionId}}" bindload="handleCoverLoad" binderror="handleCoverError"></image>
-          <view wx:else class="album-cover-empty">聚会记录师</view>
+        <view class="album-share-art">
+          <image class="album-share-frame" src="/assets/party-recorder/pr-cs008cj-share-thumb-frame.svg" mode="aspectFill"></image>
+          <image class="album-share-image" src="{{item.shareImageUrl}}" mode="aspectFill"></image>
         </view>
-        <view class="album-copy">
-          <text class="album-card-title">{{item.title}}</text>
-          <text class="album-card-meta">{{item.meta}}</text>
+        <view class="album-share-copy">
+          <text class="album-share-title">{{item.title}}</text>
+          <text class="album-share-meta">{{item.meta}}</text>
         </view>
-        <view class="album-status">{{item.statusText}}</view>
       </view>
     </view>
 
-    <view wx:else class="album-empty">
+    <view wx:elif="{{items.length}}" class="album-memory-list">
+      <view wx:if="{{activeRecordFilter !== 'ended' && ongoingItems.length}}" class="album-group-title">
+        <text>进行中 · {{ongoingCount}}</text>
+        <image src="/assets/party-recorder/pr-cs008cn-section-divider-spark.svg" mode="widthFix"></image>
+      </view>
+      <block wx:if="{{activeRecordFilter !== 'ended'}}">
+        <view
+          wx:for="{{ongoingItems}}"
+          wx:key="sessionId"
+          class="album-memory-row"
+          data-brief-id="{{item.briefId}}"
+          data-session-id="{{item.sessionId}}"
+          data-share-image-url="{{item.shareImageUrl}}"
+          data-state-type="{{item.stateType}}"
+          bindtap="handleItemTap"
+        >
+          <image class="album-memory-shell" src="/assets/party-recorder/pr-cs008cn-memory-list-card-shell.svg" mode="aspectFill"></image>
+          <view class="album-cover-wrap">
+            <image wx:if="{{item.coverUrl && !item.coverBroken}}" class="album-cover-image" src="{{item.coverUrl}}" mode="aspectFill" data-brief-id="{{item.briefId}}" data-session-id="{{item.sessionId}}" bindload="handleCoverLoad" binderror="handleCoverError"></image>
+            <image wx:else class="album-cover-image" src="/assets/party-recorder/pr-cs008cj-memory-default-cover.svg" mode="aspectFill"></image>
+          </view>
+          <view class="album-memory-copy">
+            <text class="album-memory-status">{{item.statusText}}</text>
+            <text class="album-memory-title">{{item.title}}</text>
+            <text class="album-memory-meta">{{item.meta}}</text>
+            <view class="album-memory-action-strip">
+              <image src="/assets/party-recorder/pr-cs008cn-memory-list-action-strip.svg" mode="aspectFill"></image>
+              <text>继续记录</text>
+              <text>待分享</text>
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <view wx:if="{{activeRecordFilter !== 'ongoing' && endedItems.length}}" class="album-group-title album-group-title-ended">
+        <text>已结束 · {{endedCount}}</text>
+        <image src="/assets/party-recorder/pr-cs008cn-section-divider-spark.svg" mode="widthFix"></image>
+      </view>
+      <block wx:if="{{activeRecordFilter !== 'ongoing'}}">
+        <view
+          wx:for="{{endedItems}}"
+          wx:key="sessionId"
+          class="album-memory-row album-memory-row-ended"
+          data-brief-id="{{item.briefId}}"
+          data-session-id="{{item.sessionId}}"
+          data-share-image-url="{{item.shareImageUrl}}"
+          data-state-type="{{item.stateType}}"
+          bindtap="handleItemTap"
+        >
+          <image class="album-memory-shell" src="/assets/party-recorder/pr-cs008cn-memory-list-card-shell.svg" mode="aspectFill"></image>
+          <view class="album-cover-wrap">
+            <image wx:if="{{item.coverUrl && !item.coverBroken}}" class="album-cover-image" src="{{item.coverUrl}}" mode="aspectFill" data-brief-id="{{item.briefId}}" data-session-id="{{item.sessionId}}" bindload="handleCoverLoad" binderror="handleCoverError"></image>
+            <image wx:else class="album-cover-image" src="/assets/party-recorder/pr-cs008cj-memory-default-cover.svg" mode="aspectFill"></image>
+          </view>
+          <view class="album-memory-copy">
+            <text class="album-memory-status">{{item.statusText}}</text>
+            <text class="album-memory-title">{{item.title}}</text>
+            <text class="album-memory-meta">{{item.meta}}</text>
+            <view class="album-memory-action-strip album-memory-action-strip-single">
+              <image src="/assets/party-recorder/pr-cs008cn-memory-list-action-strip.svg" mode="aspectFill"></image>
+              <text>查看回忆</text>
+            </view>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <view wx:else class="album-open-empty">
       <text>{{emptyText}}</text>
       <view class="album-empty-action" bindtap="handleCreateTap">去创建聚会</view>
     </view>
   </scroll-view>
+  <view class="bottom-nav album-bottom-nav">
+    <view class="bottom-item" data-tab="home" bindtap="handleBottomTabTap">
+      <view class="bottom-icon nav-home"></view>
+      <text class="bottom-label">首页</text>
+    </view>
+    <view class="bottom-item" data-tab="tools" bindtap="handleBottomTabTap">
+      <view class="bottom-icon nav-judge"></view>
+      <text class="bottom-label">工具箱</text>
+    </view>
+    <view class="bottom-item" data-tab="rankings" bindtap="handleBottomTabTap">
+      <view class="bottom-icon nav-rank"></view>
+      <text class="bottom-label">排行榜</text>
+    </view>
+    <view class="bottom-item active" data-tab="me" bindtap="handleBottomTabTap">
+      <view class="bottom-icon nav-me active"></view>
+      <text class="bottom-label">我的</text>
+    </view>
+  </view>
 </view>

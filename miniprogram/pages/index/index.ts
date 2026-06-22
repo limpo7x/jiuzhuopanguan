@@ -2,17 +2,14 @@ import { homePageMock, type HomePageData } from '../../mock/home'
 import { claimPointsTask, getUserCommerceState } from '../../services/content'
 import { getHomePageData } from '../../services/home'
 import {
-  getManagedSessionBrief,
   getManagedSessionMomentSummaries,
   joinManagedSession,
   recordManagedToolUsage,
-  type ManagedSessionBrief,
   type ManagedSessionMomentSummary,
-  type ManagedTimelineNode,
 } from '../../services/operations'
 import { showFirstLoginBonusModal } from '../../utils/firstLoginBonus'
-import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
-import { buildSessionReturnFromRuntime, EMPTY_SESSION_RETURN, openSessionReturn, type SessionReturnBarData } from '../../utils/session-return'
+import { setSessionRuntime, type SessionParticipant } from '../../utils/session'
+import { buildSessionReturnFromHistory, EMPTY_SESSION_RETURN, openSessionReturn, type SessionReturnBarData } from '../../utils/session-return'
 import { ensureUserAuthorized, getCurrentDisplayProfile, getUserAuthSession, getUserSessionToken, loginWithWechatProfile } from '../../utils/social'
 
 interface HomePageState {
@@ -23,6 +20,8 @@ interface HomePageState {
   authSubmitting: boolean
   canCheckIn: boolean
   checkedIn: boolean
+  activeSessionCount: number
+  continueRecordLabel: string
   home: HomePageData
   lastLoadedAt: number
   loading: boolean
@@ -62,14 +61,17 @@ interface HomePageMethods {
   loadHomePage: () => Promise<void>
   noop: () => void
   openPage: (url: string) => void
-  refreshSessionReturn: () => void
+  refreshSessionReturn: (items?: ManagedSessionMomentSummary[]) => void
   syncAuthState: () => Promise<void>
 }
+
+type HomeRecentAlbum = HomePageData['recentTools'][number]
 
 const TAB_ROUTES: Record<string, string> = {
   album: '/pages/album/index?mode=host',
   home: '/pages/index/index',
   ledger: '/pages/ledger/index',
+  rankings: '/pages/rankings/index',
   tools: '/pages/tools/index',
   judge: '/pages/ledger/index',
   me: '/pages/me/index',
@@ -173,61 +175,43 @@ const formatAlbumUsedAt = (value?: string) => {
 }
 
 const buildAlbumRoute = (item: ManagedSessionMomentSummary) => {
-  if (item.briefId) {
-    return `/pages/session-brief/index?briefId=${encodeURIComponent(item.briefId)}`
-  }
   if (item.sessionId) {
-    return `/pages/session-brief/index?sessionId=${encodeURIComponent(item.sessionId)}`
+    return `/pages/live-record/index?sessionId=${encodeURIComponent(item.sessionId)}`
   }
   return '/pages/album/index?mode=host'
 }
 
-const isMomentNodeWithImage = (node: ManagedTimelineNode): node is Extract<ManagedTimelineNode, { nodeKind: 'moment' }> =>
-  node.nodeKind === 'moment' && !node.isTimelinePlaceholder && !!node.imageUrl
-
-const getMomentNodeTime = (node: Extract<ManagedTimelineNode, { nodeKind: 'moment' }>) => {
-  const timestamp = Date.parse(node.createdAt || node.updatedAt || '')
-  return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : Number.MAX_SAFE_INTEGER
+const isActiveSummary = (item: ManagedSessionMomentSummary) => {
+  const state = `${item.state || ''} ${item.status || ''} ${item.stateText || ''}`.trim()
+  if (!state) return Boolean(item.canResume && item.sessionId)
+  return Boolean(item.sessionId) && !/已结束|结束|已完成|closed|ended|finished|deleted/i.test(state)
 }
 
-const findFirstBriefPhoto = (brief?: ManagedSessionBrief) => {
-  const node = (brief?.timeline?.nodes || [])
-    .filter(isMomentNodeWithImage)
-    .sort((left, right) => {
-      const timeDiff = getMomentNodeTime(left) - getMomentNodeTime(right)
-      if (timeDiff !== 0) return timeDiff
-      const leftOpening = left.nodeType === 'opening' ? 0 : 1
-      const rightOpening = right.nodeType === 'opening' ? 0 : 1
-      if (leftOpening !== rightOpening) return leftOpening - rightOpening
-      return String(left.id || '').localeCompare(String(right.id || ''))
-    })[0]
-  return node?.imageUrl || ''
+const buildContinueRecordLabel = (count: number) => {
+  if (count > 1) return '选择继续'
+  if (count === 1) return '继续记录'
+  return '暂无进行中'
 }
 
-const mapRecentAlbumsFromSummaries = async (items: ManagedSessionMomentSummary[]): Promise<HomePageData['recentTools']> =>
-  Promise.all(items.slice(0, 3).map(async (item, index) => {
-    let firstPhotoUrl = ''
-    let briefCreatedAt = item.createdAt || ''
-    if (item.briefId) {
-      try {
-        const brief = await getManagedSessionBrief(item.briefId)
-        firstPhotoUrl = findFirstBriefPhoto(brief) || firstPhotoUrl
-        briefCreatedAt = briefCreatedAt || brief.createdAt || brief.updatedAt || ''
-      } catch {
-        firstPhotoUrl = ''
-      }
+const mapRecentAlbumsFromSummaries = (items: ManagedSessionMomentSummary[]): HomePageData['recentTools'] => {
+  const mapped = items.slice(0, 3).map((item, index): HomeRecentAlbum | null => {
+    if (!item.sessionId && item.briefId) {
+      return null
     }
-    firstPhotoUrl = firstPhotoUrl || item.coverPhotoUrl || ''
+    const firstPhotoUrl = item.coverPhotoUrl || item.readyShareImageUrl || item.shareImageUrl || ''
+    const updatedAt = item.updatedAt || item.createdAt || item.endedAt || ''
     return {
-    id: item.briefId || item.sessionId || `album-summary-${index}`,
-    name: normalizeAlbumTitle(item.title, item.sessionName, index),
-    usedAt: formatAlbumUsedAt(briefCreatedAt),
-    imageUrl: firstPhotoUrl || '',
-    badgeText: item.shareImageStatus === 'ready' ? '分享图' : '相册',
-    badgeClass: 'green',
-    route: buildAlbumRoute(item),
+      id: item.sessionId || item.briefId || `album-summary-${index}`,
+      name: normalizeAlbumTitle(item.title, item.sessionName, index),
+      usedAt: formatAlbumUsedAt(updatedAt),
+      imageUrl: firstPhotoUrl || '',
+      badgeText: item.shareImageStatus === 'ready' ? '分享图' : '记录',
+      badgeClass: 'green',
+      route: buildAlbumRoute(item),
     }
-  }))
+  })
+  return mapped.filter((item): item is HomeRecentAlbum => Boolean(item?.route))
+}
 
 const normalizeRecentAlbums = (items: HomePageData['recentTools']) =>
   (items.length ? items : albumFallbacks).slice(0, 3).map((item, index) => {
@@ -261,6 +245,8 @@ Page<HomePageState, HomePageMethods>({
     authSubmitting: false,
     canCheckIn: false,
     checkedIn: false,
+    activeSessionCount: 0,
+    continueRecordLabel: buildContinueRecordLabel(0),
     home: {
       ...homePageMock,
       recentTools: normalizeRecentAlbums([]),
@@ -275,7 +261,7 @@ Page<HomePageState, HomePageMethods>({
   },
 
   onLoad(query) {
-    this.refreshSessionReturn()
+    this.refreshSessionReturn([])
     void this.syncAuthState()
     void this.loadHomePage()
     const inviteCode = normalizeInviteCode(typeof query?.inviteCode === 'string' ? decodeURIComponent(query.inviteCode) : '')
@@ -287,16 +273,28 @@ Page<HomePageState, HomePageMethods>({
   },
 
   onShow() {
-    this.refreshSessionReturn()
+    this.refreshSessionReturn([])
     void this.syncAuthState()
     if (!this.data.loading && Date.now() - this.data.lastLoadedAt > 45000) {
       void this.loadHomePage()
     }
   },
 
-  refreshSessionReturn() {
+  refreshSessionReturn(items = [] as ManagedSessionMomentSummary[]) {
+    const activeSummaries = items.filter(isActiveSummary)
+    const sessionReturn = activeSummaries.length === 1
+      ? buildSessionReturnFromHistory(activeSummaries.map((item) => ({
+        meta: item.stateText || item.status || '回到记录页继续拍照',
+        name: normalizeAlbumTitle(item.title, item.sessionName, 0),
+        role: 'member',
+        sessionId: item.sessionId,
+        status: item.status || item.state || item.stateText,
+      })))
+      : EMPTY_SESSION_RETURN
     this.setData({
-      sessionReturn: buildSessionReturnFromRuntime(getSessionRuntime()),
+      activeSessionCount: activeSummaries.length,
+      continueRecordLabel: buildContinueRecordLabel(activeSummaries.length),
+      sessionReturn,
     })
   },
 
@@ -319,12 +317,12 @@ Page<HomePageState, HomePageMethods>({
       const token = getUserSessionToken()
       if (token) {
         const session = await getUserAuthSession().catch(() => ({ loggedIn: false, profile: null }))
-        if (session.loggedIn && session.profile?.wechatOpenId) {
+        if (session.loggedIn && session.profile?.id) {
           albumSummaries = await getManagedSessionMomentSummaries()
         }
       }
       const home = await homePromise
-      const recentAlbums = await mapRecentAlbumsFromSummaries(albumSummaries)
+      const recentAlbums = mapRecentAlbumsFromSummaries(albumSummaries)
       this.setData({
         home: {
           ...home,
@@ -336,6 +334,7 @@ Page<HomePageState, HomePageMethods>({
         lastLoadedAt: Date.now(),
         loading: false,
       })
+      this.refreshSessionReturn(albumSummaries)
     } catch {
       this.setData({
         home: {
@@ -356,7 +355,7 @@ Page<HomePageState, HomePageMethods>({
     const profile = session.profile || currentProfile
     const name = normalizeName(profile?.name)
     const avatarUrl = normalizeAvatar(profile?.avatarUrl)
-    const loggedIn = Boolean(session.loggedIn && session.profile?.wechatOpenId)
+    const loggedIn = Boolean(session.loggedIn && session.profile?.id)
     const commerceState = loggedIn ? await getUserCommerceState().catch(() => null) : null
     const signInState = commerceState?.taskClaimStates?.['task-signin']
     this.setData({
@@ -434,7 +433,7 @@ Page<HomePageState, HomePageMethods>({
 
   async handlePrimaryTap() {
     const session = await getUserAuthSession().catch(() => ({ loggedIn: false, profile: null }))
-    if (!session.loggedIn || !session.profile?.wechatOpenId) {
+    if (!session.loggedIn || !session.profile?.id) {
       this.setData({ authPanelVisible: true, authRedirectUrl: '/pages/create-session/index' })
       return
     }
@@ -442,11 +441,15 @@ Page<HomePageState, HomePageMethods>({
   },
 
   handleContinueRecordTap() {
+    if (this.data.activeSessionCount > 1) {
+      wx.navigateTo({ url: '/pages/album/index?mode=joined' })
+      return
+    }
     if (this.data.sessionReturn.visible) {
       openSessionReturn(this.data.sessionReturn)
       return
     }
-    wx.navigateTo({ url: '/pages/album/index?mode=joined' })
+    this.announcePreview('暂无进行中聚会')
   },
 
   handleAlbumListTap() {
@@ -581,6 +584,10 @@ Page<HomePageState, HomePageMethods>({
   },
 
   handleSessionReturnOpen() {
+    if (!this.data.sessionReturn.visible) {
+      this.announcePreview('暂无进行中聚会')
+      return
+    }
     openSessionReturn(this.data.sessionReturn)
   },
 
@@ -592,9 +599,9 @@ Page<HomePageState, HomePageMethods>({
       const profile = await ensureUserAuthorized(target)
       if (!profile) return
     }
-    wx.navigateTo({
+    wx.redirectTo({
       url: target,
-      fail: () => wx.redirectTo({ url: target }),
+      fail: () => wx.reLaunch({ url: target }),
     })
   },
 

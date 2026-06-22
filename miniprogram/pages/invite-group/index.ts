@@ -1,9 +1,11 @@
 import { getManagedLiveSession, type ManagedLiveSession } from '../../services/operations'
+import { normalizeManagedAvatarPath } from '../../config/assets'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 import { confirmAndExitSession, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface InviteAvatarSlot {
+  avatarBroken: boolean
   avatarUrl: string
   filled: boolean
   id: string
@@ -31,6 +33,7 @@ interface InviteGroupState {
 interface InviteGroupMethods {
   handleBackTap: () => Promise<void>
   handleCopyTap: () => void
+  handleAvatarError: (event: WechatMiniprogram.BaseEvent) => void
   handleNextTap: () => void
   handlePreviewTap: () => void
   handleRefreshTap: () => Promise<void>
@@ -53,6 +56,8 @@ const cleanDisplayName = (value?: string, fallback = '好友') => {
 
 const getInitial = (name: string) => cleanDisplayName(name, '友').slice(0, 1) || '友'
 
+const normalizeInviteAvatar = (value?: string) => normalizeManagedAvatarPath(value)
+
 const buildJoinStatusText = (joinedCount: number, playerCount: number) => {
   if (joinedCount > 0 && playerCount > 0) {
     return `${joinedCount}/${playerCount} 位好友已加入`
@@ -69,7 +74,8 @@ const buildAvatarSlots = (players: InviteSlotPlayer[] = [], playerCount = 0): In
     const player = players[index]
     const name = cleanDisplayName(player?.name, player ? `好友 ${index + 1}` : '待加入')
     return {
-      avatarUrl: player?.avatarUrl || '',
+      avatarBroken: false,
+      avatarUrl: normalizeInviteAvatar(player?.avatarUrl),
       filled: Boolean(player),
       id: player?.profileId || `invite-slot-${index + 1}`,
       initial: player ? getInitial(name) : '',
@@ -93,18 +99,30 @@ Page<InviteGroupState, InviteGroupMethods>({
   async onLoad(query) {
     const runtime = getSessionRuntime()
     const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
-    const profile = await ensureUserAuthorized(`/pages/invite-group/index${sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : ''}`)
+    const inviteCode = typeof query?.inviteCode === 'string' ? decodeURIComponent(query.inviteCode) : runtime.inviteCode || ''
+    if (sessionId || inviteCode) {
+      this.setData({
+        inviteCode,
+        sessionId,
+        joinStatusText: inviteCode ? '邀请已准备好' : this.data.joinStatusText,
+      })
+    }
+    const redirectQuery = [
+      sessionId ? `sessionId=${encodeURIComponent(sessionId)}` : '',
+      inviteCode ? `inviteCode=${encodeURIComponent(inviteCode)}` : '',
+    ].filter(Boolean).join('&')
+    const profile = await ensureUserAuthorized(`/pages/invite-group/index${redirectQuery ? `?${redirectQuery}` : ''}`)
     if (!profile) return
 
     try {
-      await this.hydrateLiveSession(sessionId, runtime.inviteCode)
+      await this.hydrateLiveSession(sessionId, inviteCode)
       enableSessionLeaveAlert()
     } catch {
       const playerCount = runtime.playerCount || 0
       const selectedPlayers = runtime.selectedPlayers || []
       this.setData({
         avatarSlots: buildAvatarSlots(selectedPlayers, playerCount),
-        inviteCode: runtime.inviteCode || '',
+        inviteCode,
         joinedCount: selectedPlayers.length,
         playerCount,
         sessionId,
@@ -153,6 +171,16 @@ Page<InviteGroupState, InviteGroupMethods>({
       path: `/pages/index/index?inviteCode=${encodeURIComponent(this.data.inviteCode)}&sessionId=${encodeURIComponent(this.data.sessionId)}`,
       imageUrl: this.data.shareCardImagePath || SHARE_CARD_FALLBACK_ASSET,
     }
+  },
+
+  handleAvatarError(event) {
+    const { id } = event.currentTarget.dataset as { id?: string }
+    if (!id) {
+      return
+    }
+    this.setData({
+      avatarSlots: this.data.avatarSlots.map((item) => (item.id === id ? { ...item, avatarBroken: true } : item)),
+    })
   },
 
   generateShareCardImage() {

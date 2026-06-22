@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
+const http = require('http');
 const path = require('path');
+const childProcess = require('child_process');
 const automator = require('miniprogram-automator');
+const WebSocket = require('ws');
 
 const DEFAULT_PORT = 9420;
 const DEFAULT_CLI = 'D:\\wechatkaifa\\微信web开发者工具\\cli.bat';
@@ -57,22 +60,195 @@ function pick(obj, keys) {
   return result;
 }
 
+function requestText(url) {
+  return new Promise((resolve, reject) => {
+    const request = http.get(url, { timeout: 5000 }, (response) => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => {
+        body += chunk;
+      });
+      response.on('end', () => {
+        resolve({
+          body,
+          headers: response.headers,
+          statusCode: response.statusCode || 0,
+          url,
+        });
+      });
+    });
+    request.on('error', reject);
+    request.on('timeout', () => {
+      request.destroy(new Error(`Timed out requesting ${url}`));
+    });
+  });
+}
+
+function parseTicket(body) {
+  try {
+    const parsed = JSON.parse(body);
+    return typeof parsed === 'string' ? parsed : '';
+  } catch {
+    return String(body || '').replace(/^"|"$/g, '').trim();
+  }
+}
+
+function createProtocolError(message, details) {
+  const error = new Error(message);
+  error.protocol = details;
+  return error;
+}
+
+function probeWebSocket(url) {
+  return new Promise((resolve) => {
+    const ws = new WebSocket(url);
+    const result = { url, ok: false };
+    const timeout = setTimeout(() => {
+      result.event = 'timeout';
+      try {
+        ws.terminate();
+      } catch {}
+      resolve(result);
+    }, 2500);
+
+    ws.on('open', () => {
+      result.ok = true;
+      result.event = 'open';
+      ws.send(JSON.stringify({ id: 'probe-1', method: 'Tool.getInfo', params: {} }));
+      const replyTimeout = setTimeout(() => {
+        result.event = 'open-no-tool-reply';
+        try {
+          ws.close();
+        } catch {}
+        resolve(result);
+      }, 2500);
+      ws.on('message', (message) => {
+        clearTimeout(replyTimeout);
+        result.event = 'tool-reply';
+        result.message = String(message).slice(0, 300);
+        try {
+          ws.close();
+        } catch {}
+        resolve(result);
+      });
+    });
+
+    ws.on('unexpected-response', (_request, response) => {
+      clearTimeout(timeout);
+      result.event = 'unexpected-response';
+      result.statusCode = response.statusCode;
+      result.location = response.headers && response.headers.location;
+      resolve(result);
+    });
+
+    ws.on('error', (error) => {
+      clearTimeout(timeout);
+      result.event = 'error';
+      result.message = error.message;
+      resolve(result);
+    });
+  });
+}
+
+async function probeV2Auto(options, connectError) {
+  const encodedProject = encodeURIComponent(options.projectPath);
+  const v2Url = `http://127.0.0.1:${options.port}/v2/auto?project=${encodedProject}`;
+  let response;
+  try {
+    response = await requestText(v2Url);
+  } catch (error) {
+    throw createProtocolError(
+      `${connectError.message}. /v2/auto probe failed: ${error.message}`,
+      {
+        mode: 'v2-auto-probe-failed',
+        oldWebSocketError: connectError.message,
+        v2Url,
+        probeError: error.message,
+      },
+    );
+  }
+
+  const ticket = response.statusCode === 200 ? parseTicket(response.body) : '';
+  const protocol = {
+    mode: ticket ? 'v2-auto-ticket-only' : 'v2-auto-unusable',
+    oldWebSocketError: connectError.message,
+    v2Auto: {
+      body: response.body.slice(0, 200),
+      statusCode: response.statusCode,
+      url: v2Url,
+    },
+    ticket,
+    webSocketCandidates: [],
+  };
+
+  if (!ticket) {
+    throw createProtocolError(
+      `${connectError.message}. /v2/auto did not return a usable ticket.`,
+      protocol,
+    );
+  }
+
+  const candidates = [
+    `ws://127.0.0.1:${options.port}/v2/auto?project=${encodedProject}&ticket=${encodeURIComponent(ticket)}`,
+    `ws://127.0.0.1:${options.port}/v2/auto?ticket=${encodeURIComponent(ticket)}`,
+    `ws://127.0.0.1:${options.port}/auto?ticket=${encodeURIComponent(ticket)}`,
+    `ws://127.0.0.1:${options.port}/?ticket=${encodeURIComponent(ticket)}`,
+  ];
+
+  for (const endpoint of candidates) {
+    const probe = await probeWebSocket(endpoint);
+    protocol.webSocketCandidates.push(probe);
+    if (probe.ok && probe.event === 'tool-reply') {
+      try {
+        return await automator.connect({ wsEndpoint: endpoint });
+      } catch (error) {
+        protocol.mappedWebSocketError = error.message;
+      }
+    }
+  }
+
+  throw createProtocolError(
+    `${connectError.message}. /v2/auto returned a ticket, but no candidate WebSocket exposed currentPage/storage/screenshot/tap automation.`,
+    protocol,
+  );
+}
+
+async function launchDevTools(options) {
+  if (!fs.existsSync(options.cliPath)) {
+    throw new Error(`WeChat DevTools CLI not found: ${options.cliPath}`);
+  }
+  childProcess.spawn(
+    options.cliPath,
+    ['auto', '--project', options.projectPath, '--port', String(options.port), '--trust-project'],
+    {
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    },
+  ).unref();
+}
+
 async function connectOrLaunch(options) {
   const endpoint = `ws://127.0.0.1:${options.port}`;
   try {
     return await automator.connect({ wsEndpoint: endpoint });
   } catch (connectError) {
     if (!options.launch) {
-      connectError.message = `${connectError.message}. If DevTools automation is not running, retry with --launch.`;
-      throw connectError;
+      return await probeV2Auto(options, connectError);
     }
-    return await automator.launch({
-      cliPath: options.cliPath,
-      projectPath: options.projectPath,
-      port: options.port,
-      timeout: options.timeout,
-      trustProject: true,
-    });
+
+    try {
+      await launchDevTools(options);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      return await automator.connect({ wsEndpoint: endpoint });
+    } catch (launchError) {
+      try {
+        return await probeV2Auto(options, connectError);
+      } catch (probeError) {
+        probeError.launchError = launchError.message;
+        throw probeError;
+      }
+    }
   }
 }
 
@@ -223,6 +399,16 @@ async function run() {
 }
 
 run().catch((error) => {
+  if (error && error.protocol) {
+    process.stdout.write(`${JSON.stringify({
+      ok: false,
+      command: (process.argv.slice(2).find((item) => !item.startsWith('--')) || 'status'),
+      error: error.message,
+      launchError: error.launchError,
+      protocol: error.protocol,
+    }, null, 2)}\n`);
+    process.exit(1);
+  }
   process.stderr.write(`${error && error.stack ? error.stack : error}\n`);
   process.exit(1);
 });

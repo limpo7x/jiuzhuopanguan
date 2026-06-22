@@ -3,12 +3,13 @@
   back="{{true}}"
   customBack="{{true}}"
   bind:back="handleBackTap"
-  color="#111827"
-  background="rgba(255,255,252,0.96)"
+  color="#fff2dd"
+  background="rgba(18,16,14,0.72)"
   ext-class="invite-nav"
 ></navigation-bar>
 
 <view class="invite-page invite-redesign">
+  <image class="invite-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="invite-scroll invite-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="invite-hero">
       <text class="invite-title">邀请好友</text>
@@ -31,7 +32,7 @@
             wx:key="id"
             class="invite-avatar-slot {{item.filled ? 'invite-avatar-slot-filled' : ''}}"
           >
-            <image wx:if="{{item.avatarUrl}}" class="invite-avatar-image" src="{{item.avatarUrl}}" mode="aspectFill"></image>
+            <image wx:if="{{item.avatarUrl && !item.avatarBroken}}" class="invite-avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" data-id="{{item.id}}" binderror="handleAvatarError"></image>
             <text wx:elif="{{item.filled}}" class="invite-avatar-initial">{{item.initial}}</text>
             <text wx:else class="invite-avatar-empty">+</text>
           </view>

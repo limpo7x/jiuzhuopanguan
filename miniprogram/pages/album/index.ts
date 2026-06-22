@@ -1,6 +1,8 @@
 import {
+  getManagedShareImageSummaries,
   getManagedSessionBrief,
   getManagedSessionMomentSummaries,
+  type ManagedShareImageSummary,
   type ManagedSessionBrief,
   type ManagedSessionMomentSummary,
   type ManagedTimelineNode,
@@ -14,37 +16,50 @@ interface AlbumItem {
   sessionId: string
   shareImageUrl: string
   shareImageTaskId: string
+  stateType: 'ended' | 'ongoing'
   statusText: string
   title: string
 }
 
 interface AlbumPageState {
+  activeRecordFilter: string
   emptyText: string
+  endedItems: AlbumItem[]
+  headerActionStyle: string
   items: AlbumItem[]
+  ongoingCount: number
+  ongoingItems: AlbumItem[]
+  endedCount: number
+  isShareMode: boolean
   loading: boolean
   mode: string
   pageTitle: string
+  totalCount: number
 }
 
 interface AlbumPageMethods {
   handleBackTap: () => void
+  handleBottomTabTap: (event: WechatMiniprogram.BaseEvent) => void
   handleCreateTap: () => void
   handleCoverError: (event: WechatMiniprogram.BaseEvent) => void
   handleCoverLoad: (event: WechatMiniprogram.BaseEvent) => void
+  handleFilterTap: (event: WechatMiniprogram.BaseEvent) => void
   handleItemTap: (event: WechatMiniprogram.BaseEvent) => void
   handleRefreshTap: () => Promise<void>
   loadAlbums: () => Promise<void>
   openPage: (url: string) => void
+  updateHeaderActionStyle: () => void
 }
 
 const internalAlbumTitlePattern = /^(IT|PR|QA|DEV|TEST)[-_ ][A-Z0-9_-]+(?:\s+(opening|highlight|drinking|private|closing))?$/i
 const internalSeedPattern = /(IT-MOMENTS|PR-BE-DB-LOGIN-SEED|PR[-_ ]Seed|QA[-_ ]Seed|DEV[-_ ]Seed|TEST[-_ ]Seed)/i
+const legacyCoverPattern = /(jiuzhuopanguan|wine|judge|panguan|share[-_]?poster|share[-_]?preview|status-bg|title-image|result-report|table-mode|judge-wheel)/i
 
 const modeTitleMap: Record<string, string> = {
   album: '聚会记录',
-  ended: '已结束聚会',
-  host: '我创建的聚会',
-  joined: '我参与的聚会',
+  ended: '已结束',
+  host: '我的聚会',
+  joined: '参与聚会',
   records: '聚会记录',
   shares: '分享图',
   unshared: '待分享回忆',
@@ -73,6 +88,14 @@ const normalizeMode = (value?: string) => {
   return modeTitleMap[text] ? text : 'album'
 }
 
+const normalizeRecordFilter = (value?: string, mode = '') => {
+  const text = String(value || '').trim()
+  if (text === 'ongoing' || text === 'ended' || text === 'all') return text
+  if (mode === 'ended') return 'ended'
+  if (mode === 'unshared') return 'ongoing'
+  return 'all'
+}
+
 const normalizeTitle = (title?: string, sessionName?: string, index = 0) => {
   const rawTitle = String(title || '').trim()
   const rawSessionName = String(sessionName || '').trim()
@@ -93,6 +116,8 @@ const normalizeAlbumMetaText = (value?: string) => {
   }
   return text
 }
+
+const shouldQuarantineRecordCover = (value?: string) => legacyCoverPattern.test(String(value || ''))
 
 const isMomentNodeWithImage = (node: ManagedTimelineNode): node is Extract<ManagedTimelineNode, { nodeKind: 'moment' }> =>
   node.nodeKind === 'moment' && !node.isTimelinePlaceholder && !!node.imageUrl
@@ -148,7 +173,7 @@ const buildMeta = (item: ManagedSessionMomentSummary, timeText = '') => {
 
 const isEndedSessionSummary = (item: ManagedSessionMomentSummary) => {
   const stateText = `${item.state || ''} ${item.status || ''} ${item.stateText || ''}`.trim()
-  return Boolean(item.endedAt) || /已结束|结束|已完成|ended|finished|closed/i.test(stateText)
+  return Boolean(item.endedAt) || /已结束|结束|已完成|ended|finished|closed|complete|completed|done/i.test(stateText)
 }
 
 const hasGeneratedShareImage = (item: ManagedSessionMomentSummary) => Boolean(item.readyShareImageUrl || item.shareImageUrl)
@@ -170,6 +195,18 @@ const filterSummariesByMode = (items: ManagedSessionMomentSummary[], mode: strin
   }
 }
 
+const filterSummariesByRecordFilter = (items: ManagedSessionMomentSummary[], filter: string) => {
+  switch (filter) {
+    case 'ended':
+      return items.filter(isEndedSessionSummary)
+    case 'ongoing':
+      return items.filter((item) => !isEndedSessionSummary(item))
+    case 'all':
+    default:
+      return items
+  }
+}
+
 const mapAlbumItem = async (item: ManagedSessionMomentSummary, index: number): Promise<AlbumItem> => {
   let firstPhotoUrl = ''
   let timeText = formatAlbumTime(item.createdAt)
@@ -184,35 +221,83 @@ const mapAlbumItem = async (item: ManagedSessionMomentSummary, index: number): P
   }
   const shareImageUrl = item.readyShareImageUrl || item.shareImageUrl || ''
   firstPhotoUrl = firstPhotoUrl || item.coverPhotoUrl || ''
+  const coverUrl = shouldQuarantineRecordCover(firstPhotoUrl) ? '' : firstPhotoUrl
   return {
     briefId: item.briefId || '',
-    coverUrl: firstPhotoUrl || '',
+    coverUrl,
     meta: buildMeta(item, timeText),
     sessionId: item.sessionId || '',
     shareImageUrl,
     shareImageTaskId: item.shareImageTaskId || '',
+    stateType: isEndedSessionSummary(item) ? 'ended' : 'ongoing',
     statusText: buildStatusText(item),
     title: normalizeTitle(item.title, item.sessionName, index),
   }
 }
 
+const mapShareImageSummaryItem = (item: ManagedShareImageSummary, index: number): AlbumItem => ({
+  briefId: item.briefId || '',
+  coverUrl: '',
+  meta: formatAlbumTime(item.finishedAt || item.updatedAt || item.createdAt) || '分享图已生成',
+  sessionId: item.sessionId || '',
+  shareImageUrl: item.readyShareImageUrl || item.imageUrl || '',
+  shareImageTaskId: item.id || '',
+  stateType: 'ended',
+  statusText: '分享图已生成',
+  title: normalizeTitle(item.sessionName, item.sessionName, index),
+})
+
+const buildHeaderActionStyle = () => {
+  try {
+    const rect = wx.getMenuButtonBoundingClientRect()
+    const system = wx.getSystemInfoSync()
+    const windowWidth = Number(system.windowWidth || 375)
+    const menuTop = Number(rect.top || Number(system.statusBarHeight || 0) + 4)
+    const menuHeight = Number(rect.height || 32)
+    const menuLeft = Number(rect.left || windowWidth - 96)
+    const capsuleReserveWidth = Math.max(88, windowWidth - menuLeft)
+    const size = Math.max(32, Math.min(40, menuHeight))
+    const top = menuTop + Math.max(0, (menuHeight - size) / 2)
+    const right = capsuleReserveWidth + 12
+    return `position: fixed; top: ${top}px; right: ${right}px; width: ${size}px; height: ${size}px;`
+  } catch {
+    return ''
+  }
+}
+
 Page<AlbumPageState, AlbumPageMethods>({
   data: {
+    activeRecordFilter: 'all',
     emptyText: modeEmptyMap.album,
+    endedCount: 0,
+    endedItems: [],
+    headerActionStyle: '',
     items: [],
+    isShareMode: false,
     loading: true,
     mode: 'album',
+    ongoingCount: 0,
+    ongoingItems: [],
     pageTitle: modeTitleMap.album,
+    totalCount: 0,
   },
 
   onLoad(query) {
+    this.updateHeaderActionStyle()
     const mode = normalizeMode(typeof query?.mode === 'string' ? query.mode : '')
+    const activeRecordFilter = normalizeRecordFilter(typeof query?.filter === 'string' ? query.filter : '', mode)
     this.setData({
+      activeRecordFilter,
       emptyText: modeEmptyMap[mode],
+      isShareMode: mode === 'shares',
       mode,
       pageTitle: modeTitleMap[mode],
     })
     void this.loadAlbums()
+  },
+
+  onShow() {
+    this.updateHeaderActionStyle()
   },
 
   onPullDownRefresh() {
@@ -230,6 +315,22 @@ Page<AlbumPageState, AlbumPageMethods>({
     })
   },
 
+  handleBottomTabTap(event) {
+    const { tab } = event.currentTarget.dataset as { tab?: string }
+    const routeMap: Record<string, string> = {
+      home: '/pages/index/index',
+      me: '/pages/me/index',
+      rankings: '/pages/rankings/index',
+      tools: '/pages/tools/index',
+    }
+    const url = routeMap[String(tab || '')]
+    if (!url) return
+    wx.redirectTo({
+      url,
+      fail: () => wx.reLaunch({ url }),
+    })
+  },
+
   async handleRefreshTap() {
     await this.loadAlbums()
   },
@@ -237,11 +338,42 @@ Page<AlbumPageState, AlbumPageMethods>({
   async loadAlbums() {
     this.setData({ loading: true })
     try {
+      if (this.data.mode === 'shares') {
+        let items: AlbumItem[] = []
+        try {
+          const shareImages = await getManagedShareImageSummaries()
+          items = shareImages.map(mapShareImageSummaryItem)
+        } catch (error) {
+          console.warn('[album] failed to load share image summaries, fallback to session summaries', error)
+          const summaries = await getManagedSessionMomentSummaries()
+          items = await Promise.all(filterSummariesByMode(summaries, 'shares').map(mapAlbumItem))
+        }
+        this.setData({
+          endedCount: items.length,
+          endedItems: items,
+          items,
+          ongoingItems: [],
+          ongoingCount: 0,
+          totalCount: items.length,
+          loading: false,
+        })
+        return
+      }
       const summaries = await getManagedSessionMomentSummaries()
-      const filteredSummaries = filterSummariesByMode(summaries, this.data.mode)
+      const baseSummaries = filterSummariesByMode(summaries, this.data.mode)
+      const filteredSummaries = this.data.mode === 'records' || this.data.mode === 'album'
+        ? filterSummariesByRecordFilter(baseSummaries, this.data.activeRecordFilter)
+        : baseSummaries
       const items = await Promise.all(filteredSummaries.map(mapAlbumItem))
+      const allRecordItems = await Promise.all(filterSummariesByMode(summaries, 'records').map(mapAlbumItem))
+      const groupedItems = this.data.mode === 'records' || this.data.mode === 'album' ? allRecordItems : items
       this.setData({
+        endedCount: summaries.filter(isEndedSessionSummary).length,
+        endedItems: groupedItems.filter((item) => item.stateType === 'ended'),
         items,
+        ongoingItems: groupedItems.filter((item) => item.stateType !== 'ended'),
+        ongoingCount: summaries.filter((item) => !isEndedSessionSummary(item)).length,
+        totalCount: items.length,
         loading: false,
       })
     } catch (error) {
@@ -250,14 +382,39 @@ Page<AlbumPageState, AlbumPageMethods>({
     }
   },
 
+  handleFilterTap(event) {
+    const { filter } = event.currentTarget.dataset as { filter?: string }
+    if (!filter || filter === this.data.activeRecordFilter) return
+    this.setData({ activeRecordFilter: filter })
+    void this.loadAlbums()
+  },
+
   handleItemTap(event) {
-    const { sessionId, shareImageUrl } = event.currentTarget.dataset as { sessionId?: string; shareImageUrl?: string }
+    const { briefId, sessionId, shareImageUrl, stateType } = event.currentTarget.dataset as {
+      briefId?: string
+      sessionId?: string
+      shareImageUrl?: string
+      stateType?: 'ended' | 'ongoing'
+    }
     if (this.data.mode === 'shares') {
       if (shareImageUrl) {
         wx.previewImage({ current: shareImageUrl, urls: [shareImageUrl] })
         return
       }
       wx.showToast({ title: '分享图还未生成', icon: 'none' })
+      return
+    }
+    if (stateType === 'ended') {
+      const query = briefId
+        ? `briefId=${encodeURIComponent(briefId)}`
+        : sessionId
+          ? `sessionId=${encodeURIComponent(sessionId)}`
+          : ''
+      if (query) {
+        this.openPage(`/pages/session-brief/index?${query}`)
+        return
+      }
+      wx.showToast({ title: '缺少已结束聚会信息', icon: 'none' })
       return
     }
     if (sessionId) {
@@ -295,6 +452,10 @@ Page<AlbumPageState, AlbumPageMethods>({
 
   openPage(url) {
     wx.navigateTo({ url, fail: () => wx.redirectTo({ url }) })
+  },
+
+  updateHeaderActionStyle() {
+    this.setData({ headerActionStyle: buildHeaderActionStyle() })
   },
 })
 

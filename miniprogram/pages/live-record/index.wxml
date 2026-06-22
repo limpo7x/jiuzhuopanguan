@@ -15,9 +15,6 @@
       <image class="live-record008as-hero-bg" src="/pages/live-record/assets/pr-cs008ar-hero-bg-750x420.jpg" mode="aspectFill"></image>
       <view class="live-record008as-hero-shade"></view>
       <view class="live-record008as-hero-top">
-        <view class="live-record008as-status">
-          <text>进行中</text>
-        </view>
         <view class="live-record008as-tools">
           <view class="live-record008as-tool-btn" bindtap="handleRefreshTap">
             <image class="live-record008as-tool-bg" src="/pages/live-record/assets/pr-cs008ar-circle-tool-btn.png" mode="aspectFit"></image>
@@ -40,6 +37,9 @@
           <text>{{startTimeText}}</text>
         </view>
         <text class="live-record008as-elapsed">{{elapsedText}}</text>
+      </view>
+      <view class="live-record008as-status">
+        <text>进行中</text>
       </view>
     </view>
 
@@ -96,6 +96,7 @@
               </view>
               <view class="live-record-ledger-chip" wx:else>
                 <image class="live-record-ledger-chip-bg" src="{{item.chipAsset}}" mode="scaleToFill"></image>
+                <text class="live-record-ledger-chip-text">{{item.chipText}}</text>
               </view>
               <view class="live-record-timeline-copy">
                 <text class="live-record-timeline-time">{{item.timeText}}</text>

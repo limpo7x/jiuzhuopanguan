@@ -35,6 +35,7 @@ interface ToolsPageMethods {
   handleCategoryTap: (event: WechatMiniprogram.BaseEvent) => void
   handleSearchInput: (event: WechatMiniprogram.Input) => void
   handleSearchClear: () => void
+  handleFeatureZoneTap: (event: WechatMiniprogram.BaseEvent) => void
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
   handleToolTap: (event: WechatMiniprogram.BaseEvent) => void
   loadCatalog: () => Promise<void>
@@ -44,6 +45,7 @@ interface ToolsPageMethods {
 const TAB_ROUTES: Record<string, string> = {
   home: '/pages/index/index',
   tools: '/pages/tools/index',
+  rankings: '/pages/rankings/index',
   judge: '/pages/ledger/index',
   me: '/pages/me/index',
 }
@@ -182,6 +184,14 @@ Page<ToolsPageState, ToolsPageMethods>({
         this.applyFilters()
       },
     )
+  },
+
+  handleFeatureZoneTap(event) {
+    const { zone } = event.currentTarget.dataset as { zone?: string }
+    if (!zone) {
+      return
+    }
+    this.openPage(`/pages/feature-zones/index?zone=${encodeURIComponent(zone)}`)
   },
 
   handleTabTap(event) {

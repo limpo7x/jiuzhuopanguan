@@ -35,6 +35,11 @@ const createDefaultCommerce = () => ({
   ownedRewardIds: [],
   pointsLedger: [],
   rewardRedemptions: [],
+  favoriteToolIds: [],
+  usageRecords: [],
+  benefitUsages: [],
+  inviteRewardClaims: [],
+  templateUsageRecords: [],
   templateUnlockProgress: {},
   templateUnlockRequiredViews: 0,
   unlockedTemplateIds: [],
@@ -208,6 +213,33 @@ const normalizeCommerce = (commerce = {}) => ({
     cost: Number(item?.cost) || 0,
     createdAt: cleanText(item?.createdAt),
   })).filter((item) => item.id || item.rewardId),
+  favoriteToolIds: cleanArray(commerce?.favoriteToolIds).map((item) => String(item)).filter(Boolean),
+  usageRecords: cleanArray(commerce?.usageRecords).map((item) => ({
+    id: cleanText(item?.id),
+    toolId: cleanText(item?.toolId),
+    name: cleanText(item?.name),
+    category: cleanText(item?.category),
+    usedAt: cleanText(item?.usedAt),
+  })).filter((item) => item.id || item.toolId),
+  benefitUsages: cleanArray(commerce?.benefitUsages).map((item) => ({
+    id: cleanText(item?.id),
+    benefitId: cleanText(item?.benefitId),
+    name: cleanText(item?.name),
+    usedAt: cleanText(item?.usedAt),
+  })).filter((item) => item.id || item.benefitId),
+  inviteRewardClaims: cleanArray(commerce?.inviteRewardClaims).map((item) => ({
+    id: cleanText(item?.id),
+    inviteCode: cleanText(item?.inviteCode),
+    sessionId: cleanText(item?.sessionId),
+    points: Number(item?.points) || 0,
+    claimedAt: cleanText(item?.claimedAt),
+  })).filter((item) => item.id || item.inviteCode || item.sessionId),
+  templateUsageRecords: cleanArray(commerce?.templateUsageRecords).map((item) => ({
+    id: cleanText(item?.id),
+    templateId: cleanText(item?.templateId),
+    title: cleanText(item?.title),
+    usedAt: cleanText(item?.usedAt),
+  })).filter((item) => item.id || item.templateId),
   templateUnlockProgress: isObject(commerce?.templateUnlockProgress)
     ? Object.entries(commerce.templateUnlockProgress).reduce((accumulator, [key, value]) => {
         accumulator[cleanText(key)] = Math.max(0, Number(value) || 0)

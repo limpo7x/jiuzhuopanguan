@@ -840,7 +840,7 @@ page {
 
 .live-segment-tabs {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   height: 44px;
   margin-bottom: 18px;
   padding: 3px;
@@ -1536,11 +1536,11 @@ page {
   position: absolute;
   top: 16px;
   right: 16px;
-  left: 72px;
+  left: auto;
   z-index: 4;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 10px;
   min-height: 42px;
   padding: 0;
@@ -1550,7 +1550,7 @@ page {
 
 @media (max-width: 360px) {
   .live-record008as-hero-top {
-    left: 64px;
+    left: auto;
     right: 12px;
     gap: 8px;
   }
@@ -1579,6 +1579,7 @@ page {
   align-items: center;
   justify-content: center;
   margin-left: 0;
+  margin: 8px auto 0;
   padding: 0 16px;
   border: 1px solid rgba(255, 229, 166, 0.42);
   border-radius: 999px;
@@ -1700,7 +1701,7 @@ page {
 .live-record008as-page .live-segment-tabs {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: center;
   min-height: 72px;
   margin: 0 0 2px;
@@ -1930,7 +1931,18 @@ page {
 }
 
 .live-record008as-page .live-record-ledger-chip-text {
-  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff7d7;
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 950;
+  text-shadow: 0 2px 8px rgba(42, 13, 4, 0.7);
+  white-space: nowrap;
 }
 
 .live-record008as-page .live-record-timeline-copy {

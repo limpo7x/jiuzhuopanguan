@@ -1,12 +1,13 @@
 <navigation-bar
   title="创建聚会"
   back="{{true}}"
-  color="#111827"
-  background="rgba(255,255,252,0.96)"
+  color="#fff2dd"
+  background="rgba(18,16,14,0.72)"
   ext-class="create-nav"
 ></navigation-bar>
 
 <view class="create-page create-redesign">
+  <image class="create-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="create-scroll create-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="create-step-line">
       <view class="create-step-pill create-step-pill-active">1 创建</view>

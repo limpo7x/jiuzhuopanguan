@@ -47,6 +47,7 @@ interface MomentEditorState {
   captionPresets: CaptionPreset[]
   clientDraftId: string
   consentItems: MomentConsentItem[]
+  detailMode: boolean
   draftImageFilePath: string
   imageUrl: string
   memberOptions: VisibleMemberOption[]
@@ -57,6 +58,7 @@ interface MomentEditorState {
   selectedVisibleProfileIds: string[]
   sessionId: string
   showVisibleMemberPicker: boolean
+  sourceMomentId: string
   submitLabel: string
   title: string
   uploadError: string
@@ -201,6 +203,7 @@ Page<MomentEditorState, MomentEditorMethods>({
     captionPresets: CAPTION_PRESETS,
     clientDraftId: '',
     consentItems: CONSENT_ITEMS,
+    detailMode: false,
     draftImageFilePath: '',
     imageUrl: '',
     memberOptions: [],
@@ -211,6 +214,7 @@ Page<MomentEditorState, MomentEditorMethods>({
     selectedVisibleProfileIds: [],
     sessionId: '',
     showVisibleMemberPicker: false,
+    sourceMomentId: '',
     submitLabel: '保存照片',
     title: '拍照/上传',
     uploadError: '',
@@ -223,6 +227,8 @@ Page<MomentEditorState, MomentEditorMethods>({
     const runtime = getSessionRuntime()
     const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
     const nodeType = normalizeNodeType(typeof query?.nodeType === 'string' ? decodeURIComponent(query.nodeType) : '')
+    const sourceMomentId = typeof query?.momentId === 'string' ? decodeURIComponent(query.momentId) : ''
+    const detailMode = query?.mode === 'detail' || Boolean(sourceMomentId)
     const requestedVisibility = normalizeVisibility(typeof query?.visibility === 'string' ? decodeURIComponent(query.visibility) : '')
     const visibility = nodeType === 'private' && requestedVisibility === 'session' ? 'selected' : requestedVisibility
     const redirect = `/pages/moment-editor/index?sessionId=${encodeURIComponent(sessionId)}&nodeType=${encodeURIComponent(nodeType)}`
@@ -237,14 +243,28 @@ Page<MomentEditorState, MomentEditorMethods>({
       return
     }
 
+    const storedDetail = wx.getStorageSync('live-record-selected-moment-detail') as {
+      caption?: string
+      imageUrl?: string
+      momentId?: string
+      sessionId?: string
+      title?: string
+    } | undefined
+    const matchedDetail = detailMode && storedDetail?.momentId === sourceMomentId ? storedDetail : null
+
     this.setData({
+      caption: matchedDetail?.caption || '',
       clientDraftId: `moment-${sessionId}-${nodeType}-${Date.now()}`,
+      detailMode,
+      imageUrl: matchedDetail?.imageUrl ? normalizeManagedAssetPath(matchedDetail.imageUrl) || matchedDetail.imageUrl : '',
       nodeOptions: buildNodeOptions(nodeType),
       nodeType,
       sessionId,
       selectedVisibleProfileIds: profile.id ? [profile.id] : [],
       showVisibleMemberPicker: shouldShowVisibleMemberPicker(nodeType, visibility),
-      title: getNodeLabel(nodeType),
+      sourceMomentId,
+      submitLabel: detailMode ? '返回记录' : '保存照片',
+      title: detailMode ? '照片详情' : getNodeLabel(nodeType),
       visibility,
       visibilityOptions: buildVisibilityOptions(visibility),
     })
@@ -319,12 +339,18 @@ Page<MomentEditorState, MomentEditorMethods>({
   },
 
   handleCaptionInput(event) {
+    if (this.data.detailMode) {
+      return
+    }
     this.setData({
       caption: String(event.detail.value || '').slice(0, 80),
     })
   },
 
   handleCaptionPresetTap(event) {
+    if (this.data.detailMode) {
+      return
+    }
     const { text } = event.currentTarget.dataset as { text?: string }
     if (!text) {
       return
@@ -333,6 +359,9 @@ Page<MomentEditorState, MomentEditorMethods>({
   },
 
   handleNodeTypeTap(event) {
+    if (this.data.detailMode) {
+      return
+    }
     const { value } = event.currentTarget.dataset as { value?: string }
     const nodeType = normalizeNodeType(value)
     const visibility = nodeType === 'private' && this.data.visibility === 'session' ? 'selected' : this.data.visibility
@@ -347,6 +376,9 @@ Page<MomentEditorState, MomentEditorMethods>({
   },
 
   handleVisibilityTap(event) {
+    if (this.data.detailMode) {
+      return
+    }
     const { value } = event.currentTarget.dataset as { value?: string }
     const visibility = normalizeVisibility(value)
     this.setData({
@@ -357,6 +389,9 @@ Page<MomentEditorState, MomentEditorMethods>({
   },
 
   handleConsentTap(event) {
+    if (this.data.detailMode) {
+      return
+    }
     const { key } = event.currentTarget.dataset as { key?: ConsentKey }
     if (!key) {
       return
@@ -374,6 +409,9 @@ Page<MomentEditorState, MomentEditorMethods>({
   },
 
   handleMemberTap(event) {
+    if (this.data.detailMode) {
+      return
+    }
     const { profileId } = event.currentTarget.dataset as { profileId?: string }
     if (!profileId) {
       return
@@ -395,6 +433,9 @@ Page<MomentEditorState, MomentEditorMethods>({
   },
 
   handleChooseImage() {
+    if (this.data.detailMode) {
+      return
+    }
     if (this.data.uploading || this.data.saving) {
       return
     }
@@ -509,6 +550,15 @@ Page<MomentEditorState, MomentEditorMethods>({
   },
 
   async handleSubmitTap() {
+    if (this.data.detailMode) {
+      wx.navigateBack({
+        fail: () => {
+          wx.redirectTo({ url: `/pages/live-record/index?sessionId=${encodeURIComponent(this.data.sessionId)}` })
+        },
+      })
+      return
+    }
+
     if (this.data.saving || this.data.uploading) {
       return
     }

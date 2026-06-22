@@ -1,0 +1,11 @@
+<svg width="118" height="36" viewBox="0 0 118 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="badge" x1="10" y1="6" x2="101" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F6C66D"/>
+      <stop offset="1" stop-color="#E0A84B"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="116" height="34" rx="17" fill="rgba(41,30,20,0.72)" stroke="rgba(255,214,149,0.24)"/>
+  <circle cx="18" cy="18" r="5" fill="url(#badge)"/>
+  <text x="30" y="22" fill="#F9DDAF" font-size="14" font-weight="700" font-family="Microsoft YaHei, PingFang SC, sans-serif">待分享回忆</text>
+</svg>

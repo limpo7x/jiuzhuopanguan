@@ -11,6 +11,7 @@ const { putObject, readObjectForRender } = require('./object-storage')
 const storePath = path.join(__dirname, 'moments-store.json')
 const momentsUploadRoot = path.join(__dirname, '..', 'public', 'uploads', 'moments')
 const shareImageOutputRoot = path.join(momentsUploadRoot, 'share-tasks')
+const sharePosterLongBgPath = path.join(__dirname, '..', '..', 'miniprogram', 'assets', 'party-recorder', 'party-recorder-share-long-bg.webp')
 const staticShareMiniappQrCandidates = [
   path.join(__dirname, '..', '..', 'miniprogram', 'assets', 'home', 'share-miniapp-qr.png'),
   path.join(__dirname, '..', '..', 'miniprogram', 'assets', 'share', 'share-poster-miniapp-code.png'),
@@ -21,7 +22,7 @@ const MOMENT_IMAGE_WIDTH = 1800
 const MOMENT_IMAGE_HEIGHT = 1800
 const MOMENT_IMAGE_QUALITY = 84
 const SHARE_IMAGE_WIDTH = 900
-const SHARE_IMAGE_HEIGHT = 1400
+const SHARE_IMAGE_MIN_HEIGHT = 1400
 const DEFAULT_MINI_PROGRAM_QR_URL = '/static/share-miniapp-qr.png'
 
 const IMAGE_MIME_EXTENSION_MAP = {
@@ -995,6 +996,18 @@ const resolveMiniProgramQrDataUri = async (imageUrl = '') => {
   }
 }
 
+const resolveSharePosterBackgroundDataUri = async () => {
+  if (!fs.existsSync(sharePosterLongBgPath)) {
+    return ''
+  }
+  try {
+    const buffer = await sharp(sharePosterLongBgPath).resize({ width: SHARE_IMAGE_WIDTH, height: SHARE_IMAGE_MIN_HEIGHT, fit: 'cover' }).webp({ quality: 82 }).toBuffer()
+    return `data:image/webp;base64,${buffer.toString('base64')}`
+  } catch {
+    return ''
+  }
+}
+
 const getTaskVisibleNodes = (store, task) => {
   const brief = store.sessionBriefs.find((item) => item.id === cleanText(task.briefId))
   if (!brief) {
@@ -1097,8 +1110,9 @@ const renderPosterPhotoWall = (imageDataUris = []) => {
 
 const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null }) => {
   const session = getManagedSessionById(task.sessionId) || {}
-  const imageNodes = nodes.filter((item) => item.nodeKind === 'moment' && item.imageUrl).slice(0, 6)
+  const imageNodes = nodes.filter((item) => item.nodeKind === 'moment' && item.imageUrl)
   const imageDataUris = await Promise.all(imageNodes.map((item) => resolveImageDataUri(item.imageUrl)))
+  const imageDataUriById = new Map(imageNodes.map((item, index) => [item.id, imageDataUris[index]]))
   const visibleImageDataUris = imageDataUris.filter(Boolean)
   const visiblePhotoCount = visibleImageDataUris.length
   const ledgerSummary = ledgerSnapshot?.ledgerSummary || {}
@@ -1109,56 +1123,54 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
   const inviteCode = toPosterSafeText(session.inviteCode || '', '回流查看', 10)
   const sessionTitle = toPosterSafeText(session.name || brief.title, '今晚聚会高光', 16)
   const qrDataUri = await resolveMiniProgramQrDataUri(getMiniProgramQrUrl(task))
-  const ledgerRows = accountingHighlights
-    .slice(0, 4)
-    .map((item, index) => {
-      const x = 80 + index * 185
-      const colors = ['#ff5a3d', '#63dfae', '#ffc75a', '#3c8dff']
-      return `
-        <rect x="${x}" y="656" width="162" height="132" rx="28" fill="#17110d" stroke="${colors[index] || '#fff4de'}" stroke-opacity="0.72" stroke-width="2"/>
-        <text x="${x + 22}" y="696" font-size="21" font-weight="800" fill="#fff4de">${escapeXml(toPosterSafeText(item.label, '账本记录', 7))}</text>
-        <text x="${x + 22}" y="756" font-size="47" font-weight="900" fill="${colors[index] || '#fff4de'}">${Math.max(0, Number(item.value) || 0)}</text>
-        <text x="${x + 116}" y="756" font-size="23" font-weight="800" fill="#fff4de">${escapeXml(toPosterSafeText(item.unit, '条', 2))}</text>
-      `
+  const backgroundDataUri = await resolveSharePosterBackgroundDataUri()
+  const timelineTop = 318
+  const timelineItems = nodes
+    .filter((item) => item.nodeKind === 'event' || item.nodeKind === 'moment')
+    .sort((a, b) => {
+      const left = new Date(a.createdAt || a.updatedAt || 0).getTime() || 0
+      const right = new Date(b.createdAt || b.updatedAt || 0).getTime() || 0
+      return left - right
     })
-    .join('')
-
-  const timelineItems = [
-    ...eventHighlights.map((item) => ({ ...item, nodeKind: 'event-highlight' })),
-    ...nodes.filter((item) => item.nodeKind === 'event'),
-    ...nodes.filter((item) => item.nodeKind === 'moment'),
-  ].slice(0, 3)
   const timelineRows = timelineItems
     .map((item, index) => {
-      const y = 908 + index * 104
+      const y = timelineTop + 82 + index * 126
       const title =
-        item.nodeKind === 'event-highlight'
-          ? toPosterSafeText(item.text, getPosterEventTitle(item), 15)
-          : item.nodeKind === 'event'
+        item.nodeKind === 'event'
             ? getPosterEventTitle(item)
             : getPosterMomentTitle(item)
       const desc =
         item.nodeKind === 'moment'
-          ? '已授权公开照片'
-          : item.nodeKind === 'event-highlight'
-            ? '账本高光'
-            : '聚会账本'
+          ? toPosterSafeText(item.timelineTitle || item.caption || item.uploaderName, '已授权公开照片', 18)
+          : toPosterSafeText(item.caption || item.targetName || item.operatorName, '聚会账本', 18)
+      const toneColor = item.nodeKind === 'moment' ? '#ff6846' : item.eventType === 'drink_add' ? '#63dfae' : '#ffc75a'
+      const imageDataUri = item.nodeKind === 'moment' ? imageDataUriById.get(item.id) : ''
+      const cardCopyX = imageDataUri ? 238 : 164
       return `
-        <rect x="80" y="${y - 48}" width="740" height="82" rx="25" fill="#140f0c" stroke="#fff4de" stroke-opacity="0.16"/>
-        <circle cx="122" cy="${y - 8}" r="18" fill="${index % 2 ? '#63dfae' : '#ff5a3d'}"/>
-        <text x="122" y="${y}" text-anchor="middle" font-size="19" font-weight="900" fill="#090705">${index + 1}</text>
-        <text x="160" y="${y - 14}" font-size="27" font-weight="900" fill="#fff8ec">${escapeXml(title)}</text>
-        <text x="160" y="${y + 19}" font-size="20" font-weight="700" fill="#ffb1a0">${escapeXml(desc)}</text>
-        <text x="780" y="${y + 3}" text-anchor="end" font-size="20" font-weight="800" fill="#fff4de" opacity="0.72">${escapeXml(formatPosterTime(item.createdAt))}</text>
+        <rect x="80" y="${y - 54}" width="740" height="100" rx="26" fill="#17100c" fill-opacity="0.88" stroke="#fff4de" stroke-opacity="0.16"/>
+        <circle cx="122" cy="${y - 4}" r="18" fill="${toneColor}"/>
+        <text x="122" y="${y + 4}" text-anchor="middle" font-size="19" font-weight="900" fill="#090705">${index + 1}</text>
+        ${imageDataUri ? `<rect x="164" y="${y - 38}" width="54" height="54" rx="13" fill="#fff4de"/><clipPath id="timelinePhoto${index}"><rect x="168" y="${y - 34}" width="46" height="46" rx="10"/></clipPath><image href="${imageDataUri}" x="168" y="${y - 34}" width="46" height="46" preserveAspectRatio="xMidYMid slice" clip-path="url(#timelinePhoto${index})"/>` : ''}
+        <text x="${cardCopyX}" y="${y - 13}" font-size="25" font-weight="900" fill="#fff8ec">${escapeXml(trimText(title, 16))}</text>
+        <text x="${cardCopyX}" y="${y + 22}" font-size="19" font-weight="700" fill="#d4bfa8">${escapeXml(trimText(desc, 24))}</text>
+        <text x="780" y="${y + 2}" text-anchor="end" font-size="20" font-weight="800" fill="#fff4de" opacity="0.72">${escapeXml(formatPosterTime(item.createdAt))}</text>
       `
     })
     .join('')
   const summaryText = toPosterSafeText(settlementSummary.text, ledgerCount > 0 ? '聚会账本高光已生成' : '聚会账本还没开始，先记一笔', 34)
-  const photoWall = renderPosterPhotoWall(visibleImageDataUris)
+  const timelineCount = Math.max(1, timelineItems.length)
+  const timelineBottom = timelineTop + 56 + timelineCount * 126
+  const summaryY = timelineBottom + 42
+  const qrY = summaryY + 202
+  const footerY = qrY + 180
+  const height = Math.max(SHARE_IMAGE_MIN_HEIGHT, footerY + 84)
+  const midColor = '#120c09'
   return `
-    <svg xmlns="http://www.w3.org/2000/svg" width="${SHARE_IMAGE_WIDTH}" height="${SHARE_IMAGE_HEIGHT}" viewBox="0 0 ${SHARE_IMAGE_WIDTH} ${SHARE_IMAGE_HEIGHT}" font-family="'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', sans-serif">
+    <svg xmlns="http://www.w3.org/2000/svg" width="${SHARE_IMAGE_WIDTH}" height="${height}" viewBox="0 0 ${SHARE_IMAGE_WIDTH} ${height}" font-family="'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', sans-serif">
       <defs>
         <style>text { font-family: 'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', sans-serif; }</style>
+        <clipPath id="sharePosterHeaderClip"><rect x="0" y="0" width="${SHARE_IMAGE_WIDTH}" height="360"/></clipPath>
+        <clipPath id="sharePosterFooterClip"><rect x="0" y="${Math.max(0, height - 260)}" width="${SHARE_IMAGE_WIDTH}" height="260"/></clipPath>
         <radialGradient id="bgGlow" cx="48%" cy="24%" r="70%">
           <stop offset="0" stop-color="#312016"/>
           <stop offset="0.48" stop-color="#1a100b"/>
@@ -1170,32 +1182,24 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
           <stop offset="1" stop-color="#63dfae"/>
         </linearGradient>
       </defs>
-      <rect width="100%" height="100%" fill="url(#bgGlow)"/>
-      <circle cx="120" cy="160" r="110" fill="#ff5a3d" opacity="0.16"/>
-      <circle cx="812" cy="230" r="142" fill="#63dfae" opacity="0.12"/>
-      <circle cx="720" cy="1120" r="190" fill="#3c8dff" opacity="0.10"/>
-      <rect x="38" y="38" width="824" height="1324" rx="46" fill="#090705" fill-opacity="0.60" stroke="#fff4de" stroke-opacity="0.16"/>
+      <rect width="100%" height="100%" fill="${midColor}"/>
+      ${backgroundDataUri ? `<image href="${backgroundDataUri}" x="0" y="0" width="${SHARE_IMAGE_WIDTH}" height="${SHARE_IMAGE_MIN_HEIGHT}" preserveAspectRatio="xMidYMid slice" clip-path="url(#sharePosterHeaderClip)"/><image href="${backgroundDataUri}" x="0" y="${height - SHARE_IMAGE_MIN_HEIGHT}" width="${SHARE_IMAGE_WIDTH}" height="${SHARE_IMAGE_MIN_HEIGHT}" preserveAspectRatio="xMidYMid slice" clip-path="url(#sharePosterFooterClip)"/>` : '<rect width="100%" height="360" fill="url(#bgGlow)"/>'}
+      <rect x="38" y="38" width="824" height="${height - 76}" rx="46" fill="#090705" fill-opacity="0.48" stroke="#fff4de" stroke-opacity="0.16"/>
       <text x="74" y="128" font-size="54" font-weight="900" fill="#fff8ec">今晚聚会高光</text>
       <rect x="74" y="154" width="290" height="12" rx="6" fill="url(#coralLine)"/>
       <text x="74" y="204" font-size="27" font-weight="800" fill="#ffb1a0">${escapeXml(sessionTitle)}</text>
-      <text x="74" y="238" font-size="30" font-weight="900" fill="#fff8ec">照片墙</text>
-      <text x="812" y="238" text-anchor="end" font-size="23" font-weight="800" fill="#fff4de" opacity="0.76">${visiblePhotoCount ? `${visiblePhotoCount} 张公开照片` : '照片空态'}</text>
-      ${photoWall}
-      <text x="74" y="638" font-size="30" font-weight="900" fill="#fff8ec">聚会账本</text>
-      <text x="812" y="638" text-anchor="end" font-size="23" font-weight="800" fill="#63dfae">${ledgerCount} 条高光</text>
-      ${ledgerRows || '<rect x="80" y="656" width="740" height="132" rx="28" fill="#17110d" stroke="#63dfae" stroke-opacity="0.55"/><text x="450" y="734" text-anchor="middle" font-size="28" font-weight="900" fill="#fff8ec">账本还没开始，先记一笔</text>'}
-      <text x="74" y="846" font-size="30" font-weight="900" fill="#fff8ec">关键时刻</text>
-      ${timelineRows || '<rect x="80" y="870" width="740" height="104" rx="28" fill="#140f0c" stroke="#fff4de" stroke-opacity="0.16"/><text x="450" y="933" text-anchor="middle" font-size="26" font-weight="900" fill="#fff4de">暂无公开关键时刻</text>'}
-      <rect x="74" y="1168" width="752" height="116" rx="28" fill="#fff4de"/>
-      <text x="108" y="1218" font-size="24" font-weight="900" fill="#2a1c13">聚会总结</text>
-      <text x="108" y="1260" font-size="28" font-weight="900" fill="#2a1c13">${escapeXml(summaryText)}</text>
-      <rect x="74" y="1292" width="752" height="68" rx="28" fill="#fff4de" fill-opacity="0.12"/>
-      <text x="108" y="1334" font-size="20" font-weight="800" fill="#fff8ec">房间码 ${escapeXml(inviteCode)}</text>
-      <text x="438" y="1334" text-anchor="middle" font-size="20" font-weight="800" fill="#63dfae">仅展示已授权公开内容</text>
-      <text x="612" y="1334" font-size="20" font-weight="800" fill="#fff8ec">聚会记录师</text>
-      <rect x="662" y="1178" width="144" height="160" rx="28" fill="#fff4de"/>
-      ${qrDataUri ? `<image href="${qrDataUri}" x="680" y="1196" width="108" height="108" preserveAspectRatio="xMidYMid meet"/>` : ''}
-      <text x="734" y="1326" text-anchor="middle" font-size="18" font-weight="900" fill="#2a1c13">扫码回到小程序</text>
+      <text x="74" y="254" font-size="30" font-weight="900" fill="#fff8ec">记录时间线</text>
+      <text x="812" y="254" text-anchor="end" font-size="23" font-weight="800" fill="#63dfae">${visiblePhotoCount} 张公开照片 · ${ledgerCount} 条高光</text>
+      <line x1="122" y1="${timelineTop + 28}" x2="122" y2="${timelineBottom - 38}" stroke="#ffdca8" stroke-width="4" stroke-opacity="0.42"/>
+      ${timelineRows || `<rect x="80" y="${timelineTop + 20}" width="740" height="104" rx="28" fill="#140f0c" stroke="#fff4de" stroke-opacity="0.16"/><text x="450" y="${timelineTop + 83}" text-anchor="middle" font-size="26" font-weight="900" fill="#fff4de">暂无公开关键时刻</text>`}
+      <rect x="74" y="${summaryY}" width="752" height="150" rx="28" fill="#fff4de"/>
+      <text x="108" y="${summaryY + 48}" font-size="24" font-weight="900" fill="#2a1c13">聚会总结</text>
+      <text x="108" y="${summaryY + 92}" font-size="28" font-weight="900" fill="#2a1c13">${escapeXml(summaryText)}</text>
+      <text x="108" y="${summaryY + 130}" font-size="20" font-weight="800" fill="#6a4b38">房间码 ${escapeXml(inviteCode)} · 仅展示已授权公开内容</text>
+      <rect x="326" y="${qrY}" width="248" height="248" rx="36" fill="#fff4de"/>
+      ${qrDataUri ? `<image href="${qrDataUri}" x="366" y="${qrY + 30}" width="168" height="168" preserveAspectRatio="xMidYMid meet"/>` : ''}
+      <text x="450" y="${qrY + 224}" text-anchor="middle" font-size="22" font-weight="900" fill="#2a1c13">扫码回到小程序</text>
+      <text x="450" y="${footerY}" text-anchor="middle" font-size="22" font-weight="800" fill="#fff8ec" opacity="0.76">聚会记录师</text>
     </svg>
   `
 }

@@ -618,3 +618,65 @@ button.invite-inline-action::after {
 .invite-secondary-full.party-cta {
   display: flex;
 }
+
+/* 008CU: invite keeps the approved paper asset on the shared dark stage. */
+page {
+  background: #12100e;
+}
+
+.invite-nav {
+  border-bottom: 0;
+}
+
+.invite-redesign {
+  position: relative;
+  background: #12100e;
+  color: #fff2dd;
+}
+
+.invite-stage-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+.invite-redesign-scroll {
+  position: relative;
+  z-index: 1;
+  width: 342px;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 20px 0 calc(112px + env(safe-area-inset-bottom));
+}
+
+.invite-title {
+  color: #fff2dd;
+}
+
+.invite-code-card {
+  border-radius: 20px;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.22));
+}
+
+.invite-inline-action {
+  border-color: rgba(255, 238, 204, 0.16);
+  background: rgba(35, 27, 23, 0.78);
+  color: #f4c768;
+}
+
+.invite-share-button {
+  box-shadow: none;
+}
+
+.invite-bottom-bar {
+  background: linear-gradient(180deg, rgba(18, 16, 14, 0), rgba(18, 16, 14, 0.9) 34%, #12100e 100%);
+}
+
+.invite-secondary-full.party-cta {
+  border-color: rgba(244, 199, 104, 0.42);
+  background: rgba(35, 27, 23, 0.82);
+  color: #f4c768;
+}

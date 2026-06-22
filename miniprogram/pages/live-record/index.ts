@@ -64,6 +64,7 @@ interface LiveRecordTimelineItem {
   actorName: string
   caption: string
   chipAsset: string
+  chipText: string
   createdAt: string
   detail: string
   iconAsset: string
@@ -346,6 +347,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
             node.eventType === 'drink_debt'
               ? (score === 1 ? '/pages/live-record/assets/pr-cs008ar-neon-debt-plus1.png' : '/pages/live-record/assets/pr-cs008ar-neon-plate-debt-base.png')
               : (score === 1 ? '/pages/live-record/assets/pr-cs008au-neon-drink-plus1.png' : score === 2 ? '/pages/live-record/assets/pr-cs008ar-neon-drink-plus2.png' : '/pages/live-record/assets/pr-cs008ar-neon-plate-drink-base.png'),
+          chipText: node.eventType === 'drink_debt' ? `欠酒 +${score}` : `加酒 +${score}`,
           createdAt: node.createdAt || node.updatedAt || '',
           detail:
             node.eventType === 'drink_debt'
@@ -381,6 +383,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         actorName: cleanDisplayName(node.uploaderName, '成员'),
         caption: node.caption || '',
         chipAsset: '',
+        chipText: '',
         createdAt: node.createdAt || node.updatedAt || '',
         detail: node.caption || '照片已进入相册和分享记录',
         iconAsset: '/pages/live-record/assets/pr-cs008ar-node-camera.png',
@@ -422,38 +425,7 @@ const toDisplayNode = (item: LiveRecordTimelineItem): LiveRecordTimelineDisplayI
 })
 
 const buildRecordTimelineDisplayItems = (items: LiveRecordTimelineItem[]): LiveRecordTimelineDisplayItem[] => {
-  if (items[0]?.type !== 'photo' || items[1]?.type !== 'photo') {
-    return items.map(toDisplayNode)
-  }
-
-  const compactPhotos: LiveRecordTimelineItem[] = []
-  let nextIndex = 1
-  while (items[nextIndex]?.type === 'photo') {
-    compactPhotos.push(items[nextIndex])
-    nextIndex += 1
-  }
-
-  const compactLead = compactPhotos[0]
-  const photoGroup: LiveRecordTimelineDisplayItem = {
-    ...compactLead,
-    actorAvatarUrl: '',
-    actorInitial: '',
-    actorName: '',
-    compactPhotoCountText: compactPhotos.length > 1 ? `+${compactPhotos.length - 1}` : '',
-    compactPhotos: compactPhotos.slice(0, 1),
-    detail: '',
-    displayKind: 'photoGroup',
-    iconAsset: '/pages/live-record/assets/pr-cs008ar-node-camera.png',
-    id: `photo-group-${compactPhotos.map((item) => item.id).join('-')}`,
-    scoreText: '',
-    title: compactPhotos.length > 1 ? `还有 ${compactPhotos.length} 张照片` : '还有 1 张照片',
-  }
-
-  return [
-    toDisplayNode(items[0]),
-    photoGroup,
-    ...items.slice(nextIndex).map(toDisplayNode),
-  ]
+  return items.map(toDisplayNode)
 }
 
 const findLiveRecordImageUrl = (

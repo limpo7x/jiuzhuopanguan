@@ -1,112 +1,165 @@
-﻿<navigation-bar
-  title="我的"
+<navigation-bar
+  title=""
   back="{{false}}"
-  color="#24160f"
-  background="rgba(255,253,248,0.96)"
+  color="#f3cc7b"
+  background="transparent"
   ext-class="me-nav"
 ></navigation-bar>
 
+<view class="me-settings-link" style="{{headerActionStyle}}" data-name="资料设置" bindtap="handleFeatureTap">⚙</view>
+
 <view class="me-page">
+  <image class="me-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="me-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="me-profile-row {{loggedIn ? '' : 'me-profile-auth-row'}}">
-      <view wx:if="{{loggedIn}}" class="me-user">
-        <image wx:if="{{currentProfile.avatarUrl}}" class="me-avatar" src="{{currentProfile.avatarUrl}}" mode="aspectFill"></image>
-        <view wx:else class="me-avatar"></view>
-        <view class="me-user-copy">
-          <view class="me-name-row">
-            <text class="me-name">{{currentProfile.name || '微信用户'}}</text>
-            <view class="me-vip-tag">V1</view>
-          </view>
-          <text class="me-id">已记录 {{assetStats[0].value}} 场聚会，和 {{wineStats[1].value}} 次好友回忆</text>
+    <view class="me-hero">
+      <view class="me-hero-glow"></view>
+      <view class="me-brand-row">
+        <view>
+          <text class="me-brand-title">聚会记录师</text>
+          <text class="me-brand-subtitle">记录每一次相聚的温度</text>
         </view>
       </view>
-
-      <view wx:else class="me-login-entry" bindtap="handleLoginTextTap">
-        <view class="me-login-avatar"></view>
-        <text class="me-login-text">点击登录</text>
+      <view class="me-profile-block {{loggedIn ? '' : 'me-profile-block-guest'}}">
+        <image wx:if="{{loggedIn && currentProfile.avatarUrl}}" class="me-avatar" src="{{currentProfile.avatarUrl}}" mode="aspectFill"></image>
+        <view wx:elif="{{loggedIn}}" class="me-avatar me-avatar-empty"></view>
+        <view wx:else class="me-login-avatar" bindtap="handleLoginTextTap"></view>
+        <view class="me-profile-copy">
+          <view class="me-name-row">
+            <text wx:if="{{loggedIn}}" class="me-name">{{currentProfile.name || '微信用户'}}</text>
+            <text wx:else class="me-name" bindtap="handleLoginTextTap">点击登录</text>
+            <text wx:if="{{loggedIn}}" class="me-role-tag">记录师 Lv.3</text>
+          </view>
+          <text class="me-profile-desc">{{loggedIn ? '热爱生活，记录美好时刻' : '登录后同步你的聚会记录和分享图'}}</text>
+        </view>
       </view>
     </view>
 
-    <view class="me-recorder-actions">
-      <view class="me-recorder-action me-recorder-action-primary" data-tab="home" bindtap="handleTabTap">
-        <text>创建聚会</text>
-        <text>从首页开始三步记录</text>
-      </view>
-      <view class="me-recorder-action" data-tab="tools" bindtap="handleTabTap">
-        <text>工具箱</text>
-        <text>常用聚会小工具</text>
-      </view>
+    <view class="me-section-title-row me-memory-heading">
+      <text class="me-section-title">我的回忆</text>
     </view>
-
-    <view class="me-memory-strip">
-      <view wx:for="{{assetStats}}" wx:key="label" class="me-stat-item" data-label="{{item.label}}" bindtap="handleAssetTap">
+    <view class="me-stats-row">
+      <view wx:for="{{assetStats}}" wx:key="label" wx:for-index="index" class="me-stat-cell" data-label="{{item.label}}" bindtap="handleAssetTap">
+        <image wx:if="{{index}}" class="me-stat-divider" src="/assets/party-recorder/pr-cs008cn-stat-divider.svg" mode="heightFix"></image>
         <text class="me-stat-value">{{item.value}}</text>
         <text class="me-stat-label">{{item.label}}</text>
       </view>
     </view>
 
-    <view wx:if="{{membershipEnabled}}" class="me-member-card">
-      <view class="me-member-top">
-      <text class="me-member-title">聚会记录权益</text>
-        <view class="me-member-btn" bindtap="handleMemberTap">查看权益</view>
-      </view>
-      <text class="me-member-desc">主题、相册和分享能力直接读取后台真实配置。</text>
-    </view>
-
-    <view class="me-section-head">
-      <text class="me-section-title">最近回忆</text>
-      <text class="me-section-link" data-label="我的聚友" bindtap="handleWineStatTap">好友管理</text>
-    </view>
-
-    <view class="me-memory-strip">
-      <view wx:for="{{wineStats}}" wx:key="label" class="me-stat-item" data-label="{{item.label}}" bindtap="handleWineStatTap">
-        <text class="me-stat-value">{{item.value}}</text>
-        <text class="me-stat-label">{{item.label}}</text>
-      </view>
-    </view>
-
-    <view wx:if="{{momentSummaries.length}}" class="me-section-head">
+    <view class="me-section-title-row me-pending-heading">
       <text class="me-section-title">待分享回忆</text>
       <text class="me-section-link" bindtap="handlePendingAlbumAllTap">查看全部 {{pendingAlbumTotal}}</text>
     </view>
-
-    <view wx:if="{{visiblePendingAlbums.length}}" class="me-pending-list">
-      <view
-        wx:for="{{visiblePendingAlbums}}"
-        wx:key="briefId"
-        class="me-pending-item"
-        data-brief-id="{{item.briefId}}"
-        data-session-id="{{item.sessionId}}"
-        bindtap="handlePendingAlbumTap"
-      >
-        <view class="me-pending-dot {{item.pendingMediaCount ? 'me-pending-dot-warn' : ''}}"></view>
-        <view class="me-pending-copy">
-          <view class="me-pending-title-row">
-            <text class="me-pending-title">{{item.title}}</text>
+    <scroll-view wx:if="{{visiblePendingAlbums.length}}" class="me-pending-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="me-pending-track">
+        <view
+          wx:for="{{visiblePendingAlbums}}"
+          wx:key="sessionId"
+          class="me-pending-card"
+          data-session-id="{{item.sessionId}}"
+          bindtap="handlePendingAlbumTap"
+        >
+          <view class="me-pending-badge-wrap">
+            <image class="me-pending-badge" src="/assets/party-recorder/pr-cs008cj-pending-badge.svg" mode="widthFix"></image>
           </view>
-          <text class="me-pending-meta">{{item.meta}}</text>
-        </view>
-        <view class="me-pending-action-stack">
-          <text wx:if="{{item.isEnded}}" class="me-pending-state me-pending-state-ended">{{item.stateLabel}}</text>
-          <text wx:elif="{{item.stateLabel}}" class="me-pending-state">{{item.stateLabel}}</text>
-          <view class="me-pending-action {{item.isEnded ? 'me-pending-action-muted' : ''}}">{{item.actionLabel}}</view>
+          <image wx:if="{{item.coverUrl}}" class="me-pending-cover" src="{{item.coverUrl}}" mode="aspectFill"></image>
+          <image wx:else class="me-pending-cover" src="/assets/party-recorder/pr-cs008cj-memory-default-cover.svg" mode="aspectFill"></image>
+          <view class="me-pending-copy">
+            <text class="me-pending-title">{{item.title}}</text>
+            <text class="me-pending-meta">{{item.meta}}</text>
+          </view>
         </view>
       </view>
-      <view class="me-pending-more" bindtap="handlePendingAlbumAllTap">
-        查看全部待分享回忆
+    </scroll-view>
+    <view wx:else class="me-open-empty">暂无待分享回忆</view>
+
+    <view class="me-section-title-row me-share-heading">
+      <text class="me-section-title">分享图合集</text>
+      <text class="me-section-link" bindtap="handleShareGalleryAllTap">查看全部 {{shareGalleryTotal}}</text>
+    </view>
+    <view wx:if="{{visibleShareImages.length}}" class="me-share-grid">
+      <view
+        wx:for="{{visibleShareImages}}"
+        wx:key="imageUrl"
+        class="me-share-item"
+        data-image-url="{{item.imageUrl}}"
+        bindtap="handleShareGalleryTap"
+      >
+        <view class="me-share-art">
+          <image class="me-share-frame" src="/assets/party-recorder/pr-cs008cj-share-thumb-frame.svg" mode="aspectFill"></image>
+          <image class="me-share-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
+        </view>
+        <view class="me-share-copy">
+          <text class="me-share-title">{{item.title}}</text>
+          <text class="me-share-meta">{{item.meta}}</text>
+        </view>
       </view>
     </view>
+    <view wx:else class="me-open-empty">还没有生成过分享图</view>
 
-    <view class="me-section-head">
-      <text class="me-section-title">更多设置</text>
-    </view>
-
-    <view class="me-grid">
-      <view wx:for="{{features}}" wx:key="id" class="me-tile" data-name="{{item.name}}" bindtap="handleFeatureTap">
-        <view class="me-tile-icon">
-          <view class="me-tile-glyph {{item.iconClass}}"></view>
+    <view class="me-action-list">
+      <view class="me-action-row" data-name="我的权益" bindtap="handleFeatureTap">
+        <image class="me-action-shell" src="/assets/party-recorder/pr-cs008cn-utility-row-shell.svg" mode="aspectFill"></image>
+        <view>
+          <text class="me-action-title">我的权益</text>
+          <text class="me-action-desc">权益、会员和可用奖励状态</text>
         </view>
-        <text class="me-tile-label">{{item.name}}</text>
+        <text class="me-action-arrow">›</text>
+      </view>
+      <view class="me-action-row" data-name="积分与奖励" bindtap="handleFeatureTap">
+        <image class="me-action-shell" src="/assets/party-recorder/pr-cs008cn-utility-row-shell.svg" mode="aspectFill"></image>
+        <view>
+          <text class="me-action-title">积分与奖励</text>
+          <text class="me-action-desc">积分余额、任务和奖励配置</text>
+        </view>
+        <text class="me-action-arrow">›</text>
+      </view>
+      <view class="me-action-row" data-name="我的收藏" bindtap="handleFeatureTap">
+        <image class="me-action-shell" src="/assets/party-recorder/pr-cs008cn-utility-row-shell.svg" mode="aspectFill"></image>
+        <view>
+          <text class="me-action-title">我的收藏</text>
+          <text class="me-action-desc">收藏的工具、相册和分享内容</text>
+        </view>
+        <text class="me-action-arrow">›</text>
+      </view>
+      <view class="me-action-row" data-name="使用记录" bindtap="handleFeatureTap">
+        <image class="me-action-shell" src="/assets/party-recorder/pr-cs008cn-utility-row-shell.svg" mode="aspectFill"></image>
+        <view>
+          <text class="me-action-title">使用记录</text>
+          <text class="me-action-desc">工具和内容的新路径记录</text>
+        </view>
+        <text class="me-action-arrow">›</text>
+      </view>
+      <view class="me-action-row" data-name="邀请奖励" bindtap="handleFeatureTap">
+        <image class="me-action-shell" src="/assets/party-recorder/pr-cs008cn-utility-row-shell.svg" mode="aspectFill"></image>
+        <view>
+          <text class="me-action-title">邀请奖励</text>
+          <text class="me-action-desc">邀请配置和奖励开通状态</text>
+        </view>
+        <text class="me-action-arrow">›</text>
+      </view>
+      <view class="me-action-row" data-name="模板中心" bindtap="handleFeatureTap">
+        <image class="me-action-shell" src="/assets/party-recorder/pr-cs008cn-utility-row-shell.svg" mode="aspectFill"></image>
+        <view>
+          <text class="me-action-title">模板中心</text>
+          <text class="me-action-desc">高级模板和解锁状态</text>
+        </view>
+        <text class="me-action-arrow">›</text>
+      </view>
+      <view class="me-action-row" data-name="好友管理" bindtap="handleFeatureTap">
+        <image class="me-action-shell" src="/assets/party-recorder/pr-cs008cn-utility-row-shell.svg" mode="aspectFill"></image>
+        <view>
+          <text class="me-action-title">好友管理</text>
+          <text class="me-action-desc">查看好友动态，一起记录美好</text>
+        </view>
+        <text class="me-action-arrow">›</text>
+      </view>
+      <view class="me-action-row" data-name="工具箱" bindtap="handleFeatureTap">
+        <image class="me-action-shell" src="/assets/party-recorder/pr-cs008cn-utility-row-shell.svg" mode="aspectFill"></image>
+        <view>
+          <text class="me-action-title">工具箱</text>
+          <text class="me-action-desc">回忆小组件、批量管理、设置等</text>
+        </view>
+        <text class="me-action-arrow">›</text>
       </view>
     </view>
   </scroll-view>
@@ -130,17 +183,17 @@
         </button>
         <view class="auth-avatar-copy">
           <text class="auth-avatar-title">点击头像授权</text>
-          <text class="auth-avatar-desc">用于聚会成员展示，不会使用默认图片占位。</text>
+          <text class="auth-avatar-desc">用于聚会成员展示，不使用默认图冒充真实头像。</text>
         </view>
       </view>
-        <input
-          class="auth-name-input"
-          name="nickname"
-          type="nickname"
-          placeholder="填写微信昵称"
-          value="{{authName}}"
-          bindinput="handleAuthNameInput"
-        />
+      <input
+        class="auth-name-input"
+        name="nickname"
+        type="nickname"
+        placeholder="填写微信昵称"
+        value="{{authName}}"
+        bindinput="handleAuthNameInput"
+      />
       <button class="auth-submit" form-type="submit" loading="{{authSubmitting}}">确认登录</button>
     </form>
   </view>
@@ -153,6 +206,10 @@
     <view class="bottom-item" data-tab="tools" bindtap="handleTabTap">
       <view class="bottom-icon nav-judge"></view>
       <text class="bottom-label">工具箱</text>
+    </view>
+    <view class="bottom-item" data-tab="rankings" bindtap="handleTabTap">
+      <view class="bottom-icon nav-rank"></view>
+      <text class="bottom-label">排行榜</text>
     </view>
     <view class="bottom-item active" data-tab="me" bindtap="handleTabTap">
       <view class="bottom-icon nav-me active"></view>

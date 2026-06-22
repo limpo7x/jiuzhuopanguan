@@ -2,6 +2,7 @@ import {
   createManagedShareImageTask,
   createOrRefreshManagedSessionBrief,
   getManagedSessionBrief,
+  getManagedSessionTimeline,
   retryManagedShareImageTask,
   type ManagedSessionBrief,
   type ManagedShareImageTask,
@@ -53,12 +54,24 @@ interface SessionBriefMethods {
   handleRefreshTap: () => Promise<void>
   handleRetryShareTask: () => Promise<void>
   handleTimelineSelect: (event: WechatMiniprogram.CustomEvent<{ id?: string; nodeKind?: string }>) => Promise<void>
+  hydrateBriefTimeline: (brief: ManagedSessionBrief) => Promise<ManagedSessionBrief>
   loadBrief: () => Promise<void>
   showToast: (message: string) => void
 }
 
 const countPhotoNodes = (nodes: ManagedTimelineNode[]) =>
   nodes.filter((item) => item.nodeKind === 'moment' && !!item.imageUrl && !item.isTimelinePlaceholder).length
+
+const mergeBriefTimeline = (brief: ManagedSessionBrief, nodes: ManagedTimelineNode[], pendingMediaCount = brief.pendingMediaCount): ManagedSessionBrief => ({
+  ...brief,
+  pendingMediaCount,
+  timeline: {
+    ...brief.timeline,
+    nodes,
+    pendingMediaCount,
+    sessionId: brief.timeline.sessionId || brief.sessionId,
+  },
+})
 
 const buildStats = (brief: ManagedSessionBrief): BriefStat[] => [
   { label: '开场', value: `${brief.openingMomentIds.length}` },
@@ -206,8 +219,9 @@ Page<SessionBriefState, SessionBriefMethods>({
 
     let toastMessage = ''
     try {
-      const brief = briefId ? await getManagedSessionBrief(briefId) : await createOrRefreshManagedSessionBrief(sessionId)
-      this.applyBrief(brief)
+      const loadedBrief = briefId ? await getManagedSessionBrief(briefId) : await createOrRefreshManagedSessionBrief(sessionId)
+      const hydratedBrief = await this.hydrateBriefTimeline(loadedBrief)
+      this.applyBrief(hydratedBrief)
     } catch (error) {
       toastMessage = error instanceof Error ? error.message : '简报加载失败'
       this.setData({
@@ -223,6 +237,37 @@ Page<SessionBriefState, SessionBriefMethods>({
     if (toastMessage) {
       this.showToast(toastMessage)
     }
+  },
+
+  async hydrateBriefTimeline(brief) {
+    if (countPhotoNodes(brief.timeline.nodes)) {
+      return brief
+    }
+
+    const sessionId = brief.sessionId || this.data.sessionId
+    if (!sessionId) {
+      return brief
+    }
+
+    try {
+      const refreshedBrief = await createOrRefreshManagedSessionBrief(sessionId)
+      if (countPhotoNodes(refreshedBrief.timeline.nodes) || refreshedBrief.timeline.nodes.length > brief.timeline.nodes.length) {
+        return refreshedBrief
+      }
+    } catch {
+      // Continue to direct timeline fallback below.
+    }
+
+    try {
+      const timeline = await getManagedSessionTimeline(sessionId)
+      if (countPhotoNodes(timeline.nodes) || timeline.nodes.length > brief.timeline.nodes.length) {
+        return mergeBriefTimeline(brief, timeline.nodes, timeline.pendingMediaCount)
+      }
+    } catch {
+      // Keep the original brief when the direct timeline contract is unavailable.
+    }
+
+    return brief
   },
 
   applyBrief(brief) {

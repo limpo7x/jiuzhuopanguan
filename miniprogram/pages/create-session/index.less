@@ -691,3 +691,99 @@ page {
   font-size: 18px;
   line-height: 52px;
 }
+
+/* 008CU: create flow uses the same dark "我的" stage and 342px grid. */
+page {
+  background: #12100e;
+}
+
+.create-nav {
+  border-bottom: 0;
+}
+
+.create-redesign {
+  background: #12100e;
+  color: #fff2dd;
+}
+
+.create-stage-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+}
+
+.create-redesign-scroll {
+  position: relative;
+  z-index: 1;
+  width: 342px;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 20px 0 calc(104px + env(safe-area-inset-bottom));
+}
+
+.create-step-pill {
+  border: 1px solid rgba(255, 238, 204, 0.14);
+  background: rgba(35, 27, 23, 0.72);
+  color: rgba(255, 240, 216, 0.62);
+}
+
+.create-step-pill-active {
+  border-color: rgba(244, 199, 104, 0.48);
+  background: rgba(244, 199, 104, 0.16);
+  color: #f4c768;
+}
+
+.create-title,
+.create-input,
+.create-input-static,
+.create-advanced-row,
+.create-player-count-title {
+  color: #fff2dd;
+}
+
+.create-subtitle,
+.create-input-arrow,
+.create-player-count-desc,
+.create-advanced-row text:nth-child(2),
+.create-name-preset-chip {
+  color: rgba(255, 240, 216, 0.7);
+}
+
+.create-input-row,
+.create-player-count-panel {
+  border: 1px solid rgba(255, 238, 204, 0.16);
+  background: rgba(35, 27, 23, 0.78);
+  box-shadow: none;
+}
+
+.create-name-preset-chip {
+  border-color: rgba(255, 238, 204, 0.16);
+  background: rgba(35, 27, 23, 0.62);
+}
+
+.create-name-preset-chip-active {
+  border-color: rgba(244, 199, 104, 0.46);
+  background: rgba(244, 199, 104, 0.14);
+  color: #f4c768;
+}
+
+.create-advanced-row {
+  border-top-color: rgba(255, 238, 204, 0.14);
+}
+
+.create-player-count-stepper {
+  border-color: rgba(255, 238, 204, 0.18);
+  background: rgba(18, 16, 14, 0.58);
+}
+
+.create-redesign .create-notice {
+  background: rgba(142, 224, 193, 0.12);
+  color: #8ee0c1;
+}
+
+.create-redesign .create-bottom-bar {
+  background: linear-gradient(180deg, rgba(18, 16, 14, 0), rgba(18, 16, 14, 0.9) 34%, #12100e 100%);
+}

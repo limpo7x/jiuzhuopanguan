@@ -1,5 +1,12 @@
-import { getManagedLiveSession, getManagedSessionBrief, type ManagedSessionBrief, type ManagedTimelineNode } from '../../services/operations'
+import {
+  createOrRefreshManagedSessionBrief,
+  getManagedLiveSession,
+  getManagedSessionBrief,
+  type ManagedSessionBrief,
+  type ManagedTimelineNode,
+} from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
+import { resolveCachedManagedImagePath } from '../../utils/imageCache'
 
 interface SharePreviewMetric {
   id: string
@@ -64,14 +71,14 @@ interface SharePreviewMethods {
     drawer: (ctx: WechatMiniprogram.CanvasContext) => void,
   ) => Promise<string>
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
-  handleReportHintTap: () => void
   handleBackTap: () => void
-  handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => void
+  handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handlePhotoImageLoad: (event: WechatMiniprogram.BaseEvent) => void
   handleRetryTap: () => Promise<void>
   handleReturnAlbumTap: () => void
   loadInviteSession: (query?: Record<string, string | undefined>) => Promise<void>
   loadBriefContract: (briefId: string) => Promise<Partial<SharePreviewState> | null>
+  loadSessionBriefContract: (sessionId: string) => Promise<Partial<SharePreviewState> | null>
   openPage: (url: string) => void
   saveImageFile: (filePath: string) => Promise<void>
   showPreviewToast: (message: string) => void
@@ -105,6 +112,56 @@ const buildSharePreviewPhotoHighlights = (nodes: ManagedTimelineNode[], filtered
 
 const buildPhotoHighlightsNotice = (count: number) =>
   count > 0 ? `已同步 ${count} 张可分享照片。` : '暂无可展示照片，先去记录一张聚会照片。'
+
+const updateSharePreviewPhotoState = (
+  id: string,
+  patch: Partial<Pick<SharePreviewPhoto, 'imageBroken' | 'imageUrl'>>,
+  photoHighlights: SharePreviewPhoto[],
+) => ({
+  photoHighlights: photoHighlights.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+})
+
+const buildBriefPreviewState = (brief: ManagedSessionBrief): Partial<SharePreviewState> => {
+  const accountingHighlights = brief.accountingHighlights.slice(0, 4).map((item, index) => ({
+    id: String(item.id || item.type || `contract-metric-${index}`),
+    label: String(item.label || item.title || item.text || item.id || '账本'),
+    unit: String(item.unit || ''),
+    value: String(item.value ?? item.count ?? ''),
+  })).filter((item) => item.label || item.value)
+  const keyEvents = brief.eventHighlights.slice(0, 3).map((item, index) => ({
+    id: String(item.id || item.nodeId || `contract-event-${index}`),
+    meta: String(item.text || item.summary || item.caption || item.meta || ''),
+    title: String(item.title || item.label || item.eventType || '聚会关键时刻'),
+  })).filter((item) => item.title || item.meta)
+  const filteredNodeIds = readStringArray(brief.shareContentFilter, 'filteredNodeIds')
+  const visibleNodeIds = brief.timeline.nodes
+    .map((node) => node.id)
+    .filter((id) => id && !filteredNodeIds.includes(id))
+  const photoHighlights = buildSharePreviewPhotoHighlights(brief.timeline.nodes, filteredNodeIds)
+  const permissionState = String(
+    brief.shareContentFilter.permissionState ||
+    brief.shareContentFilter.permission ||
+    brief.shareContentFilter.visibilityScope ||
+    '',
+  )
+
+  return {
+    accountingHighlights,
+    briefId: brief.id,
+    filteredNodeIds,
+    keyEvents,
+    ledgerRankings: brief.ledgerRankings,
+    ledgerSummary: brief.ledgerSummary,
+    permissionState,
+    photoHighlights,
+    photoHighlightsNotice: buildPhotoHighlightsNotice(photoHighlights.length),
+    settlementSummary: brief.settlementSummary,
+    shareContentFilter: brief.shareContentFilter,
+    sessionId: brief.sessionId,
+    sessionName: brief.title || '',
+    visibleNodeIds,
+  }
+}
 
 const buildInviteStatusText = (joinedCount: number, playerCount: number) => {
   if (playerCount <= 0) {
@@ -220,7 +277,11 @@ Page<SharePreviewState, SharePreviewMethods>({
     }
 
     try {
-      const briefPreview = briefId ? await this.loadBriefContract(briefId) : null
+      const briefPreview = briefId
+        ? await this.loadBriefContract(briefId)
+        : sessionId
+          ? await this.loadSessionBriefContract(sessionId)
+          : null
       const effectiveSessionId = sessionId || String(briefPreview?.sessionId || '')
       let liveSession = null as Awaited<ReturnType<typeof getManagedLiveSession>> | null
       try {
@@ -366,45 +427,16 @@ Page<SharePreviewState, SharePreviewMethods>({
   async loadBriefContract(briefId) {
     try {
       const brief: ManagedSessionBrief = await getManagedSessionBrief(briefId)
-      const accountingHighlights = brief.accountingHighlights.slice(0, 4).map((item, index) => ({
-        id: String(item.id || item.type || `contract-metric-${index}`),
-        label: String(item.label || item.title || item.text || item.id || '账本'),
-        unit: String(item.unit || ''),
-        value: String(item.value ?? item.count ?? ''),
-      })).filter((item) => item.label || item.value)
-      const keyEvents = brief.eventHighlights.slice(0, 3).map((item, index) => ({
-        id: String(item.id || item.nodeId || `contract-event-${index}`),
-        meta: String(item.text || item.summary || item.caption || item.meta || ''),
-        title: String(item.title || item.label || item.eventType || '聚会关键时刻'),
-      })).filter((item) => item.title || item.meta)
-      const filteredNodeIds = readStringArray(brief.shareContentFilter, 'filteredNodeIds')
-      const visibleNodeIds = brief.timeline.nodes
-        .map((node) => node.id)
-        .filter((id) => id && !filteredNodeIds.includes(id))
-      const photoHighlights = buildSharePreviewPhotoHighlights(brief.timeline.nodes, filteredNodeIds)
-      const permissionState = String(
-        brief.shareContentFilter.permissionState ||
-        brief.shareContentFilter.permission ||
-        brief.shareContentFilter.visibilityScope ||
-        '',
-      )
+      return buildBriefPreviewState(brief)
+    } catch {
+      return null
+    }
+  },
 
-      return {
-        accountingHighlights,
-        briefId: brief.id,
-        filteredNodeIds,
-        keyEvents,
-        ledgerRankings: brief.ledgerRankings,
-        ledgerSummary: brief.ledgerSummary,
-        permissionState,
-        photoHighlights,
-        photoHighlightsNotice: buildPhotoHighlightsNotice(photoHighlights.length),
-        settlementSummary: brief.settlementSummary,
-        shareContentFilter: brief.shareContentFilter,
-        sessionId: brief.sessionId,
-        sessionName: brief.title || '',
-        visibleNodeIds,
-      }
+  async loadSessionBriefContract(sessionId) {
+    try {
+      const brief = await createOrRefreshManagedSessionBrief(sessionId)
+      return buildBriefPreviewState(brief)
     } catch {
       return null
     }
@@ -429,10 +461,6 @@ Page<SharePreviewState, SharePreviewMethods>({
     this.setData({ showJoinStatus: tab === 'status' })
   },
 
-  handleReportHintTap() {
-    this.showPreviewToast('举报入口待后台联调，当前可先联系发起人处理')
-  },
-
   handleBackTap() {
     wx.navigateBack({
       fail: () => {
@@ -451,19 +479,21 @@ Page<SharePreviewState, SharePreviewMethods>({
     const height = Number(detail.height)
     const hasSize = Number.isFinite(width) && Number.isFinite(height)
     const imageBroken = hasSize && width < 8 && height < 8
-    this.setData({
-      photoHighlights: this.data.photoHighlights.map((item) => (item.id === id ? { ...item, imageBroken } : item)),
-    })
+    this.setData(updateSharePreviewPhotoState(id, { imageBroken }, this.data.photoHighlights))
   },
 
-  handlePhotoImageError(event) {
+  async handlePhotoImageError(event) {
     const { id } = event.currentTarget.dataset as { id?: string }
     if (!id) {
       return
     }
-    this.setData({
-      photoHighlights: this.data.photoHighlights.map((item) => (item.id === id ? { ...item, imageBroken: true } : item)),
-    })
+    const source = this.data.photoHighlights.find((item) => item.id === id)?.imageUrl || ''
+    const fallbackPath = await resolveCachedManagedImagePath(source).catch(() => source)
+    if (fallbackPath && fallbackPath !== source) {
+      this.setData(updateSharePreviewPhotoState(id, { imageBroken: false, imageUrl: fallbackPath }, this.data.photoHighlights))
+      return
+    }
+    this.setData(updateSharePreviewPhotoState(id, { imageBroken: true }, this.data.photoHighlights))
   },
 
   async handleRetryTap() {

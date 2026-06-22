@@ -61,6 +61,15 @@ export interface SessionRuntime {
 
 export const SESSION_RUNTIME_KEY = 'session-runtime'
 export const SESSION_REPORT_KEY = 'session-report'
+export const SESSION_ENDED_OVERRIDES_KEY = 'session-ended-overrides'
+
+export interface SessionEndedOverride {
+  endedAt: string
+  sessionId: string
+  state: string
+  status: string
+  updatedAt: string
+}
 
 const DEFAULT_SESSION_RUNTIME: SessionRuntime = {
   currentUser: null,
@@ -122,6 +131,27 @@ export const setSessionRuntime = (patch: Partial<SessionRuntime>): SessionRuntim
   const next = { ...getSessionRuntime(), ...patch }
   wx.setStorageSync(SESSION_RUNTIME_KEY, next)
   return next
+}
+
+export const getSessionEndedOverrides = (): Record<string, SessionEndedOverride> => {
+  const raw = wx.getStorageSync(SESSION_ENDED_OVERRIDES_KEY) as Record<string, SessionEndedOverride> | undefined
+  return raw && typeof raw === 'object' ? raw : {}
+}
+
+export const markSessionEndedOverride = (patch: Partial<SessionEndedOverride> & { sessionId: string }): SessionEndedOverride => {
+  const endedAt = patch.endedAt || patch.updatedAt || new Date().toISOString()
+  const override: SessionEndedOverride = {
+    endedAt,
+    sessionId: patch.sessionId,
+    state: patch.state || '已结束',
+    status: patch.status || '已结束',
+    updatedAt: patch.updatedAt || endedAt,
+  }
+  wx.setStorageSync(SESSION_ENDED_OVERRIDES_KEY, {
+    ...getSessionEndedOverrides(),
+    [patch.sessionId]: override,
+  })
+  return override
 }
 
 export const clearSessionRuntime = (): SessionRuntime => {

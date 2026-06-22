@@ -132,6 +132,7 @@ interface SharePosterMethods {
   ensurePosterImage: () => Promise<string>
   handleBackTap: () => void
   handleCreateTap: () => void
+  handleExitShareTap: () => void
   handleFinishShareTap: () => void
   handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handlePhotoImageLoad: (event: WechatMiniprogram.BaseEvent) => void
@@ -511,6 +512,21 @@ const isMissingSessionError = (error: unknown) => {
 
 const isMissingSessionState = (message?: string) =>
   /聚会记录已失效|对应的聚会记录已失效|session\s+not\s+found|not\s+found|404/i.test(String(message || ''))
+
+const SHARE_TASK_STALE_MS = 90 * 1000
+
+const parseTaskTime = (value?: string) => {
+  const time = value ? new Date(value).getTime() : 0
+  return Number.isFinite(time) ? time : 0
+}
+
+const isShareTaskStale = (task: ManagedShareImageTask) => {
+  if (task.status !== 'pending' && task.status !== 'processing') {
+    return false
+  }
+  const latestTime = Math.max(parseTaskTime(task.updatedAt), parseTaskTime(task.startedAt), parseTaskTime(task.createdAt))
+  return latestTime > 0 && Date.now() - latestTime > SHARE_TASK_STALE_MS
+}
 
 const buildShareTaskFromBrief = (brief: ManagedSessionBrief): ManagedShareImageTask | null => {
   if (!brief.shareImageTaskId && !brief.shareImageStatus) {
@@ -1015,6 +1031,12 @@ Page<SharePosterState, SharePosterMethods>({
 
     try {
       const task = await getManagedShareImageTask(taskId)
+      if (isShareTaskStale(task)) {
+        const retryTask = await retryManagedShareImageTask(taskId)
+        this.applyShareTask(retryTask)
+        this.showPreviewToast('生成超时，已重新排队')
+        return
+      }
       this.applyShareTask(task)
     } catch (error) {
       if (!this.data.shareTask?.id) {
@@ -1074,6 +1096,12 @@ Page<SharePosterState, SharePosterMethods>({
 
     try {
       const task = await getManagedShareImageTask(taskId)
+      if (isShareTaskStale(task)) {
+        const retryTask = await retryManagedShareImageTask(taskId)
+        this.applyShareTask(retryTask)
+        this.showPreviewToast('生成超时，已重新排队')
+        return
+      }
       this.applyShareTask(task)
     } catch (error) {
       const message = error instanceof Error ? error.message : '分享任务读取失败'
@@ -1509,10 +1537,14 @@ Page<SharePosterState, SharePosterMethods>({
   },
 
   handleBackTap() {
-    wx.navigateBack({
+    this.handleExitShareTap()
+  },
+
+  handleExitShareTap() {
+    wx.reLaunch({
+      url: '/pages/index/index',
       fail: () => {
-        this.applyPosterUnavailableState(this.data.errorText || '当前分享页已保留，可继续重试或返回相册')
-        this.showPreviewToast('已停留在分享页，可继续重试')
+        this.showPreviewToast('首页暂时打不开，请稍后重试')
       },
     })
   },

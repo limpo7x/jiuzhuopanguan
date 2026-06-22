@@ -373,6 +373,12 @@ const getLocalProfile = (): SocialProfile => {
   return createDefaultProfile()
 }
 
+const hasPersistedLocalProfile = (profile: SocialProfile) => {
+  const raw = wx.getStorageSync(CURRENT_PROFILE_KEY) as Partial<SocialProfile> | undefined
+  const profileId = String(wx.getStorageSync(PROFILE_ID_KEY) || '').trim()
+  return Boolean(profile.id && !isLegacyDemoProfile(profile) && (raw?.id || profileId))
+}
+
 const cacheProfile = (profile: SocialProfile) => {
   const normalized = normalizeProfile(profile)
   wx.setStorageSync(CURRENT_PROFILE_KEY, normalized)
@@ -496,7 +502,7 @@ export const ensureCurrentProfile = async (): Promise<SocialProfile> => {
       }
       cacheUserToken('')
     } catch {
-      if (local.wechatOpenId) {
+      if (hasPersistedLocalProfile(local)) {
         return upsertLocalProfile(local)
       }
       cacheUserToken('')
@@ -529,6 +535,9 @@ export const getUserAuthSession = async (): Promise<UserAuthSession> => {
     cacheUserToken('')
     return { loggedIn: false, profile: null }
   } catch {
+    if (hasPersistedLocalProfile(local)) {
+      return { loggedIn: true, profile: upsertLocalProfile(local) }
+    }
     cacheUserToken('')
     const restoredProfile = await trySilentWechatLogin(local)
     return restoredProfile ? { loggedIn: true, profile: restoredProfile } : { loggedIn: false, profile: null }
@@ -537,7 +546,7 @@ export const getUserAuthSession = async (): Promise<UserAuthSession> => {
 
 export const ensureUserAuthorized = async (redirectUrl?: string): Promise<SocialProfile | null> => {
   const session = await getUserAuthSession()
-  if (session.loggedIn && session.profile?.wechatOpenId) {
+  if (session.loggedIn && session.profile?.id) {
     return session.profile
   }
   openLoginPage(redirectUrl)

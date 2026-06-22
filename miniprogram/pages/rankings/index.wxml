@@ -1,22 +1,22 @@
 <navigation-bar
   title="今日回忆榜"
-  back="{{true}}"
-  customBack="{{true}}"
-  bind:back="handleBackTap"
-  color="#24160f"
-  background="rgba(255,253,248,0.96)"
+  back="{{false}}"
+  color="#fff2dd"
+  background="rgba(18,16,14,0.72)"
   ext-class="rankings-nav"
 ></navigation-bar>
 
 <view class="rankings-page">
+  <image class="rankings-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="rankings-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="rankings-hero">
       <view class="rankings-hero-top">
         <text class="rankings-date">{{dateText}}</text>
-        <view class="rankings-refresh" bindtap="handleRefreshTap">刷新</view>
+        <view class="rankings-refresh" bindtap="handleRefreshTap">{{loading ? '刷新中' : '刷新'}}</view>
       </view>
       <text class="rankings-title">今日回忆榜</text>
       <text class="rankings-subtitle">{{subtitle}}</text>
+      <view class="rankings-zone-link" data-zone="points" bindtap="handleFeatureZoneTap">查看积分与奖励</view>
     </view>
 
     <scroll-view class="rankings-tabs" scroll-x enhanced show-scrollbar="{{false}}">
@@ -31,11 +31,26 @@
       </view>
     </scroll-view>
 
-    <view wx:if="{{loading}}" class="rankings-loading">加载榜单中...</view>
+    <view wx:if="{{loading}}" class="rankings-loading">
+      <view wx:for="{{skeletonRows}}" wx:key="*this" class="rankings-skeleton-row">
+        <view class="rankings-skeleton-rank"></view>
+        <view class="rankings-skeleton-image"></view>
+        <view class="rankings-skeleton-copy">
+          <view></view>
+          <view></view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:elif="{{errorText}}" class="rankings-empty rankings-error">
+      <text class="rankings-empty-title">榜单暂时没刷新出来</text>
+      <text class="rankings-empty-meta">{{errorText}}</text>
+      <view class="rankings-empty-action" bindtap="handleRefreshTap">重试</view>
+    </view>
 
     <view wx:elif="{{items.length === 0}}" class="rankings-empty">
-      <text class="rankings-empty-title">{{emptyText}}</text>
-      <text class="rankings-empty-meta">推荐成功后，这里会按照片热度和推举数排序。</text>
+      <text class="rankings-empty-title">今天还没有上榜回忆</text>
+      <text class="rankings-empty-meta">拍下第一张照片后，回忆会慢慢排起来。</text>
     </view>
 
     <view wx:else class="rankings-list">
@@ -75,4 +90,23 @@
       </view>
     </view>
   </scroll-view>
+
+  <view class="bottom-nav">
+    <view class="bottom-item" data-tab="home" bindtap="handleTabTap">
+      <view class="bottom-icon nav-home"></view>
+      <text class="bottom-label">首页</text>
+    </view>
+    <view class="bottom-item" data-tab="tools" bindtap="handleTabTap">
+      <view class="bottom-icon nav-judge"></view>
+      <text class="bottom-label">工具箱</text>
+    </view>
+    <view class="bottom-item active" data-tab="rankings" bindtap="handleTabTap">
+      <view class="bottom-icon nav-rank active"></view>
+      <text class="bottom-label">排行榜</text>
+    </view>
+    <view class="bottom-item" data-tab="me" bindtap="handleTabTap">
+      <view class="bottom-icon nav-me"></view>
+      <text class="bottom-label">我的</text>
+    </view>
+  </view>
 </view>
