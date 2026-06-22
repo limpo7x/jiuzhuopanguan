@@ -1,4 +1,5 @@
 import { getApiBase } from '../config/api'
+import { getUserAuthHeaders } from './social'
 
 const STORAGE_KEY = 'managed-image-cache-map-v2'
 const FAILED_CACHE_KEY = 'managed-image-cache-failures-v1'
@@ -110,6 +111,7 @@ const downloadAndPersist = async (source: string) => {
 
     wx.downloadFile({
       url: source,
+      header: getUserAuthHeaders(),
       success: (result) => {
         clearTimeout(timer)
         if (result.statusCode >= 200 && result.statusCode < 300 && result.tempFilePath) {

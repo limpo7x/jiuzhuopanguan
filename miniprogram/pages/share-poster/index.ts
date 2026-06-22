@@ -7,7 +7,6 @@ import {
   getManagedSessionBrief,
   getManagedShareConfig,
   getManagedShareImageTask,
-  processManagedShareImageTask,
   retryManagedShareImageTask,
   type ManagedSessionPlayer,
   type ManagedSessionBrief,
@@ -17,6 +16,7 @@ import {
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 import { getApiBase } from '../../config/api'
 import { getUserAuthHeaders } from '../../utils/social'
+import { resolveCachedManagedImagePath } from '../../utils/imageCache'
 
 interface PosterRank {
   avatarUrl: string
@@ -103,7 +103,7 @@ interface SharePosterState {
   posterTitle: string
   reportId: string
   readyShareImageUrl: string
-  saveState: 'idle' | 'saving' | 'saved' | 'failed' | 'retrying'
+  saveState: 'idle' | 'generating' | 'saving' | 'saved' | 'failed' | 'retrying'
   secondaryRanks: PosterRank[]
   sessionId: string
   sessionName: string
@@ -133,15 +133,15 @@ interface SharePosterMethods {
   handleBackTap: () => void
   handleCreateTap: () => void
   handleFinishShareTap: () => void
-  handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => void
+  handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handlePhotoImageLoad: (event: WechatMiniprogram.BaseEvent) => void
-  handleReportHintTap: () => void
   handlePreviewTaskTap: () => void
   handleSaveTap: () => Promise<void>
   handleTaskPrimaryTap: () => Promise<void>
   handleTimelineTap: () => void
   loadLiveSessionSummary: (sessionId: string) => Promise<void>
   loadBriefByQuery: (query: Record<string, string | undefined>, fallbackSessionId: string) => Promise<void>
+  loadShareTaskFromBrief: (brief: ManagedSessionBrief, currentTaskId?: string) => Promise<void>
   refreshShareTask: () => Promise<void>
   saveImageFile: (filePath: string) => Promise<void>
   showPreviewToast: (message: string) => void
@@ -157,6 +157,7 @@ const REPORT_SHARE_ITEMS: PosterShareItem[] = [
 
 const CANVAS_WIDTH = 900
 const CANVAS_HEIGHT = 1600
+const CANVAS_MIN_HEIGHT = 1600
 const SHARE_FLOW_SAMPLE_SESSION_ID = 'session-1781584503517-c033e9'
 const SHARE_FLOW_SAMPLE_INVITE_CODE = 'W58G7T'
 const SHARE_FLOW_SAMPLE_BRIEF_ID = 'brief-1781584503870-25d5edac'
@@ -394,6 +395,25 @@ const buildPosterTimelineNodesFromHighlights = (
   return [...photoNodes, ...eventNodes, ...metricNodes].slice(0, 6)
 }
 
+const findPosterImageUrl = (
+  id: string,
+  photoHighlights: PosterPhoto[],
+  posterTimelineNodes: PosterTimelineNode[],
+) =>
+  photoHighlights.find((item) => item.id === id)?.imageUrl ||
+  posterTimelineNodes.find((item) => item.id === id)?.imageUrl ||
+  ''
+
+const updatePosterImageState = (
+  id: string,
+  patch: Partial<Pick<PosterPhoto, 'imageBroken' | 'imageUrl'>>,
+  photoHighlights: PosterPhoto[],
+  posterTimelineNodes: PosterTimelineNode[],
+) => ({
+  photoHighlights: photoHighlights.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+  posterTimelineNodes: posterTimelineNodes.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+})
+
 const getShareTaskStatusText = (status?: string) => {
   switch (status) {
     case 'ready':
@@ -411,12 +431,17 @@ const getShareTaskStatusText = (status?: string) => {
   }
 }
 
-const getSavePosterLabel = (status: string, posterSaved: boolean, hasReadyImage = false) => {
-  if (posterSaved) return '去分享'
-  if (status === 'pending' || status === 'processing') return '生成中'
-  if (status === 'ready' && hasReadyImage) return '去分享'
-  if (status === 'ready') return '生成中'
-  return '保存聚会图'
+const getSavePosterLabel = (
+  status: string,
+  posterSaved: boolean,
+  _hasReadyImage = false,
+  saveState: SharePosterState['saveState'] = 'idle',
+) => {
+  if (posterSaved || saveState === 'saved') return '已保存'
+  if (saveState === 'saving') return '保存中'
+  if (saveState === 'generating' || status === 'pending' || status === 'processing') return '生成中'
+  if (status === 'ready') return '保存聚会图'
+  return '生成聚会图'
 }
 
 const getPosterStatusLine = (
@@ -424,15 +449,16 @@ const getPosterStatusLine = (
   saveState: SharePosterState['saveState'],
   errorText = '',
 ) => {
-  if (saveState === 'saving') return '正在生成分享图，请稍候'
-  if (saveState === 'saved') return '分享图已生成，可点击去分享'
+  if (saveState === 'generating') return '聚会图生成中，可点右侧刷新状态'
+  if (saveState === 'saving') return '正在保存聚会图，请稍候'
+  if (saveState === 'saved') return '聚会图已保存到相册'
   if (saveState === 'failed') return errorText || '生成失败，请刷新或重新生成'
   if (saveState === 'retrying') return '正在重新生成，请稍候'
   if (status === 'pending') return '分享图等待生成，可刷新状态'
   if (status === 'processing') return '分享图生成中，可稍后刷新'
-  if (status === 'ready') return '分享图已准备好'
+  if (status === 'ready') return '聚会图已生成，点击保存到相册'
   if (status === 'failed' || status === 'expired') return errorText || '生成失败，请重新生成'
-  return '记录节点会进入分享图'
+  return '点击生成聚会图，完成后可保存到相册'
 }
 
 const getShareLayoutText = (layoutMode?: string) => {
@@ -476,6 +502,15 @@ const toSafeShareErrorText = (message: string) => {
   }
   return '分享图暂时无法展示，请稍后重试'
 }
+
+const isMissingSessionError = (error: unknown) => {
+  const statusCode = (error as { statusCode?: number })?.statusCode
+  const message = error instanceof Error ? error.message : String(error || '')
+  return statusCode === 404 || /session\s+not\s+found|not\s+found|404/i.test(message)
+}
+
+const isMissingSessionState = (message?: string) =>
+  /聚会记录已失效|对应的聚会记录已失效|session\s+not\s+found|not\s+found|404/i.test(String(message || ''))
 
 const buildShareTaskFromBrief = (brief: ManagedSessionBrief): ManagedShareImageTask | null => {
   if (!brief.shareImageTaskId && !brief.shareImageStatus) {
@@ -574,7 +609,7 @@ Page<SharePosterState, SharePosterMethods>({
     canvasHeight: CANVAS_HEIGHT,
     canvasWidth: CANVAS_WIDTH,
     posterSaved: false,
-    savePosterLabel: '\u4fdd\u5b58\u805a\u4f1a\u5206\u4eab\u56fe',
+    savePosterLabel: '\u751f\u6210\u805a\u4f1a\u56fe',
     createSessionLabel: '\u6211\u4e5f\u5efa\u805a\u4f1a',
     displayTaskLayoutMode: getShareLayoutText(''),
     displayTaskStatus: getShareTaskStatusText(''),
@@ -766,7 +801,17 @@ Page<SharePosterState, SharePosterMethods>({
         : status === 'failed' || status === 'expired'
             ? '重新生成'
             : '刷新状态'
-    const nextSaveState = status === 'failed' || status === 'expired' ? 'failed' : this.data.saveState === 'failed' ? 'idle' : this.data.saveState
+    const currentSaveState = this.data.saveState
+    const nextSaveState: SharePosterState['saveState'] =
+      this.data.posterSaved
+        ? 'saved'
+        : status === 'failed' || status === 'expired'
+          ? 'failed'
+          : status === 'pending' || status === 'processing'
+            ? 'generating'
+            : currentSaveState === 'failed' || currentSaveState === 'generating' || currentSaveState === 'retrying'
+              ? 'idle'
+              : currentSaveState
 
     this.setData({
       briefId: task?.briefId || this.data.briefId,
@@ -776,7 +821,7 @@ Page<SharePosterState, SharePosterMethods>({
       qrCodeImageUrl: task?.miniProgramQrUrl || task?.qrCodeUrl || this.data.qrCodeImageUrl,
       readyShareImageUrl,
       saveState: nextSaveState,
-      savePosterLabel: getSavePosterLabel(status, this.data.posterSaved, Boolean(readyShareImageUrl)),
+      savePosterLabel: getSavePosterLabel(status, this.data.posterSaved, Boolean(readyShareImageUrl), nextSaveState),
       sessionId: task?.sessionId || this.data.sessionId,
       shareTask: task,
       taskIncludeLedger: task?.includeLedger === true,
@@ -806,7 +851,7 @@ Page<SharePosterState, SharePosterMethods>({
       displayTaskLayoutMode: getShareLayoutText(task.layoutMode),
       displayTaskStatus: getShareTaskStatusText(status),
       posterStatusLine: getPosterStatusLine(status || 'failed', 'failed', safeMessage),
-      savePosterLabel: getSavePosterLabel(status || 'failed', false),
+      savePosterLabel: getSavePosterLabel(status || 'failed', false, false, 'failed'),
       taskPrimaryLabel: '重新生成',
     })
   },
@@ -814,7 +859,8 @@ Page<SharePosterState, SharePosterMethods>({
   applyPosterUnavailableState(message) {
     const safeMessage = toSafeShareErrorText(message) || '这张分享图还没有可展示内容'
     const taskId = this.data.shareTask?.id || this.data.briefId || this.data.sessionId || 'share-poster-unavailable'
-    const task = this.data.shareTask || {
+    const task = {
+      ...(this.data.shareTask || {}),
       ...buildUnavailableShareTask(taskId, safeMessage, 'failed'),
       briefId: this.data.briefId,
       sessionId: this.data.sessionId,
@@ -829,9 +875,9 @@ Page<SharePosterState, SharePosterMethods>({
       taskIncludeLedger: true,
       taskLayoutMode: task.layoutMode || 'dual_flow',
       displayTaskLayoutMode: getShareLayoutText(task.layoutMode || 'dual_flow'),
-      displayTaskStatus: getShareTaskStatusText(task.status || 'failed'),
-      posterStatusLine: getPosterStatusLine(task.status || 'failed', 'failed', safeMessage),
-      savePosterLabel: getSavePosterLabel(task.status || 'failed', false),
+      displayTaskStatus: getShareTaskStatusText('failed'),
+      posterStatusLine: getPosterStatusLine('failed', 'failed', safeMessage),
+      savePosterLabel: getSavePosterLabel('failed', false),
       taskPrimaryLabel: '重新生成',
     })
   },
@@ -848,6 +894,7 @@ Page<SharePosterState, SharePosterMethods>({
       const timelineEventCount = this.data.keyEvents.length
       const keyEvents = timelineEventCount ? this.data.keyEvents : buildLedgerKeyEvents(players)
       const { ledgerCount, metrics } = buildAccountingHighlights(players, timelineEventCount)
+      const nextMetrics = this.data.briefId && this.data.accountingHighlights.length ? this.data.accountingHighlights : metrics
       const sessionName = liveSession.sessionName || this.data.sessionName || runtime.sessionName || ''
 
       setSessionRuntime({
@@ -858,19 +905,23 @@ Page<SharePosterState, SharePosterMethods>({
       })
 
       this.setData({
-        accountingHighlights: metrics,
+        accountingHighlights: nextMetrics,
         inviteCode: liveSession.inviteCode || this.data.inviteCode || runtime.inviteCode || '',
         keyEvents,
         ledgerCount,
         memberCount: liveSession.playerCount || players.length || this.data.memberCount,
         posterTimelineNodes: this.data.posterTimelineNodes.length
           ? this.data.posterTimelineNodes
-          : buildPosterTimelineNodesFromHighlights(this.data.photoHighlights, keyEvents, metrics),
+          : buildPosterTimelineNodesFromHighlights(this.data.photoHighlights, keyEvents, nextMetrics),
         sessionId: liveSession.id || sessionId,
         sessionName,
         shareSummary: buildShareSummary(this.data.photoCount, ledgerCount, keyEvents.length),
       })
-    } catch {
+    } catch (error) {
+      if (isMissingSessionError(error)) {
+        this.applyPosterUnavailableState('这场聚会记录已失效，暂时无法刷新分享状态')
+        return
+      }
       const runtimeStats = (runtime.playerStats || []).map<ManagedSessionPlayer>((item) => ({
         avatarUrl: item.avatarUrl,
         clearedCount: item.clearedCount,
@@ -884,14 +935,15 @@ Page<SharePosterState, SharePosterMethods>({
       const timelineEventCount = this.data.keyEvents.length
       const keyEvents = timelineEventCount ? this.data.keyEvents : buildLedgerKeyEvents(runtimeStats)
       const { ledgerCount, metrics } = buildAccountingHighlights(runtimeStats, timelineEventCount)
+      const nextMetrics = this.data.briefId && this.data.accountingHighlights.length ? this.data.accountingHighlights : metrics
       this.setData({
-        accountingHighlights: metrics,
+        accountingHighlights: nextMetrics,
         keyEvents,
         ledgerCount,
         memberCount: runtime.playerCount || runtimeStats.length || this.data.memberCount,
         posterTimelineNodes: this.data.posterTimelineNodes.length
           ? this.data.posterTimelineNodes
-          : buildPosterTimelineNodesFromHighlights(this.data.photoHighlights, keyEvents, metrics),
+          : buildPosterTimelineNodesFromHighlights(this.data.photoHighlights, keyEvents, nextMetrics),
         shareSummary: buildShareSummary(this.data.photoCount, ledgerCount, keyEvents.length),
       })
     }
@@ -902,9 +954,14 @@ Page<SharePosterState, SharePosterMethods>({
       try {
         const brief = await getManagedSessionBrief(query.briefId)
         this.applyBrief(brief)
+        await this.loadShareTaskFromBrief(brief, query.taskId)
         await this.loadLiveSessionSummary(brief.sessionId || fallbackSessionId || this.data.sessionId)
       } catch (error) {
         const message = error instanceof Error ? error.message : '简报读取失败'
+        if (isMissingSessionError(error) && !fallbackSessionId && !this.data.sessionId) {
+          this.applyPosterUnavailableState('这张分享图对应的聚会记录已失效')
+          return
+        }
         this.setData({
           errorText: this.data.errorText || toSafeShareErrorText(message),
           sessionId: fallbackSessionId || this.data.sessionId,
@@ -918,9 +975,14 @@ Page<SharePosterState, SharePosterMethods>({
       try {
         const brief = await createOrRefreshManagedSessionBrief(fallbackSessionId)
         this.applyBrief(brief)
+        await this.loadShareTaskFromBrief(brief, query.taskId)
         await this.loadLiveSessionSummary(brief.sessionId || fallbackSessionId)
       } catch (error) {
         const message = error instanceof Error ? error.message : '简报生成失败'
+        if (isMissingSessionError(error)) {
+          this.applyPosterUnavailableState('这场聚会记录已失效，暂时无法生成分享图')
+          return
+        }
         this.setData({ errorText: this.data.errorText || toSafeShareErrorText(message) })
         await this.loadLiveSessionSummary(fallbackSessionId)
       }
@@ -931,16 +993,45 @@ Page<SharePosterState, SharePosterMethods>({
       try {
         const brief = await getManagedSessionBrief(this.data.shareTask.briefId)
         this.applyBrief(brief)
+        await this.loadShareTaskFromBrief(brief, this.data.shareTask.id)
         await this.loadLiveSessionSummary(brief.sessionId || this.data.sessionId)
       } catch (error) {
         const message = error instanceof Error ? error.message : '简报读取失败'
+        if (isMissingSessionError(error)) {
+          this.applyPosterUnavailableState('这张分享图对应的聚会记录已失效')
+          return
+        }
         this.setData({ errorText: this.data.errorText || toSafeShareErrorText(message) })
         await this.loadLiveSessionSummary(this.data.sessionId)
       }
     }
   },
 
+  async loadShareTaskFromBrief(brief, currentTaskId = '') {
+    const taskId = currentTaskId || brief.shareImageTaskId || ''
+    if (!taskId || (this.data.shareTask?.id === taskId && Boolean(this.data.shareTask.imageUrl))) {
+      return
+    }
+
+    try {
+      const task = await getManagedShareImageTask(taskId)
+      this.applyShareTask(task)
+    } catch (error) {
+      if (!this.data.shareTask?.id) {
+        const message = error instanceof Error ? error.message : '分享任务读取失败'
+        this.applyShareTaskError(taskId, message)
+      }
+    }
+  },
+
   async createShareTask() {
+    this.setData({
+      errorText: '',
+      posterStatusLine: getPosterStatusLine('processing', 'generating'),
+      savePosterLabel: getSavePosterLabel('processing', false, false, 'generating'),
+      saveState: 'generating',
+    })
+
     let briefId = this.data.briefId
     if (!briefId && this.data.sessionId) {
       const brief = await createOrRefreshManagedSessionBrief(this.data.sessionId)
@@ -949,6 +1040,11 @@ Page<SharePosterState, SharePosterMethods>({
     }
 
     if (!briefId) {
+      this.setData({
+        posterStatusLine: getPosterStatusLine('', 'failed', '未找到可生成聚会图的简报'),
+        savePosterLabel: getSavePosterLabel('', false, false, 'failed'),
+        saveState: 'failed',
+      })
       this.showPreviewToast('未找到可生成分享图的简报')
       return
     }
@@ -956,21 +1052,22 @@ Page<SharePosterState, SharePosterMethods>({
     const task = await createManagedShareImageTask(briefId, { includeLedger: true, layoutMode: 'dual_flow' })
     this.applyShareTask(task)
     if (!task.id) {
+      this.setData({
+        posterStatusLine: getPosterStatusLine('', 'failed', '分享任务缺少 ID，暂不能生成'),
+        savePosterLabel: getSavePosterLabel('', false, false, 'failed'),
+        saveState: 'failed',
+      })
       this.showPreviewToast('分享任务缺少 ID，暂不能生成')
       return
     }
-    const processedTask = await processManagedShareImageTask(task.id)
-    this.applyShareTask(processedTask)
-    const latestTask = await getManagedShareImageTask(processedTask.id || task.id)
-    this.applyShareTask(latestTask)
-    this.showPreviewToast(latestTask.status === 'ready' && latestTask.imageUrl ? '分享图已生成' : '分享图正在生成，请稍后刷新')
+    this.showPreviewToast(task.status === 'ready' && task.imageUrl ? '聚会图已生成' : '已开始生成聚会图，请稍后刷新状态')
   },
 
   async refreshShareTask() {
     const taskId = this.data.shareTask?.id || ''
     if (!taskId) {
-      const message = '缺少分享任务 ID，无法刷新状态'
-      this.setData({ errorText: message, posterStatusLine: getPosterStatusLine('', this.data.saveState, message) })
+      const message = '请先点击生成聚会图'
+      this.setData({ errorText: message, posterStatusLine: getPosterStatusLine('', 'failed', message) })
       this.showPreviewToast(message)
       return
     }
@@ -1064,6 +1161,12 @@ Page<SharePosterState, SharePosterMethods>({
 
   async handleTaskPrimaryTap() {
     const status = this.data.shareTask?.status || ''
+    if (isMissingSessionState(this.data.errorText || this.data.shareTask?.failedReason)) {
+      const message = this.data.errorText || '这场聚会记录已失效，暂时无法刷新分享状态'
+      this.applyPosterUnavailableState(message)
+      this.showPreviewToast(message)
+      return
+    }
     this.setData({ errorText: '', saveState: status === 'failed' || status === 'expired' ? 'retrying' : this.data.saveState })
     const shouldShowLoading = status !== 'ready'
     let toastMessage = ''
@@ -1076,7 +1179,7 @@ Page<SharePosterState, SharePosterMethods>({
 
     try {
       if (!this.data.shareTask || !status) {
-        await this.createShareTask()
+        toastMessage = '请先点击生成聚会图'
       } else if (status === 'pending' || status === 'processing') {
         await this.refreshShareTask()
       } else if (status === 'ready') {
@@ -1085,15 +1188,10 @@ Page<SharePosterState, SharePosterMethods>({
         const task = await retryManagedShareImageTask(this.data.shareTask.id)
         this.applyShareTask(task)
         if (task.id) {
-          const processedTask = await processManagedShareImageTask(task.id)
-          this.applyShareTask(processedTask)
-          const latestTask = await getManagedShareImageTask(processedTask.id || task.id)
-          this.applyShareTask(latestTask)
-          toastMessage = latestTask.status === 'ready' && latestTask.imageUrl ? '分享图已生成' : '已重新排队，请稍后刷新'
+          toastMessage = task.status === 'ready' && task.imageUrl ? '聚会图已生成' : '已重新排队，请稍后刷新'
         } else {
           toastMessage = '分享任务缺少 ID，暂不能生成'
         }
-        this.setData({ saveState: 'idle' })
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : '操作失败'
@@ -1112,34 +1210,45 @@ Page<SharePosterState, SharePosterMethods>({
 
   async handleSaveTap() {
     const taskStatus = this.data.shareTask?.status || ''
-    if (this.data.posterSaved) {
-      this.handleTimelineTap()
+    if (this.data.posterSaved || this.data.saveState === 'saved') {
       return
     }
-    if (this.data.saveState === 'saving') {
+    if (this.data.saveState === 'generating' || this.data.saveState === 'saving') {
       return
     }
-    if (!this.data.shareTask) {
-      this.showPreviewToast('请先生成分享图任务')
+    if (!this.data.shareTask || !taskStatus || taskStatus === 'failed' || taskStatus === 'expired') {
+      try {
+        await this.createShareTask()
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '生成聚会图失败'
+        const safeMessage = toSafeShareErrorText(message)
+        this.setData({
+          errorText: safeMessage,
+          posterStatusLine: getPosterStatusLine(taskStatus || 'failed', 'failed', safeMessage),
+          savePosterLabel: getSavePosterLabel(taskStatus || 'failed', false, false, 'failed'),
+          saveState: 'failed',
+        })
+        this.showPreviewToast(safeMessage)
+      }
       return
     }
     if (taskStatus === 'pending' || taskStatus === 'processing') {
       this.showPreviewToast('分享图还在生成中，请刷新状态')
       return
     }
-    if (taskStatus === 'failed' || taskStatus === 'expired') {
-      this.showPreviewToast('生成失败，请重新生成')
+    if (taskStatus !== 'ready') {
+      this.showPreviewToast('分享图还没有生成成功，请刷新状态')
       return
     }
-    if (taskStatus !== 'ready' || !this.data.readyShareImageUrl) {
-      this.showPreviewToast('分享图还没有生成成功，请刷新状态')
+    if (!this.data.readyShareImageUrl) {
+      this.showPreviewToast('后端还没有返回聚会图，请刷新状态')
       return
     }
 
     this.setData({
       errorText: '',
       posterStatusLine: getPosterStatusLine(taskStatus, 'saving'),
-      savePosterLabel: getSavePosterLabel(taskStatus, false, Boolean(this.data.readyShareImageUrl)),
+      savePosterLabel: getSavePosterLabel(taskStatus, false, Boolean(this.data.readyShareImageUrl), 'saving'),
       saveState: 'saving',
     })
     try {
@@ -1150,7 +1259,7 @@ Page<SharePosterState, SharePosterMethods>({
           posterImagePath: tempFilePath,
           posterSaved: true,
           posterStatusLine: getPosterStatusLine(taskStatus, 'saved'),
-          savePosterLabel: '去分享',
+          savePosterLabel: getSavePosterLabel(taskStatus, true, Boolean(this.data.readyShareImageUrl), 'saved'),
           saveState: 'saved',
         })
         this.showPreviewToast('预览框已准备分享图')
@@ -1167,8 +1276,13 @@ Page<SharePosterState, SharePosterMethods>({
           action: 'save-poster',
         },
       })
-      this.setData({ posterSaved: true, savePosterLabel: '去分享' })
-      this.setData({ errorText: '', posterStatusLine: getPosterStatusLine(taskStatus, 'saved'), saveState: 'saved' })
+      this.setData({
+        errorText: '',
+        posterSaved: true,
+        posterStatusLine: getPosterStatusLine(taskStatus, 'saved'),
+        savePosterLabel: getSavePosterLabel(taskStatus, true, Boolean(this.data.readyShareImageUrl), 'saved'),
+        saveState: 'saved',
+      })
       this.showPreviewToast('聚会分享图已保存')
     } catch (error) {
       const message = error instanceof Error ? error.message : '没有保存成功，请检查相册权限'
@@ -1176,7 +1290,7 @@ Page<SharePosterState, SharePosterMethods>({
       this.setData({
         errorText: safeMessage,
         posterStatusLine: getPosterStatusLine(taskStatus, 'failed', safeMessage),
-        savePosterLabel: getSavePosterLabel(taskStatus, false, Boolean(this.data.readyShareImageUrl)),
+        savePosterLabel: getSavePosterLabel(taskStatus, false, Boolean(this.data.readyShareImageUrl), 'failed'),
         saveState: 'failed',
       })
       this.showPreviewToast('没有保存成功，请检查相册权限')
@@ -1239,7 +1353,7 @@ Page<SharePosterState, SharePosterMethods>({
 
   async drawCanvasToFile(width, height) {
     const canvasTimelineNodes = this.data.posterTimelineNodes.length
-      ? this.data.posterTimelineNodes.slice(0, 6)
+      ? this.data.posterTimelineNodes
       : buildPosterTimelineNodesFromHighlights(this.data.photoHighlights, this.data.keyEvents, this.data.accountingHighlights)
     const canvasNodes = await Promise.all(
       canvasTimelineNodes.map(async (item) => ({
@@ -1247,9 +1361,15 @@ Page<SharePosterState, SharePosterMethods>({
         localPath: item.type === 'photo' && item.imageUrl ? await this.downloadImageToFile(item.imageUrl).catch(() => '') : '',
       })),
     )
+    const rowH = 126
+    const timelineY = 356
+    const summaryY = timelineY + 126 + Math.max(1, canvasNodes.length) * rowH + 42
+    const qrY = summaryY + 244
+    const dynamicHeight = Math.max(height, CANVAS_MIN_HEIGHT, qrY + 268)
+    const qrLocalPath = this.data.qrCodeImageUrl ? await this.downloadImageToFile(this.data.qrCodeImageUrl).catch(() => '') : ''
 
     return new Promise<string>((resolve, reject) => {
-      this.setData({ canvasWidth: width, canvasHeight: height }, () => {
+      this.setData({ canvasWidth: width, canvasHeight: dynamicHeight }, () => {
         const ctx = wx.createCanvasContext('sharePosterCanvas', this)
         const drawFitText = (value: string, x: number, y: number, maxWidth: number, fontSize: number, color: string) => {
           let content = String(value || '').trim()
@@ -1266,15 +1386,15 @@ Page<SharePosterState, SharePosterMethods>({
           ctx.fillRect(x, y, w, h)
           drawFitText(text, x + 18, y + Math.floor(h * 0.68), w - 36, fontSize, color)
         }
-
         ctx.setFillStyle('#090705')
-        ctx.fillRect(0, 0, width, height)
-        const bg = ctx.createLinearGradient(0, 0, width, height)
+        ctx.fillRect(0, 0, width, dynamicHeight)
+        const bg = ctx.createLinearGradient(0, 0, width, dynamicHeight)
         bg.addColorStop(0, '#311309')
-        bg.addColorStop(0.34, '#130b08')
-        bg.addColorStop(1, '#07171a')
+        bg.addColorStop(0.24, '#130b08')
+        bg.addColorStop(0.72, '#120c09')
+        bg.addColorStop(1, '#22140d')
         ctx.setFillStyle(bg)
-        ctx.fillRect(0, 0, width, height)
+        ctx.fillRect(0, 0, width, dynamicHeight)
 
         ctx.setFillStyle('rgba(255,90,61,0.28)')
         ctx.beginPath()
@@ -1282,32 +1402,30 @@ Page<SharePosterState, SharePosterMethods>({
         ctx.fill()
         ctx.setFillStyle('rgba(99,223,174,0.14)')
         ctx.beginPath()
-        ctx.arc(140, height - 220, 160, 0, Math.PI * 2)
+        ctx.arc(140, dynamicHeight - 220, 160, 0, Math.PI * 2)
         ctx.fill()
 
         ctx.setStrokeStyle('rgba(255,244,222,0.22)')
         ctx.setLineWidth(3)
-        ctx.strokeRect(54, 58, width - 108, height - 116)
+        ctx.strokeRect(54, 58, width - 108, dynamicHeight - 116)
         drawFitText('聚会记录师', 82, 132, width - 164, 30, '#fff4e8')
         drawPill(`${this.data.displayTaskStatus || '可保存'} · ${this.data.displayTaskLayoutMode || '照片和账本'}`, width - 312, 92, 230, 54, 'rgba(99,223,174,0.16)', '#9df1c8', 22)
         drawFitText('聚会分享预览', 82, 230, width - 164, 64, '#ffffff')
         drawFitText('按时间节点保存这场聚会', 82, 286, width - 164, 28, '#f5dac8')
 
         const timelineX = 122
-        const timelineY = 356
-        const rowH = 126
         ctx.setFillStyle('rgba(0,0,0,0.44)')
-        ctx.fillRect(82, timelineY - 34, width - 164, 790)
+        ctx.fillRect(82, timelineY - 34, width - 164, 112 + Math.max(1, canvasNodes.length) * rowH)
         drawFitText('记录时间线', 116, timelineY + 8, width - 232, 34, '#ffdca8')
         ctx.setStrokeStyle('rgba(255,224,153,0.46)')
         ctx.setLineWidth(4)
         ctx.beginPath()
         ctx.moveTo(timelineX, timelineY + 48)
-        ctx.lineTo(timelineX, timelineY + 650)
+        ctx.lineTo(timelineX, timelineY + 72 + Math.max(1, canvasNodes.length) * rowH)
         ctx.stroke()
 
         if (canvasNodes.length) {
-          canvasNodes.slice(0, 6).forEach((item, index) => {
+          canvasNodes.forEach((item, index) => {
             const y = timelineY + 66 + index * rowH
             const dotColor = item.tone === 'drink' ? '#5df0be' : item.tone === 'debt' ? '#ffce6a' : item.tone === 'photo' ? '#ff6846' : '#ffdca8'
             ctx.setFillStyle(dotColor)
@@ -1336,23 +1454,26 @@ Page<SharePosterState, SharePosterMethods>({
           drawFitText('暂无可保存节点，先去记录照片或账本变动', 126, timelineY + 112, width - 252, 28, '#fff8ec')
         }
 
-        const summaryY = 1192
         ctx.setFillStyle('#fff4e8')
-        ctx.fillRect(82, summaryY, width - 164, 268)
+        ctx.fillRect(82, summaryY, width - 164, 196)
         drawFitText('聚会总结', 116, summaryY + 50, 180, 28, '#2a1c13')
         drawFitText(this.data.shareSummary, 116, summaryY + 98, width - 232, 28, '#24160f')
-        drawFitText('房间码', 116, summaryY + 170, 180, 24, '#6a4b38')
-        drawFitText(this.data.inviteCode || '待生成', 116, summaryY + 230, 360, 58, '#24160f')
-        drawFitText(this.data.qrCodeImageUrl ? '小程序码已接入' : '小程序码待接入真实字段', width - 292, summaryY + 142, 190, 24, '#6a4b38')
+        drawFitText(`房间码 ${this.data.inviteCode || '待生成'} · 仅展示已授权公开内容`, 116, summaryY + 154, width - 232, 24, '#6a4b38')
+        ctx.setFillStyle('#fff4e8')
+        ctx.fillRect(Math.round((width - 248) / 2), qrY, 248, 248)
+        if (qrLocalPath) {
+          ctx.drawImage(qrLocalPath, Math.round((width - 168) / 2), qrY + 30, 168, 168)
+        }
+        drawFitText(this.data.qrCodeImageUrl ? '扫码回到小程序' : '小程序码待接入真实字段', Math.round((width - 248) / 2) + 36, qrY + 222, 176, 22, '#2a1c13')
 
         ctx.draw(false, () => {
           wx.canvasToTempFilePath(
             {
               canvasId: 'sharePosterCanvas',
               width,
-              height,
+              height: dynamicHeight,
               destWidth: width,
-              destHeight: height,
+              destHeight: dynamicHeight,
               success: (result) => resolve(result.tempFilePath),
               fail: reject,
             },
@@ -1419,28 +1540,41 @@ Page<SharePosterState, SharePosterMethods>({
   handlePhotoImageLoad(event) {
     const { id } = event.currentTarget.dataset as { id?: string }
     const detail = (event as unknown as { detail?: { height?: number; width?: number } }).detail || {}
-    if (!id || Number(detail.width) >= 8 || Number(detail.height) >= 8) {
+    const width = Number(detail.width)
+    const height = Number(detail.height)
+    if (!id || !Number.isFinite(width) || !Number.isFinite(height)) {
       return
     }
-    this.setData({
-      photoHighlights: this.data.photoHighlights.map((item) => (item.id === id ? { ...item, imageBroken: true } : item)),
-      posterTimelineNodes: this.data.posterTimelineNodes.map((item) => (item.id === id ? { ...item, imageBroken: true } : item)),
-    })
+    this.setData(updatePosterImageState(
+      id,
+      { imageBroken: width < 8 && height < 8 },
+      this.data.photoHighlights,
+      this.data.posterTimelineNodes,
+    ))
   },
 
-  handlePhotoImageError(event) {
+  async handlePhotoImageError(event) {
     const { id } = event.currentTarget.dataset as { id?: string }
     if (!id) {
       return
     }
-    this.setData({
-      photoHighlights: this.data.photoHighlights.map((item) => (item.id === id ? { ...item, imageBroken: true } : item)),
-      posterTimelineNodes: this.data.posterTimelineNodes.map((item) => (item.id === id ? { ...item, imageBroken: true } : item)),
-    })
-  },
-
-  handleReportHintTap() {
-    this.showPreviewToast('举报入口待后台联调，当前可先联系发起人处理')
+    const source = findPosterImageUrl(id, this.data.photoHighlights, this.data.posterTimelineNodes)
+    const fallbackPath = await resolveCachedManagedImagePath(source).catch(() => source)
+    if (fallbackPath && fallbackPath !== source) {
+      this.setData(updatePosterImageState(
+        id,
+        { imageBroken: false, imageUrl: fallbackPath },
+        this.data.photoHighlights,
+        this.data.posterTimelineNodes,
+      ))
+      return
+    }
+    this.setData(updatePosterImageState(
+      id,
+      { imageBroken: true },
+      this.data.photoHighlights,
+      this.data.posterTimelineNodes,
+    ))
   },
 
   showPreviewToast(message) {
