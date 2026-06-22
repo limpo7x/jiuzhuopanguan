@@ -79,7 +79,126 @@ const seedCountFromRate = (rateText, denominator, fallbackBase = 1000) => {
   return Math.max(0, Math.round((rateValue / 100) * base))
 }
 
-const DEFAULT_TOOLS_CATALOG = []
+const DEFAULT_TOOLS_HERO = {
+  title: '顺手工具',
+  subtitle: '常用图片、分享、计算和文本工具都在这里。',
+  imageUrl: '/static/toolbox-banner-tools-1125x690.png',
+}
+
+const DEFAULT_TOOLS_CATALOG = [
+  {
+    id: 'tool-qr',
+    name: '二维码生成',
+    category: '分享生成',
+    target: '邀局裂变',
+    imageUrl: '/static/report-poster.png',
+    usageCount: 5622,
+    favoriteCount: 944,
+    favoriteRate: '16.8%',
+    status: '启用',
+    sortOrder: 10,
+    isHot: '是',
+    placement: 'both',
+  },
+  {
+    id: 'tool-compress',
+    name: '图片压缩',
+    category: '图片处理',
+    target: '工具留存',
+    imageUrl: '/static/image-process-hero.png',
+    usageCount: 3410,
+    favoriteCount: 450,
+    favoriteRate: '13.2%',
+    status: '启用',
+    sortOrder: 20,
+    isHot: '是',
+    placement: 'both',
+  },
+  {
+    id: 'tool-json',
+    name: 'JSON 格式化',
+    category: '开发工具',
+    target: '日活补充',
+    imageUrl: '/static/toolbox-hero.png',
+    usageCount: 2184,
+    favoriteCount: 190,
+    favoriteRate: '8.7%',
+    status: '启用',
+    sortOrder: 30,
+    isHot: '是',
+    placement: 'tools',
+  },
+  {
+    id: 'tool-loan',
+    name: '房贷计算',
+    category: '计算工具',
+    target: '实用转化',
+    imageUrl: '/static/report-poster.png',
+    usageCount: 1921,
+    favoriteCount: 181,
+    favoriteRate: '9.4%',
+    status: '启用',
+    sortOrder: 40,
+    isHot: '是',
+    placement: 'both',
+  },
+  {
+    id: 'tool-currency',
+    name: '汇率换算',
+    category: '计算工具',
+    target: '日常工具',
+    imageUrl: '/static/report-poster.png',
+    usageCount: 1688,
+    favoriteCount: 120,
+    favoriteRate: '7.1%',
+    status: '启用',
+    sortOrder: 50,
+    isHot: '否',
+    placement: 'tools',
+  },
+  {
+    id: 'tool-unit',
+    name: '单位换算',
+    category: '计算工具',
+    target: '日常工具',
+    imageUrl: '/static/report-poster.png',
+    usageCount: 1450,
+    favoriteCount: 91,
+    favoriteRate: '6.3%',
+    status: '启用',
+    sortOrder: 60,
+    isHot: '否',
+    placement: 'tools',
+  },
+  {
+    id: 'tool-9-grid',
+    name: '九宫格切图',
+    category: '图片处理',
+    target: '分享物料',
+    imageUrl: '/static/image-process-hero.png',
+    usageCount: 1280,
+    favoriteCount: 131,
+    favoriteRate: '10.2%',
+    status: '启用',
+    sortOrder: 70,
+    isHot: '否',
+    placement: 'tools',
+  },
+  {
+    id: 'tool-watermark',
+    name: '图片去水印',
+    category: '图片处理',
+    target: '内容编辑',
+    imageUrl: '/static/party-hero.png',
+    usageCount: 1166,
+    favoriteCount: 98,
+    favoriteRate: '8.4%',
+    status: '启用',
+    sortOrder: 80,
+    isHot: '否',
+    placement: 'tools',
+  },
+]
 
 const RANKING_REWARD_CATEGORIES = [
   { value: 'today_funny', label: '今日最有梗' },
@@ -199,6 +318,7 @@ const createDefaultStore = () => ({
   userOps: [],
   questionBank: [],
   shareAssets: [],
+  toolsHero: DEFAULT_TOOLS_HERO,
   toolsCatalog: normalizeToolsCatalog(DEFAULT_TOOLS_CATALOG),
   liveSessions: [],
   reports: [],
@@ -382,7 +502,13 @@ const normalizeStore = (store = {}) => {
   next.liveSessions = Array.isArray(store.liveSessions)
     ? store.liveSessions.map((item, index) => normalizeLiveSession(item, index))
     : createDefaultStore().liveSessions.map((item, index) => normalizeLiveSession(item, index))
-  next.toolsCatalog = normalizeToolsCatalog(store.toolsCatalog || next.toolsCatalog)
+  next.toolsHero = {
+    ...DEFAULT_TOOLS_HERO,
+    ...(store.toolsHero && typeof store.toolsHero === 'object' ? store.toolsHero : {}),
+  }
+  next.toolsCatalog = normalizeToolsCatalog(
+    Array.isArray(store.toolsCatalog) && store.toolsCatalog.length ? store.toolsCatalog : next.toolsCatalog,
+  )
   next.shareAssets = (Array.isArray(store.shareAssets) ? store.shareAssets : next.shareAssets).map((item, index) =>
     normalizeShareAsset(item, index),
   )
