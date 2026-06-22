@@ -32,7 +32,11 @@ interface WaitingRoomMethods {
   handleStartTap: () => Promise<void>
   openPage: (url: string) => void
   refreshSession: (showToast?: boolean) => Promise<void>
+  startAutoRefresh: () => void
+  stopAutoRefresh: () => void
 }
+
+let waitingRoomRefreshTimer = 0
 
 const mergeRuntimeAvatars = (players: JoinedPlayer[], runtime = getSessionRuntime()) => {
   const avatarMap = new Map<string, string>()
@@ -63,17 +67,29 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     const runtime = getSessionRuntime()
     const isJudge = query?.role === 'viewer' ? false : runtime.isJudge
     const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
+    const inviteCode = typeof query?.inviteCode === 'string' ? decodeURIComponent(query.inviteCode) : runtime.inviteCode || ''
     const profile = await ensureUserAuthorized(
-      `/pages/waiting-room/index?role=${encodeURIComponent(isJudge ? 'judge' : 'viewer')}${sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : ''}`,
+      `/pages/waiting-room/index?role=${encodeURIComponent(isJudge ? 'judge' : 'viewer')}${sessionId ? `&sessionId=${encodeURIComponent(sessionId)}` : ''}${inviteCode ? `&inviteCode=${encodeURIComponent(inviteCode)}` : ''}`,
     )
     if (!profile) {
       return
     }
+    setSessionRuntime({
+      currentUser: {
+        avatarUrl: profile.avatarUrl,
+        id: profile.id,
+        name: profile.name,
+      },
+    })
 
     this.setData({
       isJudge,
+      inviteCode,
       sessionId,
     })
+    if (inviteCode) {
+      setSessionRuntime({ inviteCode })
+    }
 
     try {
       await this.refreshSession()
@@ -96,6 +112,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
 
     try {
       await this.refreshSession()
+      this.startAutoRefresh()
     } catch (error) {
       this.setData({ loading: false })
       wx.showToast({
@@ -105,14 +122,36 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     }
   },
 
+  onHide() {
+    this.stopAutoRefresh()
+  },
+
   onUnload() {
+    this.stopAutoRefresh()
     disableSessionLeaveAlert()
+  },
+
+  startAutoRefresh() {
+    this.stopAutoRefresh()
+    waitingRoomRefreshTimer = setInterval(() => {
+      void this.refreshSession().catch(() => {
+        // Keep polling silent; manual refresh still surfaces errors.
+      })
+    }, 3000)
+  },
+
+  stopAutoRefresh() {
+    if (waitingRoomRefreshTimer) {
+      clearInterval(waitingRoomRefreshTimer)
+      waitingRoomRefreshTimer = 0
+    }
   },
 
   async refreshSession(showToast = false) {
     const runtime = getSessionRuntime()
     const sessionId = this.data.sessionId || runtime.sessionId || ''
-    const liveSession = await getManagedLiveSession(sessionId, runtime.inviteCode)
+    const inviteCode = this.data.inviteCode || runtime.inviteCode || ''
+    const liveSession = await getManagedLiveSession(sessionId, inviteCode)
     const joinedPlayers = mergeRuntimeAvatars(liveSession.joinedPlayers.slice(0, liveSession.playerCount), runtime)
     const emptySeats = Array.from({ length: Math.max(liveSession.playerCount - joinedPlayers.length, 0) }, (_, index) => index + 1)
 
@@ -141,6 +180,21 @@ Page<WaitingRoomState, WaitingRoomMethods>({
       templateImageUrl: liveSession.templateImageUrl || runtime.templateImageUrl || '',
       templateName: liveSession.templateName,
     })
+
+    const currentProfileId = getSessionRuntime().currentUser?.id || ''
+    const currentUserJoined = !this.data.isJudge && currentProfileId && liveSession.joinedPlayers.some((item) => item.profileId === currentProfileId)
+    if (currentUserJoined) {
+      const url = `/pages/live-record/index?role=viewer&sessionId=${encodeURIComponent(liveSession.id)}&sessionName=${encodeURIComponent(liveSession.sessionName || '聚会记录')}`
+      this.stopAutoRefresh()
+      disableSessionLeaveAlert()
+      wx.redirectTo({
+        url,
+        fail: () => {
+          wx.reLaunch({ url })
+        },
+      })
+      return
+    }
 
     if (showToast) {
       wx.showToast({
@@ -223,11 +277,13 @@ Page<WaitingRoomState, WaitingRoomMethods>({
         mask: true,
       })
 
-      if (this.data.sessionId) {
+      if (this.data.isJudge && this.data.sessionId) {
         await updateManagedSession(this.data.sessionId, {
           state: '进行中',
           status: '',
         })
+      } else {
+        await this.refreshSession()
       }
 
       const runtime = setSessionRuntime({

@@ -518,7 +518,11 @@ Page<HomePageState, HomePageMethods>({
         startedAt: 0,
         templateName: liveSession.templateName,
       })
-      wx.redirectTo({ url: '/pages/waiting-room/index?role=viewer&sessionId=' + encodeURIComponent(liveSession.id) })
+      const joined = liveSession.joinStatusPlayers.some((item) => item.profileId === profile.id && (!item.status || item.status === '已加入'))
+      const targetUrl = joined
+        ? `/pages/live-record/index?role=viewer&sessionId=${encodeURIComponent(liveSession.id)}&sessionName=${encodeURIComponent(liveSession.sessionName || '聚会记录')}`
+        : '/pages/waiting-room/index?role=viewer&sessionId=' + encodeURIComponent(liveSession.id)
+      wx.redirectTo({ url: targetUrl })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'join failed'
       const notPlayer = message.includes('not session player')
