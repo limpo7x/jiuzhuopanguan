@@ -7,7 +7,7 @@
 ></navigation-bar>
 
 <view class="page-shell home-redesign">
-  <image class="home-stage-bg" src="/assets/party-recorder/home-stage-party-bg.webp" mode="aspectFill"></image>
+  <image class="home-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/home-stage-party-bg.webp" mode="aspectFill"></image>
   <scroll-view class="screen-body scroll-body with-tabs home-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="home-stage">
       <view class="home-sticker home-sticker-a">⌁</view>
