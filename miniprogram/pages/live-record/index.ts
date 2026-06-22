@@ -65,6 +65,7 @@ interface LiveRecordTimelineItem {
   caption: string
   chipAsset: string
   chipText: string
+  chipTextVisible: boolean
   createdAt: string
   detail: string
   iconAsset: string
@@ -330,6 +331,10 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         const targetName = cleanDisplayName(node.targetName, target?.name || '成员')
         const operatorName = cleanDisplayName(node.operatorName, '成员')
         const score = Math.abs(Number(node.scoreDelta) || 0) || 1
+        const chipAsset =
+          node.eventType === 'drink_debt'
+            ? (score === 1 ? '/pages/live-record/assets/pr-cs008ar-neon-debt-plus1.png' : '/pages/live-record/assets/pr-cs008ar-neon-plate-debt-base.png')
+            : (score === 1 ? '/pages/live-record/assets/pr-cs008au-neon-drink-plus1.png' : score === 2 ? '/pages/live-record/assets/pr-cs008ar-neon-drink-plus2.png' : '/pages/live-record/assets/pr-cs008ar-neon-plate-drink-base.png')
         ledgerTimelineItems.push({
           detail: buildEventDetail(node),
           id: node.id,
@@ -343,11 +348,9 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
           actorInitial: getInitial(targetName),
           actorName: targetName,
           caption: '',
-          chipAsset:
-            node.eventType === 'drink_debt'
-              ? (score === 1 ? '/pages/live-record/assets/pr-cs008ar-neon-debt-plus1.png' : '/pages/live-record/assets/pr-cs008ar-neon-plate-debt-base.png')
-              : (score === 1 ? '/pages/live-record/assets/pr-cs008au-neon-drink-plus1.png' : score === 2 ? '/pages/live-record/assets/pr-cs008ar-neon-drink-plus2.png' : '/pages/live-record/assets/pr-cs008ar-neon-plate-drink-base.png'),
+          chipAsset,
           chipText: node.eventType === 'drink_debt' ? `欠酒 +${score}` : `加酒 +${score}`,
+          chipTextVisible: chipAsset.includes('plate-'),
           createdAt: node.createdAt || node.updatedAt || '',
           detail:
             node.eventType === 'drink_debt'
@@ -384,6 +387,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         caption: node.caption || '',
         chipAsset: '',
         chipText: '',
+        chipTextVisible: false,
         createdAt: node.createdAt || node.updatedAt || '',
         detail: node.caption || '照片已进入相册和分享记录',
         iconAsset: '/pages/live-record/assets/pr-cs008ar-node-camera.png',

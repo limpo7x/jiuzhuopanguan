@@ -96,7 +96,7 @@
               </view>
               <view class="live-record-ledger-chip" wx:else>
                 <image class="live-record-ledger-chip-bg" src="{{item.chipAsset}}" mode="scaleToFill"></image>
-                <text class="live-record-ledger-chip-text">{{item.chipText}}</text>
+                <text wx:if="{{item.chipTextVisible}}" class="live-record-ledger-chip-text">{{item.chipText}}</text>
               </view>
               <view class="live-record-timeline-copy">
                 <text class="live-record-timeline-time">{{item.timeText}}</text>

@@ -700,7 +700,9 @@ const serializePublicVisibleNode = (node = {}) => {
     nodeKind: 'moment',
     nodeType: cleanText(node.nodeType),
     imageUrl: cleanText(node.imageUrl),
-    title: buildPublicPhotoTitle(node),
+    title: cleanText(node.caption) || buildPublicPhotoTitle(node),
+    caption: cleanText(node.caption),
+    uploaderName: cleanText(node.uploaderName),
     createdAt: cleanText(node.createdAt),
   }
 }
@@ -1047,6 +1049,14 @@ const getPosterMomentTitle = (node = {}) => {
   return '精彩瞬间'
 }
 
+const getPosterMomentCaptionTitle = (node = {}) =>
+  toPosterSafeText(node.caption, node.timelineTitle || getPosterMomentTitle(node), 16)
+
+const getPosterMomentCaptionMeta = (node = {}) => {
+  const uploaderName = toPosterSafeText(node.uploaderName, '玩家', 10)
+  return `${uploaderName} 上传了这张照片`
+}
+
 const getPosterEventTitle = (node = {}) => {
   if (node.eventType === 'drink_add') return '新增加酒记录'
   if (node.eventType === 'wheel_result') return '记录关键互动'
@@ -1138,10 +1148,10 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
       const title =
         item.nodeKind === 'event'
             ? getPosterEventTitle(item)
-            : getPosterMomentTitle(item)
+            : getPosterMomentCaptionTitle(item)
       const desc =
         item.nodeKind === 'moment'
-          ? toPosterSafeText(item.timelineTitle || item.caption || item.uploaderName, '已授权公开照片', 18)
+          ? getPosterMomentCaptionMeta(item)
           : toPosterSafeText(item.caption || item.targetName || item.operatorName, '聚会账本', 18)
       const toneColor = item.nodeKind === 'moment' ? '#ff6846' : item.eventType === 'drink_add' ? '#63dfae' : '#ffc75a'
       const imageDataUri = item.nodeKind === 'moment' ? imageDataUriById.get(item.id) : ''
