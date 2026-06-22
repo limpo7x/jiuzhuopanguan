@@ -1413,12 +1413,15 @@ const normalizeLiveSession = (session = {}, index = 0) => {
         },
         [],
       )
-  const state = normalizeSessionState(session.state || session.status, SESSION_STATE_LIVE)
-  const status = normalizeSessionStatusForState(session.status || session.state, state)
   const updatedAt = String(session.updatedAt || session.createdAt || '').trim()
-  const endedAt = isEndedSessionState(state)
-    ? String(session.endedAt || updatedAt || '').trim()
-    : String(session.endedAt || '').trim()
+  const rawEndedAt = String(session.endedAt || '').trim()
+  const hasEndedMarker =
+    rawEndedAt ||
+    isEndedSessionState(session.state || '') ||
+    isEndedSessionState(session.status || '')
+  const state = hasEndedMarker ? SESSION_STATE_ENDED : normalizeSessionState(session.state || session.status, SESSION_STATE_LIVE)
+  const status = hasEndedMarker ? SESSION_STATE_ENDED : normalizeSessionStatusForState(session.status || session.state, state)
+  const endedAt = hasEndedMarker ? String(rawEndedAt || updatedAt || '').trim() : ''
 
   return {
     ...session,
@@ -1542,7 +1545,7 @@ const createManagedSession = (payload = {}) => {
     updatedAt: createdAt,
     members: buildSessionMembers(payload, []),
   }
-  store.liveSessions = [session, ...store.liveSessions.filter((item) => item.id !== id)].slice(0, 50)
+  store.liveSessions = [session, ...store.liveSessions.filter((item) => item.id !== id)]
   pushAnalyticsEvent(store, {
     type: 'session_created',
     profileId: String(payload.hostProfileId || '').trim(),
@@ -1693,7 +1696,7 @@ const finishManagedSession = (payload = {}) => {
     playerCount,
     ranks,
     events,
-    status: String(payload.status || SESSION_STATE_ENDED).trim(),
+    status: normalizeSessionStatusForState(payload.status || SESSION_STATE_ENDED, SESSION_STATE_ENDED),
   }
 
   const normalizedReport = normalizeReportItem(report, 0)
@@ -1706,7 +1709,7 @@ const finishManagedSession = (payload = {}) => {
       templateName,
     },
   })
-  store.reports = [normalizedReport, ...store.reports].slice(0, 50)
+  store.reports = [normalizedReport, ...store.reports]
   if (sessionId) {
     store.liveSessions = store.liveSessions.map((item) =>
       item.id === sessionId

@@ -1618,6 +1618,48 @@ const retryShareImageTask = ({ taskId, profile }) => {
   return decorateShareImageTask(task)
 }
 
+const getReadableBriefForSummary = ({ store, sessionId, profile }) => {
+  const sessionBriefs = store.sessionBriefs
+    .filter((item) => item.sessionId === cleanText(sessionId))
+    .sort((left, right) => cleanText(right.updatedAt || right.createdAt).localeCompare(cleanText(left.updatedAt || left.createdAt)))
+  for (const brief of sessionBriefs) {
+    try {
+      return getSessionBrief({ briefId: brief.id, profile })
+    } catch (error) {
+      continue
+    }
+  }
+  return null
+}
+
+const isSummaryEndedState = (session = {}, report = {}) =>
+  Boolean(cleanText(session?.endedAt)) ||
+  cleanText(session?.state).includes('结束') ||
+  cleanText(session?.status).includes('结束') ||
+  cleanText(report?.state).includes('结束') ||
+  cleanText(report?.status).includes('结束')
+
+const getSummaryStateFields = (session = {}, report = {}) => {
+  if (isSummaryEndedState(session, report)) {
+    return {
+      endedAt: cleanText(session?.endedAt || report?.endedAt || report?.createdAt),
+      state: '已结束',
+      stateText: '已结束',
+      status: '已结束',
+      updatedAt: cleanText(session?.updatedAt || session?.endedAt || report?.updatedAt || report?.createdAt),
+    }
+  }
+  const state = cleanText(session?.state || report?.state || report?.status || '进行中')
+  const status = cleanText(session?.status || report?.status || state || '进行中')
+  return {
+    endedAt: '',
+    state,
+    stateText: state,
+    status,
+    updatedAt: cleanText(session?.updatedAt || report?.updatedAt || report?.createdAt),
+  }
+}
+
 const getUserSessionMomentSummaries = ({ profile }) => {
   const profileId = getProfileId(profile)
   if (!profileId) {
@@ -1628,11 +1670,10 @@ const getUserSessionMomentSummaries = ({ profile }) => {
   return reports.map((report) => {
     const sessionId = cleanText(report.sessionId)
     const session = sessionId ? getManagedSessionById(sessionId) : null
-    const sessionState = cleanText(session?.state || report.status)
-    const sessionStatus = cleanText(session?.status || report.status)
-    const isEndedSession = sessionState.includes('结束') || sessionStatus.includes('结束')
+    const stateFields = getSummaryStateFields(session, report)
+    const isEndedSession = stateFields.state.includes('结束') || stateFields.status.includes('结束') || Boolean(stateFields.endedAt)
     const moments = store.momentRecords.filter((item) => item.sessionId === sessionId && !item.removedAt)
-    const brief = store.sessionBriefs.find((item) => item.sessionId === sessionId)
+    const brief = getReadableBriefForSummary({ store, sessionId, profile })
     const task = brief?.shareImageTaskId ? store.shareImageTasks.find((item) => item.id === brief.shareImageTaskId) : null
     const resumableMomentIds = isEndedSession
       ? []
@@ -1645,11 +1686,11 @@ const getUserSessionMomentSummaries = ({ profile }) => {
       reportId: report.reportId || report.id,
       sessionName: report.sessionName,
       title: report.title,
-      state: sessionState,
-      stateText: sessionState,
-      status: sessionStatus,
-      endedAt: cleanText(session?.endedAt),
-      updatedAt: cleanText(session?.updatedAt),
+      state: stateFields.state,
+      stateText: stateFields.stateText,
+      status: stateFields.status,
+      endedAt: stateFields.endedAt,
+      updatedAt: stateFields.updatedAt,
       canResume: resumableMomentIds.length > 0,
       canShare: Boolean(brief?.id && (task?.status === 'ready' ? readyShareImageUrl : brief.shareImageTaskId || task?.id)),
       pendingMediaCount: moments.filter((item) => item.uploaderProfileId === profileId && item.completionStatus === 'needs_media').length,
