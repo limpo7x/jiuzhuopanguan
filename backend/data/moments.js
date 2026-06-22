@@ -526,6 +526,8 @@ const getSessionMembersForLedger = (session = {}) =>
     .map((member, index) => ({
       displayName: toSafeDisplayName(index),
       originalName: cleanText(member?.name),
+      profileId: cleanText(member?.profileId),
+      avatarUrl: cleanText(member?.avatarUrl),
       debtCount: Math.max(0, Number(member?.debtCount) || 0),
       drinkCount: Math.max(0, Number(member?.drinkCount) || 0),
       clearedCount: Math.max(0, Number(member?.clearedCount) || 0),
@@ -545,6 +547,24 @@ const buildRankingRows = (members = [], field = 'debtCount') =>
       value: Number(item[field]) || 0,
     }))
 
+const buildTopDebtor = ({ session = {}, members = [] } = {}) => {
+  const topMember = [...members]
+    .filter((item) => Number(item.debtCount) > 0)
+    .sort((left, right) => Number(right.debtCount) - Number(left.debtCount))[0]
+  if (!topMember) {
+    return null
+  }
+  return {
+    name: toPosterSafeText(topMember.originalName || topMember.displayName, '欠酒王', 8),
+    value: Number(topMember.debtCount) || 0,
+    avatarUrl: resolveAvatarUrl({
+      sessionId: session.id,
+      profileId: topMember.profileId,
+      preferredAvatarUrl: topMember.avatarUrl,
+    }),
+  }
+}
+
 const buildAccountingHighlight = ({ type, label, value, unit, emptyText }) => {
   const safeValue = Math.max(0, Number(value) || 0)
   return {
@@ -554,6 +574,16 @@ const buildAccountingHighlight = ({ type, label, value, unit, emptyText }) => {
     unit,
     text: safeValue > 0 ? `${label} ${safeValue}${unit}` : emptyText,
   }
+}
+
+const hasSameStringSet = (left = [], right = []) => {
+  const leftValues = normalizeStringArray(left)
+  const rightValues = normalizeStringArray(right)
+  if (leftValues.length !== rightValues.length) {
+    return false
+  }
+  const rightSet = new Set(rightValues)
+  return leftValues.every((item) => rightSet.has(item))
 }
 
 const buildShareContentFilter = (timeline = { nodes: [] }) => {
@@ -651,6 +681,7 @@ const buildSessionLedgerSnapshot = ({ sessionId, timeline } = {}) => {
       updatedAt,
       emptyText: '聚会账本还没开始，先记一笔。',
     },
+    topDebtor: buildTopDebtor({ session, members }),
     accountingHighlights: [
       buildAccountingHighlight({ type: 'debt', label: '待处理记录', value: debtCups, unit: '条', emptyText: '暂无待处理记录' }),
       buildAccountingHighlight({ type: 'drunk', label: '完成记录', value: drunkCups, unit: '条', emptyText: '暂无完成记录' }),
@@ -1128,14 +1159,17 @@ const renderPosterParticipants = (participants = [], avatarDataUris = []) => {
     return ''
   }
   const count = participants.length
-  const itemWidth = count <= 6 ? 96 : Math.max(64, Math.floor(720 / count))
-  const avatarSize = count <= 6 ? 42 : 36
-  const startX = 84
+  const visibleCount = Math.min(count, 8)
+  const rowWidth = 324
+  const itemWidth = visibleCount <= 1 ? rowWidth : rowWidth / (visibleCount - 1)
+  const avatarSize = 42
+  const startX = 94
   const y = 284
   return participants
+    .slice(0, visibleCount)
     .map((item, index) => {
-      const x = startX + index * itemWidth
-      const cx = x + avatarSize / 2
+      const cx = visibleCount <= 1 ? startX + avatarSize / 2 : startX + index * itemWidth
+      const x = cx - avatarSize / 2
       const avatarDataUri = avatarDataUris[index] || ''
       const clipId = `participantAvatar${index}`
       return `
@@ -1152,6 +1186,37 @@ const renderPosterParticipants = (participants = [], avatarDataUris = []) => {
       `
     })
     .join('')
+}
+
+const renderPosterTopDebtor = (topDebtor = null, avatarDataUri = '') => {
+  const x = 538
+  const y = 76
+  if (!topDebtor) {
+    return `
+      <rect x="${x}" y="${y}" width="278" height="178" rx="32" fill="#17100c" fill-opacity="0.82" stroke="#fff4de" stroke-opacity="0.16"/>
+      <text x="${x + 28}" y="${y + 48}" font-size="24" font-weight="900" fill="#fff8ec">今日欠酒王</text>
+      <text x="${x + 28}" y="${y + 95}" font-size="30" font-weight="900" fill="#63dfae">本场无人欠酒</text>
+      <text x="${x + 28}" y="${y + 132}" font-size="19" font-weight="800" fill="#d4bfa8">账本暂时清清爽爽</text>
+    `
+  }
+  const avatarSize = 68
+  const cx = x + 64
+  const cy = y + 104
+  return `
+    <rect x="${x}" y="${y}" width="278" height="178" rx="32" fill="#17100c" fill-opacity="0.82" stroke="#fff4de" stroke-opacity="0.16"/>
+    <text x="${x + 28}" y="${y + 46}" font-size="24" font-weight="900" fill="#fff8ec">今日欠酒王</text>
+    <circle cx="${cx}" cy="${cy}" r="${avatarSize / 2 + 4}" fill="#fff4de" fill-opacity="0.18"/>
+    <clipPath id="topDebtorAvatarClip"><circle cx="${cx}" cy="${cy}" r="${avatarSize / 2}"/></clipPath>
+    ${
+      avatarDataUri
+        ? `<image href="${avatarDataUri}" x="${cx - avatarSize / 2}" y="${cy - avatarSize / 2}" width="${avatarSize}" height="${avatarSize}" preserveAspectRatio="xMidYMid slice" clip-path="url(#topDebtorAvatarClip)"/>`
+        : `<circle cx="${cx}" cy="${cy}" r="${avatarSize / 2}" fill="#fff4de"/><text x="${cx}" y="${cy + 11}" text-anchor="middle" font-size="30" font-weight="900" fill="#2a1c13">${escapeXml(topDebtor.name.slice(0, 1) || '欠')}</text>`
+    }
+    <path d="M${cx + 22} ${cy - 34} L${cx + 22} ${cy - 5}" stroke="#fff8ec" stroke-width="4" stroke-linecap="round"/>
+    <path d="M${cx + 25} ${cy - 34} C${cx + 51} ${cy - 43}, ${cx + 55} ${cy - 20}, ${cx + 28} ${cy - 25} Z" fill="#fff8ec"/>
+    <text x="${x + 118}" y="${y + 98}" font-size="31" font-weight="900" fill="#fff8ec">${escapeXml(topDebtor.name)}</text>
+    <text x="${x + 118}" y="${y + 134}" font-size="21" font-weight="900" fill="#ffb1a0">欠了 ${topDebtor.value} 杯酒</text>
+  `
 }
 
 const formatPosterTime = (value = '') => {
@@ -1217,6 +1282,7 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
   const visibleImageDataUris = imageDataUris.filter(Boolean)
   const visiblePhotoCount = visibleImageDataUris.length
   const ledgerSummary = ledgerSnapshot?.ledgerSummary || {}
+  const topDebtor = ledgerSnapshot?.topDebtor || null
   const accountingHighlights = Array.isArray(ledgerSnapshot?.accountingHighlights) ? ledgerSnapshot.accountingHighlights : []
   const settlementSummary = ledgerSnapshot?.settlementSummary || {}
   const eventHighlights = Array.isArray(ledgerSnapshot?.eventHighlights) ? ledgerSnapshot.eventHighlights : []
@@ -1228,6 +1294,8 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
   const participants = buildPosterParticipants(session)
   const participantAvatarDataUris = await Promise.all(participants.map((item) => resolvePosterAvatarDataUri(item.avatarUrl)))
   const participantRows = renderPosterParticipants(participants, participantAvatarDataUris)
+  const topDebtorAvatarDataUri = topDebtor ? await resolvePosterAvatarDataUri(topDebtor.avatarUrl) : ''
+  const topDebtorCard = renderPosterTopDebtor(topDebtor, topDebtorAvatarDataUri)
   const timelineTop = 370
   const timelineItems = nodes
     .filter((item) => item.nodeKind === 'event' || item.nodeKind === 'moment')
@@ -1293,7 +1361,8 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
       <rect x="74" y="154" width="290" height="12" rx="6" fill="url(#coralLine)"/>
       <text x="74" y="204" font-size="27" font-weight="800" fill="#ffb1a0">${escapeXml(sessionTitle)}</text>
       <text x="74" y="254" font-size="30" font-weight="900" fill="#fff8ec">记录时间线</text>
-      <text x="812" y="254" text-anchor="end" font-size="23" font-weight="800" fill="#63dfae">${visiblePhotoCount} 张公开照片 · ${ledgerCount} 条高光</text>
+      <text x="812" y="326" text-anchor="end" font-size="23" font-weight="800" fill="#63dfae">${visiblePhotoCount} 张公开照片 · ${ledgerCount} 条高光</text>
+      ${topDebtorCard}
       ${participantRows}
       <line x1="122" y1="${timelineTop + 28}" x2="122" y2="${timelineBottom - 38}" stroke="#ffdca8" stroke-width="4" stroke-opacity="0.42"/>
       ${timelineRows || `<rect x="80" y="${timelineTop + 20}" width="740" height="104" rx="28" fill="#140f0c" stroke="#fff4de" stroke-opacity="0.16"/><text x="450" y="${timelineTop + 83}" text-anchor="middle" font-size="26" font-weight="900" fill="#fff4de">暂无公开关键时刻</text>`}
@@ -1559,12 +1628,6 @@ const createShareImageTask = ({ briefId, profile, payload = {} }) => {
   const brief = getSessionBrief({ briefId, profile })
   const layoutMode = cleanText(payload.layoutMode) || 'timeline'
   const store = readMomentsStore()
-  const existing = store.shareImageTasks.find(
-    (item) => item.briefId === brief.id && item.layoutMode === layoutMode && ['pending', 'processing', 'ready'].includes(item.status),
-  )
-  if (existing) {
-    return decorateShareImageTask(existing)
-  }
   const availableNodeIds = brief.timeline.nodes.filter(isTimelineNodeShareImageEligible).map((item) => item.id)
   const availableNodeIdSet = new Set(availableNodeIds)
   const requestedNodeIds = normalizeStringArray(payload.selectedNodeIds)
@@ -1572,9 +1635,19 @@ const createShareImageTask = ({ briefId, profile, payload = {} }) => {
   if (invalidNodeIds.length) {
     throw createHttpError('selectedNodeIds must belong to visible brief timeline nodes', 400)
   }
-  const selectedNodeIds = requestedNodeIds.length ? requestedNodeIds : availableNodeIds.slice(0, 6)
+  const selectedNodeIds = requestedNodeIds.length ? requestedNodeIds : availableNodeIds
   if (!selectedNodeIds.length) {
     throw createHttpError('selectedNodeIds required', 400)
+  }
+  const existing = store.shareImageTasks.find(
+    (item) =>
+      item.briefId === brief.id &&
+      item.layoutMode === layoutMode &&
+      ['pending', 'processing', 'ready'].includes(item.status) &&
+      hasSameStringSet(item.selectedNodeIds, selectedNodeIds),
+  )
+  if (existing) {
+    return decorateShareImageTask(existing)
   }
   const task = normalizeShareImageTask({
     id: createId('share-task'),
