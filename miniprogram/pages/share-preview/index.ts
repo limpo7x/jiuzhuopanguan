@@ -323,12 +323,17 @@ Page<SharePreviewState, SharePreviewMethods>({
       }
 
       const playerCount = Number(liveSession.playerCount) || 0
+      const joinedAvatarMap = new Map<string, string>()
+      liveSession.joinedPlayers.forEach((item) => {
+        if (item.profileId && item.avatarUrl) joinedAvatarMap.set(item.profileId, item.avatarUrl)
+        if (item.name && item.avatarUrl) joinedAvatarMap.set(item.name, item.avatarUrl)
+      })
       const joinStatusPlayers = liveSession.joinStatusPlayers.slice(0, playerCount).map((item) => ({
-        avatarUrl: item.avatarUrl,
+        avatarUrl: item.avatarUrl || (item.profileId ? joinedAvatarMap.get(item.profileId) || '' : '') || (item.name ? joinedAvatarMap.get(item.name) || '' : ''),
         name: item.name,
         status: getJoinStatusText(item.status),
       }))
-      const avatars = liveSession.joinedPlayers.slice(0, Math.min(liveSession.joinedCount, 4)).map((item) => item.avatarUrl)
+      const avatars = liveSession.joinedPlayers.slice(0, Math.min(liveSession.joinedCount, 4)).map((item) => item.avatarUrl).filter(Boolean)
       const totalDebt = liveSession.joinStatusPlayers.reduce((sum, item) => sum + (Number(item.debtCount) || 0), 0)
       const totalDrink = liveSession.joinStatusPlayers.reduce((sum, item) => sum + (Number(item.drinkCount) || 0), 0)
       const totalCleared = liveSession.joinStatusPlayers.reduce((sum, item) => sum + (Number(item.clearedCount) || 0), 0)
