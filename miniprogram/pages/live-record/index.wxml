@@ -52,10 +52,6 @@
         <text>相册</text>
         <image wx:if="{{activeSegment === 'album'}}" class="live-record008as-tab-active" src="/pages/live-record/assets/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
       </view>
-      <view class="live-segment-tab {{activeSegment === 'share' ? 'live-segment-tab-active' : ''}}" data-tab="share" bindtap="handleSegmentTap">
-        <text>分享</text>
-        <image wx:if="{{activeSegment === 'share'}}" class="live-record008as-tab-active" src="/pages/live-record/assets/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
-      </view>
       <view class="live-segment-tab {{activeSegment === 'ledger' ? 'live-segment-tab-active' : ''}}" data-tab="ledger" bindtap="handleSegmentTap">
         <text>账本</text>
         <image wx:if="{{activeSegment === 'ledger'}}" class="live-record008as-tab-active" src="/pages/live-record/assets/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
@@ -152,14 +148,6 @@
         <text>{{timelineEmptyText}}</text>
       </view>
       <view wx:if="{{hiddenTimelineNotice}}" class="live-timeline-notice">{{hiddenTimelineNotice}}</view>
-    </view>
-
-    <view wx:if="{{activeSegment === 'share'}}" class="live-privacy-note">
-      <view class="live-privacy-copy">
-        <text class="live-privacy-title">相册默认仅本聚会可见</text>
-        <text class="live-privacy-desc">上传照片会直接进入本局记录；公开分享只展示已授权内容。</text>
-      </view>
-      <view class="live-report-entry">举报/反馈待后台开通</view>
     </view>
 
     <view wx:if="{{activeSegment === 'ledger'}}" class="live-member-strip">

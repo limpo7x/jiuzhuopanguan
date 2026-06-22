@@ -1233,6 +1233,11 @@ Page<LiveRecordState, LiveRecordMethods>({
       return
     }
 
+    if (tab === 'share') {
+      this.showPreviewToast('结束聚会后再生成分享图')
+      return
+    }
+
     this.setData({ activeSegment: tab })
 
     if (tab === 'album') {
@@ -1240,14 +1245,6 @@ Page<LiveRecordState, LiveRecordMethods>({
       return
     }
 
-    if (tab === 'share') {
-      const sessionId = this.data.sessionId || getSessionRuntime().sessionId || ''
-      if (!sessionId) {
-        this.showPreviewToast('缺少聚会信息，暂不能生成分享图')
-        return
-      }
-      this.openPage(`/pages/share-poster/index?sessionId=${encodeURIComponent(sessionId)}`)
-    }
   },
 
   async handleSaveTap() {
@@ -1319,10 +1316,11 @@ Page<LiveRecordState, LiveRecordMethods>({
         title: '聚会已结束',
         icon: 'success',
       })
+      const sharePosterUrl = `/pages/share-poster/index?sessionId=${encodeURIComponent(sessionId)}`
       wx.redirectTo({
-        url: '/pages/me/index',
+        url: sharePosterUrl,
         fail: () => {
-          wx.reLaunch({ url: '/pages/me/index' })
+          wx.reLaunch({ url: sharePosterUrl })
         },
       })
     } catch (error) {
