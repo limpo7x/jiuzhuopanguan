@@ -1698,9 +1698,8 @@ page {
   align-items: flex-end;
   justify-content: flex-start;
   overflow: hidden;
-  padding: 8px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #e8f4ff 0%, #fff0d8 58%, #e8f8ef 100%);
+  background: transparent;
   box-sizing: border-box;
 }
 
@@ -1709,14 +1708,8 @@ page {
   inset: 0;
   width: 100%;
   height: 100%;
-}
-
-.home-album-shot:nth-child(2) .home-album-image {
-  background: linear-gradient(135deg, #fff0d8 0%, #ffe4de 54%, #e9f5ff 100%);
-}
-
-.home-album-shot:nth-child(3) .home-album-image {
-  background: linear-gradient(135deg, #e8f8ef 0%, #eef5ff 58%, #fff0d8 100%);
+  object-fit: cover;
+  transform: scale(1.04);
 }
 
 .home-album-mark {
@@ -1816,10 +1809,15 @@ page {
 }
 
 .home-main-actions .party-cta,
-.home-login-entry,
-.home-album-image {
+.home-login-entry {
   border: 1px solid rgba(255, 238, 204, 0.18);
   background: rgba(35, 27, 23, 0.78);
+  box-shadow: none;
+}
+
+.home-album-image {
+  border: 0;
+  background: transparent;
   box-shadow: none;
 }
 

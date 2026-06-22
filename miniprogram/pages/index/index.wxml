@@ -56,7 +56,7 @@
       <view class="home-album-strip">
         <view wx:for="{{home.recentTools}}" wx:key="id" class="home-album-shot" data-id="{{item.id}}" data-name="{{item.name}}" data-route="{{item.route}}" bindtap="handleAlbumTap">
           <view class="home-album-image home-album-placeholder">
-            <image wx:if="{{item.imageUrl}}" class="home-album-cover" src="{{item.imageUrl}}" mode="aspectFill"></image>
+            <image wx:if="{{item.imageUrl}}" class="home-album-cover" src="{{item.imageUrl}}" mode="scaleToFill"></image>
             <text class="home-album-mark">{{item.badgeText}}</text>
           </view>
           <text class="home-album-label">{{item.name}}</text>
