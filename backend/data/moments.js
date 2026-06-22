@@ -1063,6 +1063,87 @@ const getPosterEventTitle = (node = {}) => {
   return '新增待处理记录'
 }
 
+const buildPosterParticipants = (session = {}) => {
+  const members = (Array.isArray(session.members) ? session.members : [])
+    .filter((item) => cleanText(item?.name || item?.profileId))
+    .sort((left, right) => {
+      if (left.isHost && !right.isHost) return -1
+      if (!left.isHost && right.isHost) return 1
+      return 0
+    })
+  const joined = members.filter((item) => {
+    const status = cleanText(item.status)
+    return !status || status.includes('已加入') || /joined|active|ready/i.test(status)
+  })
+  const source = joined.length ? joined : members
+  if (!source.length && cleanText(session.hostName)) {
+    source.push({
+      avatarUrl: cleanText(session.hostAvatarUrl),
+      name: cleanText(session.hostName),
+      profileId: cleanText(session.hostProfileId),
+    })
+  }
+  return source.map((item, index) => {
+    const name = toPosterSafeText(item.name || item.profileId, `成员${index + 1}`, 8)
+    return {
+      avatarUrl: resolveAvatarUrl({
+        sessionId: session.id,
+        profileId: item.profileId,
+        preferredAvatarUrl: item.avatarUrl,
+      }),
+      initial: name.slice(0, 1) || '?',
+      name,
+    }
+  })
+}
+
+const resolvePosterAvatarDataUri = async (avatarUrl = '') => {
+  const imageBuffer = await readObjectForRender({ url: avatarUrl })
+  if (!imageBuffer) {
+    return ''
+  }
+  try {
+    const buffer = await sharp(imageBuffer)
+      .resize({ width: 96, height: 96, fit: 'cover' })
+      .png()
+      .toBuffer()
+    return `data:image/png;base64,${buffer.toString('base64')}`
+  } catch {
+    return ''
+  }
+}
+
+const renderPosterParticipants = (participants = [], avatarDataUris = []) => {
+  if (!participants.length) {
+    return ''
+  }
+  const count = participants.length
+  const itemWidth = count <= 6 ? 96 : Math.max(64, Math.floor(720 / count))
+  const avatarSize = count <= 6 ? 42 : 36
+  const startX = 84
+  const y = 284
+  return participants
+    .map((item, index) => {
+      const x = startX + index * itemWidth
+      const cx = x + avatarSize / 2
+      const avatarDataUri = avatarDataUris[index] || ''
+      const clipId = `participantAvatar${index}`
+      return `
+        <g>
+          <circle cx="${cx}" cy="${y}" r="${avatarSize / 2 + 3}" fill="#fff4de" fill-opacity="0.16"/>
+          <clipPath id="${clipId}"><circle cx="${cx}" cy="${y}" r="${avatarSize / 2}"/></clipPath>
+          ${
+            avatarDataUri
+              ? `<image href="${avatarDataUri}" x="${x}" y="${y - avatarSize / 2}" width="${avatarSize}" height="${avatarSize}" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipId})"/>`
+              : `<circle cx="${cx}" cy="${y}" r="${avatarSize / 2}" fill="#fff4de"/><text x="${cx}" y="${y + 7}" text-anchor="middle" font-size="20" font-weight="900" fill="#2a1c13">${escapeXml(item.initial)}</text>`
+          }
+          <text x="${cx}" y="${y + avatarSize / 2 + 28}" text-anchor="middle" font-size="18" font-weight="800" fill="#fff8ec">${escapeXml(trimText(item.name, 6))}</text>
+        </g>
+      `
+    })
+    .join('')
+}
+
 const formatPosterTime = (value = '') => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
@@ -1134,7 +1215,10 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
   const sessionTitle = toPosterSafeText(session.name || brief.title, '今晚聚会高光', 16)
   const qrDataUri = await resolveMiniProgramQrDataUri(getMiniProgramQrUrl(task))
   const backgroundDataUri = await resolveSharePosterBackgroundDataUri()
-  const timelineTop = 318
+  const participants = buildPosterParticipants(session)
+  const participantAvatarDataUris = await Promise.all(participants.map((item) => resolvePosterAvatarDataUri(item.avatarUrl)))
+  const participantRows = renderPosterParticipants(participants, participantAvatarDataUris)
+  const timelineTop = 370
   const timelineItems = nodes
     .filter((item) => item.nodeKind === 'event' || item.nodeKind === 'moment')
     .sort((a, b) => {
@@ -1200,6 +1284,7 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
       <text x="74" y="204" font-size="27" font-weight="800" fill="#ffb1a0">${escapeXml(sessionTitle)}</text>
       <text x="74" y="254" font-size="30" font-weight="900" fill="#fff8ec">记录时间线</text>
       <text x="812" y="254" text-anchor="end" font-size="23" font-weight="800" fill="#63dfae">${visiblePhotoCount} 张公开照片 · ${ledgerCount} 条高光</text>
+      ${participantRows}
       <line x1="122" y1="${timelineTop + 28}" x2="122" y2="${timelineBottom - 38}" stroke="#ffdca8" stroke-width="4" stroke-opacity="0.42"/>
       ${timelineRows || `<rect x="80" y="${timelineTop + 20}" width="740" height="104" rx="28" fill="#140f0c" stroke="#fff4de" stroke-opacity="0.16"/><text x="450" y="${timelineTop + 83}" text-anchor="middle" font-size="26" font-weight="900" fill="#fff4de">暂无公开关键时刻</text>`}
       <rect x="74" y="${summaryY}" width="752" height="150" rx="28" fill="#fff4de"/>
