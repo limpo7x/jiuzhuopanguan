@@ -1773,7 +1773,7 @@ const getManagedSessionByInviteCode = (inviteCode) => {
   return store.liveSessions.find((item) => String(item.inviteCode || '').trim().toUpperCase() === normalizedInviteCode) || null
 }
 
-const joinManagedSession = ({ inviteCode, profile }) => {
+const joinManagedSession = async ({ inviteCode, profile }) => {
   const normalizedInviteCode = String(inviteCode || '').trim().toUpperCase()
   const store = readStore()
   const target = store.liveSessions.find((item) => String(item.inviteCode || '').trim().toUpperCase() === normalizedInviteCode)
@@ -1842,6 +1842,7 @@ const joinManagedSession = ({ inviteCode, profile }) => {
     },
   })
   writeStore(store)
+  await storeAccessor.flush()
   return target
 }
 

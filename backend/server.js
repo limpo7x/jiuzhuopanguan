@@ -575,6 +575,44 @@ const requireUserSession = (request, response) => {
   return session
 }
 
+const isSessionMemberProfile = (session = {}, profileId = '') => {
+  const normalizedProfileId = String(profileId || '').trim()
+  if (!normalizedProfileId) {
+    return false
+  }
+  return (session?.members || []).some((item) => String(item?.profileId || '').trim() === normalizedProfileId)
+}
+
+const isInviteViewerMember = (request, session = {}) => {
+  const userSession = resolveUserSession(request)
+  return Boolean(userSession && isSessionMemberProfile(session, userSession.profile?.id))
+}
+
+const toPublicInviteLiveSession = (liveSession = {}) => ({
+  createdAt: liveSession.createdAt || '',
+  coverPhotoUrl: '',
+  endedAt: liveSession.endedAt || '',
+  hostAvatarUrl: '',
+  hostName: liveSession.hostName || '',
+  hostProfileId: '',
+  id: liveSession.id || liveSession.partyId || '',
+  inviteCode: liveSession.inviteCode || '',
+  joinedCount: Number(liveSession.joinedCount) || 0,
+  joinedPlayers: [],
+  joinStatusPlayers: [],
+  playerCount: Number(liveSession.playerCount) || 0,
+  sessionName: liveSession.sessionName || '',
+  source: liveSession.source || '',
+  stateText: liveSession.stateText || '',
+  status: liveSession.status || '',
+  subtitle: liveSession.subtitle || '',
+  templateImageUrl: liveSession.templateImageUrl || '',
+  templateName: liveSession.templateName || '',
+  title: liveSession.title || '',
+  updatedAt: liveSession.updatedAt || '',
+  partyId: liveSession.partyId || liveSession.id || '',
+})
+
 const httpsJsonRequest = (requestUrl, options = {}, payload) =>
   new Promise((resolve, reject) => {
     const target = new URL(requestUrl)
@@ -1341,6 +1379,8 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/sessions/live') {
+      const inviteSession = query.inviteCode ? getManagedSessionByInviteCode(String(query.inviteCode || '').trim()) : null
+      const publicInviteView = Boolean(query.inviteCode && inviteSession && !isInviteViewerMember(request, inviteSession))
       if (query.sessionId && !query.inviteCode) {
         const userSession = requireUserSession(request, response)
         if (!userSession) {
@@ -1366,7 +1406,7 @@ const server = http.createServer((request, response) => {
             return
           }
           if (liveSession.id) {
-            sendOk(response, liveSession)
+            sendOk(response, publicInviteView ? toPublicInviteLiveSession(liveSession) : liveSession)
             return
           }
           console.warn('[normalized-read] sessions/live miss, fallback to app_store:', {
@@ -1385,7 +1425,10 @@ const server = http.createServer((request, response) => {
         sendError(response, 404, 'session not found')
         return
       }
-      sendOk(response, getLiveSessionConfig(query.sessionId, query.inviteCode))
+      {
+        const liveSession = getLiveSessionConfig(query.sessionId, query.inviteCode)
+        sendOk(response, publicInviteView ? toPublicInviteLiveSession(liveSession) : liveSession)
+      }
       return
     }
 
@@ -1395,6 +1438,8 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/parties/live') {
+      const inviteParty = query.inviteCode ? getManagedSessionByInviteCode(String(query.inviteCode || '').trim()) : null
+      const publicInviteView = Boolean(query.inviteCode && inviteParty && !isInviteViewerMember(request, inviteParty))
       if (query.partyId && !query.inviteCode) {
         const userSession = requireUserSession(request, response)
         if (!userSession) {
@@ -1420,7 +1465,10 @@ const server = http.createServer((request, response) => {
         sendError(response, 404, 'party not found')
         return
       }
-      sendOk(response, getPartyLiveFacade(query.partyId, query.inviteCode))
+      {
+        const liveParty = getPartyLiveFacade(query.partyId, query.inviteCode)
+        sendOk(response, publicInviteView ? toPublicInviteLiveSession(liveParty) : liveParty)
+      }
       return
     }
 
@@ -1430,7 +1478,10 @@ const server = http.createServer((request, response) => {
         sendError(response, 404, 'party not found')
         return
       }
-      sendOk(response, getPartyLiveFacade(session.id, session.inviteCode))
+      {
+        const liveParty = getPartyLiveFacade(session.id, session.inviteCode)
+        sendOk(response, isInviteViewerMember(request, session) ? liveParty : toPublicInviteLiveSession(liveParty))
+      }
       return
     }
 
@@ -1634,7 +1685,7 @@ const server = http.createServer((request, response) => {
       const payload = await readJsonBody(request)
       try {
         const inviteCode = String(payload.inviteCode || '').trim()
-        const session = joinManagedSession({
+        const session = await joinManagedSession({
           inviteCode,
           profile: userSession.profile,
         })
@@ -1661,7 +1712,7 @@ const server = http.createServer((request, response) => {
       const payload = await readJsonBody(request)
       try {
         const inviteCode = String(payload.inviteCode || '').trim()
-        const session = joinManagedSession({
+        const session = await joinManagedSession({
           inviteCode,
           profile: userSession.profile,
         })
@@ -1686,7 +1737,10 @@ const server = http.createServer((request, response) => {
         sendError(response, 404, 'session not found')
         return
       }
-      sendOk(response, getLiveSessionConfig(session.id, session.inviteCode))
+      {
+        const liveSession = getLiveSessionConfig(session.id, session.inviteCode)
+        sendOk(response, isInviteViewerMember(request, session) ? liveSession : toPublicInviteLiveSession(liveSession))
+      }
       return
     }
 
