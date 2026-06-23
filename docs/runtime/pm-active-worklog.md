@@ -1555,3 +1555,14 @@ PM 边界：
 - 复测覆盖：`/pages/invite-group/index?inviteCode=XBAABB` 展示加入所需公开信息；`sessionId+inviteCode` mixed 入口和 `/pages/live-record/index?sessionId=session-1782137141037-b4e84c` 未展示目标成员、照片、时间线或账本。
 - 新增截图：`docs/runtime/pr-qa-fix-014-01-nonmember-invite-public-clean-b81a4c83-20260624.png`、`docs/runtime/pr-qa-fix-014-01-nonmember-mixed-private-clean-b81a4c83-20260624.png`、`docs/runtime/pr-qa-fix-014-01-nonmember-live-record-direct-clean-b81a4c83-20260624.png`。
 - 当前状态：`FIX-014-01` 预览框阶段通过，关闭首轮 `QA-FIX-014-01-R01/R02`；未做正式真机测试，不写正式发布准出。
+
+## 2026-06-24 FIX-014-02 用户审批与派发
+
+- 用户已明确同意 `FIX-014-02`；本轮只处理“分享页无权限仍展示聚会内容”的 P0 安全问题，其余 `FIX-014-*` 仍待逐项审批。
+- 来源：`docs/runtime/uiux-full-interaction-audit-20260623-2102.md` 的 `UIUX-013-P0-01`，并复用 `docs/runtime/pr-uiux-share-auth-011.md` 的文案与按钮状态建议。
+- 目标页面：`miniprogram/pages/share-poster/index`，重点阻断 `posterTimelineNodes`、照片、时间线、总结、二维码或分享图内容在 `notEnded/noPermission/removed/notMember/unavailable` 等状态下继续渲染。
+- 工作树边界：PM 已从远端 `main` 新建干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-02`，分支 `codex/fix-014-02-share-permission`，避免主工作区历史脏改动和未确认提交混入。
+- 已派发前端负责人 `019eebc6-99f6-71e2-83c4-e0c9d2afd6e2`：仅在该干净工作树内实施前端最小修复，证据文档为 `docs/runtime/pr-fe-fix-014-02-20260624.md`；完成后回报改动范围、验证命令、预览框证据或阻塞原文。
+- 已派发后端/API 负责人 `019eebc6-f69d-73b2-a5d3-7f8e581283ac`：只读确认分享页相关接口错误类型与状态码合同，或指出缺口；不改业务源码、不提交、不部署，证据文档为 `docs/runtime/pr-backend-fix-014-02-contract-20260624.md`。
+- 已预告测试验收负责人 `019eebc6-d497-7d80-9c6b-53254355fa69`：等待前端证据和后端/API 合同后再做预览框验收；未收到前端证据前保持 waiting，不得写通过。
+- 当前状态：已审批、已派发，实施中。未取得前端证据、后端/API 合同确认和 QA 预览框证据前，`FIX-014-02` 不得写通过、部署完成或正式准出。

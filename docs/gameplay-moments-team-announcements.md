@@ -153,6 +153,31 @@ QA 结论：
 - PM：将 QA 文档和新增截图纳入提交；不再派发 `QA-FIX-014-01-R01` 前端修补。
 - 后续：如正式发布前需要真机准出，另开最终真机采集任务，不反向阻塞当前开发推进。
 
+## 2026-06-24 PM 公告：FIX-014-02 获批并派发
+
+用户已明确同意 `FIX-014-02`。本轮只处理分享页无权限仍可能展示聚会内容的 P0 安全问题；其他 `FIX-014-*` 仍未获批，不得启动。
+
+任务边界：
+
+- 来源：`UIUX-013-P0-01`，页面为 `/pages/share-poster/index`。
+- 目标：分享页在 `notEnded/noPermission/removed/notMember/unavailable` 等状态下必须进入独立安全状态，隐藏照片、时间线、总结、二维码和分享图内容，只保留解释文案与安全返回动作。
+- 技术边界：仅 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 官网。
+- Git 边界：本项使用干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-02`、分支 `codex/fix-014-02-share-permission`；不得把主工作区未确认脏改动或无关提交混入。
+
+责任分工：
+
+- 前端负责人：接 `FIX-014-02-FE`，在 `miniprogram/pages/share-poster/index.ts/.wxml/.wxss` 建立 `shareViewState/canViewPosterContent` 或等价安全状态；权限阻断时不得渲染 `posterTimelineNodes`、照片、时间线、总结、二维码和分享图缩略图。证据写入 `docs/runtime/pr-fe-fix-014-02-20260624.md`。
+- 后端/API 负责人：接 `FIX-014-02-BE-CONTRACT`，只读确认分享页相关接口对 `session not ended/not session member/forbidden/removed/unavailable` 的状态码和错误文案；如合同不稳定，只记录缺口和建议，不改业务源码。
+- 测试验收负责人：接 `FIX-014-02-QA-WAITING`，等待前端和后端/API 证据后再做微信开发者工具预览框验收；未取得证据前保持 waiting。
+- PM：只做监督、证据核查、提交/推送门禁和台账收口；不直接改业务源码。
+
+验收标准：
+
+- 无权限、被踢、非成员、未结束、任务不可用五类状态均不展示照片、时间线、总结、二维码或分享图内容。
+- 合法成员在已结束可访问状态下仍能正常查看 ready 分享图。
+- 操作按钮在权限阻断时不能调用创建、刷新、重新生成或保存任务。
+- 预览框证据只能写“预览框阶段通过 / blocked / 退回”，不得写正式真机发布准出。
+
 ## 2026-06-23 PM 公告：全量交互、接口、后台联通审核派发
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
