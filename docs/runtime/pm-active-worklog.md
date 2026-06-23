@@ -1392,3 +1392,51 @@ PM 当前线程已完成本地前端改动，尚未提交、尚未部署、尚�
 - 测试验收负责人：在前端证据到位后，用微信开发者工具预览框执行点击链路；未完成前保持 waiting，不写通过。
 - 接口联调负责人：继续等待线上 `SHARE-AUTH-011` 部署证据后复跑矩阵；所有 token 只写后 8 位。
 - DBA/运维负责人：如用户要求线上部署，先确认仅部署 `api.pomer.cn` / `jiuzhuopanguan-backend`，不得触碰 `pomer.cn` 官网。
+
+## 2026-06-23 首拍进行中与审核分享候选线上部署
+
+执行边界：
+
+- 仅面向 `api.pomer.cn` 对应的 `jiuzhuopanguan-backend` 服务。
+- 使用历史记录确认的 SSH 别名 `pomer.cn` 登录同一服务器，但只操作 `/www/wwwroot/jiuzhuopanguan-git` 与 PM2 `jiuzhuopanguan-backend`。
+- 未改动、未重启、未代理 `pomer.cn` 公司官网目录、Nginx 或 PM2 `pomer` 服务。
+
+GIT：
+
+- 本地已推送：`5bcfebda feat(frontend): gate active sessions on first photo`。
+- 服务器执行 `git pull --ff-only origin main`，从 `7c9c7e2` fast-forward 到 `5bcfebd`。
+
+备份：
+
+- 线上备份目录：`/www/wwwroot/jiuzhuopanguan-git/backend/backups/codex-deploy-20260623204311`。
+- 已保存部署前 `git status`、`git head`、PM2 `jlist`。
+
+部署命令摘要：
+
+- `node --check backend/data/admin.js`
+- `node --check backend/data/moments.js`
+- `node --check backend/public/admin/static/heatwave-ops/app.js`
+- `cd backend && npm install`
+- `npm run mysql:test`
+- `pm2 restart jiuzhuopanguan-backend --update-env`
+
+验证结果：
+
+- `npm install`：`found 0 vulnerabilities`。
+- `npm run mysql:test`：`ok=true`，表 `app_store`，`total=5`。
+- PM2 `jiuzhuopanguan-backend`：online，script path `/www/wwwroot/jiuzhuopanguan-git/backend/server.js`，unstable restarts `0`。
+- PM2 `pomer` 官网服务：online，uptime 10D，restarts `0`，未重启。
+- 公网 `https://api.pomer.cn/api/v1/config/home`：HTTP 200。
+- 公网 `https://api.pomer.cn/api/v1/config/templates`：HTTP 200。
+- 公网 `https://api.pomer.cn/admin/login`：HTTP 200。
+- 公网 `https://api.pomer.cn/admin/static/heatwave-ops/app.js`：HTTP 200。
+
+服务器工作区残留说明：
+
+- 部署后服务器 `git status` 仍显示运行期数据文件与上传文件：`backend/data/social-store.json`、`backend/package-lock.json`、`backend/backups/`、`backend/public/uploads/**`。
+- 本次未清理这些运行期数据，避免误删线上用户上传、备份或 store 镜像。
+
+小程序包状态：
+
+- 本机未找到可执行的微信开发者工具 `cli.bat` 或小程序 CI 上传脚本/上传密钥。
+- 因此本次已完成 Git 推送与 `api.pomer.cn` 后端/后台静态资源部署；小程序前端包仍需通过微信开发者工具人工上传，或补齐 CI 上传密钥后再由 PM/前端执行上传。
