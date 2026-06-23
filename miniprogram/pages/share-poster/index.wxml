@@ -20,14 +20,20 @@
           <text class="poster-brand-name">聚会记录师</text>
           <text class="poster-brand-meta">分享预览 · 照片和账本</text>
         </view>
-        <view class="poster-status-pill">{{displayTaskStatus}} · {{displayTaskLayoutMode}}</view>
+        <view class="poster-status-pill">{{canViewPosterContent ? displayTaskStatus + ' · ' + displayTaskLayoutMode : permissionStatusLabel}}</view>
       </view>
 
-      <text class="poster-hero-title">聚会分享预览</text>
+      <text class="poster-hero-title">{{canViewPosterContent ? '聚会分享预览' : permissionTitle}}</text>
       <image class="poster-share020-underline" src="/assets/party-recorder/share-flow/pr-share020-underline-coral.svg" mode="aspectFit"></image>
-      <text class="poster-hero-subtitle">按时间节点保存这场聚会</text>
+      <text class="poster-hero-subtitle">{{canViewPosterContent ? '按时间节点保存这场聚会' : permissionDescription}}</text>
 
-      <view class="poster-share021-timeline poster-share021-event-strip">
+      <view wx:if="{{!canViewPosterContent}}" class="poster-permission-card poster-permission-card-{{shareViewState}}">
+        <text class="poster-permission-label">{{permissionStatusLabel}}</text>
+        <text class="poster-permission-title">{{permissionTitle}}</text>
+        <text class="poster-permission-desc">{{permissionDescription}}</text>
+      </view>
+
+      <view wx:if="{{canViewPosterContent}}" class="poster-share021-timeline poster-share021-event-strip">
         <view wx:if="{{!posterTimelineNodes.length}}" class="poster-timeline-empty">暂无可保存节点，先去记录照片或账本变动。</view>
         <view wx:for="{{posterTimelineNodes}}" wx:key="id" class="poster-timeline-node poster-timeline-node-{{item.tone}}">
           <view class="poster-timeline-axis">
@@ -52,20 +58,25 @@
         </view>
       </view>
 
-      <view class="poster-share021-action-row poster-action-panel">
-        <view class="poster-primary-action {{shareActionBlocked || posterSaved || saveState === 'saved' || saveState === 'saving' || saveState === 'generating' || (shareTask && (shareTask.status === 'pending' || shareTask.status === 'processing')) ? 'poster-primary-action-disabled' : ''}} {{posterSaved || saveState === 'saved' ? 'poster-primary-action-saved' : ''}}" bindtap="handleSaveTap" data-save-selector="share-flow-015-save-poster">
+      <view wx:if="{{canViewPosterContent}}" class="poster-share021-action-row poster-action-panel">
+        <view class="poster-primary-action {{posterSaved || saveState === 'saved' || saveState === 'saving' || saveState === 'generating' || (shareTask && (shareTask.status === 'pending' || shareTask.status === 'processing')) ? 'poster-primary-action-disabled' : ''}} {{posterSaved || saveState === 'saved' ? 'poster-primary-action-saved' : ''}}" bindtap="handleSaveTap" data-save-selector="share-flow-015-save-poster">
           {{savePosterLabel}}
         </view>
-        <view class="poster-action-secondary {{shareActionBlocked ? 'poster-action-secondary-disabled' : ''}}" bindtap="handleTaskPrimaryTap" data-share-save-selector="share-flow-015-save">
+        <view class="poster-action-secondary" bindtap="handleTaskPrimaryTap" data-share-save-selector="share-flow-015-save">
           刷新状态
         </view>
-        <view wx:if="{{!shareActionBlocked && (saveState === 'failed' || (shareTask && (shareTask.status === 'failed' || shareTask.status === 'expired')))}}" class="poster-action-retry poster-state-card-warn" bindtap="handleTaskPrimaryTap">
+        <view wx:if="{{saveState === 'failed' || (shareTask && (shareTask.status === 'failed' || shareTask.status === 'expired'))}}" class="poster-action-retry poster-state-card-warn" bindtap="handleTaskPrimaryTap">
           重新生成
         </view>
       </view>
 
-      <view class="poster-status-line {{saveState === 'failed' ? 'poster-status-line-warn' : ''}} {{saveState === 'saved' || (shareTask && shareTask.status === 'ready' && saveState !== 'failed') ? 'poster-status-line-success' : ''}}">{{posterStatusLine}}</view>
-      <view class="poster-later-tip">稍后可在“我的”页面查看分享图</view>
+      <view wx:else class="poster-share021-action-row poster-action-panel poster-permission-actions">
+        <view class="poster-primary-action" bindtap="handlePermissionPrimaryTap">{{permissionPrimaryLabel}}</view>
+        <view wx:if="{{permissionSecondaryLabel}}" class="poster-action-secondary" bindtap="handlePermissionSecondaryTap">{{permissionSecondaryLabel}}</view>
+      </view>
+
+      <view class="poster-status-line {{saveState === 'failed' ? 'poster-status-line-warn' : ''}} {{saveState === 'saved' || (shareTask && shareTask.status === 'ready' && saveState !== 'failed') ? 'poster-status-line-success' : ''}}">{{canViewPosterContent ? posterStatusLine : permissionStatusLine}}</view>
+      <view wx:if="{{canViewPosterContent}}" class="poster-later-tip">稍后可在“我的”页面查看分享图</view>
     </view>
   </scroll-view>
 

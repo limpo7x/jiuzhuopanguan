@@ -21,6 +21,11 @@ const STORAGE_KEYS = [
   'authRedirectUrl',
 ];
 
+const SENSITIVE_STORAGE_KEYS = new Set([
+  'jzp-user-token',
+  'social-user-session-token',
+]);
+
 function parseArgs(argv) {
   const args = { _: [] };
   for (let i = 0; i < argv.length; i += 1) {
@@ -58,6 +63,20 @@ function pick(obj, keys) {
   const result = {};
   for (const key of keys) result[key] = obj ? obj[key] : undefined;
   return result;
+}
+
+function redactStorageValue(key, value) {
+  if (!SENSITIVE_STORAGE_KEYS.has(key)) {
+    return value;
+  }
+  const text = String(value || '');
+  if (!text) {
+    return '';
+  }
+  return {
+    length: text.length,
+    tokenTail: text.slice(-8),
+  };
 }
 
 function requestText(url) {
@@ -219,7 +238,7 @@ async function launchDevTools(options) {
   }
   childProcess.spawn(
     options.cliPath,
-    ['auto', '--project', options.projectPath, '--port', String(options.port), '--trust-project'],
+    ['auto', '--project', options.projectPath, '--auto-port', String(options.port), '--trust-project'],
     {
       detached: true,
       stdio: 'ignore',
@@ -234,7 +253,18 @@ async function connectOrLaunch(options) {
     return await automator.connect({ wsEndpoint: endpoint });
   } catch (connectError) {
     if (!options.launch) {
-      return await probeV2Auto(options, connectError);
+      if (options.probeV2) {
+        return await probeV2Auto(options, connectError);
+      }
+      throw createProtocolError(
+        `${connectError.message}. Auto launch and /v2/auto probing are disabled by default; start WeChat DevTools with scripts/start-wechat-devtools-automation.ps1 or pass --launch explicitly.`,
+        {
+          mode: 'connect-only',
+          oldWebSocketError: connectError.message,
+          port: options.port,
+          projectPath: options.projectPath,
+        },
+      );
     }
 
     try {
@@ -242,6 +272,20 @@ async function connectOrLaunch(options) {
       await new Promise((resolve) => setTimeout(resolve, 5000));
       return await automator.connect({ wsEndpoint: endpoint });
     } catch (launchError) {
+      if (!options.probeV2) {
+        const error = createProtocolError(
+          `${connectError.message}. Explicit launch failed: ${launchError.message}`,
+          {
+            mode: 'launch-failed',
+            launchError: launchError.message,
+            oldWebSocketError: connectError.message,
+            port: options.port,
+            projectPath: options.projectPath,
+          },
+        );
+        error.launchError = launchError.message;
+        throw error;
+      }
       try {
         return await probeV2Auto(options, connectError);
       } catch (probeError) {
@@ -265,9 +309,10 @@ async function currentSummary(miniProgram, options = {}) {
   const storage = {};
   if (options.storage) {
     for (const key of STORAGE_KEYS) {
-      storage[key] = await miniProgram.callWxMethod('getStorageSync', key).catch((error) => ({
+      const value = await miniProgram.callWxMethod('getStorageSync', key).catch((error) => ({
         error: error.message,
       }));
+      storage[key] = redactStorageValue(key, value);
     }
   }
   return {
@@ -306,6 +351,7 @@ async function run() {
     cliPath: args.cliPath || process.env.WECHAT_DEVTOOLS_CLI || DEFAULT_CLI,
     projectPath: path.resolve(args.projectPath || process.env.WECHAT_PROJECT_PATH || DEFAULT_PROJECT),
     launch: boolArg(args.launch),
+    probeV2: boolArg(args.probeV2 || process.env.WECHAT_AUTOMATOR_PROBE_V2),
     timeout: Number(args.timeout || 30000),
   };
 

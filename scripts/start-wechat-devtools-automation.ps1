@@ -2,7 +2,8 @@ param(
   [int]$Port = 9420,
   [string]$ProjectPath = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
   [string]$CliPath = "D:\wechatkaifa\微信web开发者工具\cli.bat",
-  [switch]$QuitExisting
+  [switch]$QuitExisting,
+  [switch]$AllowPortFallback
 )
 
 $ErrorActionPreference = "Stop"
@@ -63,18 +64,20 @@ function Start-AutomationPort {
   } while ((Get-Date) -lt $deadline)
 }
 
-Start-AutomationPort -Mode "port" -Arguments @(
-  "auto",
-  "--project", $ProjectPath,
-  "--port", [string]$Port,
-  "--trust-project"
-)
-
-Start-AutomationPort -Mode "auto-port-fallback" -Arguments @(
+Start-AutomationPort -Mode "auto-port" -Arguments @(
   "auto",
   "--project", $ProjectPath,
   "--auto-port", [string]$Port,
   "--trust-project"
 )
+
+if ($AllowPortFallback) {
+  Start-AutomationPort -Mode "port-fallback" -Arguments @(
+    "auto",
+    "--project", $ProjectPath,
+    "--port", [string]$Port,
+    "--trust-project"
+  )
+}
 
 throw "Timed out waiting for WeChat DevTools automation port $Port."

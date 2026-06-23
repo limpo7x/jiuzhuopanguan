@@ -39,7 +39,11 @@
 - 责任角色：前端；后端/API、QA 配合。
 - 动作：分享页按 `notEnded/noPermission/removed/notMember/unavailable` 建独立安全状态，阻断照片、时间线、总结和二维码渲染，不只禁用按钮。
 - 验收：无权限、被踢、非成员和未结束四态均不泄露内容；合法成员结束后可正常查看；预览框与接口错误态证据齐全。
-- 状态：用户已同意，已派发。前端负责先在分享图页建立安全状态和渲染阻断；后端/API 只读确认错误类型合同或指出缺口；QA 等前端证据后做预览框验收。未取得前端证据、后端合同确认和 QA 预览框证据前，不得写通过或正式准出。
+- 状态：用户已同意；前端实现与后端/API 合同证据已补齐，QA 首轮退回后前端已做 R01 返工。PM 已修复微信开发者工具自动化误启动问题，并用真实非成员 tokenTail `b81a4c83`、成员 tokenTail `1dace82d` 完成预览框复测。当前为预览框阶段 R01 通过；未做正式真机发布准出。
+- 当前证据：前端 `docs/runtime/pr-fe-fix-014-02-20260624.md`；后端/API 合同 `docs/runtime/pr-backend-fix-014-02-contract-20260624.md`；QA 目标 `docs/runtime/pr-qa-fix-014-02-20260624.md`。
+- 已知缺口：后端当前不能精确区分普通非成员与被移出成员，统一为 `403 not session member`；本项只验收安全阻断内容泄露，不写精准 `removed_from_session` 合同完成。
+- R01 复测：真实非成员 tokenTail `b81a4c83` 直达 `/pages/share-poster/index?sessionId=session-1782137141037-b4e84c` 已进入 `shareViewState=notMember/canViewPosterContent=false/shareActionBlocked=true`，照片、时间线、总结、二维码、ready 分享图和正常操作入口均不展示；成员 tokenTail `1dace82d` 同路径仍为 ready 非阻断态，内容可展示。
+- R02 未覆盖：当前线上样本缺真实 `readyShareImageUrl`，不能证明“合法成员、已结束且已有 ready 分享图 URL”的完整保存链路；该缺口不影响 R01 安全阻断通过，但不得写正式发布准出。
 
 ## 第二阶段：P1 核心业务合同
 

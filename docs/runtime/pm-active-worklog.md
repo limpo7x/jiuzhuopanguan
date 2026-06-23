@@ -1566,3 +1566,58 @@ PM 边界：
 - 已派发后端/API 负责人 `019eebc6-f69d-73b2-a5d3-7f8e581283ac`：只读确认分享页相关接口错误类型与状态码合同，或指出缺口；不改业务源码、不提交、不部署，证据文档为 `docs/runtime/pr-backend-fix-014-02-contract-20260624.md`。
 - 已预告测试验收负责人 `019eebc6-d497-7d80-9c6b-53254355fa69`：等待前端证据和后端/API 合同后再做预览框验收；未收到前端证据前保持 waiting，不得写通过。
 - 当前状态：已审批、已派发，实施中。未取得前端证据、后端/API 合同确认和 QA 预览框证据前，`FIX-014-02` 不得写通过、部署完成或正式准出。
+
+### FIX-014-02 前端与后端/API 证据复核
+
+- 前端负责人已交付 `docs/runtime/pr-fe-fix-014-02-20260624.md`，改动集中在 `miniprogram/pages/share-poster/index.ts`、`index.wxml`、`index.less`。
+- 前端实现：新增 `shareViewState/canViewPosterContent` 安全状态；`notEnded/noPermission/removed/notMember/unavailable` 阻断态下清空 `posterTimelineNodes`、照片、事件、账本摘要、二维码、ready 分享图 URL 和本地 poster 图路径；WXML 仅在 `canViewPosterContent=true` 时渲染时间线和正常保存/刷新/重试操作。
+- 前端证据：`docs/runtime/pr-fe-fix-014-02-blocked-preview.png`、`docs/runtime/pr-fe-fix-014-02-cleared-preview.png`、`docs/runtime/pr-fe-fix-014-02-ready-preview.png`。其中阻断态截图覆盖“即使数据残留也不渲染内容”和“调用不可用状态后内容字段清空”；ready 截图仅覆盖非阻断状态，未覆盖真实 ready 分享图 URL 保存。
+- 工作树纠偏：前端首次误写主工作区 `F:\codexlist\jiuzhuopanguan`，已停止使用主工作区作为本项来源；最终有效改动落在干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-02`。主工作区残留未纳入提交，后续需单独清理确认。
+- 后端/API 负责人已交付 `docs/runtime/pr-backend-fix-014-02-contract-20260624.md`，结论为：`409 session not ended`、`403 not session member`、`403 forbidden`、`401 unauthorized`、`404 brief/share task not found`、无可展示节点 failed reason 均有可消费合同，可支撑前端阻断内容泄露。
+- 后端/API 缺口：当前后端不能精确区分“普通非成员”和“被移出/被踢成员”，统一返回 `403 not session member`；因此本项只能验收“安全阻断内容”，不得写成后端已支持精准 `removed_from_session` 合同。
+- PM 独立验证：`pwsh` 版本 `7.6.3`；`npm.cmd run typecheck` 通过；`npm.cmd run check:encoding` 通过；`git diff --check` 通过；WXML 三元字符串拼接在项目内已有同类用法，不作为退回项。
+- 当前状态：前端本地实现与后端/API 合同复核通过，已具备 QA 预览框复测条件；`FIX-014-02` 仍未 QA 通过、未提交业务修复、未推送业务修复、未上传小程序包，不能写正式准出。
+
+### FIX-014-02 QA 复测派发
+
+- 2026-06-24：PM 已向测试验收负责人 `019eebc6-d497-7d80-9c6b-53254355fa69` 正式派发 `FIX-014-02-QA`。
+- QA 目标文档：`docs/runtime/pr-qa-fix-014-02-20260624.md`。
+- 复测工作树：`F:\codexlist\jiuzhuopanguan-fix-014-02`，分支 `codex/fix-014-02-share-permission`。
+- 复测范围：未结束、无权限、非成员/被移出泛化态、任务不可用状态均不得展示照片、时间线、总结、二维码或分享图内容；按钮不得调用创建、刷新、重试或保存；合法 ready 非阻断路径不得回归。
+- 结论边界：可写“预览框阶段通过 / blocked / 退回”；不得写正式真机发布准出。若真实 ready 分享图 URL 样本缺失，必须作为未覆盖项记录。
+
+### FIX-014-02 QA 退回
+
+- 2026-06-24：测试验收负责人已完成预览框复测，结论：退回。
+- QA 证据：`docs/runtime/pr-qa-fix-014-02-20260624.md`。QA 首次写入主工作区 `F:\codexlist\jiuzhuopanguan`，后由 QA 移动到本项干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-02` 并清理主工作区误写；PM 已回读确认当前证据在正确 worktree。
+- 通过项：注入式 `notEnded/noPermission/notMember/removed/unavailable` 阻断均能清空照片、时间线、总结、二维码、ready 图 URL 和本地 poster 图路径；保存/刷新/预览方法调用后不会恢复内容；ready 成员样本非阻断页面未崩。
+- 退回项 `QA-FIX-014-02-R01`：真实非成员 tokenTail `b81a4c83` 直接打开 `/pages/share-poster/index?sessionId=session-1782137141037-b4e84c` 时，页面仍为 `shareViewState=ready`、`canViewPosterContent=true`、`shareActionBlocked=false`，并显示生成/刷新入口。即使没有泄露真实照片/时间线，也未进入安全阻断态，不符合验收口径。
+- 未覆盖项 `QA-FIX-014-02-R02`：缺少真实 `readyShareImageUrl` 样本，未覆盖“合法成员、已结束且已有 ready 分享图 URL 的完整保存路径”。
+- PM 初步原因判断：真实接口错误在 `loadBriefByQuery()` 等 catch 分支中先被 `toSafeShareErrorText()` 转成通用安全文案，再继续 `loadLiveSessionSummary()`，导致原始 `403 not session member` / `forbidden` 合同信息未进入 `shareViewState` 阻断映射。
+- 当前状态：已派前端负责人返工 `FIX-014-02-FE-R01`；未通过 QA，不能提交业务修复、不能推送、不能上传小程序包、不能写正式准出。
+
+### FIX-014-02 FE-R01 返工与当前阻塞
+
+- 2026-06-24：前端负责人已交付 `FE-R01` 返工，证据追加在 `docs/runtime/pr-fe-fix-014-02-20260624.md`。
+- 代码改动仍限 `miniprogram/pages/share-poster/index.ts`：新增 `getShareErrorText()`、`shouldBlockShareViewForError()`、`applyBlockedErrorTextState()`；补充 `not party member/not session player` 和中文安全文案“当前账号暂不能查看”“暂不能查看这张分享页”等映射；在 `loadBriefByQuery()`、`loadLiveSessionSummary()`、分享任务读取、刷新、保存等 catch 分支中先判阻断并 return，避免 fallback 恢复 ready。
+- PM 独立命令验证：`npm.cmd run typecheck` 通过；`npm.cmd run check:encoding` 通过；`git diff --check` 通过。
+- PM 截图复核：`docs/runtime/pr-fe-fix-014-02-r01-nonmember-b81a4c83.png`、`pr-fe-fix-014-02-r01-nonmember-b81a4c83-fixed.png`、`pr-fe-fix-014-02-r01-nonmember-b81a4c83-after.png` 均仍显示失败态或修补未完全生效阶段的正常分享页结构，不能作为通过证据。
+- 预览框阻塞：PM 按公告固定流程执行 `pwsh -NoLogo -NoProfile -File scripts/start-wechat-devtools-automation.ps1 -Port 9420 -ProjectPath F:\codexlist\jiuzhuopanguan-fix-014-02 -QuitExisting`，端口监听恢复；但 `npm.cmd run wechat:auto -- status --port 9420` 仍失败，原文为 `/v2/auto returned a ticket, but no candidate WebSocket exposed currentPage/storage/screenshot/tap automation`。
+- 当前状态：`FIX-014-02` 仍为 blocked / 待 QA 复测。前端代码静态门禁通过，但没有真实非成员 tokenTail `b81a4c83` 修补后预览框通过证据；不得提交、推送、部署、上传小程序包或写预览框阶段通过。
+- 恢复条件：微信开发者工具自动化恢复到可执行 `currentPage/storage/screenshot/tap` 后，由 QA 使用 `docs/runtime/pr-fe-fix-014-02-20260624.md` 的 R01 证据重新复测 `QA-FIX-014-02-R01`；若仍失败，退回前端继续修。
+
+### FIX-014-02 自动化修复与 R01 复测通过
+
+- 2026-06-24：PM 复核发现自动化阻塞根因为脚本把启动参数误写为 `cli.bat auto --port 9420`，实际启动的是 IDE HTTP 服务，不是旧版 WebSocket 自动化端口；`wechat:auto status` 默认还会继续探测 `/v2/auto` ticket，造成“自动启动/自动激活”误判。
+- 已修复自动化脚本：
+  - `scripts/start-wechat-devtools-automation.ps1` 默认使用 `--auto-port 9420`，只有显式 `-AllowPortFallback` 才尝试旧 `--port` fallback。
+  - `scripts/wechat-devtools-automator.js` 默认 `status` 改为 connect-only，不再自动 `/v2/auto` 探测或 `--launch` 拉起工具；`--probeV2` 与 `--launch` 均需显式传入。
+  - storage 输出已对 `jzp-user-token` 与 `social-user-session-token` 脱敏，仅记录 `tokenTail`。
+- 自动化验证：
+  - `npm.cmd run wechat:auto -- status --port 9420`：默认 connect-only，可连接旧版 WebSocket 并读取 page/data/storage/screenshot；无可用 WS 时只报连接失败，不再触发 `/v2/auto`。
+  - `npm.cmd run wechat:auto -- status --port 9420 --probeV2`：仅显式诊断时返回 `/v2/auto` ticket 信息。
+  - `pwsh -NoLogo -NoProfile -File scripts/start-wechat-devtools-automation.ps1 -Port 9420 -ProjectPath F:\codexlist\jiuzhuopanguan-fix-014-02 -QuitExisting`：返回 `ok=true`、`mode=auto-port`。
+- R01 真实非成员复测：使用非成员 tokenTail `b81a4c83`、profileId `user-1782177960380-f19492` 打开 `/pages/share-poster/index?sessionId=session-1782137141037-b4e84c`，页面进入 `shareViewState=notMember`、`canViewPosterContent=false`、`shareActionBlocked=true`、`savePosterLabel=暂不可用`，照片/时间线/总结/二维码/ready 图 URL/本地 poster 图均为空；正常保存、分享保存、重试入口均不存在。截图：`docs/runtime/pr-qa-fix-014-02-r01-nonmember-retest-b81a4c83-20260624.png`。
+- R01 合法成员回归：使用成员 tokenTail `1dace82d`、profileId `user-1782114038371-8b9a52` 打开同一路径，页面保持 `shareViewState=ready`、`canViewPosterContent=true`、`shareActionBlocked=false`，可见 2 条时间线照片、2 个照片高光、4 个账本高光和“生成聚会图”入口。截图：`docs/runtime/pr-qa-fix-014-02-r01-member-ready-retest-1dace82d-20260624.png`。
+- 当前状态：`FIX-014-02` 预览框阶段 R01 已通过并关闭；`QA-FIX-014-02-R02` 仍未覆盖，因为当前线上样本没有真实 `readyShareImageUrl`，不能证明完整 ready 图 URL 保存链路。未做正式真机测试，不写正式发布准出。
+- 交付边界：当前工作树仍未提交、未推送、未部署、未上传小程序包；提交前需保留本项变更范围与未跟踪证据清单，避免混入主工作区历史残留。
