@@ -1510,3 +1510,18 @@ PM 边界：
 - PM 同步复核：本地再次串行 smoke 通过，动态端口 `4341`，编码检查与 typecheck 通过；`backend/data/**/*.json` 未检出 `privacy-smoke/live-privacy-` marker，lock 不存在。
 - 当前状态：本地合同通过，待提交、推送、部署 `api.pomer.cn` 的 `jiuzhuopanguan-backend`，随后做线上只读回归和 QA 验收。不得写线上通过或正式准出。
 - Git 门禁仍需处理：本地 `main` 领先远端的非本任务提交 `ae98afd5 fix(frontend): recover expired user sessions` 不得未经确认随本任务推送；如需立即部署 FIX-014-01，应从 `origin/main` 生成只含本修复的提交并推送部署。
+
+### FIX-014-01 提交部署与线上回归
+
+- 2026-06-24：PM 为避开本地 `main` 上未确认的非本任务提交 `ae98afd5`，从 `origin/main` 建立干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-01`，提交 `759be62 fix(backend): protect live session reads` 并推送到远端 `main`。
+- 推送边界：`git log origin/main..HEAD` 在干净工作树仅包含 `759be62`；未把 `ae98afd5 fix(frontend): recover expired user sessions` 随本次推送。
+- 部署目标：仅 `api.pomer.cn` / `/www/wwwroot/jiuzhuopanguan-git` / PM2 `jiuzhuopanguan-backend`；未触碰 `pomer.cn` 官网 Nginx、官网目录或官网 PM2 服务。
+- 服务器备份：`/www/backup/jiuzhuopanguan/fix-014-01-20260624-004948`，记录 `head-before=33343a25aabb216c61df84a495f836e37b310bfa`、`origin-main-before=759be62ee34e9af2825363f59326f21693812ff2`、PM2 jlist、`server.js.before`、`social-store.json.before` 与运行期 store diff。
+- 部署命令摘要：`git pull --ff-only origin main`、`cd backend && npm install`、`node --check server.js`、`node --check data/live-session-access.js`、`node --check scripts/smoke-live-session-privacy.js`、`. ./.env && npm run mysql:test`、`pm2 restart jiuzhuopanguan-backend --update-env`。
+- 部署验证：服务器 HEAD 为 `759be62ee34e9af2825363f59326f21693812ff2`；`npm install` 为 `found 0 vulnerabilities`；`npm run mysql:test` 返回 `ok=true`、表 `app_store`、`total=5`；PM2 `jiuzhuopanguan-backend` online；PM2 `pomer` 官网服务仍 online、uptime 10D、restarts 0。
+- 线上公共健康：`GET https://api.pomer.cn/api/v1/config/home`、`GET https://api.pomer.cn/api/v1/config/templates`、`GET https://api.pomer.cn/admin/login` 均返回 200。
+- 线上 `/sessions/live` 只读矩阵：无参 400；匿名 `sessionId=session-1782137141037-b4e84c` 401；匿名 `inviteCode=XBAABB` 200 且仅 13 个公开白名单字段；匿名 `sessionId+inviteCode` 401。
+- 线上成员/非成员矩阵：成员 tokenTail `1dace82d` 下 `sessionId` 与 `inviteCode` 均 200，keyCount 29，`hasHostProfileId=true`、`hasJoinedPlayers=true`；非成员 tokenTail `b81a4c83` 下 `sessionId` 与 mixed 均 403，不含私有字段。
+- 接口联调证据：`docs/runtime/pr-int-fix-014-01-20260623.md` 已补线上回归，结论为“本地合同通过，线上只读回归通过，QA 预览框/邀请加入交互待验收”。
+- 服务器残留：部署前已存在的 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**` 为运行期数据，本次未清理；`npm install` 一度改动 `backend/package-lock.json`，PM 已恢复该锁文件到 Git 状态。
+- 当前状态：`FIX-014-01` 后端/API 与接口联调线上只读门禁通过；仍需 QA 使用微信开发者工具预览框验收邀请加入交互、成员私有视图、匿名公开预览与异常态。未做真机，不得写正式准出。

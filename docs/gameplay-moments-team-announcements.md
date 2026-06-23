@@ -34,6 +34,30 @@
 - 接口联调：部署后对线上 `/api/v1/sessions/live` 复跑只读矩阵；token 只写后 8 位或摘要。
 - 测试验收：等待部署证据和线上接口矩阵后，复核邀请加入与成员读取无回归。
 
+## 2026-06-24 PM 公告：FIX-014-01 已部署，线上只读回归通过
+
+面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
+
+部署结果：
+
+- 远端 `main` 已推送 `759be62 fix(backend): protect live session reads`。
+- 线上服务器 `/www/wwwroot/jiuzhuopanguan-git` 已快进到 `759be62ee34e9af2825363f59326f21693812ff2`。
+- PM2 仅重启 `jiuzhuopanguan-backend`；`pomer` 官网服务未重启，`pomer.cn` 官网配置、目录和路由未触碰。
+- 回滚点与备份：`/www/backup/jiuzhuopanguan/fix-014-01-20260624-004948`，部署前 HEAD 为 `33343a25aabb216c61df84a495f836e37b310bfa`。
+
+线上只读回归：
+
+- 公共健康：`/api/v1/config/home`、`/api/v1/config/templates`、`/admin/login` 均 200。
+- `/api/v1/sessions/live` 无参返回 400；匿名 `sessionId` 返回 401；匿名 `inviteCode` 返回 200 且仅 13 个公开白名单字段；匿名 `sessionId+inviteCode` 返回 401。
+- 成员 tokenTail `1dace82d` 下成员 `sessionId/inviteCode` 读取 200 且包含私有字段；非成员 tokenTail `b81a4c83` 下 `sessionId` 和 mixed 均 403，不含私有字段。
+- 接口联调证据：`docs/runtime/pr-int-fix-014-01-20260623.md`，结论为“本地合同通过，线上只读回归通过，QA 预览框/邀请加入交互待验收”。
+
+下一步责任：
+
+- QA：接 `FIX-014-01-QA`，用微信开发者工具预览框验收邀请加入、成员私有视图、匿名公开预览、无参/异常态；不得把线上只读接口通过写成正式真机准出。
+- 接口联调：若 QA 发现接口异常，基于现有线上矩阵复跑并只记录 token 后 8 位。
+- PM：在 QA 回包前不启动 `FIX-014-02` 实施，不写正式准出。
+
 ## 2026-06-23 PM 公告：全量交互、接口、后台联通审核派发
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
