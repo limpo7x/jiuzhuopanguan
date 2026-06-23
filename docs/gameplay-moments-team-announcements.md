@@ -58,6 +58,51 @@
 - 接口联调：若 QA 发现接口异常，基于现有线上矩阵复跑并只记录 token 后 8 位。
 - PM：在 QA 回包前不启动 `FIX-014-02` 实施，不写正式准出。
 
+派发状态：
+
+- PM 已向测试验收线程 `019eebc6-d497-7d80-9c6b-53254355fa69` 派发 `FIX-014-01-QA`。
+- 目标证据文档：`docs/runtime/pr-qa-fix-014-01-20260624.md`。
+- QA 结论只能是“预览框阶段通过 / blocked / 退回”；若微信开发者工具 9420 或自动化不可用，必须记录失败命令和错误原文。
+
+## 2026-06-24 PM 公告：微信开发者工具自动化连接固定流程
+
+适用范围：所有需要微信开发者工具预览框点击、页面态、storage、Console 或截图证据的 QA、前端、UI/UX、PM 复核任务。
+
+固定连接方式：
+
+1. 首选启动脚本：
+
+   ```powershell
+   pwsh -NoLogo -NoProfile -File scripts/start-wechat-devtools-automation.ps1 -Port 9420 -ProjectPath F:\codexlist\jiuzhuopanguan
+   ```
+
+2. 如果开发者工具已打开但 9420 未监听，或 CLI 提示 IDE 已在其他 HTTP server 端口运行，先关闭已有 IDE 后重启自动化端口：
+
+   ```powershell
+   pwsh -NoLogo -NoProfile -File scripts/start-wechat-devtools-automation.ps1 -Port 9420 -ProjectPath F:\codexlist\jiuzhuopanguan -QuitExisting
+   ```
+
+3. 手动兜底命令使用旧版自动化通道，不要只依赖 HTTP server 端口：
+
+   ```powershell
+   & "D:\wechatkaifa\微信web开发者工具\cli.bat" auto --project F:\codexlist\jiuzhuopanguan --auto-port 9420 --trust-project
+   ```
+
+4. 验证必须同时满足：
+
+   ```powershell
+   Test-NetConnection 127.0.0.1 -Port 9420
+   npm.cmd run wechat:auto -- status --port 9420
+   ```
+
+   通过标准：`TcpTestSucceeded=True`，且 `wechat:auto status` 返回 `ok=true`、当前页面路径、页面 data keys 和 `console=[]` 或明确的 Console 记录。
+
+注意事项：
+
+- 当前项目的 `miniprogram-automator` 依赖旧版 WebSocket 自动化端口；开发者工具显示类似 `http://127.0.0.1:20394` 的 HTTP server，或 `/v2/auto` 能返回 ticket，不等于项目脚本可执行 `currentPage/storage/screenshot/tap`。
+- 若 `npm.cmd run wechat:auto -- status --port 9420` 返回 `connect ECONNREFUSED 127.0.0.1:9420`，不得把该任务写通过；先按上面的 `--auto-port 9420` 流程恢复连接。
+- 复测文档只允许记录 token 后 8 位、页面路径、query、状态码、字段名和 Console 摘要，不得写完整 token。
+
 ## 2026-06-23 PM 公告：全量交互、接口、后台联通审核派发
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
