@@ -9,6 +9,7 @@ import {
   type ManagedSessionMomentSummary,
   type ManagedTimelineNode,
 } from '../../services/operations'
+import { hasFirstPhotoEvidence, isEndedFirstPhotoState } from '../../utils/first-photo-state'
 
 type AlbumNominationState = 'active' | 'done' | 'empty' | 'unavailable'
 
@@ -23,7 +24,7 @@ interface AlbumItem {
   sessionId: string
   shareImageUrl: string
   shareImageTaskId: string
-  stateType: 'ended' | 'ongoing'
+  stateType: 'ended' | 'ongoing' | 'pendingFirstPhoto'
   statusText: string
   title: string
 }
@@ -173,6 +174,7 @@ const formatAlbumTime = (value?: string) => {
 }
 
 const buildStatusText = (item: ManagedSessionMomentSummary) => {
+  if (!isEndedSessionSummary(item) && !hasFirstPhotoSummary(item)) return '待首拍'
   if (hasGeneratedShareImage(item)) return '分享图已生成'
   if (isEndedSessionSummary(item)) return '已结束'
   if (item.shareImageStatus === 'failed') return '分享图待重试'
@@ -189,15 +191,15 @@ const buildMeta = (item: ManagedSessionMomentSummary, timeText = '') => {
   return parts.join(' · ') || '聚会记录'
 }
 
-const isEndedSessionSummary = (item: ManagedSessionMomentSummary) => {
-  const stateText = `${item.state || ''} ${item.status || ''} ${item.stateText || ''}`.trim()
-  return Boolean(item.endedAt) || /已结束|结束|已完成|ended|finished|closed|complete|completed|done/i.test(stateText)
-}
+const isEndedSessionSummary = (item: ManagedSessionMomentSummary) => isEndedFirstPhotoState(item)
 
 const hasGeneratedShareImage = (item: ManagedSessionMomentSummary) => Boolean(item.readyShareImageUrl || item.shareImageUrl)
 
-const hasFirstPhotoSummary = (item: ManagedSessionMomentSummary) =>
-  Boolean(item.coverPhotoUrl || item.readyShareImageUrl || item.shareImageUrl)
+const hasFirstPhotoSummary = (item: ManagedSessionMomentSummary) => hasFirstPhotoEvidence(item)
+
+const isOngoingSessionSummary = (item: ManagedSessionMomentSummary) => !isEndedSessionSummary(item) && hasFirstPhotoSummary(item)
+
+const isVisibleAlbumSummary = (item: ManagedSessionMomentSummary) => isEndedSessionSummary(item) || hasFirstPhotoSummary(item)
 
 const isPendingShareMemory = (item: ManagedSessionMomentSummary) => !isEndedSessionSummary(item) && hasFirstPhotoSummary(item) && !hasGeneratedShareImage(item)
 
@@ -266,8 +268,11 @@ const filterSummariesByMode = (items: ManagedSessionMomentSummary[], mode: strin
       return items.filter(isPendingShareMemory)
     case 'album':
     case 'records':
+    case 'host':
+    case 'joined':
+      return items.filter(isVisibleAlbumSummary)
     default:
-      return items
+      return items.filter(isVisibleAlbumSummary)
   }
 }
 
@@ -276,10 +281,10 @@ const filterSummariesByRecordFilter = (items: ManagedSessionMomentSummary[], fil
     case 'ended':
       return items.filter(isEndedSessionSummary)
     case 'ongoing':
-      return items.filter((item) => !isEndedSessionSummary(item) && hasFirstPhotoSummary(item))
+      return items.filter(isOngoingSessionSummary)
     case 'all':
     default:
-      return items
+      return items.filter(isVisibleAlbumSummary)
   }
 }
 
@@ -299,7 +304,7 @@ const mapAlbumItem = async (item: ManagedSessionMomentSummary, index: number): P
   const shareImageUrl = item.readyShareImageUrl || item.shareImageUrl || ''
   firstPhotoUrl = firstPhotoUrl || item.coverPhotoUrl || ''
   const coverUrl = shouldQuarantineRecordCover(firstPhotoUrl) ? '' : firstPhotoUrl
-  const stateType = isEndedSessionSummary(item) ? 'ended' : 'ongoing'
+  const stateType = isEndedSessionSummary(item) ? 'ended' : hasFirstPhotoSummary(item) ? 'ongoing' : 'pendingFirstPhoto'
   const nomination = stateType === 'ended'
     ? await buildAlbumNominationState(brief)
     : {
@@ -463,8 +468,8 @@ Page<AlbumPageState, AlbumPageMethods>({
         endedCount: summaries.filter(isEndedSessionSummary).length,
         endedItems: groupedItems.filter((item) => item.stateType === 'ended'),
         items,
-        ongoingItems: groupedItems.filter((item) => item.stateType !== 'ended'),
-        ongoingCount: summaries.filter((item) => !isEndedSessionSummary(item)).length,
+        ongoingItems: groupedItems.filter((item) => item.stateType === 'ongoing'),
+        ongoingCount: summaries.filter(isOngoingSessionSummary).length,
         totalCount: items.length,
         loading: false,
       })
@@ -486,7 +491,7 @@ Page<AlbumPageState, AlbumPageMethods>({
       briefId?: string
       sessionId?: string
       shareImageUrl?: string
-      stateType?: 'ended' | 'ongoing'
+      stateType?: 'ended' | 'ongoing' | 'pendingFirstPhoto'
     }
     if (this.data.mode === 'shares') {
       if (shareImageUrl) {
@@ -507,6 +512,10 @@ Page<AlbumPageState, AlbumPageMethods>({
         return
       }
       wx.showToast({ title: '缺少已结束聚会信息', icon: 'none' })
+      return
+    }
+    if (stateType === 'pendingFirstPhoto') {
+      wx.showToast({ title: '先拍第一张照片后再进入相册', icon: 'none' })
       return
     }
     if (sessionId) {

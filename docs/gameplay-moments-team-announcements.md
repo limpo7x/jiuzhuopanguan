@@ -16,6 +16,31 @@
 
 所有角色只更新自己的交付记录和证据；总进度、跨角色结论和准出判断仍由 PM 验证后更新。
 
+## 2026-06-24 PM 公告：FIX-014-04 前端本地实现通过静态门禁
+
+面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
+
+用户已逐项同意 `FIX-014-04`。本轮只处理首拍状态前端统一消费，不启动 `FIX-014-05`、`FIX-014-06` 或其他编号。
+
+前端交付：
+
+- 工作树：`F:\codexlist\jiuzhuopanguan-fix-014-04`。
+- 分支：`codex/fix-014-04-frontend-first-photo-state`。
+- 证据：`docs/runtime/pr-fe-fix-014-04-20260624.md`。
+- 范围：相册进行中计数与列表统一；账本区分无聚会/待首拍/进行中/已结束；等待房间成员首拍前停留等待态；首页和我的统计优先消费后端 `firstPhotoUploadedAt/hasFirstPhoto/isActiveForResume`。
+
+当前验证：
+
+- `npm.cmd run check:encoding` 通过。
+- `npm.cmd run typecheck` 通过。
+- `git diff --check` 通过。
+
+下一步责任：
+
+- 测试验收负责人：接 `FIX-014-04-QA`，在微信开发者工具预览框覆盖三条路径：相册数量与列表一致、账本待首拍不隐藏创建入口、成员等待房间首拍前不自动进入记录页。
+- 前端负责人：如 QA 退回，只在 `FIX-014-04` 工作树内返工，不扩大到推举、分享返回或运营配置。
+- PM：未取得 QA 预览框证据前，只能写“前端本地实现和静态门禁通过”，不得写正式真机发布准出。
+
 ## 2026-06-24 PM 公告：FIX-014-01 本地合同通过，进入提交部署门禁
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。

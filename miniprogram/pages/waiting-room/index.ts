@@ -1,4 +1,5 @@
 import { getManagedLiveSession, updateManagedSession } from '../../services/operations'
+import { hasFirstPhotoEvidence, isActiveForResumeByFirstPhoto } from '../../utils/first-photo-state'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import { confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
@@ -14,12 +15,17 @@ interface WaitingRoomState {
   emptySeats: number[]
   inviteCode: string
   isJudge: boolean
+  hasFirstPhoto: boolean
+  firstPhotoUploadedAt: string
   joinedCount: number
   joinedPlayers: JoinedPlayer[]
   loading: boolean
   playerCount: number
+  primaryActionLabel: string
   sessionId: string
   sessionName: string
+  statusTitle: string
+  statusSubtitle: string
 }
 
 interface WaitingRoomMethods {
@@ -49,17 +55,44 @@ const mergeRuntimeAvatars = (players: JoinedPlayer[], runtime = getSessionRuntim
   return players.map((item) => ({ ...item, avatarUrl: item.avatarUrl || (item.profileId ? avatarMap.get(item.profileId) || '' : '') }))
 }
 
+const buildWaitingRoomCopy = (hasFirstPhoto: boolean, isJudge: boolean) => {
+  if (hasFirstPhoto) {
+    return {
+      primaryActionLabel: '进入本局',
+      statusSubtitle: '聚会已开始，可进入现场继续记录。',
+      statusTitle: '聚会已开始',
+    }
+  }
+  if (isJudge) {
+    return {
+      primaryActionLabel: '去拍第一张照片',
+      statusSubtitle: '首张照片保存后，这场聚会才会进入进行中。',
+      statusTitle: '先拍第一张照片',
+    }
+  }
+  return {
+    primaryActionLabel: '等待首张照片',
+    statusSubtitle: '发起人拍下第一张照片后，你会进入现场记录。',
+    statusTitle: '等待首张照片',
+  }
+}
+
 Page<WaitingRoomState, WaitingRoomMethods>({
   data: {
     emptySeats: [1, 2],
+    firstPhotoUploadedAt: '',
+    hasFirstPhoto: false,
     inviteCode: '',
     isJudge: true,
     joinedCount: 0,
     joinedPlayers: [],
     loading: true,
     playerCount: 0,
+    primaryActionLabel: '去拍第一张照片',
     sessionId: '',
     sessionName: '',
+    statusSubtitle: '首张照片保存后，这场聚会才会进入进行中。',
+    statusTitle: '先拍第一张照片',
   },
 
   async onLoad(query) {
@@ -154,19 +187,28 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     const liveSession = await getManagedLiveSession(sessionId, inviteCode)
     const joinedPlayers = mergeRuntimeAvatars(liveSession.joinedPlayers.slice(0, liveSession.playerCount), runtime)
     const emptySeats = Array.from({ length: Math.max(liveSession.playerCount - joinedPlayers.length, 0) }, (_, index) => index + 1)
+    const hasFirstPhoto = hasFirstPhotoEvidence(liveSession)
+    const copy = buildWaitingRoomCopy(hasFirstPhoto, this.data.isJudge)
 
     this.setData({
       emptySeats,
+      firstPhotoUploadedAt: liveSession.firstPhotoUploadedAt,
+      hasFirstPhoto,
       inviteCode: liveSession.inviteCode,
       joinedCount: liveSession.joinedCount,
       joinedPlayers,
       loading: false,
       playerCount: liveSession.playerCount,
+      primaryActionLabel: copy.primaryActionLabel,
       sessionId: liveSession.id,
       sessionName: liveSession.sessionName,
+      statusSubtitle: copy.statusSubtitle,
+      statusTitle: copy.statusTitle,
     })
 
     setSessionRuntime({
+      endedAt: liveSession.endedAt,
+      firstPhotoUploadedAt: liveSession.firstPhotoUploadedAt || runtime.firstPhotoUploadedAt || '',
       inviteCode: liveSession.inviteCode,
       playerCount: liveSession.playerCount,
       selectedPlayers: mergeRuntimeAvatars(liveSession.joinStatusPlayers, runtime).map<SessionParticipant>((item) => ({
@@ -183,7 +225,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
 
     const currentProfileId = getSessionRuntime().currentUser?.id || ''
     const currentUserJoined = !this.data.isJudge && currentProfileId && liveSession.joinedPlayers.some((item) => item.profileId === currentProfileId)
-    if (currentUserJoined) {
+    if (currentUserJoined && isActiveForResumeByFirstPhoto(liveSession)) {
       const url = `/pages/live-record/index?role=viewer&sessionId=${encodeURIComponent(liveSession.id)}&sessionName=${encodeURIComponent(liveSession.sessionName || '聚会记录')}`
       this.stopAutoRefresh()
       disableSessionLeaveAlert()
@@ -251,6 +293,18 @@ Page<WaitingRoomState, WaitingRoomMethods>({
   },
 
   async handleStartTap() {
+    if (!this.data.hasFirstPhoto) {
+      if (this.data.isJudge) {
+        this.handleOpeningMomentTap()
+        return
+      }
+      wx.showToast({
+        title: '等发起人拍下第一张照片后再进入本局',
+        icon: 'none',
+      })
+      return
+    }
+
     if (this.data.joinedCount < this.data.playerCount) {
       const confirmed = await new Promise<boolean>((resolve) => {
         wx.showModal({

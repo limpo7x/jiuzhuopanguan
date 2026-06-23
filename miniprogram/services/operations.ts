@@ -71,10 +71,13 @@ interface RemoteSessionPlayer {
 interface RemoteLiveSession {
   endedAt?: string
   finishedAt?: string
+  firstPhotoUploadedAt?: string
+  hasFirstPhoto?: boolean
   hostName?: string
   hostProfileId?: string
   id?: string
   inviteCode?: string
+  isActiveForResume?: boolean
   joinedCount?: number
   joinedPlayers?: RemoteSessionPlayer[]
   joinStatusPlayers?: RemoteSessionPlayer[]
@@ -280,6 +283,9 @@ interface RemoteSessionMomentSummary {
   coverPhotoUrl?: string
   createdAt?: string
   endedAt?: string
+  firstPhotoUploadedAt?: string
+  hasFirstPhoto?: boolean
+  isActiveForResume?: boolean
   pendingMediaCount?: number
   rankingEntryEnabled?: boolean
   readyShareImageUrl?: string
@@ -413,10 +419,14 @@ export interface ManagedWheelHistoryItem {
 }
 
 export interface ManagedLiveSession {
+  endedAt: string
+  firstPhotoUploadedAt: string
+  hasFirstPhoto: boolean
   hostName: string
   hostProfileId: string
   id: string
   inviteCode: string
+  isActiveForResume: boolean
   joinedCount: number
   joinedPlayers: ManagedSessionPlayer[]
   joinStatusPlayers: ManagedSessionPlayer[]
@@ -734,6 +744,9 @@ export interface ManagedSessionMomentSummary {
   coverPhotoUrl: string
   createdAt: string
   endedAt: string
+  firstPhotoUploadedAt: string
+  hasFirstPhoto: boolean
+  isActiveForResume: boolean
   pendingMediaCount: number
   rankingEntryEnabled: boolean
   readyShareImageUrl: string
@@ -962,10 +975,14 @@ const normalizeRemoteLiveSession = (remote: RemoteLiveSession): ManagedLiveSessi
   const joinStatusPlayers = remote.joinStatusPlayers?.length ? remote.joinStatusPlayers.map(normalizeSessionPlayer) : []
 
   return {
+    endedAt: remote.endedAt || remote.finishedAt || '',
+    firstPhotoUploadedAt: remote.firstPhotoUploadedAt || '',
+    hasFirstPhoto: remote.hasFirstPhoto === true || Boolean(remote.firstPhotoUploadedAt),
     hostName: remote.hostName || '',
     hostProfileId: remote.hostProfileId || '',
     id: remote.id || '',
     inviteCode: remote.inviteCode || '',
+    isActiveForResume: remote.isActiveForResume === true,
     joinedCount: Number(remote.joinedCount) || 0,
     joinedPlayers,
     joinStatusPlayers,
@@ -1645,6 +1662,9 @@ export const getManagedSessionMomentSummaries = async (): Promise<ManagedSession
         coverPhotoUrl: normalizeManagedAssetPath(item?.coverPhotoUrl || item?.coverImageUrl),
         createdAt: item?.createdAt || '',
         endedAt: item?.endedAt || '',
+        firstPhotoUploadedAt: item?.firstPhotoUploadedAt || '',
+        hasFirstPhoto: item?.hasFirstPhoto === true || Boolean(item?.firstPhotoUploadedAt || item?.coverPhotoUrl || item?.coverImageUrl),
+        isActiveForResume: item?.isActiveForResume === true,
         pendingMediaCount: Number(item?.pendingMediaCount) || 0,
         rankingEntryEnabled: Boolean(item?.rankingEntryEnabled),
         readyShareImageUrl: normalizeManagedAssetPath(item?.readyShareImageUrl),

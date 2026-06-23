@@ -7,6 +7,7 @@ import {
   type ManagedShareImageSummary,
   type ManagedSessionMomentSummary,
 } from '../../services/operations'
+import { hasFirstPhotoEvidence, isActiveForResumeByFirstPhoto, isEndedFirstPhotoState } from '../../utils/first-photo-state'
 import { showFirstLoginBonusModal } from '../../utils/firstLoginBonus'
 import { getCurrentDisplayProfile, getUserAuthSession, loginWithWechatProfile, type SocialProfile } from '../../utils/social'
 
@@ -202,13 +203,9 @@ const normalizePendingAlbumTitle = (title?: string, sessionName?: string, index 
   return `待分享回忆 ${index + 1}`
 }
 
-const isEndedSessionSummary = (item: ManagedSessionMomentSummary) => {
-  const stateText = `${item.state || ''} ${item.status || ''} ${item.stateText || ''}`.trim()
-  return Boolean(item.endedAt) || /已结束|结束|已完成|ended|finished|closed|complete|completed|done/i.test(stateText)
-}
+const isEndedSessionSummary = (item: ManagedSessionMomentSummary) => isEndedFirstPhotoState(item)
 
-const hasFirstPhotoSummary = (item: ManagedSessionMomentSummary) =>
-  Boolean(item.coverPhotoUrl || item.readyShareImageUrl || item.shareImageUrl)
+const hasFirstPhotoSummary = (item: ManagedSessionMomentSummary) => hasFirstPhotoEvidence(item)
 
 const hasGeneratedShareImage = (item: ManagedSessionMomentSummary) => Boolean(item.readyShareImageUrl || item.shareImageUrl)
 
@@ -237,7 +234,7 @@ const buildPendingAlbumItems = (items: ManagedSessionMomentSummary[]): PendingAl
     const shareImageStatus = String(item.shareImageStatus || '')
     const isEnded = isEndedSessionSummary(item)
     const stateLabel = buildSummaryStateLabel(item, isEnded)
-    const canResume = !isEnded && hasFirstPhotoSummary(item) && (item.canResume || pendingMediaCount > 0 || canResumeMomentIds.length > 0)
+    const canResume = !isEnded && (item.isActiveForResume === true || (hasFirstPhotoSummary(item) && (item.canResume || pendingMediaCount > 0 || canResumeMomentIds.length > 0)))
     const actionLabel = isEnded ? '查看' : canResume ? '进入本局' : '查看'
     const statusText =
       isEnded
@@ -391,7 +388,7 @@ Page<MePageState, MePageMethods>({
     const resolvedShareImageSummaries = shareImageSummariesResult.items
     const generatedShareSummaries = resolvedMomentSummaries.filter(hasGeneratedShareImage)
     const endedSummaries = resolvedMomentSummaries.filter(isEndedSessionSummary)
-    const ongoingSummaries = resolvedMomentSummaries.filter((item) => !isEndedSessionSummary(item) && hasFirstPhotoSummary(item))
+    const ongoingSummaries = resolvedMomentSummaries.filter(isActiveForResumeByFirstPhoto)
     const assetStats = momentSummariesResult.ok
       ? [
           { value: String(resolvedMomentSummaries.length), label: '总回忆数' },

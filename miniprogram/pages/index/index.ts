@@ -7,6 +7,7 @@ import {
   recordManagedToolUsage,
   type ManagedSessionMomentSummary,
 } from '../../services/operations'
+import { hasFirstPhotoEvidence, isActiveForResumeByFirstPhoto } from '../../utils/first-photo-state'
 import { showFirstLoginBonusModal } from '../../utils/firstLoginBonus'
 import { setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import { buildSessionReturnFromHistory, EMPTY_SESSION_RETURN, openSessionReturn, type SessionReturnBarData } from '../../utils/session-return'
@@ -183,10 +184,10 @@ const buildAlbumRoute = (item: ManagedSessionMomentSummary) => {
 
 const isActiveSummary = (item: ManagedSessionMomentSummary) => {
   const state = `${item.state || ''} ${item.status || ''} ${item.stateText || ''}`.trim()
-  const hasFirstPhoto = Boolean(item.coverPhotoUrl || item.readyShareImageUrl || item.shareImageUrl)
-  if (!hasFirstPhoto) return false
+  if (!hasFirstPhotoEvidence(item)) return false
+  if (item.isActiveForResume === true) return Boolean(item.sessionId)
   if (!state) return Boolean(item.canResume && item.sessionId)
-  return Boolean(item.sessionId) && !/已结束|结束|已完成|closed|ended|finished|deleted/i.test(state)
+  return Boolean(item.sessionId) && isActiveForResumeByFirstPhoto(item) && !/已结束|结束|已完成|closed|ended|finished|deleted/i.test(state)
 }
 
 const buildContinueRecordLabel = (count: number) => {

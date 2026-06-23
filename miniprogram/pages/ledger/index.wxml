@@ -9,8 +9,9 @@
 <view class="ledger-page">
   <scroll-view class="ledger-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="ledger-stage">
-      <text class="ledger-kicker">{{ledgerEditable ? '发起人可调整' : '仅查看，请发起人调整'}}</text>
+      <text class="ledger-kicker">{{ledgerKicker}}</text>
       <text class="ledger-title">{{sessionName}}</text>
+      <text wx:if="{{sessionHint}}" class="ledger-subtitle">{{sessionHint}}</text>
       <text wx:if="{{ledgerEventCount}}" class="ledger-subtitle">已同步 {{ledgerEventCount}} 条账本动态，欠酒和加酒会进入本局记录。</text>
 
       <view class="ledger-stats">
@@ -63,8 +64,8 @@
     </view>
 
     <view class="ledger-actions">
-      <view class="ledger-primary" bindtap="handleRecordTap">{{hasSession ? '回到本局' : '暂无进行中聚会'}}</view>
-      <view wx:if="{{!hasSession}}" class="ledger-secondary" bindtap="handleCreateTap">创建聚会</view>
+      <view class="ledger-primary {{sessionViewState === 'noSession' ? 'ledger-primary-disabled' : ''}}" bindtap="handleRecordTap">{{primaryActionLabel}}</view>
+      <view wx:if="{{showCreateAction}}" class="ledger-secondary" bindtap="handleCreateTap">创建聚会</view>
     </view>
   </scroll-view>
 </view>

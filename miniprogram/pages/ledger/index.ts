@@ -5,8 +5,10 @@ import {
   updateManagedSession,
   type ManagedTimelineNode,
 } from '../../services/operations'
+import { isActiveForResumeByFirstPhoto, isEndedFirstPhotoState } from '../../utils/first-photo-state'
 import {
   getSessionRuntime,
+  hasSessionFirstPhoto,
   resolveSessionParticipants,
   setSessionRuntime,
   type SessionParticipant,
@@ -35,10 +37,15 @@ interface LedgerPageState {
   ledgerDirty: boolean
   ledgerEventCount: number
   ledgerEditable: boolean
+  ledgerKicker: string
   ledgerSubmitting: boolean
   players: LedgerPlayer[]
+  primaryActionLabel: string
+  sessionHint: string
   sessionId: string
   sessionName: string
+  sessionViewState: LedgerSessionViewState
+  showCreateAction: boolean
   stats: LedgerStat[]
 }
 
@@ -53,6 +60,8 @@ interface LedgerPageMethods {
   persistPlayers: (players: LedgerPlayer[]) => Promise<boolean>
   showPreviewToast: (message: string) => void
 }
+
+type LedgerSessionViewState = 'noSession' | 'pendingFirstPhoto' | 'inProgress' | 'ended'
 
 const internalDisplayPattern = /(PR\s+Seed|PR-BE-DB-LOGIN|IT-MOMENTS|DEBUG|openid|openId|unionId|signature)/i
 
@@ -206,6 +215,67 @@ const toPlayerStats = (players: LedgerPlayer[]): SessionPlayerStat[] =>
     profileId: item.profileId,
   }))
 
+const isRuntimeEnded = () => {
+  const runtime = getSessionRuntime()
+  return isEndedFirstPhotoState({
+    endedAt: runtime.endedAt,
+    state: runtime.state,
+    status: runtime.status,
+  })
+}
+
+const resolveRuntimeLedgerState = (): LedgerSessionViewState => {
+  const runtime = getSessionRuntime()
+  if (!runtime.sessionId) return 'noSession'
+  if (isRuntimeEnded()) return 'ended'
+  return hasSessionFirstPhoto(runtime) ? 'inProgress' : 'pendingFirstPhoto'
+}
+
+const resolveLedgerStateCopy = (state: LedgerSessionViewState, isJudge = false) => {
+  if (state === 'inProgress') {
+    return {
+      kicker: isJudge ? '发起人可调整' : '仅查看，请发起人调整',
+      primaryActionLabel: '回到本局',
+      sessionHint: '',
+      showCreateAction: false,
+    }
+  }
+  if (state === 'pendingFirstPhoto') {
+    return {
+      kicker: '待首拍',
+      primaryActionLabel: isJudge ? '去拍第一张照片' : '等待首张照片',
+      sessionHint: isJudge ? '首张照片保存后，这场聚会才会进入进行中和账本记录。' : '发起人拍下第一张照片后，账本会进入本局记录。',
+      showCreateAction: true,
+    }
+  }
+  if (state === 'ended') {
+    return {
+      kicker: '已结束',
+      primaryActionLabel: '查看相册',
+      sessionHint: '这场聚会已结束，账本只保留查看入口。',
+      showCreateAction: true,
+    }
+  }
+  return {
+    kicker: '暂无进行中',
+    primaryActionLabel: '暂无进行中聚会',
+    sessionHint: '先创建聚会并保存第一张照片，账本会自动关联本局。',
+    showCreateAction: true,
+  }
+}
+
+const buildLedgerStatePatch = (state: LedgerSessionViewState, isJudge = false) => {
+  const copy = resolveLedgerStateCopy(state, isJudge)
+  return {
+    hasSession: state === 'inProgress',
+    ledgerKicker: copy.kicker,
+    primaryActionLabel: copy.primaryActionLabel,
+    sessionHint: copy.sessionHint,
+    sessionViewState: state,
+    showCreateAction: copy.showCreateAction,
+  }
+}
+
 Page<LedgerPageState, LedgerPageMethods>({
   data: {
     hasSession: false,
@@ -214,10 +284,15 @@ Page<LedgerPageState, LedgerPageMethods>({
     ledgerDirty: false,
     ledgerEditable: false,
     ledgerEventCount: 0,
+    ledgerKicker: '暂无进行中',
     ledgerSubmitting: false,
     players: [],
+    primaryActionLabel: '暂无进行中聚会',
+    sessionHint: '先创建聚会并保存第一张照片，账本会自动关联本局。',
     sessionId: '',
     sessionName: '聚会账本',
+    sessionViewState: 'noSession',
+    showCreateAction: true,
     stats: buildStats([]),
   },
 
@@ -229,8 +304,9 @@ Page<LedgerPageState, LedgerPageMethods>({
       setSessionRuntime({ isJudge: false })
     }
     if (sessionId || sessionName) {
+      const state = resolveRuntimeLedgerState()
       this.setData({
-        hasSession: Boolean(sessionId),
+        ...buildLedgerStatePatch(state, false),
         sessionId,
         sessionName: sessionName || this.data.sessionName,
       })
@@ -275,8 +351,15 @@ Page<LedgerPageState, LedgerPageMethods>({
         }))
         const ledgerCounts = applyLedgerEventsToPlayers(remotePlayers, timeline.nodes)
         const isHost = Boolean(liveSession.hostProfileId && refreshedRuntime.currentUser?.id === liveSession.hostProfileId)
+        const sessionViewState: LedgerSessionViewState = isEndedFirstPhotoState(liveSession)
+          ? 'ended'
+          : isActiveForResumeByFirstPhoto(liveSession)
+            ? 'inProgress'
+            : 'pendingFirstPhoto'
 
         setSessionRuntime({
+          endedAt: liveSession.endedAt,
+          firstPhotoUploadedAt: liveSession.firstPhotoUploadedAt || refreshedRuntime.firstPhotoUploadedAt || '',
           inviteCode: liveSession.inviteCode,
           isJudge: isHost,
           playerCount: liveSession.playerCount,
@@ -292,10 +375,10 @@ Page<LedgerPageState, LedgerPageMethods>({
         })
 
         this.setData({
-          hasSession: true,
+          ...buildLedgerStatePatch(sessionViewState, isHost),
           isJudge: isHost,
           ledgerDirty: false,
-          ledgerEditable: isHost,
+          ledgerEditable: isHost && sessionViewState === 'inProgress',
           ledgerEventCount: ledgerCounts.entryCount,
           ledgerSubmitting: false,
           players: ledgerCounts.players,
@@ -311,9 +394,11 @@ Page<LedgerPageState, LedgerPageMethods>({
     }
 
     const players = buildPlayers()
+    const runtimeState = resolveRuntimeLedgerState()
+    const runtimeIsJudge = Boolean(refreshedRuntime.isJudge)
     this.setData({
-      hasSession: Boolean(refreshedRuntime.sessionId),
-      isJudge: false,
+      ...buildLedgerStatePatch(runtimeState, runtimeIsJudge),
+      isJudge: runtimeIsJudge,
       ledgerDirty: false,
       ledgerEditable: false,
       ledgerEventCount: 0,
@@ -458,7 +543,19 @@ Page<LedgerPageState, LedgerPageMethods>({
   },
 
   handleRecordTap() {
-    if (!this.data.sessionId) {
+    if (this.data.sessionViewState === 'pendingFirstPhoto') {
+      if (this.data.isJudge && this.data.sessionId) {
+        this.openPage(`/pages/moment-editor/index?sessionId=${encodeURIComponent(this.data.sessionId)}&nodeType=opening`)
+        return
+      }
+      wx.showToast({ title: '等发起人拍下第一张照片后再进入本局', icon: 'none' })
+      return
+    }
+    if (this.data.sessionViewState === 'ended') {
+      this.openPage('/pages/album/index?mode=ended')
+      return
+    }
+    if (this.data.sessionViewState !== 'inProgress' || !this.data.sessionId) {
       wx.showToast({ title: '先创建或加入聚会', icon: 'none' })
       return
     }

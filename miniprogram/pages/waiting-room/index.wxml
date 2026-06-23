@@ -11,8 +11,8 @@
 <view class="waiting-page">
   <scroll-view class="waiting-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="waiting-center">
-      <text class="waiting-title">组局中，等人齐</text>
-      <text class="waiting-subtitle">可随时刷新最新加入成员，确认人数后再进场。</text>
+      <text class="waiting-title">{{statusTitle}}</text>
+      <text class="waiting-subtitle">{{statusSubtitle}}</text>
       <view class="waiting-counter">
         <text class="waiting-counter-value">{{joinedCount}} / {{playerCount}}</text>
         <text class="waiting-counter-label">已加入人数</text>
@@ -59,6 +59,6 @@
   </scroll-view>
 
   <!-- waiting fixed primary action -->
-  <view class="waiting-primary" bindtap="handleStartTap">进入本局</view>
+  <view class="waiting-primary {{!hasFirstPhoto && !isJudge ? 'waiting-primary-disabled' : ''}}" bindtap="handleStartTap">{{primaryActionLabel}}</view>
 
 </view>

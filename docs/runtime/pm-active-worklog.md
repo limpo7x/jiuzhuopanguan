@@ -1631,3 +1631,12 @@ PM 边界：
 - R01 合法成员回归：使用成员 tokenTail `1dace82d`、profileId `user-1782114038371-8b9a52` 打开同一路径，页面保持 `shareViewState=ready`、`canViewPosterContent=true`、`shareActionBlocked=false`，可见 2 条时间线照片、2 个照片高光、4 个账本高光和“生成聚会图”入口。截图：`docs/runtime/pr-qa-fix-014-02-r01-member-ready-retest-1dace82d-20260624.png`。
 - 当前状态：`FIX-014-02` 预览框阶段 R01 已通过并关闭；`QA-FIX-014-02-R02` 仍未覆盖，因为当前线上样本没有真实 `readyShareImageUrl`，不能证明完整 ready 图 URL 保存链路。未做正式真机测试，不写正式发布准出。
 - 交付边界：当前工作树仍未提交、未推送、未部署、未上传小程序包；提交前需保留本项变更范围与未跟踪证据清单，避免混入主工作区历史残留。
+
+## 2026-06-24 FIX-014-04 用户审批与前端本地实现
+
+- 用户已用编号授权启动 `FIX-014-04`。本轮只处理“首拍状态前端统一消费”，不启动 `FIX-014-05` 或其他编号。
+- 工作树边界：新建干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-04`，分支 `codex/fix-014-04-frontend-first-photo-state`，基线为 `origin/main` 的 `7111f058`。
+- 前端证据：`docs/runtime/pr-fe-fix-014-04-20260624.md`。
+- 已实现：`operations.ts` 暴露 `firstPhotoUploadedAt/hasFirstPhoto/isActiveForResume`；新增统一首拍状态工具；相册 ongoing 计数与列表共用分类；账本区分无聚会、待首拍、进行中、已结束；等待房间成员首拍前不自动进入记录页；首页和我的统计优先消费后端首拍合同。
+- 本地验证通过：`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。`npm.cmd install` 为新工作树补齐依赖时报告既有 `10 vulnerabilities`，未做无关升级。
+- 当前状态：前端本地实现和静态门禁通过；未提交、未推送、未部署、未上传小程序包，未做微信开发者工具预览框三路径复测；不得写正式准出。
