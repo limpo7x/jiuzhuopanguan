@@ -2438,6 +2438,24 @@ const pageMap = {
       notes: buildOverviewNotes(),
     }
   },
+  'data-users': () => ({
+    slug: 'data-users',
+    title: '用户分析',
+    view: 'dashboard',
+    ...getUserAnalyticsPage(),
+  }),
+  'data-content': () => ({
+    slug: 'data-content',
+    title: '内容分析',
+    view: 'dashboard',
+    ...getContentAnalyticsPage(),
+  }),
+  'data-business': () => ({
+    slug: 'data-business',
+    title: '商业分析',
+    view: 'dashboard',
+    ...getBusinessAnalyticsPage(),
+  }),
   'content-home-ops': () => ({
     slug: 'content-home-ops',
     title: '首页装修',
