@@ -142,6 +142,9 @@ const getMomentNodeTime = (node: Extract<ManagedTimelineNode, { nodeKind: 'momen
   return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : Number.MAX_SAFE_INTEGER
 }
 
+const isPersistedMomentId = (value?: string) =>
+  /^moment-\d{10,}-[a-f0-9]{8}$/i.test(String(value || '').trim())
+
 const findFirstBriefPhoto = (brief?: ManagedSessionBrief) => {
   const node = (brief?.timeline?.nodes || [])
     .filter(isMomentNodeWithImage)
@@ -212,7 +215,7 @@ const buildAlbumNominationState = async (brief?: ManagedSessionBrief): Promise<{
     }
   }
 
-  const rankableNodes = photoNodes.filter((node) => node.rankingEligible)
+  const rankableNodes = photoNodes.filter((node) => node.rankingEligible && isPersistedMomentId(node.id))
   if (!rankableNodes.length) {
     return {
       nominationDisabled: true,
