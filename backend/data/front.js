@@ -108,6 +108,17 @@ const buildMembersFromSession = (session) => {
 
 const isEndedSession = (session = {}) => String(session?.state || session?.status || '').includes('结束')
 
+const withFirstPhotoState = (session = {}) => {
+  const firstPhotoUploadedAt = toText(session.firstPhotoUploadedAt)
+  const hasFirstPhoto = Boolean(session.hasFirstPhoto === true || firstPhotoUploadedAt || toText(session.coverPhotoUrl))
+  return {
+    ...session,
+    firstPhotoUploadedAt,
+    hasFirstPhoto,
+    isActiveForResume: hasFirstPhoto && !isEndedSession(session),
+  }
+}
+
 const pickLiveSession = (sessions = []) =>
   sessions.find((item) => String(item.state || item.status || '').includes('进行中')) ||
   sessions.find((item) => String(item.state || item.status || '').includes('等待')) ||
@@ -122,11 +133,14 @@ const formatLiveSession = (session = {}) => {
     createdAt: toText(session?.createdAt),
     coverPhotoUrl: '',
     endedAt: toText(session?.endedAt),
+    firstPhotoUploadedAt: toText(session?.firstPhotoUploadedAt),
+    hasFirstPhoto: Boolean(session?.hasFirstPhoto === true || toText(session?.firstPhotoUploadedAt)),
     hostAvatarUrl: toText(session?.hostAvatarUrl || joinedPlayers.find((item) => item.profileId === toText(session?.hostProfileId))?.avatarUrl),
     hostName: toText(session?.hostName),
     hostProfileId: toText(session?.hostProfileId),
     id: toText(session?.id),
     inviteCode: toText(session?.inviteCode),
+    isActiveForResume: Boolean(session?.isActiveForResume === true),
     joinedCount: Number(session?.joinedCount) || joinedPlayers.length,
     joinedPlayers: joinedPlayers.slice(0, playerCount || joinedPlayers.length),
     joinStatusPlayers: memberPlayers.slice(0, playerCount || memberPlayers.length),
@@ -153,11 +167,11 @@ const getLiveSessionConfig = (sessionId, inviteCode) => {
   const liveSession = formatLiveSession(session || {})
   const shareSummary = session?.id ? getPublicSessionShareSummary({ sessionId: session.id, inviteCode: session.inviteCode }) : null
   return shareSummary
-    ? {
+    ? withFirstPhotoState({
         ...liveSession,
         ...shareSummary,
-      }
-    : liveSession
+      })
+    : withFirstPhotoState(liveSession)
 }
 
 const buildReportEvents = (report) => [report?.highlight1, report?.highlight2, report?.highlight3].filter(Boolean).map((text) => ({ text }))

@@ -34,6 +34,28 @@
 - 接口联调：部署后对线上 `/api/v1/sessions/live` 复跑只读矩阵；token 只写后 8 位或摘要。
 - 测试验收：等待部署证据和线上接口矩阵后，复核邀请加入与成员读取无回归。
 
+## 2026-06-24 PM 公告：FIX-014-03 后端/API 本地合同通过
+
+面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
+
+用户已用编号授权启动 `FIX-014-03`。本轮只处理“首拍进行中状态沉到后端”的后端/API 合同，不启动 `FIX-014-04` 或其他编号。
+
+当前结果：
+
+- 工作树：`F:\codexlist\jiuzhuopanguan-fix-014-03`，分支 `codex/fix-014-03-first-photo-state`。
+- 后端证据：`docs/runtime/pr-backend-fix-014-03-20260624.md`。
+- 合同字段：`firstPhotoUploadedAt`、`hasFirstPhoto`、`isActiveForResume`。
+- 覆盖接口/页面：`/sessions/live`、`/user/session-moment-summaries`、后台 `sessions` 页面；normalized read 通过 `moment_records` 推导同一字段。
+- 本地 smoke：`smoke-first-photo-active-state` 与 `smoke-live-session-privacy` 均通过。
+- 状态：后端/API 本地合同通过；未提交、未推送、未部署、未上传小程序包。
+
+下一步：
+
+- 接口联调负责人：接 `FIX-014-03-INT`，复核本地合同与 normalized 推导口径，部署后再用有效 token 做线上矩阵；token 只写后 8 位。
+- 前端负责人：暂不启动 `FIX-014-04` 前不得改小程序页面；收到 PM 审批后再统一消费后端字段。
+- 后台管理负责人：复核后台 `sessions` 页面首拍状态/首拍时间字段展示，不得直接改总进度。
+- 测试验收负责人：等待提交、部署和接口联调证据后，再做微信开发者工具预览框验收；当前不得写预览框通过或正式准出。
+
 ## 2026-06-24 PM 公告：FIX-014-01 已部署，线上只读回归通过
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。

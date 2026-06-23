@@ -2,7 +2,7 @@ const crypto = require('crypto')
 const fs = require('fs')
 const path = require('path')
 const sharp = require('sharp')
-const { getAdminStore, getManagedSessionById, listManagedReports } = require('./admin')
+const { getAdminStore, getManagedSessionById, listManagedReports, markManagedSessionFirstPhotoUploaded } = require('./admin')
 const { createDefaultUserCommerceState, readContentStore, writeContentStore } = require('./content')
 const { listProfiles } = require('./social')
 const { createStoreAccessor } = require('./store-accessor')
@@ -44,6 +44,7 @@ const nowIso = () => new Date().toISOString()
 const createId = (prefix) => `${prefix}-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`
 
 const cleanText = (value = '') => String(value || '').trim()
+const isEndedSessionState = (value = '') => cleanText(value).includes('结束')
 const resolveFirstExistingPath = (...candidatePaths) => candidatePaths.find((candidatePath) => fs.existsSync(candidatePath)) || ''
 const defaultMiniProgramQrLocalPath = resolveFirstExistingPath(...staticShareMiniappQrCandidates)
 const getMiniProgramQrUrl = (task = {}) => cleanText(task.miniProgramQrUrl || task.qrCodeUrl) || DEFAULT_MINI_PROGRAM_QR_URL
@@ -792,9 +793,15 @@ const getPublicSessionShareSummary = ({ sessionId, inviteCode } = {}) => {
       uploaderAvatarUrl: cleanText(node.uploaderAvatarUrl),
       createdAt: node.createdAt,
     }))
+  const firstPhoto = photoHighlights[0] || null
+  const firstPhotoUploadedAt = cleanText(session.firstPhotoUploadedAt || firstPhoto?.createdAt)
+  const hasFirstPhoto = Boolean(session.hasFirstPhoto === true || firstPhotoUploadedAt || firstPhoto?.imageUrl)
 
   return {
     coverPhotoUrl: photoHighlights[0]?.imageUrl || '',
+    firstPhotoUploadedAt,
+    hasFirstPhoto,
+    isActiveForResume: hasFirstPhoto && !isEndedSessionState(session.state || session.status || session.endedAt || ''),
     photoHighlights,
     accountingHighlights: ledgerSnapshot.accountingHighlights,
     ledgerSummary: ledgerSnapshot.ledgerSummary,
@@ -1462,6 +1469,12 @@ const createMoment = ({ sessionId, profile, payload = {} }) => {
     ? store.momentRecords.map((item) => (item.id === reusableOpening.id ? next : item))
     : [next, ...store.momentRecords]
   writeMomentsStore(store)
+  if (cleanText(next.imageUrl) && next.completionStatus === 'complete') {
+    markManagedSessionFirstPhotoUploaded({
+      sessionId: next.sessionId,
+      uploadedAt: next.createdAt || next.updatedAt,
+    })
+  }
   return serializeMomentForViewer(next, profileId)
 }
 
@@ -1931,11 +1944,14 @@ const getUserSessionMomentSummaries = ({ profile }) => {
     const moments = store.momentRecords.filter((item) => item.sessionId === sessionId && !item.removedAt)
     const brief = getReadableBriefForSummary({ store, sessionId, profile })
     const task = brief?.shareImageTaskId ? store.shareImageTasks.find((item) => item.id === brief.shareImageTaskId) : null
+    const firstPhotoMoment = moments
+      .filter((item) => cleanText(item.imageUrl))
+      .sort((left, right) => cleanText(left.createdAt || left.id).localeCompare(cleanText(right.createdAt || right.id)))[0] || null
     const coverPhotoUrl = cleanText(
-      moments
-        .filter((item) => cleanText(item.imageUrl))
-        .sort((left, right) => cleanText(left.createdAt || left.id).localeCompare(cleanText(right.createdAt || right.id)))[0]?.imageUrl,
+      firstPhotoMoment?.imageUrl,
     )
+    const firstPhotoUploadedAt = cleanText(session?.firstPhotoUploadedAt || firstPhotoMoment?.createdAt)
+    const hasFirstPhoto = Boolean(session?.hasFirstPhoto === true || firstPhotoUploadedAt || coverPhotoUrl)
     const resumableMomentIds = isEndedSession
       ? []
       : moments
@@ -1951,6 +1967,9 @@ const getUserSessionMomentSummaries = ({ profile }) => {
       stateText: stateFields.stateText,
       status: stateFields.status,
       endedAt: stateFields.endedAt,
+      firstPhotoUploadedAt,
+      hasFirstPhoto,
+      isActiveForResume: hasFirstPhoto && !isEndedSession,
       updatedAt: stateFields.updatedAt,
       canResume: resumableMomentIds.length > 0,
       canShare: Boolean(brief?.id && (task?.status === 'ready' ? readyShareImageUrl : brief.shareImageTaskId || task?.id)),

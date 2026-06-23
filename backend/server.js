@@ -590,9 +590,12 @@ const isInviteViewerMember = (request, session = {}) => {
 }
 
 const toPublicInviteLiveSession = (liveSession = {}) => ({
+  firstPhotoUploadedAt: liveSession.firstPhotoUploadedAt || '',
+  hasFirstPhoto: liveSession.hasFirstPhoto === true,
   hostName: liveSession.hostName || '',
   id: liveSession.id || liveSession.partyId || '',
   inviteCode: liveSession.inviteCode || '',
+  isActiveForResume: liveSession.isActiveForResume === true,
   joinedCount: Number(liveSession.joinedCount) || 0,
   partyId: liveSession.partyId || liveSession.id || '',
   playerCount: Number(liveSession.playerCount) || 0,

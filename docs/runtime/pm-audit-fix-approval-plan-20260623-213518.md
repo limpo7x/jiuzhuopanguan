@@ -53,7 +53,7 @@
 - 责任角色：后端/API；前端、后台管理、接口联调配合。
 - 动作：后端持久化 `firstPhotoUploadedAt/hasFirstPhoto/isActiveForResume`，首张有效照片保存成功时更新；摘要、live session、后台 sessions 使用同一合同。
 - 验收：创建或邀请但未首拍不计入进行中；跨设备结果一致；首拍后首页、我的、相册、后台同步变更。
-- 状态：待用户同意。
+- 状态：用户已同意；后端/API 本地合同通过，证据见 `docs/runtime/pr-backend-fix-014-03-20260624.md`。当前未提交、未推送、未部署；normalized 读路径通过 `moment_records` 推导首拍字段，未做 `wine_sessions` DDL。前端统一消费、后台页面复核、接口联调和 QA 预览框仍待补证；不得写线上通过或正式准出。
 
 ### FIX-014-04 首拍状态前端统一消费
 

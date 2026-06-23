@@ -38,6 +38,17 @@ const iso = (value = Date.now()) => new Date(value).toISOString()
 const SESSION_STATE_LIVE = '进行中'
 const SESSION_STATE_ENDED = '已结束'
 const isEndedSessionState = (value = '') => String(value || '').trim().includes('结束')
+const hasSessionFirstPhoto = (session = {}) =>
+  Boolean(session.hasFirstPhoto === true || String(session.firstPhotoUploadedAt || '').trim())
+const getSessionFirstPhotoState = (session = {}) => {
+  const firstPhotoUploadedAt = String(session.firstPhotoUploadedAt || '').trim()
+  const hasFirstPhoto = hasSessionFirstPhoto(session)
+  return {
+    firstPhotoUploadedAt,
+    hasFirstPhoto,
+    isActiveForResume: hasFirstPhoto && !isEndedSessionState(session.state || session.status || session.endedAt || ''),
+  }
+}
 const normalizeSessionState = (value = '', fallback = SESSION_STATE_LIVE) => {
   const text = String(value || '').trim()
   if (isEndedSessionState(text)) {
@@ -920,6 +931,31 @@ const writeMomentsAdminStore = (momentsStore) => {
   return true
 }
 
+const buildFirstPhotoStateBySessionId = (adminStore = readStore()) => {
+  const momentsStore = readMomentsAdminStore()
+  const firstMomentBySessionId = new Map()
+  ;(momentsStore?.momentRecords || []).forEach((moment) => {
+    const sessionId = String(moment?.sessionId || '').trim()
+    const imageUrl = String(moment?.imageUrl || '').trim()
+    if (!sessionId || !imageUrl || moment?.removedAt) return
+    const current = firstMomentBySessionId.get(sessionId)
+    if (!current || String(moment.createdAt || moment.id || '').localeCompare(String(current.createdAt || current.id || '')) < 0) {
+      firstMomentBySessionId.set(sessionId, moment)
+    }
+  })
+  return (session = {}) => {
+    const sessionState = getSessionFirstPhotoState(session)
+    const firstMoment = firstMomentBySessionId.get(String(session.id || '').trim()) || null
+    const firstPhotoUploadedAt = sessionState.firstPhotoUploadedAt || String(firstMoment?.createdAt || '').trim()
+    const hasFirstPhoto = sessionState.hasFirstPhoto || Boolean(firstPhotoUploadedAt || String(firstMoment?.imageUrl || '').trim())
+    return {
+      firstPhotoUploadedAt,
+      hasFirstPhoto,
+      isActiveForResume: hasFirstPhoto && !isEndedSessionState(session.state || session.status || session.endedAt || ''),
+    }
+  }
+}
+
 const getSessionNameById = (adminStore = readStore()) => {
   const sessionMap = new Map()
   ;(adminStore.liveSessions || []).forEach((session) => {
@@ -1306,8 +1342,12 @@ const getSocialMetrics = () => {
 
 const getSessionMetrics = () => {
   const store = readStore()
-  const activeCount = countBy(store.liveSessions, (item) => String(item.state || '').includes('进行中'))
-  const waitingCount = countBy(store.liveSessions, (item) => String(item.state || '').includes('等待'))
+  const getFirstPhotoState = buildFirstPhotoStateBySessionId(store)
+  const activeCount = countBy(store.liveSessions, (item) => getFirstPhotoState(item).isActiveForResume)
+  const waitingCount = countBy(
+    store.liveSessions,
+    (item) => !isEndedSessionState(item.state || item.status || item.endedAt || '') && !getFirstPhotoState(item).hasFirstPhoto,
+  )
   return [
     { label: '聚会总数', value: String(store.liveSessions.length), trend: `等待 ${waitingCount} 个`, tone: 'up' },
     { label: '进行中', value: String(activeCount), trend: `已结束 ${countBy(store.liveSessions, (item) => String(item.state || '').includes('结束'))} 个`, tone: 'up' },
@@ -1740,14 +1780,18 @@ const normalizeLiveSession = (session = {}, index = 0) => {
   const state = hasEndedMarker ? SESSION_STATE_ENDED : normalizeSessionState(session.state || session.status, SESSION_STATE_LIVE)
   const status = hasEndedMarker ? SESSION_STATE_ENDED : normalizeSessionStatusForState(session.status || session.state, state)
   const endedAt = hasEndedMarker ? String(rawEndedAt || updatedAt || '').trim() : ''
+  const firstPhotoState = getSessionFirstPhotoState({ ...session, endedAt, state, status })
 
   return {
     ...session,
     endedAt,
+    firstPhotoUploadedAt: firstPhotoState.firstPhotoUploadedAt,
+    hasFirstPhoto: firstPhotoState.hasFirstPhoto,
     hostProfileId: String(session.hostProfileId || members.find((item) => item.isHost)?.profileId || '').trim(),
     hostAvatarUrl: String(session.hostAvatarUrl || members[0]?.avatarUrl || '').trim(),
     id: String(session.id || createId('session')).trim(),
     inviteCode: String(session.inviteCode || makeInviteCode()).trim() || makeInviteCode(),
+    isActiveForResume: firstPhotoState.isActiveForResume,
     joinedCount: Number(session.joinedCount) || members.filter((item) => item.status === '已加入').length,
     kickedProfileIds: Array.isArray(session.kickedProfileIds)
       ? [...new Set(session.kickedProfileIds.map((item) => String(item || '').trim()).filter(Boolean))]
@@ -1912,6 +1956,8 @@ const createManagedSession = (payload = {}) => {
     id,
     createdAt,
     endedAt: isEndedSessionState(state) ? createdAt : '',
+    firstPhotoUploadedAt: '',
+    hasFirstPhoto: false,
     name: String(payload.sessionName || '').trim(),
     players: Number(payload.playerCount) || 0,
     template: String(payload.templateName || '').trim(),
@@ -1923,6 +1969,7 @@ const createManagedSession = (payload = {}) => {
     state,
     source: String(payload.source || '').trim(),
     status,
+    isActiveForResume: false,
     updatedAt: createdAt,
     members: buildSessionMembers(payload, []),
   }
@@ -1954,6 +2001,13 @@ const updateManagedSession = (sessionId, payload = {}) => {
     const endedAt = isEndedSessionState(state)
       ? String(payload.endedAt || item.endedAt || updatedAt).trim()
       : String(payload.endedAt || item.endedAt || '').trim()
+    const firstPhotoUploadedAt = Object.prototype.hasOwnProperty.call(payload, 'firstPhotoUploadedAt')
+      ? String(payload.firstPhotoUploadedAt || '').trim()
+      : String(item.firstPhotoUploadedAt || '').trim()
+    const hasFirstPhoto = Object.prototype.hasOwnProperty.call(payload, 'hasFirstPhoto')
+      ? Boolean(payload.hasFirstPhoto)
+      : hasSessionFirstPhoto({ ...item, firstPhotoUploadedAt })
+    const firstPhotoState = getSessionFirstPhotoState({ ...item, endedAt, firstPhotoUploadedAt, hasFirstPhoto, state, status })
     return {
       ...item,
       name: payload.sessionName || item.name,
@@ -1965,9 +2019,12 @@ const updateManagedSession = (sessionId, payload = {}) => {
       hostAvatarUrl: payload.hostAvatarUrl || item.hostAvatarUrl,
       inviteCode: payload.inviteCode || item.inviteCode,
       endedAt,
+      firstPhotoUploadedAt: firstPhotoState.firstPhotoUploadedAt,
+      hasFirstPhoto: firstPhotoState.hasFirstPhoto,
       state,
       source: payload.source || item.source,
       status,
+      isActiveForResume: firstPhotoState.isActiveForResume,
       updatedAt,
       members: Array.isArray(payload.selectedPlayers) || payload.hostProfileId
         ? buildSessionMembers(
@@ -2001,6 +2058,55 @@ const endManagedSession = (sessionId, payload = {}) =>
     state: SESSION_STATE_ENDED,
     status: SESSION_STATE_ENDED,
   })
+
+const markManagedSessionFirstPhotoUploaded = ({ sessionId, uploadedAt = '' } = {}) => {
+  const normalizedSessionId = String(sessionId || '').trim()
+  if (!normalizedSessionId) {
+    return null
+  }
+  const timestamp = String(uploadedAt || '').trim() || iso()
+  const store = readStore()
+  let changed = false
+  let target = null
+  store.liveSessions = (store.liveSessions || []).map((item, index) => {
+    if (String(item.id || '').trim() !== normalizedSessionId) {
+      return normalizeLiveSession(item, index)
+    }
+    if (hasSessionFirstPhoto(item)) {
+      target = normalizeLiveSession(item, index)
+      return target
+    }
+    const firstPhotoUploadedAt = String(item.firstPhotoUploadedAt || '').trim() || timestamp
+    const isEnded = isEndedSessionState(item.state || item.status || item.endedAt || '')
+    changed = true
+    target = normalizeLiveSession(
+      {
+        ...item,
+        firstPhotoUploadedAt,
+        hasFirstPhoto: true,
+        state: isEnded ? item.state : SESSION_STATE_LIVE,
+        status: isEnded ? item.status : SESSION_STATE_LIVE,
+        updatedAt: item.firstPhotoUploadedAt ? item.updatedAt : timestamp,
+      },
+      index,
+    )
+    return target
+  })
+  if (!changed) {
+    return target
+  }
+  target = store.liveSessions.find((item) => item.id === normalizedSessionId) || null
+  pushAnalyticsEvent(store, {
+    type: 'session_first_photo_uploaded',
+    profileId: String(target?.hostProfileId || '').trim(),
+    meta: {
+      firstPhotoUploadedAt: timestamp,
+      sessionId: normalizedSessionId,
+    },
+  })
+  writeStore(store)
+  return target
+}
 
 const deleteManagedSession = (sessionId) => {
   const normalizedSessionId = String(sessionId || '').trim()
@@ -2691,19 +2797,23 @@ const pageMap = {
   'sessions': () => {
     const store = readStore()
     const getRelationSummary = buildSessionRelationSummary(store)
+    const getFirstPhotoState = buildFirstPhotoStateBySessionId(store)
     const sessions = (store.liveSessions || []).map((item) => {
       const members = Array.isArray(item.members) ? item.members : []
       const host = getSessionHost(item)
       const participants = members.filter((member) => !member.isHost)
       const relationSummary = getRelationSummary(item.id)
+      const firstPhotoState = getFirstPhotoState(item)
       return {
         ...item,
+        ...firstPhotoState,
         hostName: item.hostName || host?.name || '',
         hostProfileId: item.hostProfileId || host?.profileId || '',
         participantsText: participants.map((member) => member.name || member.profileId).filter(Boolean).join('、'),
         participantProfileIds: participants.map((member) => member.profileId).filter(Boolean).join('、'),
         memberCount: members.length,
         memberSummary: members.map((member) => `${member.isHost ? '房主' : '成员'}:${member.name || member.profileId || '-'}`).join('、'),
+        resumeStateText: firstPhotoState.isActiveForResume ? '可继续记录' : firstPhotoState.hasFirstPhoto ? '已首拍' : '待首拍',
         ...relationSummary,
       }
     })
@@ -2727,6 +2837,7 @@ const pageMap = {
           { key: 'state', label: '流程状态', type: 'select', options: getSessionStateOptions() },
           { key: 'source', label: '分享来源', type: 'select', options: getSessionSourceOptions() },
           { key: 'status', label: '运营状态', type: 'select', options: getSessionStatusOptions() },
+          { key: 'firstPhotoUploadedAt', label: '首拍时间', type: 'text' },
           { key: 'endedAt', label: '结束时间', type: 'text' },
         ],
         columns: [
@@ -2740,6 +2851,8 @@ const pageMap = {
           { key: 'inviteCode', label: '口令' },
           { key: 'state', label: '流程状态' },
           { key: 'status', label: '状态' },
+          { key: 'resumeStateText', label: '首拍状态' },
+          { key: 'firstPhotoUploadedAt', label: '首拍时间' },
           { key: 'endedAt', label: '结束时间' },
           { key: 'memberCount', label: '成员数' },
           { key: 'memberSummary', label: '成员摘要' },
@@ -4119,6 +4232,7 @@ module.exports = {
   getUserJudgeStats,
   getManagedSessionById,
   getManagedSessionByInviteCode,
+  markManagedSessionFirstPhotoUploaded,
   flushAdminStore: storeAccessor.flush,
   initAdminStore: storeAccessor.init,
   grantRankingRewardsByAdmin,

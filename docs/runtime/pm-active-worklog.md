@@ -1567,6 +1567,16 @@ PM 边界：
 - 已预告测试验收负责人 `019eebc6-d497-7d80-9c6b-53254355fa69`：等待前端证据和后端/API 合同后再做预览框验收；未收到前端证据前保持 waiting，不得写通过。
 - 当前状态：已审批、已派发，实施中。未取得前端证据、后端/API 合同确认和 QA 预览框证据前，`FIX-014-02` 不得写通过、部署完成或正式准出。
 
+## 2026-06-24 FIX-014-03 用户审批与后端/API 本地合同
+
+- 用户已用编号授权启动 `FIX-014-03`。本轮只处理“首拍进行中状态沉到后端”的后端/API 合同，不启动 `FIX-014-04` 前端统一消费或其他编号。
+- 工作树边界：新建干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-03`，分支 `codex/fix-014-03-first-photo-state`，基线为 `origin/main` 的 `bbca1be8`。
+- 后端证据：`docs/runtime/pr-backend-fix-014-03-20260624.md`。
+- 已实现合同：创建 session 默认 `hasFirstPhoto=false/isActiveForResume=false`；`createMoment()` 保存首张带 `imageUrl` 的完整照片后写回 `firstPhotoUploadedAt/hasFirstPhoto/isActiveForResume`；`/sessions/live`、`/user/session-moment-summaries`、后台 `sessions` 页面和 normalized read 路径输出同一字段。
+- normalized 边界：本轮不做 `wine_sessions` DDL；normalized read 通过 `moment_records` 第一张有效图片推导首拍字段。若后续要求表级字段，需 DBA/后端补 DDL、迁移、回滚和线上验证。
+- 本地验证通过：`node --check` 覆盖 `backend/server.js`、`backend/data/admin.js`、`backend/data/front.js`、`backend/data/moments.js`、`backend/data/normalized-read.js`、两个 smoke 脚本；`node backend/scripts/smoke-first-photo-active-state.js` 通过；`node backend/scripts/smoke-live-session-privacy.js` 通过；`npm.cmd run check:encoding` 通过；`npm.cmd run typecheck` 通过；`git diff --check` 通过。
+- 当前状态：后端/API 本地合同通过；未提交、未推送、未部署、未上传小程序包。前端统一消费、后台页面人工复核、接口联调线上矩阵和 QA 预览框仍待补证，不得写线上通过或正式准出。
+
 ### FIX-014-02 前端与后端/API 证据复核
 
 - 前端负责人已交付 `docs/runtime/pr-fe-fix-014-02-20260624.md`，改动集中在 `miniprogram/pages/share-poster/index.ts`、`index.wxml`、`index.less`。

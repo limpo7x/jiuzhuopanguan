@@ -92,7 +92,17 @@ const pickLiveSession = (sessions = []) =>
   sessions[0] ||
   null
 
-const formatLiveSessionFromNormalized = ({ members = [], session = {} } = {}) => {
+const getFirstPhotoStateFromNormalized = ({ firstMoment = null, isEnded = false } = {}) => {
+  const firstPhotoUploadedAt = toDateText(firstMoment?.created_at, firstMoment?.id)
+  const hasFirstPhoto = Boolean(firstPhotoUploadedAt || cleanText(firstMoment?.image_url))
+  return {
+    firstPhotoUploadedAt,
+    hasFirstPhoto,
+    isActiveForResume: hasFirstPhoto && !isEnded,
+  }
+}
+
+const formatLiveSessionFromNormalized = ({ firstMoment = null, members = [], session = {} } = {}) => {
   const playerCount = Math.max(0, Number(session?.player_count) || 0)
   const memberPlayers = members.map((item) => {
     const profileId = cleanText(item.profile_id)
@@ -122,12 +132,16 @@ const formatLiveSessionFromNormalized = ({ members = [], session = {} } = {}) =>
   })
   const joinedPlayers = memberPlayers.filter((item) => item.status === '已加入')
   const hostProfileId = cleanText(session?.host_profile_id)
+  const firstPhotoState = getFirstPhotoStateFromNormalized({ firstMoment, isEnded: isEndedSession(session) })
   return {
+    firstPhotoUploadedAt: firstPhotoState.firstPhotoUploadedAt,
+    hasFirstPhoto: firstPhotoState.hasFirstPhoto,
     hostAvatarUrl: '',
     hostName: cleanText((members.find((item) => Number(item.is_host) === 1) || {}).name),
     hostProfileId,
     id: cleanText(session?.id),
     inviteCode: cleanText(session?.invite_code),
+    isActiveForResume: firstPhotoState.isActiveForResume,
     joinedCount: joinedPlayers.length,
     joinedPlayers: joinedPlayers.slice(0, playerCount || joinedPlayers.length),
     joinStatusPlayers: memberPlayers.slice(0, playerCount || memberPlayers.length),
@@ -172,7 +186,14 @@ const getLiveSessionConfigFromNormalized = async (sessionId = '', inviteCode = '
     : normalizedInviteCode
       ? sessions.find((item) => cleanText(item.invite_code).toUpperCase() === normalizedInviteCode)
       : pickLiveSession(sessions)
+  const [firstMoments] = session?.id
+    ? await pool.query(
+        "SELECT `id`, `image_url`, `created_at` FROM `moment_records` WHERE `session_id` = ? AND `removed_at` IS NULL AND `image_url` IS NOT NULL AND `image_url` <> '' ORDER BY `created_at` ASC, `id` ASC LIMIT 1",
+        [cleanText(session.id)],
+      )
+    : [[]]
   const liveSession = formatLiveSessionFromNormalized({
+    firstMoment: firstMoments[0] || null,
     members: members.filter((item) => cleanText(item.session_id) === cleanText(session?.id)),
     session: session || {},
   })
@@ -357,13 +378,15 @@ const listUserSessionMomentSummariesFromNormalized = async ({ profile } = {}) =>
     const sessionMoments = momentsBySessionId.get(sessionId) || []
     const brief = (briefsBySessionId.get(sessionId) || [])[0] || null
     const task = brief?.share_image_task_id ? taskById.get(cleanText(brief.share_image_task_id)) : null
+    const firstPhotoMoment = sessionMoments
+      .filter((item) => cleanText(item.image_url))
+      .sort((left, right) =>
+        toDateText(left.created_at, left.id).localeCompare(toDateText(right.created_at, right.id)),
+      )[0] || null
     const coverPhotoUrl = cleanText(
-      sessionMoments
-        .filter((item) => cleanText(item.image_url))
-        .sort((left, right) =>
-          toDateText(left.created_at, left.id).localeCompare(toDateText(right.created_at, right.id)),
-        )[0]?.image_url,
+      firstPhotoMoment?.image_url,
     )
+    const firstPhotoState = getFirstPhotoStateFromNormalized({ firstMoment: firstPhotoMoment, isEnded: isEndedSession })
     const resumableMomentIds = isEndedSession
       ? []
       : sessionMoments
@@ -379,6 +402,9 @@ const listUserSessionMomentSummariesFromNormalized = async ({ profile } = {}) =>
       stateText: stateFields.stateText,
       status: stateFields.status,
       endedAt: stateFields.endedAt,
+      firstPhotoUploadedAt: firstPhotoState.firstPhotoUploadedAt,
+      hasFirstPhoto: firstPhotoState.hasFirstPhoto,
+      isActiveForResume: firstPhotoState.isActiveForResume,
       updatedAt: stateFields.updatedAt,
       canResume: resumableMomentIds.length > 0,
       canShare: Boolean(brief?.id && (task?.status === 'ready' ? readyShareImageUrl : brief.share_image_task_id || task?.id)),
