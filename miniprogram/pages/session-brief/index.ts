@@ -11,6 +11,7 @@ import {
 } from '../../services/operations'
 import { normalizeManagedAssetPath } from '../../config/assets'
 import { resolveCachedManagedImagePath } from '../../utils/imageCache'
+import { resolveNominationDisabledLabel, resolveNominationReasonText } from '../../utils/nomination-reason'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 import { ensureUserAuthorized } from '../../utils/social'
 
@@ -30,6 +31,7 @@ interface BriefNominationItem {
   pointsCost: number
   rankingEligible: boolean
   reason: string
+  reasonCode: string
   statusText: string
   timeText: string
   title: string
@@ -135,21 +137,25 @@ const buildNominationTitle = (node: Extract<ManagedTimelineNode, { nodeKind: 'mo
 }
 
 const buildNominationItems = (nodes: ManagedTimelineNode[]): BriefNominationItem[] =>
-  nodes.filter(isMomentNodeWithImage).map((node) => ({
-    alreadyNominatedToday: false,
-    buttonDisabled: !node.rankingEligible,
-    buttonLabel: node.rankingEligible ? '推举这张' : '待审核',
-    caption: String(node.caption || '').trim() || '这张照片可作为聚会回忆参与推举',
-    category: getDefaultRankingCategoryFromNode(node),
-    id: node.id,
-    imageUrl: node.imageUrl || '',
-    pointsCost: 10,
-    rankingEligible: node.rankingEligible,
-    reason: node.rankingEligible ? '' : '照片审核通过后可推举',
-    statusText: node.rankingEligible ? '可消耗积分推举到今日回忆榜' : '照片审核通过后可推举',
-    timeText: formatBriefTime(node.createdAt || node.updatedAt),
-    title: buildNominationTitle(node),
-  }))
+  nodes.filter(isMomentNodeWithImage).map((node) => {
+    const reason = node.rankingEligible ? '' : resolveNominationReasonText(node)
+    return {
+      alreadyNominatedToday: false,
+      buttonDisabled: !node.rankingEligible,
+      buttonLabel: node.rankingEligible ? '推举这张' : resolveNominationDisabledLabel(node),
+      caption: String(node.caption || '').trim() || '这张照片可作为聚会回忆参与推举',
+      category: getDefaultRankingCategoryFromNode(node),
+      id: node.id,
+      imageUrl: node.imageUrl || '',
+      pointsCost: 10,
+      rankingEligible: node.rankingEligible,
+      reason,
+      reasonCode: '',
+      statusText: node.rankingEligible ? '可消耗积分推举到今日回忆榜' : reason,
+      timeText: formatBriefTime(node.createdAt || node.updatedAt),
+      title: buildNominationTitle(node),
+    }
+  })
 
 const applyEligibilityToNominationItem = (
   item: BriefNominationItem,
@@ -162,20 +168,23 @@ const applyEligibilityToNominationItem = (
       buttonDisabled: true,
       buttonLabel: '已推举',
       pointsCost: eligibility.pointsCost || item.pointsCost,
-      reason: eligibility.reason || '',
+      reason: resolveNominationReasonText(eligibility),
+      reasonCode: eligibility.reasonCode || 'already_nominated_today',
       statusText: '今天已推举过这张照片',
     }
   }
 
   if (!eligibility.eligible) {
+    const reason = resolveNominationReasonText(eligibility)
     return {
       ...item,
       alreadyNominatedToday: false,
       buttonDisabled: true,
-      buttonLabel: '不可推举',
+      buttonLabel: resolveNominationDisabledLabel(eligibility),
       pointsCost: eligibility.pointsCost || item.pointsCost,
-      reason: eligibility.reason || '暂不可推举',
-      statusText: eligibility.reason || '暂不可推举',
+      reason,
+      reasonCode: eligibility.reasonCode || '',
+      statusText: reason,
     }
   }
 
@@ -186,6 +195,7 @@ const applyEligibilityToNominationItem = (
     buttonLabel: '推举这张',
     pointsCost: eligibility.pointsCost || item.pointsCost,
     reason: '',
+    reasonCode: '',
     statusText: `将消耗 ${eligibility.pointsCost || item.pointsCost} 积分`,
   }
 }
@@ -238,7 +248,7 @@ Page<SessionBriefState, SessionBriefMethods>({
     nominationEmptyText: '这场聚会还没有可推举照片',
     nominationItems: [],
     nominationSubmittingMomentId: '',
-    rankingStatusText: '暂不可推举',
+    rankingStatusText: '暂无可推举照片',
     settlementSummary: {},
     sessionId: '',
     shareContentFilter: {},
@@ -395,7 +405,6 @@ Page<SessionBriefState, SessionBriefMethods>({
     if (!items.length) return
 
     const nextItems = await Promise.all(items.map(async (item) => {
-      if (!item.rankingEligible) return item
       try {
         const eligibility = await getManagedMomentNominationEligibility(item.id, item.category)
         return applyEligibilityToNominationItem(item, eligibility)
@@ -404,6 +413,7 @@ Page<SessionBriefState, SessionBriefMethods>({
           ...item,
           buttonDisabled: true,
           buttonLabel: '不可推举',
+          reasonCode: 'eligibility_unavailable',
           reason: '暂时无法确认推举资格',
           statusText: '暂时无法确认推举资格',
         }
@@ -463,6 +473,7 @@ Page<SessionBriefState, SessionBriefMethods>({
         buttonDisabled: true,
         buttonLabel: '已推举',
         reason: '',
+        reasonCode: 'already_nominated_today',
         statusText: '今天已推举过这张照片',
       }
       this.setData({

@@ -125,6 +125,7 @@
               data-brief-id="{{item.briefId}}"
               data-session-id="{{item.sessionId}}"
               data-nomination-state="{{item.nominationState}}"
+              data-nomination-reason="{{item.nominationReason}}"
               catchtap="handleNominateTap"
             >
               <image src="/assets/party-recorder/pr-cs008cn-memory-list-action-strip.svg" mode="aspectFill"></image>

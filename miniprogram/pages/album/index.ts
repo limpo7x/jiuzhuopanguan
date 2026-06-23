@@ -10,6 +10,7 @@ import {
   type ManagedTimelineNode,
 } from '../../services/operations'
 import { hasFirstPhotoEvidence, isEndedFirstPhotoState } from '../../utils/first-photo-state'
+import { resolveNominationDisabledLabel, resolveNominationReasonText } from '../../utils/nomination-reason'
 
 type AlbumNominationState = 'active' | 'done' | 'empty' | 'unavailable'
 
@@ -20,6 +21,7 @@ interface AlbumItem {
   meta: string
   nominationDisabled: boolean
   nominationLabel: string
+  nominationReason: string
   nominationState: AlbumNominationState
   sessionId: string
   shareImageUrl: string
@@ -206,6 +208,7 @@ const isPendingShareMemory = (item: ManagedSessionMomentSummary) => !isEndedSess
 const buildAlbumNominationState = async (brief?: ManagedSessionBrief): Promise<{
   nominationDisabled: boolean
   nominationLabel: string
+  nominationReason: string
   nominationState: AlbumNominationState
 }> => {
   const photoNodes = (brief?.timeline?.nodes || []).filter(isMomentNodeWithImage)
@@ -213,6 +216,7 @@ const buildAlbumNominationState = async (brief?: ManagedSessionBrief): Promise<{
     return {
       nominationDisabled: true,
       nominationLabel: '无照片',
+      nominationReason: '这场聚会还没有可推举照片',
       nominationState: 'empty',
     }
   }
@@ -221,12 +225,14 @@ const buildAlbumNominationState = async (brief?: ManagedSessionBrief): Promise<{
   if (!rankableNodes.length) {
     return {
       nominationDisabled: true,
-      nominationLabel: '待审核',
+      nominationLabel: '不可推举',
+      nominationReason: '暂未满足回忆榜资格',
       nominationState: 'unavailable',
     }
   }
 
   let hasAvailableNode = false
+  let unavailableReason = ''
   for (const node of rankableNodes) {
     try {
       const eligibility = await getManagedMomentNominationEligibility(node.id, getDefaultRankingCategoryFromNode(node))
@@ -234,11 +240,14 @@ const buildAlbumNominationState = async (brief?: ManagedSessionBrief): Promise<{
         return {
           nominationDisabled: true,
           nominationLabel: '已推举',
+          nominationReason: '今天已推举过这场聚会的照片',
           nominationState: 'done',
         }
       }
       if (eligibility.eligible) {
         hasAvailableNode = true
+      } else if (!unavailableReason) {
+        unavailableReason = resolveNominationReasonText(eligibility)
       }
     } catch {
       // Keep checking other photos; one failed eligibility call should not break the album list.
@@ -249,11 +258,13 @@ const buildAlbumNominationState = async (brief?: ManagedSessionBrief): Promise<{
     ? {
         nominationDisabled: false,
         nominationLabel: '推举回忆',
+        nominationReason: '',
         nominationState: 'active',
       }
     : {
         nominationDisabled: true,
-        nominationLabel: '暂不可推举',
+        nominationLabel: resolveNominationDisabledLabel({ reason: unavailableReason }),
+        nominationReason: unavailableReason || '暂未满足回忆榜资格',
         nominationState: 'unavailable',
       }
 }
@@ -310,6 +321,7 @@ const mapAlbumItem = async (item: ManagedSessionMomentSummary, index: number): P
     : {
         nominationDisabled: true,
         nominationLabel: '推举回忆',
+        nominationReason: '聚会结束后可推举公开照片',
         nominationState: 'unavailable' as AlbumNominationState,
       }
   return {
@@ -339,6 +351,7 @@ const mapShareImageSummaryItem = (item: ManagedShareImageSummary, index: number)
   stateType: 'ended',
   statusText: '分享图已生成',
   title: normalizeTitle(item.sessionName, item.sessionName, index),
+  nominationReason: '',
 })
 
 const buildHeaderActionStyle = () => {
@@ -526,8 +539,9 @@ Page<AlbumPageState, AlbumPageMethods>({
   },
 
   handleNominateTap(event) {
-    const { briefId, nominationState, sessionId } = event.currentTarget.dataset as {
+    const { briefId, nominationReason, nominationState, sessionId } = event.currentTarget.dataset as {
       briefId?: string
+      nominationReason?: string
       nominationState?: AlbumNominationState
       sessionId?: string
     }
@@ -550,7 +564,7 @@ Page<AlbumPageState, AlbumPageMethods>({
       active: '请选择要推举的照片',
       done: '今天已推举过这场聚会',
       empty: '这场聚会还没有可推举照片',
-      unavailable: '照片审核通过后可推举',
+      unavailable: nominationReason || '暂未满足回忆榜资格',
     }
     wx.showToast({ title: titleMap[nominationState || 'unavailable'], icon: 'none' })
   },

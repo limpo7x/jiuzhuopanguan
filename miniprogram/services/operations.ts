@@ -327,6 +327,8 @@ interface RemoteMomentNominationEligibility {
   momentId?: string
   pointsCost?: number
   reason?: string
+  reasonCode?: string
+  reasonText?: string
 }
 
 interface RemoteMomentNomination {
@@ -786,6 +788,8 @@ export interface ManagedMomentNominationEligibility {
   momentId: string
   pointsCost: number
   reason: string
+  reasonCode: string
+  reasonText: string
 }
 
 export interface ManagedMomentNomination {
@@ -1313,6 +1317,8 @@ const normalizeMomentNominationEligibility = (eligibility?: RemoteMomentNominati
   momentId: eligibility?.momentId || '',
   pointsCost: Number(eligibility?.pointsCost) || 0,
   reason: eligibility?.reason || '',
+  reasonCode: eligibility?.reasonCode || '',
+  reasonText: eligibility?.reasonText || '',
 })
 
 const normalizeMomentNomination = (nomination?: RemoteMomentNomination): ManagedMomentNomination => ({

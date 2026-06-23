@@ -518,6 +518,30 @@ const isMomentPublicForRanking = (moment = {}) => {
   )
 }
 
+const getMomentNominationIneligibility = (moment = {}) => {
+  if (moment.removedAt) {
+    return { reason: 'moment removed from ranking', reasonCode: 'moment_removed', reasonText: '这张照片已被移出榜单候选' }
+  }
+  if (moment.completionStatus !== 'complete' || !cleanText(moment.imageUrl)) {
+    return { reason: 'moment media incomplete', reasonCode: 'media_incomplete', reasonText: '照片还没有保存完成' }
+  }
+  const usageConsent = normalizeUsageConsent(moment.usageConsent)
+  if (!usageConsent.ranking) {
+    return { reason: 'ranking consent required', reasonCode: 'ranking_consent_required', reasonText: '需公开授权后可推举' }
+  }
+  const visibility = cleanText(moment.visibility)
+  if (moment.nodeType === 'private' || visibility === 'private' || visibility === 'selected') {
+    return { reason: 'moment visibility is private', reasonCode: 'visibility_not_public', reasonText: '私密照片不能参与回忆榜' }
+  }
+  if (moment.reviewStatus !== 'approved' || moment.secondaryReviewStatus !== 'approved') {
+    return { reason: 'content safety review required', reasonCode: 'content_review_required', reasonText: '内容安全确认后可参与回忆榜' }
+  }
+  if (!moment.rankingEligible) {
+    return { reason: 'ranking eligibility disabled', reasonCode: 'ranking_not_enabled', reasonText: '暂未满足回忆榜资格' }
+  }
+  return { reason: '', reasonCode: '', reasonText: '' }
+}
+
 const isTimelineNodeShareImageEligible = (node = {}) => {
   if (node.nodeKind === 'event') {
     return true
@@ -2052,6 +2076,7 @@ const getMomentNominationEligibility = ({ momentId, profile, category }) => {
   }
   assertSessionMember(moment.sessionId, profile)
   const normalizedCategory = getRankingCategory(category, moment)
+  const ineligibility = getMomentNominationIneligibility(moment)
   const eligible = isMomentPublicForRanking(moment)
   const today = getTodayYmd()
   const alreadyNominatedToday = store.momentNominations.some(
@@ -2068,11 +2093,9 @@ const getMomentNominationEligibility = ({ momentId, profile, category }) => {
     eligible: eligible && !alreadyNominatedToday,
     momentId: moment.id,
     pointsCost: DEFAULT_NOMINATION_POINTS,
-    reason: !eligible
-      ? 'moment is not eligible for ranking'
-      : alreadyNominatedToday
-        ? 'already nominated today'
-        : '',
+    reason: !eligible ? ineligibility.reason || 'moment is not eligible for ranking' : alreadyNominatedToday ? 'already nominated today' : '',
+    reasonCode: !eligible ? ineligibility.reasonCode || 'not_eligible' : alreadyNominatedToday ? 'already_nominated_today' : '',
+    reasonText: !eligible ? ineligibility.reasonText || '暂未满足回忆榜资格' : alreadyNominatedToday ? '今天已推举过这张照片' : '',
   }
 }
 
@@ -2099,7 +2122,7 @@ const createMomentNomination = ({ momentId, profile, payload = {} }) => {
   }
   const eligibility = getMomentNominationEligibility({ momentId: moment.id, profile, category })
   if (!eligibility.eligible) {
-    throw createHttpError(eligibility.reason || 'moment is not eligible for ranking', eligibility.alreadyNominatedToday ? 409 : 400)
+    throw createHttpError(eligibility.reasonText || eligibility.reason || 'moment is not eligible for ranking', eligibility.alreadyNominatedToday ? 409 : 400)
   }
 
   const contentStore = readContentStore()

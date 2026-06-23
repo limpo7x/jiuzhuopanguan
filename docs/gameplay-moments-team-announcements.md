@@ -16,6 +16,33 @@
 
 所有角色只更新自己的交付记录和证据；总进度、跨角色结论和准出判断仍由 PM 验证后更新。
 
+## 2026-06-24 PM 公告：FIX-014-05 推举资格原因与前台文案本地通过
+
+面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
+
+用户已逐项同意 `FIX-014-05`。本轮只处理推举资格原因码和前台文案，不启动 `FIX-014-06` 或其他编号。
+
+交付范围：
+
+- 工作树：`F:\codexlist\jiuzhuopanguan-fix-014-05`。
+- 分支：`codex/fix-014-05-nomination-reason-copy`。
+- 证据：`docs/runtime/pr-fix-014-05-nomination-reason-20260624.md`。
+- 后端/API：推举资格接口输出 `reasonCode/reasonText`。
+- 前端：相册、聚会简报、今日回忆榜统一展示公开授权、内容安全确认、私密照片、榜单资格等具体原因，不再使用“照片审核通过后可推举”作为泛化提示。
+
+验证：
+
+- `node backend/scripts/smoke-nomination-eligibility-reasons.js` 通过，覆盖未授权、内容确认中、后台通过后可推举。
+- `npm.cmd run check:encoding` 通过。
+- `npm.cmd run typecheck` 通过。
+- `git diff --check` 通过。
+
+下一步责任：
+
+- 接口联调负责人：提交/部署后用线上真实样本复核 `reasonCode/reasonText` 合同，token 只写后 8 位。
+- 测试验收负责人：等待部署和接口证据后，在微信开发者工具预览框复核相册、聚会简报、今日回忆榜三处文案。
+- PM：未取得线上样本和预览框证据前，只能写“本地合同与静态门禁通过”，不得写正式真机发布准出。
+
 ## 2026-06-24 PM 公告：FIX-014-04 前端本地实现通过静态门禁
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。

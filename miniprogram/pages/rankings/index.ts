@@ -5,6 +5,7 @@ import {
   type ManagedRankingCategory,
   type ManagedRankingItem,
 } from '../../services/operations'
+import { resolveNominationReasonText } from '../../utils/nomination-reason'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface RankingCategoryOption {
@@ -153,7 +154,7 @@ Page<RankingsState, RankingsMethods>({
     try {
       const eligibility = await getManagedMomentNominationEligibility(momentId, this.data.activeCategory)
       if (!eligibility.eligible) {
-        this.showToast(eligibility.reason || '当前不能推举')
+        this.showToast(resolveNominationReasonText(eligibility) || '当前不能推举')
         return
       }
 
