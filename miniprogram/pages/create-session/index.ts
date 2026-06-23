@@ -1,5 +1,6 @@
 import { createManagedSession } from '../../services/operations'
 import { clearSessionRuntime, setSessionRuntime } from '../../utils/session'
+import { buildSessionReturnFromRuntime } from '../../utils/session-return'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface NamePreset {
@@ -20,6 +21,7 @@ interface CreateSessionMethods {
   handleNextTap: () => Promise<void>
   handlePlayerCountTap: (event: WechatMiniprogram.BaseEvent) => void
   handlePresetTap: (event: WechatMiniprogram.BaseEvent) => void
+  redirectActiveSessionIfNeeded: () => boolean
 }
 
 const formatCreateTimeText = () => {
@@ -47,6 +49,10 @@ Page<CreateSessionState, CreateSessionMethods>({
   },
 
   async onLoad() {
+    if (this.redirectActiveSessionIfNeeded()) {
+      return
+    }
+
     const profile = await ensureUserAuthorized('/pages/create-session/index')
     if (!profile) {
       return
@@ -86,6 +92,10 @@ Page<CreateSessionState, CreateSessionMethods>({
   },
 
   async handleNextTap() {
+    if (this.redirectActiveSessionIfNeeded()) {
+      return
+    }
+
     const profile = await ensureUserAuthorized('/pages/create-session/index')
     if (!profile) {
       return
@@ -161,6 +171,25 @@ Page<CreateSessionState, CreateSessionMethods>({
     wx.navigateTo({
       url: '/pages/privacy-state/index?type=feature',
     })
+  },
+
+  redirectActiveSessionIfNeeded() {
+    const target = buildSessionReturnFromRuntime()
+    if (!target.visible || !target.route) {
+      return false
+    }
+
+    wx.showToast({
+      title: '当前聚会已挂起',
+      icon: 'none',
+    })
+    wx.redirectTo({
+      url: target.route,
+      fail: () => {
+        wx.reLaunch({ url: target.route })
+      },
+    })
+    return true
   },
 })
 

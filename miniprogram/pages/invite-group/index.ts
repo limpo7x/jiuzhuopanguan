@@ -1,7 +1,7 @@
 import { getManagedLiveSession, kickManagedSessionMember, type ManagedLiveSession } from '../../services/operations'
 import { normalizeManagedAvatarPath } from '../../config/assets'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
-import { confirmAndExitSession, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
+import { confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface InviteAvatarSlot {
@@ -389,7 +389,11 @@ Page<InviteGroupState, InviteGroupMethods>({
   },
 
   async handleBackTap() {
-    await confirmAndExitSession()
+    await confirmLeaveSessionPage({
+      clearRuntime: false,
+      content: '离开后当前聚会会保持挂起，可从首页继续回到邀请或记录页。',
+      confirmText: '挂起离开',
+    })
   },
 
   handleNextTap() {

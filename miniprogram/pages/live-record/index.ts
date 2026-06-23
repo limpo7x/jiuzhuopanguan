@@ -15,7 +15,7 @@ import {
   updateManagedSession,
   type ManagedTimelineNode,
 } from '../../services/operations'
-import { confirmAndExitSession, confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
+import { confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized, getCurrentDisplayProfile } from '../../utils/social'
 import { resolveCachedManagedImagePath } from '../../utils/imageCache'
 
@@ -1347,15 +1347,11 @@ Page<LiveRecordState, LiveRecordMethods>({
   },
 
   async handleBackTap() {
-    if (!this.data.isJudge) {
-      await confirmLeaveSessionPage({
-        clearRuntime: true,
-        content: '离开后可从参与场次重新进入当前聚会。',
-      })
-      return
-    }
-
-    await confirmAndExitSession()
+    await confirmLeaveSessionPage({
+      clearRuntime: false,
+      content: '离开后当前聚会会保持挂起，可从首页继续回到记录页。',
+      confirmText: '挂起离开',
+    })
   },
 
   showPreviewToast(message) {

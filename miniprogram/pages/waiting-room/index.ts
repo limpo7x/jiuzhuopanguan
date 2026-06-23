@@ -1,6 +1,6 @@
 import { getManagedLiveSession, updateManagedSession } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
-import { confirmAndExitSession, confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
+import { confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface JoinedPlayer {
@@ -232,13 +232,10 @@ Page<WaitingRoomState, WaitingRoomMethods>({
   },
 
   async handleBackTap() {
-    if (this.data.isJudge) {
-      await confirmAndExitSession()
-      return
-    }
     await confirmLeaveSessionPage({
-      clearRuntime: true,
-      content: '离开后可从参与场次重新进入当前聚会。',
+      clearRuntime: false,
+      content: '离开后当前聚会会保持挂起，可从首页继续回到等待或记录页。',
+      confirmText: '挂起离开',
     })
   },
 
