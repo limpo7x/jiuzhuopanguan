@@ -103,6 +103,56 @@
 - 若 `npm.cmd run wechat:auto -- status --port 9420` 返回 `connect ECONNREFUSED 127.0.0.1:9420`，不得把该任务写通过；先按上面的 `--auto-port 9420` 流程恢复连接。
 - 复测文档只允许记录 token 后 8 位、页面路径、query、状态码、字段名和 Console 摘要，不得写完整 token。
 
+## 2026-06-24 PM 公告：FIX-014-01 QA 退回
+
+测试验收负责人已完成 `FIX-014-01-QA`，证据文档为 `docs/runtime/pr-qa-fix-014-01-20260624.md`，结论为“退回”，不得写预览框阶段通过或正式准出。
+
+QA 结论：
+
+- 通过项：匿名首页不展示任意进行中聚会挂起条；匿名 `sessionId+inviteCode` 未绕过私有读取且不展示成员、照片、时间线、账本；合法成员邀请页和记录页读取正常。
+- 退回项 `QA-FIX-014-01-R01`：匿名 `inviteCode` 进入邀请页或首页时先被登录态拦截，未展示后端 public live session 已允许的公开预览字段，如 `sessionName/playerCount/joinedCount`。
+- 未覆盖项 `QA-FIX-014-01-R02`：QA 未取得非成员或被踢用户的当前预览框 storage，不能把非成员/被踢预览框路径写通过。
+
+下一步责任：
+
+- PM：等待用户明确同意后，才能派前端修补 `QA-FIX-014-01-R01`；未获同意前不改业务源码。
+- 前端：待审批后处理匿名公开预览链路，要求未授权时可拉取并展示加入所需公开信息，但不得展示成员列表、照片、时间线、账本。
+- 接口联调/测试：补可用非成员或被踢用户预览框样本，只记录 token 后 8 位。
+
+## 2026-06-24 PM 公告：FIX-014-01 QA 测试账号补充
+
+用户提醒使用旧测试账号，避免预览框复测被匿名登录面板阻挡。PM 已复核当前线上 store，并向测试验收负责人补发复测指令。
+
+当前可用样本：
+
+- 样本聚会：`session-1782137141037-b4e84c / XBAABB`。
+- 成员测试账号：tokenTail `1dace82d`，用于成员私有视图回归。
+- 非成员测试账号：tokenTail `b81a4c83`，用于验证邀请码公开预览和直接私有入口阻断。
+- 备用非成员 tokenTail：`824395c3`、`923d75e4`、`0863fc6d`、`6d7d2743`。
+
+复测要求：
+
+- QA 优先用非成员但已登录的 tokenTail `b81a4c83` 注入微信开发者工具 storage，打开 `/pages/invite-group/index?inviteCode=XBAABB`，验证展示加入所需公开信息且不泄露成员列表、照片、时间线、账本。
+- 再用同一非成员账号打开带 `sessionId` 的私有入口或记录页，验证不能读取成员私有视图。
+- 完整 token 只能在临时脚本内从服务器当前 store 读取并写入 DevTools storage；文档、截图名和最终回复只允许写 token 后 8 位。
+
+## 2026-06-24 PM 公告：FIX-014-01 QA 测试账号复测通过
+
+测试验收负责人已按用户提醒改用旧测试账号完成复测，证据文档仍为 `docs/runtime/pr-qa-fix-014-01-20260624.md`，结论调整为“预览框阶段通过”。
+
+复测结果：
+
+- 使用非成员测试账号 tokenTail `b81a4c83`，完整 token 未写入文档、截图名或回复。
+- `/pages/invite-group/index?inviteCode=XBAABB` 展示加入所需公开信息，不展示成员真实列表、成员头像、照片、时间线、账本。
+- `/pages/invite-group/index?sessionId=session-1782137141037-b4e84c&inviteCode=XBAABB` 未展示目标 session 私有成员视图。
+- `/pages/live-record/index?sessionId=session-1782137141037-b4e84c` 未展示目标 session 成员、照片、时间线或账本。
+
+责任收口：
+
+- QA：首轮 `QA-FIX-014-01-R01/R02` 当前关闭；本项只写“预览框阶段通过”，不写正式真机发布准出。
+- PM：将 QA 文档和新增截图纳入提交；不再派发 `QA-FIX-014-01-R01` 前端修补。
+- 后续：如正式发布前需要真机准出，另开最终真机采集任务，不反向阻塞当前开发推进。
+
 ## 2026-06-23 PM 公告：全量交互、接口、后台联通审核派发
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。

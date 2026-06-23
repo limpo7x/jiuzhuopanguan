@@ -1532,3 +1532,26 @@ PM 边界：
 - QA 目标文档：`docs/runtime/pr-qa-fix-014-01-20260624.md`。
 - 验收要求：优先使用微信开发者工具预览框或 `npm.cmd run wechat:auto` 覆盖匿名无参不泄露、邀请码匿名公开预览不泄露私有字段、非成员/被踢/无权限不能读私有视图、合法成员读取与邀请加入不回归。
 - 结论边界：只能写“预览框阶段通过 / blocked / 退回”；不得写正式真机准出。若 9420 或工具不可用，必须记录失败命令与错误原文。
+
+### FIX-014-01 QA 退回
+
+- 2026-06-24：测试验收负责人已完成 `FIX-014-01-QA`，证据 `docs/runtime/pr-qa-fix-014-01-20260624.md`，结论：退回。
+- 自动化连接已恢复：旧版 automator 需使用 `cli.bat auto --project F:\codexlist\jiuzhuopanguan --auto-port 9420 --trust-project --debug`；`Test-NetConnection 127.0.0.1:9420` 返回 True，预览框自动化可用。连接方式已写入团队公告。
+- QA 通过项：匿名首页不展示任意进行中聚会挂起条；匿名 `sessionId+inviteCode` 未绕过私有读取且不展示成员、照片、时间线、账本；合法成员邀请页和记录页读取正常，成员视图未回归。
+- QA 退回项 `QA-FIX-014-01-R01`：匿名 `inviteCode` 进入邀请页或首页时先被登录态拦截，未展示后端 public live session 已允许的公开预览字段，如 `sessionName/playerCount/joinedCount`。
+- QA 未覆盖项 `QA-FIX-014-01-R02`：测试未取得非成员或被踢用户的当前预览框 storage，不能把非成员/被踢预览框路径写通过。
+- 当前状态：`FIX-014-01` 不能写“预览框阶段通过”或正式准出。下一步如要修补 `QA-FIX-014-01-R01`，需用户明确同意后再派前端负责人；PM 不直接改业务源码。
+
+### FIX-014-01 QA 测试账号补充
+
+- 2026-06-24：用户提醒使用旧测试账号，避免预览框被匿名登录态阻挡。
+- PM 已复核当前线上 store：样本 `session-1782137141037-b4e84c / XBAABB` 下，成员有效 tokenTail 为 `1dace82d`；非成员有效 tokenTail 为 `b81a4c83`；备用非成员 tokenTail 为 `824395c3`、`923d75e4`、`0863fc6d`、`6d7d2743`。
+- PM 已向测试验收线程补发指令：使用非成员但已登录的测试账号 tokenTail `b81a4c83` 注入微信开发者工具 storage，复测邀请码公开预览与私有视图阻断；如失效则改用备用非成员 tokenTail。
+- 安全边界：完整 token 只能在临时脚本内从服务器当前 store 读取并写入 DevTools storage；文档、截图名、最终回复只允许写 token 后 8 位。
+
+### FIX-014-01 QA 测试账号复测通过
+
+- 2026-06-24：测试验收负责人已使用线上有效非成员测试账号 tokenTail `b81a4c83` 完成微信开发者工具预览框复测，证据仍为 `docs/runtime/pr-qa-fix-014-01-20260624.md`。
+- 复测覆盖：`/pages/invite-group/index?inviteCode=XBAABB` 展示加入所需公开信息；`sessionId+inviteCode` mixed 入口和 `/pages/live-record/index?sessionId=session-1782137141037-b4e84c` 未展示目标成员、照片、时间线或账本。
+- 新增截图：`docs/runtime/pr-qa-fix-014-01-nonmember-invite-public-clean-b81a4c83-20260624.png`、`docs/runtime/pr-qa-fix-014-01-nonmember-mixed-private-clean-b81a4c83-20260624.png`、`docs/runtime/pr-qa-fix-014-01-nonmember-live-record-direct-clean-b81a4c83-20260624.png`。
+- 当前状态：`FIX-014-01` 预览框阶段通过，关闭首轮 `QA-FIX-014-01-R01/R02`；未做正式真机测试，不写正式发布准出。
