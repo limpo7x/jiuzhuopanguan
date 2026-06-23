@@ -1470,3 +1470,43 @@ PM 边界：
 - 本轮 PM 只派发和记录，不代替角色审核、不改业务源码、不直接写跨角色完成结论。
 - 三份记录产出后，PM 再逐项读取并按 P0/P1/P2/P3、证据完整度和责任边界分派前端、后端/API、接口联调、后台管理、测试验收或 UI/UX 修补。
 - 对缺少预览框点击、线上接口矩阵、后台写入清理证据的问题，只能标记待复核/待联调，不写通过或上线准出。
+
+## 2026-06-23 FIX-014-01 用户审批与后端派发
+
+- 用户已明确同意 `FIX-014-01`；其余修复项和验收项仍为待审批。
+- 目标问题：`GET /api/v1/sessions/live` 匿名无 token、无 `sessionId/inviteCode` 时可返回任意进行中聚会摘要，来源为 `FULL-INT-AUDIT-013-P0-01`。
+- 已派发后端/API 负责人线程 `019eebc6-f69d-73b2-a5d3-7f8e581283ac`，要求只处理无参匿名、`sessionId` 成员校验、`inviteCode` 匿名裁剪和聚焦 smoke。
+- 后端证据目标：`docs/runtime/pr-backend-fix-014-01-20260623.md`。
+- 当前状态：后端实施中；未提交、未推送、未部署、未做线上回归，不能写修复完成。
+- 后续门禁：PM 复核本地代码和测试 -> 接口联调检查 -> 独立提交/推送 -> 仅部署 `api.pomer.cn` 的 `jiuzhuopanguan-backend` -> 线上只读回归 -> QA 验收。
+
+### FIX-014-01 本地实现与复核进展
+
+- 后端交付：`backend/server.js`、`backend/data/live-session-access.js`、`backend/scripts/smoke-live-session-privacy.js`，证据 `docs/runtime/pr-backend-fix-014-01-20260623.md`。
+- 合同结果：无参 400；匿名 `sessionId` 401；非成员 403；成员 200；`sessionId+inviteCode` 仍按私有读取强制鉴权；仅 `inviteCode` 匿名只返回公开白名单。
+- PM 第一次退回：app_store 缺记录而 normalized 命中时可能 fail-open；后端已改为无法确认成员时公开裁剪。
+- 接口联调第一次退回：app_store 与 normalized 返回对象身份不一致时仍可能返回私有视图；后端已新增实际返回对象的 session ID、inviteCode、成员身份一致性策略和可执行 mismatch 用例。
+- Smoke 过程问题：首次并发双跑共享 JSON store 产生 stamp `1782222609946` 的 3 个测试 profile；该证据已作废，负责人已按唯一 stamp 定向清理，并改为动态端口、排他锁、串行执行。
+- PM 独立最终复跑：`ok=true`；400/401/403/200 矩阵通过；normalized/app_store mismatch 返回 public；编码检查通过；`FINAL_DATA_MARKERS_CLEAR`、`FINAL_LOCK_CLEAR`，动态端口无监听。
+- 当前阻塞：接口联调线程 `019eebc7-16dd-7cf0-bf03-1114f6a4881e` 在后端补交后的两次复核指令均返回 `systemError`。按规则不得由 PM 冒充接口角色签字，当前保持“后端本地通过、接口联调待恢复、线上未部署”。
+- Git 门禁：本地 `main` 另有非本任务、未推送提交 `ae98afd5 fix(frontend): recover expired user sessions`。未确认归属前不得将本任务连同该提交一起推送。
+
+### FIX-014-01 阻塞收口
+
+- 接口联调负责人首轮已完成 app_store 本地矩阵并退回 normalized/app_store 身份不一致问题，证据为 `docs/runtime/pr-int-fix-014-01-20260623.md`。
+- 后端已按退回要求新增实际返回对象一致性策略与可执行测试，PM 独立复跑通过。
+- PM 随后向接口联调线程发出三次补交复核指令，线程均直接返回 `systemError`，未产生最终复核结论。
+- 按“同一任务连续阻塞/收口”规则，当前停止继续重试并标记阻塞；不得由 PM 代替接口联调签字，不得写线上通过。
+- 当前交付状态：本地代码和后端证据已完成；接口联调最终证据缺失；未提交、未推送、未部署；线上 P0 仍未消除。
+- 恢复条件：接口联调线程恢复，或用户明确授权更换接口联调执行载体；恢复后先复核本地补交，再处理 Git 中非本任务提交 `ae98afd5` 的推送边界，最后才能部署 `api.pomer.cn` 并做线上只读回归。
+
+### FIX-014-01 恢复后接口联调复核
+
+- 2026-06-24：用户确认“线程已恢复请继续”；PM 先向原接口联调线程 `019eebc7-16dd-7cf0-bf03-1114f6a4881e` 补发复核指令，但线程状态仍为 `systemError`，未产出新回复或新证据。
+- 2026-06-24：按用户此前“已链接/继续”和阻塞恢复条件，PM 启动替代接口联调执行载体，仅授权写 `docs/runtime/pr-int-fix-014-01-20260623.md`，不改业务源码、不提交、不推送、不部署。
+- 替代接口联调结论：`FIX-014-01` 本地合同通过，线上待部署回归。证据文档已更新为“本地合同通过，线上待部署回归”，并保留首轮退回历史。
+- 替代接口联调验证：`node --check backend/data/live-session-access.js`、`node --check backend/server.js`、`node --check backend/scripts/smoke-live-session-privacy.js`、`node backend/scripts/smoke-live-session-privacy.js` 均通过；smoke 动态端口 `5251`，`ok=true`。
+- 合同矩阵：无参 400；匿名 `sessionId` 401；非成员 `sessionId` 403；成员 `sessionId` 200；匿名 `sessionId+inviteCode` 401；匿名 `inviteCode` 仅 13 个公开白名单字段；`normalizedAppStoreIdentityMismatchDefaultsToPublic=true`。
+- PM 同步复核：本地再次串行 smoke 通过，动态端口 `4341`，编码检查与 typecheck 通过；`backend/data/**/*.json` 未检出 `privacy-smoke/live-privacy-` marker，lock 不存在。
+- 当前状态：本地合同通过，待提交、推送、部署 `api.pomer.cn` 的 `jiuzhuopanguan-backend`，随后做线上只读回归和 QA 验收。不得写线上通过或正式准出。
+- Git 门禁仍需处理：本地 `main` 领先远端的非本任务提交 `ae98afd5 fix(frontend): recover expired user sessions` 不得未经确认随本任务推送；如需立即部署 FIX-014-01，应从 `origin/main` 生成只含本修复的提交并推送部署。

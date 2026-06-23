@@ -124,6 +124,7 @@ const {
   listUserSessionMomentSummariesFromNormalized,
   shouldReadNormalized,
 } = require('./data/normalized-read')
+const { getInviteLiveSessionAccess } = require('./data/live-session-access')
 
 const port = Number(process.env.PORT || 3010)
 const publicDir = path.join(__dirname, 'public')
@@ -589,28 +590,19 @@ const isInviteViewerMember = (request, session = {}) => {
 }
 
 const toPublicInviteLiveSession = (liveSession = {}) => ({
-  createdAt: liveSession.createdAt || '',
-  coverPhotoUrl: '',
-  endedAt: liveSession.endedAt || '',
-  hostAvatarUrl: '',
   hostName: liveSession.hostName || '',
-  hostProfileId: '',
   id: liveSession.id || liveSession.partyId || '',
   inviteCode: liveSession.inviteCode || '',
   joinedCount: Number(liveSession.joinedCount) || 0,
-  joinedPlayers: [],
-  joinStatusPlayers: [],
+  partyId: liveSession.partyId || liveSession.id || '',
   playerCount: Number(liveSession.playerCount) || 0,
   sessionName: liveSession.sessionName || '',
-  source: liveSession.source || '',
   stateText: liveSession.stateText || '',
   status: liveSession.status || '',
   subtitle: liveSession.subtitle || '',
   templateImageUrl: liveSession.templateImageUrl || '',
   templateName: liveSession.templateName || '',
   title: liveSession.title || '',
-  updatedAt: liveSession.updatedAt || '',
-  partyId: liveSession.partyId || liveSession.id || '',
 })
 
 const httpsJsonRequest = (requestUrl, options = {}, payload) =>
@@ -1379,14 +1371,33 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/sessions/live') {
-      const inviteSession = query.inviteCode ? getManagedSessionByInviteCode(String(query.inviteCode || '').trim()) : null
-      const publicInviteView = Boolean(query.inviteCode && inviteSession && !isInviteViewerMember(request, inviteSession))
-      if (query.sessionId && !query.inviteCode) {
+      const sessionId = String(query.sessionId || '').trim()
+      const inviteCode = String(query.inviteCode || '').trim()
+      if (!sessionId && !inviteCode) {
+        sendError(response, 400, 'sessionId or inviteCode required')
+        return
+      }
+      const inviteSession = !sessionId && inviteCode ? getManagedSessionByInviteCode(inviteCode) : null
+      const inviteViewerProfileId = !sessionId && inviteCode
+        ? String(resolveUserSession(request)?.profile?.id || '').trim()
+        : ''
+      const shouldUsePublicInviteView = (liveSession) =>
+        Boolean(
+          !sessionId &&
+            inviteCode &&
+            getInviteLiveSessionAccess({
+              appStoreSession: inviteSession,
+              liveSession,
+              requestedInviteCode: inviteCode,
+              viewerProfileId: inviteViewerProfileId,
+            }) !== 'private',
+        )
+      if (sessionId) {
         const userSession = requireUserSession(request, response)
         if (!userSession) {
           return
         }
-        const directSession = getManagedSessionById(String(query.sessionId || '').trim())
+        const directSession = getManagedSessionById(sessionId)
         const directProfileId = String(userSession.profile.id || '').trim()
         const directIsMember = directProfileId && (directSession?.members || []).some((item) => String(item?.profileId || '').trim() === directProfileId)
         if (!directSession) {
@@ -1400,34 +1411,30 @@ const server = http.createServer((request, response) => {
       }
       if (shouldReadNormalized('sessions')) {
         try {
-          const liveSession = await getLiveSessionConfigFromNormalized(query.sessionId, query.inviteCode)
-          if (!query.sessionId && !query.inviteCode) {
-            sendOk(response, liveSession)
-            return
-          }
+          const liveSession = await getLiveSessionConfigFromNormalized(sessionId, inviteCode)
           if (liveSession.id) {
-            sendOk(response, publicInviteView ? toPublicInviteLiveSession(liveSession) : liveSession)
+            sendOk(response, shouldUsePublicInviteView(liveSession) ? toPublicInviteLiveSession(liveSession) : liveSession)
             return
           }
           console.warn('[normalized-read] sessions/live miss, fallback to app_store:', {
-            inviteCode: query.inviteCode ? String(query.inviteCode).slice(-6) : '',
-            sessionId: query.sessionId || '',
+            inviteCode: inviteCode ? inviteCode.slice(-6) : '',
+            sessionId,
           })
         } catch (error) {
           console.error('[normalized-read] sessions/live fallback:', error)
         }
       }
-      if (query.sessionId && !getManagedSessionById(String(query.sessionId || '').trim())) {
+      if (sessionId && !getManagedSessionById(sessionId)) {
         sendError(response, 404, 'session not found')
         return
       }
-      if (query.inviteCode && !getManagedSessionByInviteCode(String(query.inviteCode || '').trim())) {
+      if (inviteCode && !getManagedSessionByInviteCode(inviteCode)) {
         sendError(response, 404, 'session not found')
         return
       }
       {
-        const liveSession = getLiveSessionConfig(query.sessionId, query.inviteCode)
-        sendOk(response, publicInviteView ? toPublicInviteLiveSession(liveSession) : liveSession)
+        const liveSession = getLiveSessionConfig(sessionId, inviteCode)
+        sendOk(response, shouldUsePublicInviteView(liveSession) ? toPublicInviteLiveSession(liveSession) : liveSession)
       }
       return
     }
