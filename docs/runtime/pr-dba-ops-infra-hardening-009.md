@@ -451,3 +451,98 @@ echo | openssl s_client -servername cdn.pomer.cn -connect cdn.pomer.cn:443 2>/de
 - MySQL：已完成 dump 与同库临时表恢复演练；临时表已删除；实体表影子对账通过。
 - OSS/CDN：provider 已切到 `oss`，真实上传 URL 与 CDN HEAD 已通过；`oss:DeleteObject` 已补齐，上传后删除清理已通过最终复跑。
 - 官网边界：本次证据和脚本均面向 `api.pomer.cn` / `jiuzhuopanguan`；`pomer.cn` 公司官网未改动、未重启、未部署。
+
+## 10. SHARE-AUTH-011 DBA/运维观察项
+
+PM 知会：分享图权限尚未闭环；首页封面已由后端返回 `coverPhotoUrl`，线上部署版本为 `c9dc0b05 fix(home): use first uploaded photo as memory cover`。DBA/运维当前不改 PM 总台账，只记录后续后端补 SHARE-AUTH-011 后需要复核的数据一致性风险。
+
+### 10.1 重点表与字段
+
+- `wine_session_members`：踢出成员、重新通过分享链接加入、房主/成员权限变更后，`app_store.admin_store.liveSessions[].members` 与 normalized 行数和 `session_id/profile_id/status/is_host` 必须一致。
+- `share_image_tasks`：进行中禁止、结束后允许、无权限禁止、重新加入恢复归属后，任务创建/刷新/处理不能产生孤儿任务；`status/image_url/brief_id/session_id` 必须与 `app_store.moments_store.shareImageTasks` 对齐。
+- `session_briefs`：`share_image_task_id/share_image_status/timeline_node_ids_json` 应随分享任务状态同步，不能出现 brief 指向已拒绝或已删除任务。
+- `moment_records.image_url`：`coverPhotoUrl` 来源依赖本局最早上传图；后端补权限后仍需确认实体表 `moment_records.image_url` 与 app_store 照片记录一致，且不把默认图、空 URL 或无权限照片作为封面。
+
+### 10.2 后端补丁后的复核命令建议
+
+只面向 `api.pomer.cn` / `jiuzhuopanguan` 服务执行，不触碰 `pomer.cn` 官网：
+
+```bash
+cd /www/wwwroot/jiuzhuopanguan-git/backend
+npm run db:sync-normalized
+node scripts/verify-normalized-shadow.js
+node scripts/verify-normalized-share-image-summaries.js
+node scripts/verify-normalized-summary-read.js
+node scripts/audit-normalized-tables.js
+BACKUP_ROOT=/www/backup/jiuzhuopanguan STAMP=share-auth-011 scripts/ops-009-health-monitor.sh
+```
+
+验收口径：
+
+- `verify-normalized-shadow.js` 返回 `ok=true`，且 `wine_session_members`、`share_image_tasks`、`session_briefs`、`moment_records` 无 mismatch。
+- 分享图权限 smoke 后，进行中禁止与无权限禁止场景不得写入多余 `share_image_tasks`。
+- 结束后允许生成场景必须同时写入 `share_image_tasks` 与 `session_briefs.share_image_task_id/share_image_status`。
+- 重新加入恢复归属后，`wine_session_members` 必须恢复成员关系；对应分享图读取权限应与 normalized 读侧一致。
+- 首页封面复核必须看到 `coverPhotoUrl` 来自同 `sessionId` 的真实 `moment_records.image_url`。
+
+初始状态：本节仅记录观察项；当时未执行服务器命令，未修改 PM 总台账，未触碰 `pomer.cn` 官网。后续部署执行与证据见第 11 节。
+
+## 11. SHARE-AUTH-011 后端合同部署证据
+
+日期：2026-06-23
+
+目标边界：仅面向 `api.pomer.cn` / `/www/wwwroot/jiuzhuopanguan-git/backend` / `jiuzhuopanguan-backend`。未触碰 `pomer.cn` 官网服务。
+
+PM 同步的后端合同提交：`94960a43edab660077acba6c2cbd954acfa123cb backend: enforce ended share image auth`。
+
+### 11.1 执行命令
+
+```bash
+cd /www/wwwroot/jiuzhuopanguan-git
+git pull --ff-only origin main
+cd /www/wwwroot/jiuzhuopanguan-git/backend
+pm2 restart jiuzhuopanguan-backend --update-env
+curl -fsS -o /dev/null -w "config_home http=%{http_code}\n" https://api.pomer.cn/api/v1/config/home
+curl -fsS -o /dev/null -w "admin_login http=%{http_code}\n" https://api.pomer.cn/admin/login
+```
+
+### 11.2 证据目录
+
+线上证据目录：`/www/backup/jiuzhuopanguan/share-auth-011-deploy-20260623110308`
+
+关键文件：
+
+- `SUMMARY.txt`
+- `git-status-before.txt`
+- `git-head-before.txt`
+- `git-pull.txt`
+- `git-head-after.txt`
+- `pm2-status-before.txt`
+- `pm2-describe-before.txt`
+- `pm2-restart.txt`
+- `pm2-status-after.txt`
+- `pm2-describe-after.txt`
+- `pm2-logs-after.txt`
+- `api-config-home.txt`
+- `api-admin-login.txt`
+
+### 11.3 部署结果
+
+- 部署前 head：`c9dc0b0589f8d6a303bf59b359e1267dfb87534d`
+- 部署后 head：`94960a43edab660077acba6c2cbd954acfa123cb`
+- `git pull --ff-only origin main`：fast-forward 成功。
+- `pm2 restart jiuzhuopanguan-backend --update-env`：成功，目标进程 online。
+- PM2 after：`jiuzhuopanguan-backend` pid `749779`，status `online`，unstable restarts `0`，script path `/www/wwwroot/jiuzhuopanguan-git/backend/server.js`。
+- `GET https://api.pomer.cn/api/v1/config/home`：HTTP 200，`content_type=application/json; charset=utf-8`。
+- `GET https://api.pomer.cn/admin/login`：HTTP 200，`content_type=text/html; charset=utf-8`。
+- 远端工作区仍存在运行时数据/上传文件改动：`backend/data/social-store.json`、`backend/public/uploads/**`。本次未清理、未回滚、未删除这些运行时文件。
+- `pomer` 官网 PM2 进程仅在 `pm2 status` 输出中被动显示，未重启，restarts 仍为 `0`。
+
+### 11.4 后续 DBA 观察项
+
+后端 SHARE-AUTH-011 上线后，后续如进行接口联调或测试写入，应复跑第 10 节的 normalized 对账命令，重点确认：
+
+- 进行中禁止创建/刷新/处理最终分享图任务时，`share_image_tasks` 不产生多余行。
+- 结束后允许创建时，`share_image_tasks` 与 `session_briefs` 同步一致。
+- 被踢成员读取被拒绝时，`wine_session_members` 与 app_store 成员绑定一致。
+- 首页 `coverPhotoUrl` 仍来自同局真实 `moment_records.image_url`。
