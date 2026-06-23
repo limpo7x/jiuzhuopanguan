@@ -1254,3 +1254,47 @@ PM 判断：
   - 复测首页“待分享回忆/最近相册”封面是否使用首张上传图。
 - UI/UX 负责人 `SHARE-AUTH-011-UX`：
   - 如后端返回未结束/无权限，补齐分享页提示文案和按钮状态建议，不改业务源码。
+
+## 2026-06-23 SHARE-AUTH-011 后端合同与实现推进
+
+本轮核查：
+
+- 后端合同与实现已在本地 `HEAD`：`94960a43 backend: enforce ended share image auth`。
+- 涉及文件：
+  - `backend/data/moments.js`
+  - `backend/scripts/smoke-share-image-async-flow.js`
+  - `docs/runtime/pr-backend-share-auth-011.md`
+- 已推送远端：`origin/main` 已从 `7e60c4d9` 更新到 `94960a43`。
+
+后端合同：
+
+- 未结束 session：
+  - `createShareImageTask()` 返回 `409 session not ended`。
+  - `retryShareImageTask()` 返回 `409 session not ended`。
+  - `processShareImageTask()` 返回 `409 session not ended`。
+- 已结束 session：
+  - 房主可创建、重试、处理分享图任务。
+  - 普通成员创建分享图任务返回 `403 forbidden`。
+  - 成员仍可读取 ready 分享图任务详情与分享图合集。
+- 被踢成员：
+  - 读取分享图任务返回 `403 not session member`。
+  - `GET /api/v1/user/share-image-summaries` 不再出现该局分享图。
+
+本地验证：
+
+- `node --check backend/data/moments.js`：通过。
+- `node --check backend/scripts/smoke-share-image-async-flow.js`：通过。
+- `npm.cmd run check:encoding`：通过。
+- `node backend/scripts/smoke-share-image-async-flow.js`：通过，`ok=true`。
+
+当前阻塞：
+
+- 当前 PM 线程本机连接 `root@api.pomer.cn` 失败：`Permission denied (publickey)`。
+- 因此本轮只完成本地验证与远端推送，尚未由当前线程完成线上 `api.pomer.cn` 部署重启。
+
+已通知责任人：
+
+- DBA/运维 `SHARE-AUTH-011-OPS`：拉取 `origin/main`、只重启 `jiuzhuopanguan-backend`、补 PM2/API 健康证据；不得触碰 `pomer.cn` 官网服务。
+- 接口联调 `SHARE-AUTH-011-INT`：等待部署证据后按矩阵复跑，证据只写 token 后 8 位。
+- 前端 `SHARE-AUTH-011-FE`：按 `409 session not ended`、`403 forbidden`、`403 not session member` 接入分享页错误态和按钮禁用。
+- 测试验收 `SHARE-AUTH-011-QA`：等待 DBA 部署、接口矩阵、前端状态证据后再复测，不提前写通过。
