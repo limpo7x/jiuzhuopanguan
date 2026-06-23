@@ -81,7 +81,7 @@
   </scroll-view>
 
   <view class="poster-exit-bar">
-    <view class="poster-exit-button" bindtap="handleExitShareTap">退出分享</view>
+    <view class="poster-exit-button" bindtap="handleExitShareTap">返回首页</view>
   </view>
 
   <canvas

@@ -99,6 +99,7 @@ const PAGE_CONFIG: Record<string, { emptyMeta: string; emptyTitle: string; pageT
 }
 
 const normalizeMode = (mode?: string) => (mode && PAGE_CONFIG[mode] ? mode : 'host')
+const normalizeFilter = (filter?: string) => (filter && HISTORY_FILTERS.includes(filter) ? filter : '全部')
 const LOGIN_EMPTY_TITLE = '登录后查看聚会相册'
 const LOGIN_EMPTY_META = '历史记录和相册摘要需要登录后加载。'
 
@@ -133,10 +134,13 @@ Page<WineHistoryState, WineHistoryMethods>({
 
   async onLoad(query) {
     const mode = normalizeMode(typeof query?.mode === 'string' ? decodeURIComponent(query.mode) : 'host')
+    const activeFilter = normalizeFilter(typeof query?.filter === 'string' ? decodeURIComponent(query.filter) : '')
     const config = PAGE_CONFIG[mode]
     this.setData({
+      activeFilter,
       emptyMeta: config.emptyMeta,
       emptyTitle: config.emptyTitle,
+      filters: HISTORY_FILTERS.map((name) => ({ name, active: name === activeFilter })),
       mode,
       pageTitle: config.pageTitle,
       primaryText: config.primaryText,
@@ -386,12 +390,13 @@ Page<WineHistoryState, WineHistoryMethods>({
     }
 
     if (status === '已结束') {
+      const returnQuery = `from=wine-history&returnMode=${encodeURIComponent(this.data.mode)}&returnFilter=${encodeURIComponent(this.data.activeFilter)}`
       if (this.data.mode === 'unshared' && reportId) {
-        this.openPage(`/pages/share-poster/index?reportId=${encodeURIComponent(reportId)}`)
+        this.openPage(`/pages/share-poster/index?reportId=${encodeURIComponent(reportId)}&${returnQuery}`)
         return
       }
       if (reportId) {
-        this.openPage(`/pages/share-poster/index?reportId=${encodeURIComponent(reportId)}`)
+        this.openPage(`/pages/share-poster/index?reportId=${encodeURIComponent(reportId)}&${returnQuery}`)
         return
       }
       wx.showToast({ title: '该聚会缺少相册数据', icon: 'none' })

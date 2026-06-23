@@ -1648,4 +1648,13 @@ PM 边界：
 - 证据：`docs/runtime/pr-fix-014-05-nomination-reason-20260624.md`。
 - 已实现：后端推举资格接口输出稳定 `reasonCode/reasonText`；前端相册、聚会简报、今日回忆榜统一原因码文案；移除“照片审核通过后可推举”“待审核”等含混旧提示；保留内容安全确认、公开授权、私密可见性和榜单资格边界。
 - 本地验证通过：`node --check backend/data/moments.js`、`node --check backend/server.js`、`node --check backend/scripts/smoke-nomination-eligibility-reasons.js`、`node backend/scripts/smoke-nomination-eligibility-reasons.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。
-- 当前状态：本地合同、前端文案和 smoke 验证通过；未提交、未推送、未部署、未上传小程序包，未做线上真实样本和预览框复测；不得写正式准出。
+- 当前状态：本地合同、前端文案和 smoke 验证通过；已进入提交、推送和部署收口流程，未上传小程序包，未做线上真实样本和预览框复测；不得写正式准出。
+
+## 2026-06-24 FIX-014-06 用户审批与前端本地实现
+
+- 用户已用编号授权启动 `FIX-014-06`。本轮只处理“分享页来源感知返回”，不混入 `FIX-014-05` 或其他编号。
+- 工作树边界：新建干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-06`，分支 `codex/fix-014-06-share-poster-return`，基线为 `origin/main` 的 `e6946388`。
+- 前端证据：`docs/runtime/pr-fe-fix-014-06-20260624.md`。
+- 已实现：分享页顶部返回先按页面栈 `navigateBack`；无栈或失败时按 `from/returnMode/returnFilter` 回到分享图相册、历史相册筛选、我的、结果报告、简报或首页；底部独立按钮明确为“返回首页”；结束聚会、历史相册和结果报告入口补充来源参数；外部分享路径统一 `from=external`。
+- 本地验证通过：`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。`npm.cmd install` 为新工作树补齐依赖时报告既有 `10 vulnerabilities`，未做无关升级。
+- 当前状态：前端本地实现和静态门禁通过；已进入提交、推送和部署收口流程，未做微信开发者工具预览框四路径点击验收，未上传小程序包，不得写正式发布准出。

@@ -70,6 +70,8 @@ interface PosterTimelineNode {
   type: 'photo' | 'ledger' | 'event'
 }
 
+type ShareReturnSource = 'album' | 'external' | 'finish' | 'home' | 'me' | 'result-report' | 'session-brief' | 'wine-history'
+
 interface SharePosterState {
   accountingHighlights: PosterMetric[]
   briefId: string
@@ -119,6 +121,9 @@ interface SharePosterState {
   shareSummary: string
   shareHeadline: string
   shareItems: PosterShareItem[]
+  shareReturnFilter: string
+  shareReturnMode: string
+  shareReturnSource: ShareReturnSource
   shareActionBlocked: boolean
   shareTask: ManagedShareImageTask | null
   shareViewState: 'ready' | 'notEnded' | 'noPermission' | 'removed' | 'notMember' | 'unavailable'
@@ -155,6 +160,8 @@ interface SharePosterMethods {
   loadLiveSessionSummary: (sessionId: string) => Promise<void>
   loadBriefByQuery: (query: Record<string, string | undefined>, fallbackSessionId: string) => Promise<void>
   loadShareTaskFromBrief: (brief: ManagedSessionBrief, currentTaskId?: string) => Promise<void>
+  getShareReturnFallbackUrl: () => string
+  openShareReturnFallback: () => void
   refreshShareTask: () => Promise<void>
   saveImageFile: (filePath: string) => Promise<void>
   showPreviewToast: (message: string) => void
@@ -818,6 +825,39 @@ const enableShareMenus = () => {
   })
 }
 
+const normalizeShareReturnSource = (value?: string): ShareReturnSource => {
+  const source = String(value || '').trim()
+  switch (source) {
+    case 'album':
+      return 'album'
+    case 'finish':
+    case 'live-record':
+      return 'finish'
+    case 'home':
+      return 'home'
+    case 'me':
+      return 'me'
+    case 'result-report':
+      return 'result-report'
+    case 'session-brief':
+      return 'session-brief'
+    case 'history':
+    case 'wine-history':
+      return 'wine-history'
+    case 'external':
+    default:
+      return 'external'
+  }
+}
+
+const buildEncodedQuery = (params: Record<string, string>) =>
+  Object.keys(params)
+    .filter((key) => params[key])
+    .map((key) => `${key}=${encodeURIComponent(params[key])}`)
+    .join('&')
+
+const appendShareExternalSource = (path: string) => `${path}${path.includes('?') ? '&' : '?'}from=external`
+
 Page<SharePosterState, SharePosterMethods>({
   data: {
     accountingHighlights: [],
@@ -868,6 +908,9 @@ Page<SharePosterState, SharePosterMethods>({
     shareSummary: buildShareSummary(0, 0, 0),
     shareHeadline: SHARE_HEADLINE,
     shareItems: REPORT_SHARE_ITEMS,
+    shareReturnFilter: '',
+    shareReturnMode: '',
+    shareReturnSource: 'external',
     shareActionBlocked: false,
     shareTask: null,
     shareViewState: 'ready',
@@ -889,7 +932,15 @@ Page<SharePosterState, SharePosterMethods>({
     const briefId = typeof query?.briefId === 'string' ? decodeURIComponent(query.briefId) : ''
     const sessionId = typeof query?.sessionId === 'string' ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
     const taskId = typeof query?.taskId === 'string' ? decodeURIComponent(query.taskId) : ''
+    const shareReturnSource = normalizeShareReturnSource(typeof query?.from === 'string' ? decodeURIComponent(query.from) : '')
+    const shareReturnMode = typeof query?.returnMode === 'string' ? decodeURIComponent(query.returnMode) : ''
+    const shareReturnFilter = typeof query?.returnFilter === 'string' ? decodeURIComponent(query.returnFilter) : ''
     const sampleFallback = resolveShareFlowSampleFallback(briefId, sessionId, taskId)
+    this.setData({
+      shareReturnFilter,
+      shareReturnMode,
+      shareReturnSource,
+    })
 
     if (!reportId && !briefId && !sessionId && !taskId) {
       this.applyPosterUnavailableState('这张分享图还没有可展示内容')
@@ -1409,7 +1460,7 @@ Page<SharePosterState, SharePosterMethods>({
 
     return {
       title: SHARE_HEADLINE,
-      path: sharePath,
+      path: appendShareExternalSource(sharePath),
       imageUrl: this.data.posterImagePath || this.data.posterImageUrl,
     }
   },
@@ -1435,7 +1486,7 @@ Page<SharePosterState, SharePosterMethods>({
 
     return {
       title: SHARE_HEADLINE,
-      query: shareQuery,
+      query: `${shareQuery}&from=external`,
       imageUrl: this.data.posterImagePath || this.data.posterImageUrl,
     }
   },
@@ -1857,8 +1908,82 @@ Page<SharePosterState, SharePosterMethods>({
     return this.drawCanvasToFile(CANVAS_WIDTH, CANVAS_HEIGHT)
   },
 
+  getShareReturnFallbackUrl() {
+    const mode = this.data.shareReturnMode || ''
+    const filter = this.data.shareReturnFilter || ''
+    switch (this.data.shareReturnSource) {
+      case 'album': {
+        const query = buildEncodedQuery({
+          filter,
+          mode: mode || 'album',
+        })
+        return `/pages/album/index${query ? `?${query}` : ''}`
+      }
+      case 'finish':
+        return '/pages/album/index?mode=shares'
+      case 'me':
+        return '/pages/me/index'
+      case 'result-report':
+        return this.data.reportId
+          ? `/pages/result-report/index?reportId=${encodeURIComponent(this.data.reportId)}`
+          : '/pages/index/index'
+      case 'session-brief': {
+        const query = buildEncodedQuery({
+          briefId: this.data.briefId,
+          sessionId: this.data.sessionId,
+        })
+        return query ? `/pages/session-brief/index?${query}` : '/pages/index/index'
+      }
+      case 'wine-history': {
+        const query = buildEncodedQuery({
+          filter,
+          mode: mode || 'host',
+        })
+        return `/pages/wine-history/index${query ? `?${query}` : ''}`
+      }
+      case 'home':
+      case 'external':
+      default:
+        return '/pages/index/index'
+    }
+  },
+
+  openShareReturnFallback() {
+    const url = this.getShareReturnFallbackUrl()
+    if (url === '/pages/index/index') {
+      wx.reLaunch({
+        url,
+        fail: () => {
+          this.showPreviewToast('首页暂时打不开，请稍后重试')
+        },
+      })
+      return
+    }
+    wx.redirectTo({
+      url,
+      fail: () => {
+        wx.reLaunch({
+          url: '/pages/index/index',
+          fail: () => {
+            this.showPreviewToast('返回暂时不可用，请稍后重试')
+          },
+        })
+      },
+    })
+  },
+
   handleBackTap() {
-    this.handleExitShareTap()
+    const pages = getCurrentPages()
+    if (pages.length > 1) {
+      wx.navigateBack({
+        delta: 1,
+        fail: () => {
+          this.openShareReturnFallback()
+        },
+      })
+      return
+    }
+    this.openShareReturnFallback()
   },
 
   handleExitShareTap() {

@@ -1306,7 +1306,7 @@ Page<LiveRecordState, LiveRecordMethods>({
         title: '聚会已结束',
         icon: 'success',
       })
-      const sharePosterUrl = `/pages/share-poster/index?sessionId=${encodeURIComponent(sessionId)}`
+      const sharePosterUrl = `/pages/share-poster/index?sessionId=${encodeURIComponent(sessionId)}&from=finish`
       wx.redirectTo({
         url: sharePosterUrl,
         fail: () => {

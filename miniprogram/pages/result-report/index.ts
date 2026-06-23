@@ -138,7 +138,7 @@ Page<ResultReportState, ResultReportMethods>({
       })
       return
     }
-    this.openPage(`/pages/share-poster/index?reportId=${encodeURIComponent(this.data.reportId)}`)
+    this.openPage(`/pages/share-poster/index?reportId=${encodeURIComponent(this.data.reportId)}&from=result-report`)
   },
 
   handleBriefTap() {
