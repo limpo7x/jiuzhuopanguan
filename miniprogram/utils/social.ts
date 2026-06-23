@@ -93,6 +93,7 @@ const USER_TOKEN_KEY = 'jzp-user-token'
 const AUTHORIZED_WECHAT_PROFILE_KEY = 'social-authorized-wechat-profile'
 const LEGACY_DEMO_PROFILE_IDS = new Set(['user-1001', 'user-1002', 'user-1003', 'user-1004', 'user-test-a', 'user-test-b', 'user-search-a', 'user-search-b'])
 let backendDownUntil = 0
+let userAuthSessionPromise: Promise<UserAuthSession> | null = null
 
 const normalizeSocialAvatarUrl = (value?: string) => {
   const text = String(value || '').trim()
@@ -217,7 +218,9 @@ const request = <T>(
           return
         }
         const fallbackMessage = response.statusCode === 502 ? '微信登录服务暂不可用，请检查服务器微信 AppID/AppSecret 配置' : 'request failed'
-        reject(new Error(payload?.message || fallbackMessage))
+        const error = new Error(payload?.message || fallbackMessage)
+        ;(error as Error & { statusCode?: number }).statusCode = response.statusCode
+        reject(error)
       },
       fail: (error) => {
         backendDownUntil = Date.now() + BACKEND_RETRY_INTERVAL
@@ -484,6 +487,9 @@ const trySilentWechatLogin = async (profile?: Partial<SocialProfile>): Promise<S
   }
 }
 
+const isUnauthorizedError = (error: unknown) =>
+  Number((error as Error & { statusCode?: number })?.statusCode) === 401 || /unauthorized/i.test(String((error as Error)?.message || ''))
+
 const ensureWechatLoginConfigured = async () => {
   const config = await request<UserAuthConfig>('/user/auth/config')
   if (!config.wechatLoginEnabled) {
@@ -501,11 +507,12 @@ export const ensureCurrentProfile = async (): Promise<SocialProfile> => {
         return upsertLocalProfile(normalizeProfile(session.profile))
       }
       cacheUserToken('')
-    } catch {
-      if (hasPersistedLocalProfile(local)) {
+    } catch (error) {
+      if (isUnauthorizedError(error)) {
+        cacheUserToken('')
+      } else if (hasPersistedLocalProfile(local)) {
         return upsertLocalProfile(local)
       }
-      cacheUserToken('')
     }
   }
 
@@ -520,7 +527,7 @@ export const ensureCurrentProfile = async (): Promise<SocialProfile> => {
 export const getCurrentDisplayProfile = async (): Promise<SocialProfile> => resolveDisplayProfile(await ensureCurrentProfile())
 export const getCurrentProfile = async (): Promise<SocialProfile> => ensureCurrentProfile()
 
-export const getUserAuthSession = async (): Promise<UserAuthSession> => {
+const resolveUserAuthSession = async (): Promise<UserAuthSession> => {
   const local = getLocalProfile()
   const token = getUserSessionToken()
   if (!token) {
@@ -534,14 +541,23 @@ export const getUserAuthSession = async (): Promise<UserAuthSession> => {
     }
     cacheUserToken('')
     return { loggedIn: false, profile: null }
-  } catch {
-    if (hasPersistedLocalProfile(local)) {
+  } catch (error) {
+    if (!isUnauthorizedError(error) && hasPersistedLocalProfile(local)) {
       return { loggedIn: true, profile: upsertLocalProfile(local) }
     }
     cacheUserToken('')
     const restoredProfile = await trySilentWechatLogin(local)
     return restoredProfile ? { loggedIn: true, profile: restoredProfile } : { loggedIn: false, profile: null }
   }
+}
+
+export const getUserAuthSession = (): Promise<UserAuthSession> => {
+  if (!userAuthSessionPromise) {
+    userAuthSessionPromise = resolveUserAuthSession().finally(() => {
+      userAuthSessionPromise = null
+    })
+  }
+  return userAuthSessionPromise
 }
 
 export const ensureUserAuthorized = async (redirectUrl?: string): Promise<SocialProfile | null> => {

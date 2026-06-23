@@ -363,24 +363,35 @@ Page<MePageState, MePageMethods>({
   },
 
   async loadSocialData() {
-    const [authSession, currentProfile, judgeStats, membershipCatalog, momentSummariesResult, shareImageSummariesResult] = await Promise.all([
-      getUserAuthSession().catch(() => ({ loggedIn: false, profile: null })),
+    const authSession = await getUserAuthSession().catch(() => ({ loggedIn: false, profile: null }))
+    const hasAuthenticatedProfile = Boolean(authSession.loggedIn && authSession.profile?.id)
+    const protectedDataPromise = hasAuthenticatedProfile
+      ? Promise.all([
+          getManagedJudgeStats().catch(() => null),
+          getManagedSessionMomentSummaries()
+            .then((items) => ({ ok: true as const, items }))
+            .catch((error) => {
+              console.warn('[me] failed to load session moment summaries', error)
+              return { ok: false as const, items: this.data.momentSummaries }
+            }),
+          getManagedShareImageSummaries()
+            .then((items) => ({ ok: true as const, items }))
+            .catch((error) => {
+              console.warn('[me] failed to load share image summaries', error)
+              return { ok: false as const, items: [] as ManagedShareImageSummary[] }
+            }),
+        ])
+      : Promise.resolve([
+          null,
+          { ok: false as const, items: this.data.momentSummaries },
+          { ok: false as const, items: [] as ManagedShareImageSummary[] },
+        ] as const)
+    const [currentProfile, membershipCatalog, protectedData] = await Promise.all([
       getCurrentDisplayProfile().catch(() => DEFAULT_PROFILE),
-      getManagedJudgeStats().catch(() => null),
       getMembershipCatalog().catch(() => null),
-      getManagedSessionMomentSummaries()
-        .then((items) => ({ ok: true as const, items }))
-        .catch((error) => {
-          console.warn('[me] failed to load session moment summaries', error)
-          return { ok: false as const, items: this.data.momentSummaries }
-        }),
-      getManagedShareImageSummaries()
-        .then((items) => ({ ok: true as const, items }))
-        .catch((error) => {
-          console.warn('[me] failed to load share image summaries', error)
-          return { ok: false as const, items: [] as ManagedShareImageSummary[] }
-        }),
+      protectedDataPromise,
     ])
+    const [judgeStats, momentSummariesResult, shareImageSummariesResult] = protectedData
     const displayProfile = authSession.profile || currentProfile || DEFAULT_PROFILE
     const loggedIn = Boolean(authSession.loggedIn && authSession.profile?.wechatOpenId)
     const resolvedMomentSummaries = momentSummariesResult.items

@@ -1,7 +1,7 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath, normalizeManagedAvatarPath } from '../config/assets'
 import { resolveCachedManagedImagePath, resolveCachedManagedImagePathQuick } from '../utils/imageCache'
-import { getUserAuthHeaders } from '../utils/social'
+import { getUserAuthHeaders, getUserAuthSession } from '../utils/social'
 import {
   getToolCategoryCards,
   resolveToolId,
@@ -839,7 +839,12 @@ const buildLocalToolsCatalog = (): ManagedToolCatalog => ({
 
 const DEFAULT_TOOLS_CATALOG: ManagedToolCatalog = buildLocalToolsCatalog()
 
-const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET', data?: Record<string, unknown>): Promise<T> =>
+const requestJson = <T>(
+  path: string,
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+  data?: Record<string, unknown>,
+  allowAuthRetry = true,
+): Promise<T> =>
   new Promise((resolve, reject) => {
     wx.request({
       url: `${getApiBase()}${path}`,
@@ -856,6 +861,18 @@ const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' 
         const fallbackMessage = response.statusCode === 404 ? 'not found' : 'request failed'
         const error = new Error(payload?.message || fallbackMessage)
         ;(error as Error & { statusCode?: number }).statusCode = response.statusCode
+        if (response.statusCode === 401 && allowAuthRetry) {
+          void getUserAuthSession()
+            .then((session) => {
+              if (!session.loggedIn || !session.profile?.id) {
+                reject(error)
+                return
+              }
+              requestJson<T>(path, method, data, false).then(resolve, reject)
+            })
+            .catch(() => reject(error))
+          return
+        }
         reject(error)
       },
       fail: reject,
