@@ -2,7 +2,7 @@
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
 
-用户已逐项同意 `FIX-014-06`。本轮只处理分享页来源感知返回，不混入 `FIX-014-05`、部署操作或微信小程序包上传。
+用户已逐项同意 `FIX-014-06`。本轮只处理分享页来源感知返回，不混入微信小程序包上传。
 
 前端交付：
 
@@ -16,12 +16,34 @@
 - `npm.cmd run check:encoding` 通过。
 - `npm.cmd run typecheck` 通过。
 - `git diff --check` 通过。
+- 已与 `FIX-014-05` 一起提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上 HEAD `3d525db8`。部署证据见 `docs/runtime/deploy-fix-014-05-06-20260624.md`。
+- PM2 `jiuzhuopanguan-backend` online；PM2 `pomer` 官网服务 online 且未重启。
 
 下一步责任：
 
 - 测试验收负责人：接 `FIX-014-06-QA`，在微信开发者工具预览框覆盖结束后、历史相册筛选、结果报告、外部直达四类返回路径。
 - 前端负责人：如 QA 退回，只在 `FIX-014-06` 工作树内返工，不扩大到推举原因、权限阻断或运营配置。
 - PM：未取得 QA 预览框证据前，只能写“前端本地实现和静态门禁通过”，不得写正式真机发布准出。
+
+## 2026-06-24 PM 公告：FIX-014-05 推举资格文案已部署
+
+面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
+
+用户已逐项同意 `FIX-014-05`。本轮只处理推举资格原因码与前台文案，不上传微信小程序包。
+
+交付与验证：
+
+- 工作树：`F:\codexlist\jiuzhuopanguan-fix-014-05`。
+- 分支：`codex/fix-014-05-nomination-reason-copy`。
+- 证据：`docs/runtime/pr-fix-014-05-nomination-reason-20260624.md`。
+- 提交：`478b0e45 fix: clarify nomination eligibility reasons`。
+- 已与 `FIX-014-06` 一起部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上 HEAD `3d525db8`。部署证据见 `docs/runtime/deploy-fix-014-05-06-20260624.md`。
+
+下一步责任：
+
+- 测试验收负责人：接 `FIX-014-05-QA`，用真实线上样本覆盖公开授权、内容安全确认、私密可见性、后台通过后可推举等状态。
+- 前端负责人：如 QA 退回，只在 `FIX-014-05` 工作树或后续干净工作树内返工，不扩大到分享页返回或运营配置。
+- PM：未取得真实样本和预览框证据前，不得写正式发布准出。
 
 ## 2026-06-22 PM 公告：分享图权限与首页封面收口
 

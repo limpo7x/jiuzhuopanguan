@@ -1648,7 +1648,7 @@ PM 边界：
 - 证据：`docs/runtime/pr-fix-014-05-nomination-reason-20260624.md`。
 - 已实现：后端推举资格接口输出稳定 `reasonCode/reasonText`；前端相册、聚会简报、今日回忆榜统一原因码文案；移除“照片审核通过后可推举”“待审核”等含混旧提示；保留内容安全确认、公开授权、私密可见性和榜单资格边界。
 - 本地验证通过：`node --check backend/data/moments.js`、`node --check backend/server.js`、`node --check backend/scripts/smoke-nomination-eligibility-reasons.js`、`node backend/scripts/smoke-nomination-eligibility-reasons.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。
-- 当前状态：本地合同、前端文案和 smoke 验证通过；已进入提交、推送和部署收口流程，未上传小程序包，未做线上真实样本和预览框复测；不得写正式准出。
+- 当前状态：已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上 HEAD `3d525db8`；部署证据见 `docs/runtime/deploy-fix-014-05-06-20260624.md`。未上传小程序包，未做线上真实推举样本和预览框复测；不得写正式准出。
 
 ## 2026-06-24 FIX-014-06 用户审批与前端本地实现
 
@@ -1657,4 +1657,15 @@ PM 边界：
 - 前端证据：`docs/runtime/pr-fe-fix-014-06-20260624.md`。
 - 已实现：分享页顶部返回先按页面栈 `navigateBack`；无栈或失败时按 `from/returnMode/returnFilter` 回到分享图相册、历史相册筛选、我的、结果报告、简报或首页；底部独立按钮明确为“返回首页”；结束聚会、历史相册和结果报告入口补充来源参数；外部分享路径统一 `from=external`。
 - 本地验证通过：`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。`npm.cmd install` 为新工作树补齐依赖时报告既有 `10 vulnerabilities`，未做无关升级。
-- 当前状态：前端本地实现和静态门禁通过；已进入提交、推送和部署收口流程，未做微信开发者工具预览框四路径点击验收，未上传小程序包，不得写正式发布准出。
+- 当前状态：已提交、推送并同步部署到 `api.pomer.cn` 对应服务器仓库，线上 HEAD `3d525db8`；部署证据见 `docs/runtime/deploy-fix-014-05-06-20260624.md`。未做微信开发者工具预览框四路径点击验收，未上传小程序包，不得写正式发布准出。
+
+## 2026-06-24 FIX-014-05 / FIX-014-06 提交部署收口
+
+- Git：`FIX-014-05` 提交 `478b0e45 fix: clarify nomination eligibility reasons`；`FIX-014-06` 提交 `3d525db8 fix: preserve share poster return context`；均已推送到 `origin/main`。
+- 部署目标：仅 `api.pomer.cn` / `/www/wwwroot/jiuzhuopanguan-git` / PM2 `jiuzhuopanguan-backend`；未触碰 `pomer.cn` 公司官网目录、Nginx 或 PM2 `pomer` 服务。
+- 服务器备份：`/www/backup/jiuzhuopanguan/fix-014-05-06-20260624053744`，已保存部署前 git 状态、HEAD、runtime diff、PM2 jlist、`server.js`、`moments.js` 和 `social-store.json`。
+- 部署命令摘要：`git fetch origin main`、`git pull --ff-only origin main`、`node --check backend/server.js`、`node --check backend/data/moments.js`、`node --check backend/scripts/smoke-nomination-eligibility-reasons.js`、`cd backend && npm install`、`. ./.env && npm run mysql:test`、`pm2 restart jiuzhuopanguan-backend --update-env`。
+- 部署验证：服务器 HEAD 从 `e6946388` fast-forward 到 `3d525db8`；`npm install` 返回 `found 0 vulnerabilities`；MySQL test 返回 `ok=true`、表 `app_store`、`total=5`；PM2 `jiuzhuopanguan-backend` online，PM2 `pomer` 官网服务 online 且 restart 仍为 `0`。
+- 公网健康：`config/home` 200、`config/templates` 200、`admin/login` 200、`/sessions/live` 无参 400。
+- 服务器脏项：`backend/package-lock.json` 曾被服务器 `npm install` 改动，已恢复到 Git 状态；部署后仅保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**`。
+- 当前边界：未上传微信小程序包；`FIX-014-05` 未做真实线上推举全链路验收；`FIX-014-06` 未做微信开发者工具预览框四路径点击验收；不得写正式发布准出。
