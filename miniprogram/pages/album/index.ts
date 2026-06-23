@@ -215,7 +215,7 @@ const buildAlbumNominationState = async (brief?: ManagedSessionBrief): Promise<{
     }
   }
 
-  const rankableNodes = photoNodes.filter((node) => node.rankingEligible && isPersistedMomentId(node.id))
+  const rankableNodes = photoNodes.filter((node) => isPersistedMomentId(node.id))
   if (!rankableNodes.length) {
     return {
       nominationDisabled: true,
