@@ -1,11 +1,12 @@
 import {
-  createManagedShareImageTask,
+  createManagedMomentNomination,
   createOrRefreshManagedSessionBrief,
+  getManagedMomentNominationEligibility,
   getManagedSessionBrief,
   getManagedSessionTimeline,
-  retryManagedShareImageTask,
+  type ManagedMomentNominationEligibility,
+  type ManagedRankingCategory,
   type ManagedSessionBrief,
-  type ManagedShareImageTask,
   type ManagedTimelineNode,
 } from '../../services/operations'
 import { normalizeManagedAssetPath } from '../../config/assets'
@@ -16,6 +17,22 @@ import { ensureUserAuthorized } from '../../utils/social'
 interface BriefStat {
   label: string
   value: string
+}
+
+interface BriefNominationItem {
+  alreadyNominatedToday: boolean
+  buttonDisabled: boolean
+  buttonLabel: string
+  caption: string
+  category: ManagedRankingCategory
+  id: string
+  imageUrl: string
+  pointsCost: number
+  rankingEligible: boolean
+  reason: string
+  statusText: string
+  timeText: string
+  title: string
 }
 
 interface SessionBriefState {
@@ -32,11 +49,13 @@ interface SessionBriefState {
   previewableImageCount: number
   previewImageCount: number
   previewImageUrl: string
+  nominationEmptyText: string
+  nominationItems: BriefNominationItem[]
+  nominationSubmittingMomentId: string
   rankingStatusText: string
   settlementSummary: Record<string, unknown>
   sessionId: string
   shareContentFilter: Record<string, unknown>
-  shareTask: ManagedShareImageTask | null
   stats: BriefStat[]
   subtitle: string
   timelineEmptyText: string
@@ -46,16 +65,14 @@ interface SessionBriefState {
 interface SessionBriefMethods {
   applyBrief: (brief: ManagedSessionBrief) => void
   handleBackTap: () => void
-  handleCreateShareTaskTap: () => Promise<void>
-  handleOpenShareFlowTap: () => void
-  handlePreviewShareTask: (event: WechatMiniprogram.CustomEvent<{ imageUrl?: string }>) => void
+  handleNominatePhotoTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handlePreviewFirstImageTap: () => Promise<void>
   handleRankingTap: () => void
   handleRefreshTap: () => Promise<void>
-  handleRetryShareTask: () => Promise<void>
   handleTimelineSelect: (event: WechatMiniprogram.CustomEvent<{ id?: string; nodeKind?: string }>) => Promise<void>
   hydrateBriefTimeline: (brief: ManagedSessionBrief) => Promise<ManagedSessionBrief>
   loadBrief: () => Promise<void>
+  refreshNominationEligibility: () => Promise<void>
   showToast: (message: string) => void
 }
 
@@ -79,32 +96,6 @@ const buildStats = (brief: ManagedSessionBrief): BriefStat[] => [
   { label: '账本', value: `${brief.accountingHighlights.length}` },
 ]
 
-const buildShareTaskFromBrief = (brief: ManagedSessionBrief): ManagedShareImageTask | null => {
-  if (!brief.shareImageTaskId && !brief.shareImageStatus) {
-    return null
-  }
-
-  return {
-    briefId: brief.id,
-    createdAt: '',
-    failedReason: '',
-    finishedAt: '',
-    id: brief.shareImageTaskId,
-    imageUrl: '',
-    includeLedger: false,
-    ledgerIncluded: false,
-    layoutMode: '',
-    miniProgramQrUrl: '',
-    qrCodeUrl: '',
-    retryCount: 0,
-    selectedNodeIds: [],
-    sessionId: brief.sessionId,
-    startedAt: '',
-    status: (brief.shareImageStatus || 'pending') as ManagedShareImageTask['status'],
-    updatedAt: '',
-  }
-}
-
 const countRankingEligibleNodes = (nodes: ManagedTimelineNode[]) =>
   nodes.filter((item) => item.nodeKind === 'moment' && item.rankingEligible && !item.isTimelinePlaceholder).length
 
@@ -117,7 +108,87 @@ const buildRankingStatusText = (brief: ManagedSessionBrief) => {
 }
 
 const isMomentNodeWithImage = (node: ManagedTimelineNode): node is Extract<ManagedTimelineNode, { nodeKind: 'moment' }> =>
-  node.nodeKind === 'moment' && !!node.imageUrl
+  node.nodeKind === 'moment' && !node.isTimelinePlaceholder && !!node.imageUrl
+
+const getDefaultRankingCategoryFromNode = (node: Extract<ManagedTimelineNode, { nodeKind: 'moment' }>): ManagedRankingCategory => {
+  if (node.nodeType === 'opening') return 'best_opening'
+  if (node.nodeType === 'closing') return 'best_closing'
+  if (node.nodeType === 'drinking') return 'today_debt'
+  return 'today_highlight'
+}
+
+const formatBriefTime = (value?: string) => {
+  const timestamp = value ? Date.parse(value) : 0
+  if (!Number.isFinite(timestamp) || timestamp <= 0) return ''
+  const date = new Date(timestamp)
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${hour}:${minute}`
+}
+
+const buildNominationTitle = (node: Extract<ManagedTimelineNode, { nodeKind: 'moment' }>) => {
+  const text = String(node.timelineTitle || node.caption || '').trim()
+  if (text) return text.replace(/酒局/g, '聚会')
+  if (node.nodeType === 'opening') return '开场照片'
+  if (node.nodeType === 'closing') return '收尾照片'
+  return '聚会照片'
+}
+
+const buildNominationItems = (nodes: ManagedTimelineNode[]): BriefNominationItem[] =>
+  nodes.filter(isMomentNodeWithImage).map((node) => ({
+    alreadyNominatedToday: false,
+    buttonDisabled: !node.rankingEligible,
+    buttonLabel: node.rankingEligible ? '推举这张' : '待审核',
+    caption: String(node.caption || '').trim() || '这张照片可作为聚会回忆参与推举',
+    category: getDefaultRankingCategoryFromNode(node),
+    id: node.id,
+    imageUrl: node.imageUrl || '',
+    pointsCost: 10,
+    rankingEligible: node.rankingEligible,
+    reason: node.rankingEligible ? '' : '照片审核通过后可推举',
+    statusText: node.rankingEligible ? '可消耗积分推举到今日回忆榜' : '照片审核通过后可推举',
+    timeText: formatBriefTime(node.createdAt || node.updatedAt),
+    title: buildNominationTitle(node),
+  }))
+
+const applyEligibilityToNominationItem = (
+  item: BriefNominationItem,
+  eligibility: ManagedMomentNominationEligibility,
+): BriefNominationItem => {
+  if (eligibility.alreadyNominatedToday) {
+    return {
+      ...item,
+      alreadyNominatedToday: true,
+      buttonDisabled: true,
+      buttonLabel: '已推举',
+      pointsCost: eligibility.pointsCost || item.pointsCost,
+      reason: eligibility.reason || '',
+      statusText: '今天已推举过这张照片',
+    }
+  }
+
+  if (!eligibility.eligible) {
+    return {
+      ...item,
+      alreadyNominatedToday: false,
+      buttonDisabled: true,
+      buttonLabel: '不可推举',
+      pointsCost: eligibility.pointsCost || item.pointsCost,
+      reason: eligibility.reason || '暂不可推举',
+      statusText: eligibility.reason || '暂不可推举',
+    }
+  }
+
+  return {
+    ...item,
+    alreadyNominatedToday: false,
+    buttonDisabled: false,
+    buttonLabel: '推举这张',
+    pointsCost: eligibility.pointsCost || item.pointsCost,
+    reason: '',
+    statusText: `将消耗 ${eligibility.pointsCost || item.pointsCost} 积分`,
+  }
+}
 
 const resolvePreviewImageUrl = async (source?: string) => {
   const normalized = normalizeManagedAssetPath(source)
@@ -164,11 +235,13 @@ Page<SessionBriefState, SessionBriefMethods>({
     previewableImageCount: 0,
     previewImageCount: 0,
     previewImageUrl: '',
+    nominationEmptyText: '这场聚会还没有可推举照片',
+    nominationItems: [],
+    nominationSubmittingMomentId: '',
     rankingStatusText: '暂不可推举',
     settlementSummary: {},
     sessionId: '',
     shareContentFilter: {},
-    shareTask: null,
     stats: [],
     subtitle: '按聚会时间整理开场、过程和收尾。',
     timelineEmptyText: '这场聚会还没有可展示的照片记录',
@@ -222,11 +295,13 @@ Page<SessionBriefState, SessionBriefMethods>({
       const loadedBrief = briefId ? await getManagedSessionBrief(briefId) : await createOrRefreshManagedSessionBrief(sessionId)
       const hydratedBrief = await this.hydrateBriefTimeline(loadedBrief)
       this.applyBrief(hydratedBrief)
+      await this.refreshNominationEligibility()
     } catch (error) {
       toastMessage = error instanceof Error ? error.message : '简报加载失败'
       this.setData({
         errorText: toastMessage,
         loading: false,
+        nominationItems: [],
         timelineEmptyText: toastMessage,
         timelineNodes: [],
       })
@@ -275,6 +350,7 @@ Page<SessionBriefState, SessionBriefMethods>({
       sessionId: brief.sessionId || this.data.sessionId,
     })
 
+    const nominationItems = buildNominationItems(brief.timeline.nodes)
     this.setData({
       briefId: brief.id,
       briefTitle: normalizeBriefTitle(brief.title),
@@ -287,11 +363,13 @@ Page<SessionBriefState, SessionBriefMethods>({
       loading: false,
       pendingMediaCount: brief.pendingMediaCount,
       previewableImageCount: brief.timeline.nodes.filter(isMomentNodeWithImage).length,
+      nominationEmptyText: nominationItems.length ? '' : '这场聚会还没有可推举照片',
+      nominationItems,
+      nominationSubmittingMomentId: '',
       rankingStatusText: buildRankingStatusText(brief),
       settlementSummary: brief.settlementSummary,
       sessionId: brief.sessionId || this.data.sessionId,
       shareContentFilter: brief.shareContentFilter,
-      shareTask: buildShareTaskFromBrief(brief),
       stats: buildStats(brief),
       subtitle: '已按当前聚会记录生成简报',
       timelineEmptyText: '这场聚会还没有可展示的照片记录',
@@ -305,71 +383,97 @@ Page<SessionBriefState, SessionBriefMethods>({
 
   handleRankingTap() {
     wx.navigateTo({
-      url: '/pages/album/index?mode=host',
+      url: '/pages/rankings/index',
       fail: () => {
-        wx.redirectTo({ url: '/pages/album/index?mode=host' })
+        wx.redirectTo({ url: '/pages/rankings/index' })
       },
     })
   },
 
-  async handleCreateShareTaskTap() {
-    if (!this.data.briefId) {
-      this.showToast('简报未加载完成')
+  async refreshNominationEligibility() {
+    const items = this.data.nominationItems
+    if (!items.length) return
+
+    const nextItems = await Promise.all(items.map(async (item) => {
+      if (!item.rankingEligible) return item
+      try {
+        const eligibility = await getManagedMomentNominationEligibility(item.id, item.category)
+        return applyEligibilityToNominationItem(item, eligibility)
+      } catch {
+        return {
+          ...item,
+          buttonDisabled: true,
+          buttonLabel: '不可推举',
+          reason: '暂时无法确认推举资格',
+          statusText: '暂时无法确认推举资格',
+        }
+      }
+    }))
+
+    this.setData({ nominationItems: nextItems })
+  },
+
+  async handleNominatePhotoTap(event) {
+    const { momentId } = event.currentTarget.dataset as { momentId?: string }
+    const item = this.data.nominationItems.find((entry) => entry.id === momentId)
+    if (!item) {
+      this.showToast('未找到可推举照片')
+      return
+    }
+    if (this.data.nominationSubmittingMomentId) return
+    if (item.buttonDisabled) {
+      this.showToast(item.reason || item.statusText || '这张照片暂不可推举')
       return
     }
 
-    wx.showLoading({
-      title: '创建分享图',
-      mask: true,
-    })
+    this.setData({ nominationSubmittingMomentId: item.id })
 
-    let toastMessage = ''
     try {
-      const task = await createManagedShareImageTask(this.data.briefId, { includeLedger: true, layoutMode: 'dual_flow' })
-      this.setData({ shareTask: task })
-      toastMessage = '分享图任务已创建'
+      const latestEligibility = await getManagedMomentNominationEligibility(item.id, item.category)
+      const refreshedItem = applyEligibilityToNominationItem(item, latestEligibility)
+      if (!latestEligibility.eligible) {
+        this.setData({
+          nominationItems: this.data.nominationItems.map((entry) => (entry.id === item.id ? refreshedItem : entry)),
+        })
+        this.showToast(refreshedItem.reason || refreshedItem.statusText)
+        return
+      }
+
+      const confirm = await new Promise<boolean>((resolve) => {
+        wx.showModal({
+          title: '推举这张照片？',
+          content: `将消耗 ${latestEligibility.pointsCost || item.pointsCost} 积分，推举后会进入今日回忆榜。`,
+          confirmText: '确认推举',
+          cancelText: '再想想',
+          success: (result) => resolve(result.confirm),
+          fail: () => resolve(false),
+        })
+      })
+
+      if (!confirm) return
+
+      await createManagedMomentNomination(item.id, {
+        category: item.category,
+        clientNominationId: `brief-${item.id}-${Date.now()}`,
+      })
+
+      const nominatedItem: BriefNominationItem = {
+        ...refreshedItem,
+        alreadyNominatedToday: true,
+        buttonDisabled: true,
+        buttonLabel: '已推举',
+        reason: '',
+        statusText: '今天已推举过这张照片',
+      }
+      this.setData({
+        nominationItems: this.data.nominationItems.map((entry) => (entry.id === item.id ? nominatedItem : entry)),
+      })
+      this.showToast('推举成功')
     } catch (error) {
-      toastMessage = error instanceof Error ? error.message : '创建失败'
+      this.showToast(error instanceof Error ? error.message : '推举失败')
     } finally {
-      wx.hideLoading()
+      this.setData({ nominationSubmittingMomentId: '' })
     }
-
-    if (toastMessage) {
-      this.showToast(toastMessage)
-    }
-  },
-
-  handleOpenShareFlowTap() {
-    const query = [
-      this.data.briefId ? `briefId=${encodeURIComponent(this.data.briefId)}` : '',
-      this.data.sessionId ? `sessionId=${encodeURIComponent(this.data.sessionId)}` : '',
-      this.data.shareTask?.id ? `taskId=${encodeURIComponent(this.data.shareTask.id)}` : '',
-    ].filter(Boolean).join('&')
-
-    if (!query) {
-      this.showToast('简报未加载完成')
-      return
-    }
-
-    wx.navigateTo({
-      url: `/pages/share-poster/index?${query}`,
-      fail: () => {
-        wx.redirectTo({ url: `/pages/share-poster/index?${query}` })
-      },
-    })
-  },
-
-  handlePreviewShareTask(event) {
-    const imageUrl = event.detail.imageUrl || this.data.shareTask?.imageUrl || ''
-    if (!imageUrl) {
-      this.showToast('分享图还未生成')
-      return
-    }
-
-    wx.previewImage({
-      urls: [imageUrl],
-      current: imageUrl,
-    })
   },
 
   async handlePreviewFirstImageTap() {
@@ -415,34 +519,6 @@ Page<SessionBriefState, SessionBriefMethods>({
       current: previewCurrent,
       urls,
     })
-  },
-
-  async handleRetryShareTask() {
-    const taskId = this.data.shareTask?.id || ''
-    if (!taskId) {
-      this.showToast('未找到分享图任务')
-      return
-    }
-
-    wx.showLoading({
-      title: '重试中',
-      mask: true,
-    })
-
-    let toastMessage = ''
-    try {
-      const task = await retryManagedShareImageTask(taskId)
-      this.setData({ shareTask: task })
-      toastMessage = '已重新排队'
-    } catch (error) {
-      toastMessage = error instanceof Error ? error.message : '重试失败'
-    } finally {
-      wx.hideLoading()
-    }
-
-    if (toastMessage) {
-      this.showToast(toastMessage)
-    }
   },
 
   handleBackTap() {

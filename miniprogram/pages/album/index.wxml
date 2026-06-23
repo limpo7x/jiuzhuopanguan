@@ -120,9 +120,15 @@
             <text class="album-memory-status">{{item.statusText}}</text>
             <text class="album-memory-title">{{item.title}}</text>
             <text class="album-memory-meta">{{item.meta}}</text>
-            <view class="album-memory-action-strip album-memory-action-strip-single">
+            <view
+              class="album-memory-action-strip album-memory-action-strip-single album-memory-nomination-action {{item.nominationDisabled ? 'album-memory-nomination-action-disabled' : ''}} {{item.nominationState === 'done' ? 'album-memory-nomination-action-done' : ''}}"
+              data-brief-id="{{item.briefId}}"
+              data-session-id="{{item.sessionId}}"
+              data-nomination-state="{{item.nominationState}}"
+              catchtap="handleNominateTap"
+            >
               <image src="/assets/party-recorder/pr-cs008cn-memory-list-action-strip.svg" mode="aspectFill"></image>
-              <text>查看回忆</text>
+              <text>{{item.nominationLabel}}</text>
             </view>
           </view>
         </view>

@@ -221,6 +221,127 @@ page {
   box-shadow: 0 10px 22px rgba(255, 91, 61, 0.24);
 }
 
+.brief-nomination-list {
+  display: grid;
+  gap: 10px;
+}
+
+.brief-nomination-card {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: 10px;
+  position: relative;
+  min-height: 104px;
+  padding: 10px 10px 54px;
+  border: 1px solid rgba(234, 223, 206, 0.9);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 92% 0%, rgba(255, 91, 61, 0.08), transparent 30%),
+    #fffaf3;
+  box-sizing: border-box;
+}
+
+.brief-nomination-card-disabled {
+  background: #f8f6f2;
+}
+
+.brief-nomination-image {
+  width: 76px;
+  height: 76px;
+  border: 3px solid #fff3df;
+  border-radius: 14px;
+  background: #eadfce;
+  box-shadow: 0 6px 14px rgba(128, 78, 36, 0.12);
+  box-sizing: border-box;
+}
+
+.brief-nomination-card-disabled .brief-nomination-image {
+  opacity: 0.68;
+}
+
+.brief-nomination-copy {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 4px;
+}
+
+.brief-nomination-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.brief-nomination-title {
+  overflow: hidden;
+  color: #24160f;
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brief-nomination-time {
+  flex: 0 0 auto;
+  color: #9a8061;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.brief-nomination-meta {
+  color: #ff5b3d;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.brief-nomination-card-disabled .brief-nomination-meta {
+  color: #9a8061;
+}
+
+.brief-nomination-caption {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #8f7f6d;
+  font-size: 12px;
+  line-height: 1.35;
+  font-weight: 700;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.brief-nomination-action {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 96px;
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff5b3d, #ff8a45);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 950;
+  box-shadow: 0 10px 22px rgba(255, 91, 61, 0.2);
+}
+
+.brief-nomination-action-disabled {
+  background: #e1dbd1;
+  color: #81715e;
+  box-shadow: none;
+}
+
+.brief-nomination-empty {
+  background: #fffaf3;
+}
+
 /* PR-FE-REMAINING-PAGES-IMPLEMENT-001: brief density reset */
 .brief-page {
   background: linear-gradient(180deg, #fffdf9 0%, #fff7ee 100%);

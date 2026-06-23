@@ -39,43 +39,36 @@
 
       <view class="brief-section">
         <view class="brief-section-head">
-          <text class="brief-section-title">分享图任务</text>
+          <text class="brief-section-title">照片推举</text>
           <view class="brief-section-action" bindtap="handleRefreshTap">刷新</view>
         </view>
 
-        <share-task-status
-          wx:if="{{shareTask}}"
-          task="{{shareTask}}"
-          bind:preview="handlePreviewShareTask"
-          bind:retry="handleRetryShareTask"
-        ></share-task-status>
-
-        <view wx:else class="brief-share-empty">
-          <text class="brief-share-title">还没有分享图任务</text>
-          <text class="brief-share-meta">生成后可离开页面，稍后回来查看状态。</text>
-          <view class="brief-share-action" bindtap="handleCreateShareTaskTap">生成分享图</view>
+        <view wx:if="{{nominationItems.length}}" class="brief-nomination-list">
+          <view
+            wx:for="{{nominationItems}}"
+            wx:key="id"
+            class="brief-nomination-card {{item.buttonDisabled ? 'brief-nomination-card-disabled' : ''}}"
+          >
+            <image class="brief-nomination-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
+            <view class="brief-nomination-copy">
+              <view class="brief-nomination-title-row">
+                <text class="brief-nomination-title">{{item.title}}</text>
+                <text wx:if="{{item.timeText}}" class="brief-nomination-time">{{item.timeText}}</text>
+              </view>
+              <text class="brief-nomination-meta">{{item.statusText}}</text>
+              <text class="brief-nomination-caption">{{item.caption}}</text>
+            </view>
+            <view
+              class="brief-nomination-action {{item.buttonDisabled ? 'brief-nomination-action-disabled' : ''}}"
+              data-moment-id="{{item.id}}"
+              catchtap="handleNominatePhotoTap"
+            >{{nominationSubmittingMomentId === item.id ? '处理中' : item.buttonLabel}}</view>
+          </view>
         </view>
 
-        <view class="brief-share-flow-entry brief-share020-entry" bindtap="handleOpenShareFlowTap" data-share-entry-selector="share-flow-015-brief-entry">
-          <image class="brief-share020-sticker brief-share020-sticker-star" src="/assets/party-recorder/share-flow/pr-share020-sticker-starburst.svg" mode="aspectFit"></image>
-          <image class="brief-share020-sticker brief-share020-sticker-tape" src="/assets/party-recorder/share-flow/pr-share020-sticker-tape-mint.svg" mode="aspectFit"></image>
-          <view class="brief-share-flow-copy">
-            <text class="brief-share020-kicker">分享流程</text>
-            <text class="brief-share-flow-title">生成酷炫分享页</text>
-            <image class="brief-share020-underline" src="/assets/party-recorder/share-flow/pr-share020-underline-coral.svg" mode="aspectFit"></image>
-            <text class="brief-share-flow-meta">照片记录、聚会账本和关键事件会一起进入分享预览。</text>
-            <view class="brief-share020-dual-row">
-              <view class="brief-share020-dual brief-share020-photo">
-                <text>拍照记录</text>
-                <text>随聚会回忆展示</text>
-              </view>
-              <view class="brief-share020-dual brief-share020-ledger">
-                <text>聚会账本</text>
-                <text>欠酒加酒一页看清</text>
-              </view>
-            </view>
-          </view>
-          <view class="brief-share-flow-action">打开</view>
+        <view wx:else class="brief-share-empty brief-nomination-empty">
+          <text class="brief-share-title">还没有可推举照片</text>
+          <text class="brief-share-meta">{{nominationEmptyText}}</text>
         </view>
       </view>
     </block>

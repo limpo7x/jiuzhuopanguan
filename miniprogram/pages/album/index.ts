@@ -1,18 +1,25 @@
 import {
+  getManagedMomentNominationEligibility,
   getManagedShareImageSummaries,
   getManagedSessionBrief,
   getManagedSessionMomentSummaries,
+  type ManagedRankingCategory,
   type ManagedShareImageSummary,
   type ManagedSessionBrief,
   type ManagedSessionMomentSummary,
   type ManagedTimelineNode,
 } from '../../services/operations'
 
+type AlbumNominationState = 'active' | 'done' | 'empty' | 'unavailable'
+
 interface AlbumItem {
   briefId: string
   coverUrl: string
   coverBroken?: boolean
   meta: string
+  nominationDisabled: boolean
+  nominationLabel: string
+  nominationState: AlbumNominationState
   sessionId: string
   shareImageUrl: string
   shareImageTaskId: string
@@ -45,6 +52,7 @@ interface AlbumPageMethods {
   handleCoverLoad: (event: WechatMiniprogram.BaseEvent) => void
   handleFilterTap: (event: WechatMiniprogram.BaseEvent) => void
   handleItemTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleNominateTap: (event: WechatMiniprogram.BaseEvent) => void
   handleRefreshTap: () => Promise<void>
   loadAlbums: () => Promise<void>
   openPage: (url: string) => void
@@ -122,6 +130,13 @@ const shouldQuarantineRecordCover = (value?: string) => legacyCoverPattern.test(
 const isMomentNodeWithImage = (node: ManagedTimelineNode): node is Extract<ManagedTimelineNode, { nodeKind: 'moment' }> =>
   node.nodeKind === 'moment' && !node.isTimelinePlaceholder && !!node.imageUrl
 
+const getDefaultRankingCategoryFromNode = (node: Extract<ManagedTimelineNode, { nodeKind: 'moment' }>): ManagedRankingCategory => {
+  if (node.nodeType === 'opening') return 'best_opening'
+  if (node.nodeType === 'closing') return 'best_closing'
+  if (node.nodeType === 'drinking') return 'today_debt'
+  return 'today_highlight'
+}
+
 const getMomentNodeTime = (node: Extract<ManagedTimelineNode, { nodeKind: 'moment' }>) => {
   const timestamp = Date.parse(node.createdAt || node.updatedAt || '')
   return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : Number.MAX_SAFE_INTEGER
@@ -180,6 +195,61 @@ const hasGeneratedShareImage = (item: ManagedSessionMomentSummary) => Boolean(it
 
 const isPendingShareMemory = (item: ManagedSessionMomentSummary) => !isEndedSessionSummary(item) && !hasGeneratedShareImage(item)
 
+const buildAlbumNominationState = async (brief?: ManagedSessionBrief): Promise<{
+  nominationDisabled: boolean
+  nominationLabel: string
+  nominationState: AlbumNominationState
+}> => {
+  const photoNodes = (brief?.timeline?.nodes || []).filter(isMomentNodeWithImage)
+  if (!photoNodes.length) {
+    return {
+      nominationDisabled: true,
+      nominationLabel: '无照片',
+      nominationState: 'empty',
+    }
+  }
+
+  const rankableNodes = photoNodes.filter((node) => node.rankingEligible)
+  if (!rankableNodes.length) {
+    return {
+      nominationDisabled: true,
+      nominationLabel: '待审核',
+      nominationState: 'unavailable',
+    }
+  }
+
+  let hasAvailableNode = false
+  for (const node of rankableNodes) {
+    try {
+      const eligibility = await getManagedMomentNominationEligibility(node.id, getDefaultRankingCategoryFromNode(node))
+      if (eligibility.alreadyNominatedToday) {
+        return {
+          nominationDisabled: true,
+          nominationLabel: '已推举',
+          nominationState: 'done',
+        }
+      }
+      if (eligibility.eligible) {
+        hasAvailableNode = true
+      }
+    } catch {
+      // Keep checking other photos; one failed eligibility call should not break the album list.
+    }
+  }
+
+  return hasAvailableNode
+    ? {
+        nominationDisabled: false,
+        nominationLabel: '推举回忆',
+        nominationState: 'active',
+      }
+    : {
+        nominationDisabled: true,
+        nominationLabel: '暂不可推举',
+        nominationState: 'unavailable',
+      }
+}
+
 const filterSummariesByMode = (items: ManagedSessionMomentSummary[], mode: string) => {
   switch (mode) {
     case 'ended':
@@ -208,11 +278,12 @@ const filterSummariesByRecordFilter = (items: ManagedSessionMomentSummary[], fil
 }
 
 const mapAlbumItem = async (item: ManagedSessionMomentSummary, index: number): Promise<AlbumItem> => {
+  let brief: ManagedSessionBrief | undefined
   let firstPhotoUrl = ''
   let timeText = formatAlbumTime(item.createdAt)
   if (item.briefId) {
     try {
-      const brief = await getManagedSessionBrief(item.briefId)
+      brief = await getManagedSessionBrief(item.briefId)
       firstPhotoUrl = findFirstBriefPhoto(brief) || firstPhotoUrl
       timeText = timeText || formatAlbumTime(brief.createdAt || brief.updatedAt)
     } catch {
@@ -222,14 +293,23 @@ const mapAlbumItem = async (item: ManagedSessionMomentSummary, index: number): P
   const shareImageUrl = item.readyShareImageUrl || item.shareImageUrl || ''
   firstPhotoUrl = firstPhotoUrl || item.coverPhotoUrl || ''
   const coverUrl = shouldQuarantineRecordCover(firstPhotoUrl) ? '' : firstPhotoUrl
+  const stateType = isEndedSessionSummary(item) ? 'ended' : 'ongoing'
+  const nomination = stateType === 'ended'
+    ? await buildAlbumNominationState(brief)
+    : {
+        nominationDisabled: true,
+        nominationLabel: '推举回忆',
+        nominationState: 'unavailable' as AlbumNominationState,
+      }
   return {
     briefId: item.briefId || '',
     coverUrl,
     meta: buildMeta(item, timeText),
+    ...nomination,
     sessionId: item.sessionId || '',
     shareImageUrl,
     shareImageTaskId: item.shareImageTaskId || '',
-    stateType: isEndedSessionSummary(item) ? 'ended' : 'ongoing',
+    stateType,
     statusText: buildStatusText(item),
     title: normalizeTitle(item.title, item.sessionName, index),
   }
@@ -239,6 +319,9 @@ const mapShareImageSummaryItem = (item: ManagedShareImageSummary, index: number)
   briefId: item.briefId || '',
   coverUrl: '',
   meta: formatAlbumTime(item.finishedAt || item.updatedAt || item.createdAt) || '分享图已生成',
+  nominationDisabled: true,
+  nominationLabel: '已生成',
+  nominationState: 'done',
   sessionId: item.sessionId || '',
   shareImageUrl: item.readyShareImageUrl || item.imageUrl || '',
   shareImageTaskId: item.id || '',
@@ -298,6 +381,9 @@ Page<AlbumPageState, AlbumPageMethods>({
 
   onShow() {
     this.updateHeaderActionStyle()
+    if (!this.data.loading) {
+      void this.loadAlbums()
+    }
   },
 
   onPullDownRefresh() {
@@ -422,6 +508,36 @@ Page<AlbumPageState, AlbumPageMethods>({
       return
     }
     wx.showToast({ title: '缺少回忆信息', icon: 'none' })
+  },
+
+  handleNominateTap(event) {
+    const { briefId, nominationState, sessionId } = event.currentTarget.dataset as {
+      briefId?: string
+      nominationState?: AlbumNominationState
+      sessionId?: string
+    }
+
+    if (nominationState === 'active') {
+      const query = [
+        briefId ? `briefId=${encodeURIComponent(briefId)}` : '',
+        sessionId ? `sessionId=${encodeURIComponent(sessionId)}` : '',
+        'action=nominate',
+      ].filter(Boolean).join('&')
+      if (query) {
+        this.openPage(`/pages/session-brief/index?${query}`)
+        return
+      }
+      wx.showToast({ title: '缺少可推举聚会信息', icon: 'none' })
+      return
+    }
+
+    const titleMap: Record<AlbumNominationState, string> = {
+      active: '请选择要推举的照片',
+      done: '今天已推举过这场聚会',
+      empty: '这场聚会还没有可推举照片',
+      unavailable: '照片审核通过后可推举',
+    }
+    wx.showToast({ title: titleMap[nominationState || 'unavailable'], icon: 'none' })
   },
 
   handleCreateTap() {
