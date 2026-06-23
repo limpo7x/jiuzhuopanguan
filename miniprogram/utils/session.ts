@@ -43,6 +43,7 @@ export interface SessionReport {
 export interface SessionRuntime {
   currentUser: SessionUser | null
   endedAt?: string
+  firstPhotoUploadedAt?: string
   inviteCode?: string
   isJudge: boolean
   playerCount: number
@@ -73,6 +74,7 @@ export interface SessionEndedOverride {
 
 const DEFAULT_SESSION_RUNTIME: SessionRuntime = {
   currentUser: null,
+  firstPhotoUploadedAt: '',
   inviteCode: '',
   isJudge: false,
   playerCount: 0,
@@ -131,6 +133,22 @@ export const setSessionRuntime = (patch: Partial<SessionRuntime>): SessionRuntim
   const next = { ...getSessionRuntime(), ...patch }
   wx.setStorageSync(SESSION_RUNTIME_KEY, next)
   return next
+}
+
+export const hasSessionFirstPhoto = (runtime: SessionRuntime = getSessionRuntime()) =>
+  Boolean(String(runtime.firstPhotoUploadedAt || '').trim())
+
+export const isSessionRuntimeInProgress = (runtime: SessionRuntime = getSessionRuntime()) =>
+  Boolean(runtime.sessionId && hasSessionFirstPhoto(runtime) && !runtime.endedAt)
+
+export const markSessionFirstPhotoUploaded = (uploadedAt = new Date().toISOString()): SessionRuntime => {
+  const timestamp = new Date(uploadedAt).getTime()
+  return setSessionRuntime({
+    firstPhotoUploadedAt: uploadedAt,
+    startedAt: Number.isFinite(timestamp) && timestamp > 0 ? timestamp : Date.now(),
+    state: '进行中',
+    status: '进行中',
+  })
 }
 
 export const getSessionEndedOverrides = (): Record<string, SessionEndedOverride> => {

@@ -3320,7 +3320,7 @@ pageMap['content-moments-review'] = () => {
             label: '通过',
             endpoint: '/api/v1/admin/moments/:id/review',
             payloadAction: 'approve',
-            reasonPrompt: '请输入通过审核的原因',
+            reasonRequired: false,
             visibleWhen: { field: 'reviewStatus', values: ['pending', 'rejected', '待审核', '已拒绝'] },
           },
           {
@@ -3670,6 +3670,21 @@ const refundMomentNominationsAfterRankingRemoval = ({ momentId, action, reason, 
   })
 }
 
+const isAdminMomentEligibleAfterApproval = (moment = {}) => {
+  const usageConsent = moment.usageConsent && typeof moment.usageConsent === 'object' ? moment.usageConsent : {}
+  const visibility = String(moment.visibility || '').trim()
+  const nodeType = String(moment.nodeType || '').trim()
+  const isPrivate = nodeType === 'private' || visibility === 'private' || visibility === 'selected'
+  const completionStatus = String(moment.completionStatus || '').trim() || (String(moment.imageUrl || '').trim() ? 'complete' : 'needs_media')
+  return Boolean(
+    completionStatus === 'complete' &&
+      usageConsent.ranking !== false &&
+      !isPrivate &&
+      moment.reviewStatus === 'approved' &&
+      moment.secondaryReviewStatus === 'approved',
+  )
+}
+
 const applyAdminMomentReviewState = (moment = {}, action = '') => {
   const next = {
     ...moment,
@@ -3678,6 +3693,9 @@ const applyAdminMomentReviewState = (moment = {}, action = '') => {
   if (action === 'approve' || action === 'approve_secondary') {
     next.reviewStatus = 'approved'
     next.secondaryReviewStatus = 'approved'
+    const eligible = isAdminMomentEligibleAfterApproval(next)
+    next.rankingEligible = eligible
+    next.rewardEligible = eligible
   } else if (action === 'approve_primary') {
     next.reviewStatus = 'approved'
   } else if (action === 'hide') {
@@ -3803,11 +3821,11 @@ const handleManagedMomentReport = ({ reportId, action, reason, operator = 'admin
 const reviewManagedMoment = ({ momentId, action, reason, operator = 'admin-console' } = {}) => {
   const normalizedMomentId = String(momentId || '').trim()
   const normalizedAction = String(action || '').trim()
-  const normalizedReason = String(reason || '').trim()
+  const normalizedReason = String(reason || '').trim() || (normalizedAction === 'approve' ? '后台列表快捷通过' : '')
   if (!normalizedMomentId) {
     throw new Error('momentId required')
   }
-  if (!normalizedReason) {
+  if (!normalizedReason && normalizedAction !== 'approve') {
     throw new Error('review reason required')
   }
   const momentsStore = readMomentsAdminStore()

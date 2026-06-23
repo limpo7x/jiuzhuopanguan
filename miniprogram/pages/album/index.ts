@@ -193,7 +193,10 @@ const isEndedSessionSummary = (item: ManagedSessionMomentSummary) => {
 
 const hasGeneratedShareImage = (item: ManagedSessionMomentSummary) => Boolean(item.readyShareImageUrl || item.shareImageUrl)
 
-const isPendingShareMemory = (item: ManagedSessionMomentSummary) => !isEndedSessionSummary(item) && !hasGeneratedShareImage(item)
+const hasFirstPhotoSummary = (item: ManagedSessionMomentSummary) =>
+  Boolean(item.coverPhotoUrl || item.readyShareImageUrl || item.shareImageUrl)
+
+const isPendingShareMemory = (item: ManagedSessionMomentSummary) => !isEndedSessionSummary(item) && hasFirstPhotoSummary(item) && !hasGeneratedShareImage(item)
 
 const buildAlbumNominationState = async (brief?: ManagedSessionBrief): Promise<{
   nominationDisabled: boolean
@@ -270,7 +273,7 @@ const filterSummariesByRecordFilter = (items: ManagedSessionMomentSummary[], fil
     case 'ended':
       return items.filter(isEndedSessionSummary)
     case 'ongoing':
-      return items.filter((item) => !isEndedSessionSummary(item))
+      return items.filter((item) => !isEndedSessionSummary(item) && hasFirstPhotoSummary(item))
     case 'all':
     default:
       return items

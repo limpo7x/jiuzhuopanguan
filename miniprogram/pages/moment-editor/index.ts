@@ -8,7 +8,8 @@ import {
   type ManagedMomentPayload,
 } from '../../services/operations'
 import { normalizeManagedAssetPath } from '../../config/assets'
-import { getSessionRuntime, type SessionParticipant } from '../../utils/session'
+import { getSessionRuntime, hasSessionFirstPhoto, markSessionFirstPhotoUploaded, type SessionParticipant } from '../../utils/session'
+import { disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized, type SocialProfile } from '../../utils/social'
 
 type ConsentKey = keyof ManagedMomentUsageConsent
@@ -270,6 +271,13 @@ Page<MomentEditorState, MomentEditorMethods>({
     })
 
     await this.loadSessionMembers(sessionId, profile)
+    if (!detailMode && !hasSessionFirstPhoto(getSessionRuntime())) {
+      enableSessionLeaveAlert()
+    }
+  },
+
+  onUnload() {
+    disableSessionLeaveAlert()
   },
 
   async loadSessionMembers(sessionId, currentProfile) {
@@ -331,6 +339,27 @@ Page<MomentEditorState, MomentEditorMethods>({
   },
 
   handleBackTap() {
+    const runtime = getSessionRuntime()
+    const hasFirstPhoto = hasSessionFirstPhoto(runtime)
+    if (!this.data.detailMode && this.data.sessionId && !hasFirstPhoto) {
+      wx.showModal({
+        title: '还未开始记录',
+        content: '第一张照片保存成功后才会计入进行中。现在离开不会在首页显示为进行中。',
+        confirmText: '离开',
+        cancelText: '继续拍照',
+        success: (result) => {
+          if (!result.confirm) return
+          disableSessionLeaveAlert()
+          const fallbackUrl = `/pages/invite-group/index?sessionId=${encodeURIComponent(this.data.sessionId)}`
+          wx.navigateBack({
+            fail: () => {
+              wx.redirectTo({ url: fallbackUrl })
+            },
+          })
+        },
+      })
+      return
+    }
     wx.navigateBack({
       fail: () => {
         wx.redirectTo({ url: '/pages/live-record/index' })
@@ -568,6 +597,11 @@ Page<MomentEditorState, MomentEditorMethods>({
       return
     }
 
+    if (!hasSessionFirstPhoto(getSessionRuntime()) && !this.data.imageUrl) {
+      this.showToast('请先上传第一张照片')
+      return
+    }
+
     if (!this.data.caption.trim() && !this.data.imageUrl) {
       this.showToast('请先添加图片或一句话说明')
       return
@@ -585,7 +619,10 @@ Page<MomentEditorState, MomentEditorMethods>({
     })
 
     try {
-      await createManagedMoment(this.data.sessionId, this.buildPayload())
+      const created = await createManagedMoment(this.data.sessionId, this.buildPayload())
+      if (created.imageUrl) {
+        markSessionFirstPhotoUploaded(created.createdAt || created.updatedAt || new Date().toISOString())
+      }
       wx.showToast({
         title: '已记录',
         icon: 'success',

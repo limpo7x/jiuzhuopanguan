@@ -15,7 +15,7 @@ interface ConfirmLeaveOptions {
 }
 
 const DEFAULT_REDIRECT_URL = '/pages/index/index'
-const SESSION_LEAVE_ALERT_MESSAGE = '聚会正在记录中，确定要离开吗？'
+const SESSION_LEAVE_ALERT_MESSAGE = '离开当前聚会页面？首张照片保存成功前不会计入进行中。'
 
 const redirectAfterExit = (redirectUrl: string) => {
   disableSessionLeaveAlert()

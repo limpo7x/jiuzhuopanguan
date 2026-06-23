@@ -1103,14 +1103,18 @@ const runAdminRowAction = async (tableKey, rowId, actionKey) => {
     setStatus('未找到要执行的后台操作', 'error')
     return
   }
-  const reason = await requestActionReason(action.reasonPrompt || '请输入操作原因')
-  if (!String(reason || '').trim()) {
-    setStatus('已取消：后台操作必须填写原因', 'error')
-    return
+  let reason = ''
+  if (action.reasonRequired !== false) {
+    reason = await requestActionReason(action.reasonPrompt || '请输入操作原因')
+    if (!String(reason || '').trim()) {
+      setStatus('已取消：后台操作必须填写原因', 'error')
+      return
+    }
   }
   const endpoint = interpolateActionEndpoint(action.endpoint, row)
-  const payload = {
-    reason: String(reason).trim(),
+  const payload = {}
+  if (String(reason || '').trim()) {
+    payload.reason = String(reason).trim()
   }
   if (action.payloadAction) {
     payload.action = action.payloadAction

@@ -527,10 +527,12 @@ const isTimelineNodeShareImageEligible = (node = {}) => {
   const usageConsent = normalizeUsageConsent(node.usageConsent)
   const visibility = cleanText(node.visibility)
   const isPrivate = node.nodeType === 'private' || visibility === 'private' || visibility === 'selected'
+  const reviewApproved = node.reviewStatus === 'approved' && node.secondaryReviewStatus === 'approved'
   return Boolean(
     !isPrivate &&
       usageConsent.share &&
-      node.completionStatus === 'complete',
+      node.completionStatus === 'complete' &&
+      reviewApproved,
   )
 }
 

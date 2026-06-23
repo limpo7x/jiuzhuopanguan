@@ -1,6 +1,8 @@
 import {
   formatElapsed,
   getSessionRuntime,
+  hasSessionFirstPhoto,
+  markSessionFirstPhotoUploaded,
   markSessionEndedOverride,
   resolveSessionParticipants,
   setSessionRuntime,
@@ -215,7 +217,9 @@ const isForbiddenError = (error: unknown) => {
 const resolveSessionStartTime = (
   runtimeStartedAt: number,
   liveSession: { createdAt?: string; startedAt?: string; updatedAt?: string },
+  hasFirstPhoto: boolean,
 ) => {
+  if (!hasFirstPhoto) return 0
   if (runtimeStartedAt) return runtimeStartedAt
   const source = liveSession.startedAt || liveSession.createdAt || liveSession.updatedAt || ''
   const timestamp = source ? new Date(source).getTime() : 0
@@ -697,6 +701,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     const sessionStartTime = resolveSessionStartTime(
       runtime.startedAt,
       liveSession as typeof liveSession & { createdAt?: string; startedAt?: string; updatedAt?: string },
+      hasSessionFirstPhoto(runtime),
     )
 
     setSessionRuntime({
@@ -869,6 +874,10 @@ Page<LiveRecordState, LiveRecordMethods>({
 
     try {
       const timeline = await getManagedSessionTimeline(sessionId)
+      const firstPhotoNode = timeline.nodes.find((node) => node.nodeKind === 'moment' && Boolean(node.imageUrl))
+      if (firstPhotoNode) {
+        markSessionFirstPhotoUploaded(firstPhotoNode.createdAt || firstPhotoNode.updatedAt || new Date().toISOString())
+      }
       const records = buildRecordsWithLedgerEvents(this.data.records, timeline.nodes)
       const timelineViewState = await resolveLiveRecordTimelineImages(buildTimelineViewState(timeline.nodes, records))
       const recordTimelineDisplayItems = buildRecordTimelineDisplayItems(timelineViewState.recordTimelineItems)
@@ -889,6 +898,7 @@ Page<LiveRecordState, LiveRecordMethods>({
         timelinePhotoDiagnostics,
         records,
         recordTimelineDisplayItems,
+        startTimeText: formatStartTimeText(getSessionRuntime().startedAt),
         ...timelineViewState,
       })
     } catch (error) {
@@ -1347,10 +1357,14 @@ Page<LiveRecordState, LiveRecordMethods>({
   },
 
   async handleBackTap() {
+    const hasFirstPhoto = hasSessionFirstPhoto(getSessionRuntime())
     await confirmLeaveSessionPage({
       clearRuntime: false,
-      content: '离开后当前聚会会保持挂起，可从首页继续回到记录页。',
-      confirmText: '挂起离开',
+      content: hasFirstPhoto
+        ? '离开后当前聚会会保持挂起，可从首页继续回到记录页。'
+        : '还没有保存第一张照片，这场聚会不会计入进行中，也不会出现在继续记录入口。',
+      confirmText: hasFirstPhoto ? '挂起离开' : '离开',
+      cancelText: hasFirstPhoto ? '继续记录' : '继续拍照',
     })
   },
 

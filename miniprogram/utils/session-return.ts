@@ -1,4 +1,4 @@
-import { getSessionRuntime, type SessionRuntime } from './session'
+import { getSessionRuntime, isSessionRuntimeInProgress, type SessionRuntime } from './session'
 
 export type SessionReturnRole = 'judge' | 'viewer'
 
@@ -60,8 +60,7 @@ export const buildSessionReturnFromRuntime = (runtime: SessionRuntime = getSessi
   }
 
   const role: SessionReturnRole = runtime.isJudge ? 'judge' : 'viewer'
-  const started = Boolean(runtime.startedAt)
-  if (!started) {
+  if (!isSessionRuntimeInProgress(runtime)) {
     return EMPTY_SESSION_RETURN
   }
   if (isEndedRuntime(runtime)) {

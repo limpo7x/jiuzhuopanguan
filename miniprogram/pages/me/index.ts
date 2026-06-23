@@ -207,9 +207,12 @@ const isEndedSessionSummary = (item: ManagedSessionMomentSummary) => {
   return Boolean(item.endedAt) || /已结束|结束|已完成|ended|finished|closed|complete|completed|done/i.test(stateText)
 }
 
+const hasFirstPhotoSummary = (item: ManagedSessionMomentSummary) =>
+  Boolean(item.coverPhotoUrl || item.readyShareImageUrl || item.shareImageUrl)
+
 const hasGeneratedShareImage = (item: ManagedSessionMomentSummary) => Boolean(item.readyShareImageUrl || item.shareImageUrl)
 
-const isPendingShareMemory = (item: ManagedSessionMomentSummary) => !isEndedSessionSummary(item) && !hasGeneratedShareImage(item)
+const isPendingShareMemory = (item: ManagedSessionMomentSummary) => !isEndedSessionSummary(item) && hasFirstPhotoSummary(item) && !hasGeneratedShareImage(item)
 
 const buildSessionMomentClassificationDebug = (items: ManagedSessionMomentSummary[]): SessionMomentClassificationDebug[] =>
   items.map((item) => ({
@@ -234,7 +237,7 @@ const buildPendingAlbumItems = (items: ManagedSessionMomentSummary[]): PendingAl
     const shareImageStatus = String(item.shareImageStatus || '')
     const isEnded = isEndedSessionSummary(item)
     const stateLabel = buildSummaryStateLabel(item, isEnded)
-    const canResume = !isEnded && (item.canResume || pendingMediaCount > 0 || canResumeMomentIds.length > 0)
+    const canResume = !isEnded && hasFirstPhotoSummary(item) && (item.canResume || pendingMediaCount > 0 || canResumeMomentIds.length > 0)
     const actionLabel = isEnded ? '查看' : canResume ? '进入本局' : '查看'
     const statusText =
       isEnded
@@ -388,7 +391,7 @@ Page<MePageState, MePageMethods>({
     const resolvedShareImageSummaries = shareImageSummariesResult.items
     const generatedShareSummaries = resolvedMomentSummaries.filter(hasGeneratedShareImage)
     const endedSummaries = resolvedMomentSummaries.filter(isEndedSessionSummary)
-    const ongoingSummaries = resolvedMomentSummaries.filter((item) => !isEndedSessionSummary(item))
+    const ongoingSummaries = resolvedMomentSummaries.filter((item) => !isEndedSessionSummary(item) && hasFirstPhotoSummary(item))
     const assetStats = momentSummariesResult.ok
       ? [
           { value: String(resolvedMomentSummaries.length), label: '总回忆数' },

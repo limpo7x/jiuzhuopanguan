@@ -183,6 +183,8 @@ const buildAlbumRoute = (item: ManagedSessionMomentSummary) => {
 
 const isActiveSummary = (item: ManagedSessionMomentSummary) => {
   const state = `${item.state || ''} ${item.status || ''} ${item.stateText || ''}`.trim()
+  const hasFirstPhoto = Boolean(item.coverPhotoUrl || item.readyShareImageUrl || item.shareImageUrl)
+  if (!hasFirstPhoto) return false
   if (!state) return Boolean(item.canResume && item.sessionId)
   return Boolean(item.sessionId) && !/已结束|结束|已完成|closed|ended|finished|deleted/i.test(state)
 }

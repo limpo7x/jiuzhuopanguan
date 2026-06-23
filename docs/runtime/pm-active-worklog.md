@@ -1298,3 +1298,97 @@ PM 判断：
 - 接口联调 `SHARE-AUTH-011-INT`：等待部署证据后按矩阵复跑，证据只写 token 后 8 位。
 - 前端 `SHARE-AUTH-011-FE`：按 `409 session not ended`、`403 forbidden`、`403 not session member` 接入分享页错误态和按钮禁用。
 - 测试验收 `SHARE-AUTH-011-QA`：等待 DBA 部署、接口矩阵、前端状态证据后再复测，不提前写通过。
+
+## 2026-06-23 负责人未入总台账改动补录
+
+本节用于补齐各负责人已交付但尚未汇总到 PM 总台账的证据。仅做 PM 汇总，不覆盖各角色自己的交付记录。
+
+### 已补录角色证据
+
+- 后端/API `SHARE-AUTH-011`：
+  - 证据文件：`docs/runtime/pr-backend-share-auth-011.md`。
+  - 代码合同：分享图生成、重试、处理必须满足“用户仍是成员 + session 已结束 + 用户是房主”；未结束返回 `409 session not ended`；结束后普通成员创建/重试/处理返回 `403 forbidden`；成员仍可读取 ready 分享图，被踢后不再可读。
+  - 本地验证：`node --check backend/data/moments.js`、`node --check backend/scripts/smoke-share-image-async-flow.js`、`npm.cmd run check:encoding`、`node backend/scripts/smoke-share-image-async-flow.js` 通过。
+  - 状态：本地合同与 smoke 已完成；线上是否已部署需以 DBA/运维或 PM2/API 证据为准。
+- 前端 `SHARE-AUTH-011-FE`：
+  - 证据文件：`docs/runtime/pr-fe-share-auth-011.md`。
+  - 接入点：`miniprogram/pages/share-poster/index.ts|wxml|less` 已处理 `session not ended`、`forbidden`、`not session member` 错误态，阻断生成/保存/刷新；首页、我的、相册读取 `coverPhotoUrl` 作为首图封面。
+  - 验证：`npm.cmd run typecheck`、`npm.cmd run check:encoding` 通过；首页窗口截图文件已生成。
+  - 阻塞：9420 返回 ticket 但 WebSocket candidate 不可用，未完成完整自动化截图；仍需线上后端部署后复测真实 `409/403` 合同；涉及前端包，后续如确认上线需重新上传小程序包。
+- 接口联调 `SHARE-AUTH-011-INT`：
+  - 证据文件：`docs/runtime/pr-int-share-auth-011.md`。
+  - 已建立部署后矩阵：进行中禁止创建/retry/process、结束后房主允许、成员创建禁止但 ready 可读、被踢不可读、被踢 summaries 移除、重新通过 inviteCode 加入后恢复归属、normalized 与 app_store 对账。
+  - 状态：准备完成；等待线上部署证据、有效 token、最小样本与清理方案后复跑，不得用本地 smoke 冒充线上验收。
+- UI/UX `SHARE-AUTH-011-UX`：
+  - 证据文件：`docs/runtime/pr-uiux-share-auth-011.md`。
+  - 产出：未结束、无权限、被踢出三类分享页状态文案和按钮状态建议；不改业务源码，不改 PM 总台账。
+  - 状态：建议已交付，等待前端按合同落地和 QA 复测。
+- 测试验收 `SHARE-AUTH-011-QA`：
+  - 证据文件：`docs/runtime/pr-qa-share-auth-011.md`。
+  - 当前状态：`waiting / blocked`。
+  - 阻塞原因：缺线上部署证据、缺接口联调线上矩阵、缺前端真实预览框错误态证据；不能写通过、上线准出或正式真机发布通过。
+- 前端返回挂起复测 `011`：
+  - 证据文件：`docs/runtime/pr-fe-return-suspend-retest-011.md`，窗口截图 `docs/runtime/pr-fe-return-suspend-current-window.png`。
+  - 覆盖 commit：`dbbc4d02 fix(frontend): preserve active session on back navigation`。
+  - 静态核查：创建页已有未结束 runtime 时回记录页；邀请页/等待页/记录页顶部返回保留 runtime；邀请页、等待页、记录页禁用侧滑；首页挂起条回记录页。
+  - 验证：`npm.cmd run typecheck`、`npm.cmd run check:encoding`、目标文件 `git diff --check` 通过。
+  - 阻塞：9420 端口可连，但 `/v2/auto` 未暴露可用 WebSocket candidate，未完成真实点击链路和侧滑交互验证。
+
+### 当前新改动：首拍后才计入进行中
+
+用户最新规则：
+
+- 拍照上传并保存成功第一张照片后，聚会才算“进行中”。
+- 创建页面、邀请页面、拍照页面在首拍前返回，不应计入进行中。
+- 首拍前返回必须给玩家明确提示。
+
+PM 当前线程已完成本地前端改动，尚未提交、尚未部署、尚未上传小程序包：
+
+- 新增本地首拍标记：`miniprogram/utils/session.ts` 增加 `firstPhotoUploadedAt`、`hasSessionFirstPhoto()`、`isSessionRuntimeInProgress()`、`markSessionFirstPhotoUploaded()`。
+- 首页挂起条：`miniprogram/utils/session-return.ts` 改为只有 `firstPhotoUploadedAt` 存在且未结束才展示。
+- 创建页：`miniprogram/pages/create-session/index.ts|wxml` 首次创建只写 `startedAt=0` 与 `待首拍`，顶部返回和系统返回提示“首张照片保存前不计入进行中”。
+- 邀请页/记录页：`miniprogram/pages/invite-group/index.ts`、`miniprogram/pages/live-record/index.ts` 首拍前返回文案改为“不会计入进行中”，首拍后仍为挂起离开。
+- 拍照页：`miniprogram/pages/moment-editor/index.ts` 首拍前必须上传图片；保存成功并有 `imageUrl` 后写入首拍标记和开始时间；首拍前返回提示不会进入继续记录入口。
+- 首页/我的/相册：`miniprogram/pages/index/index.ts`、`miniprogram/pages/me/index.ts`、`miniprogram/pages/album/index.ts` 的进行中统计、待分享回忆、相册 ongoing 筛选均排除无首图空聚会。
+
+本地验证：
+
+- `npm.cmd run check:encoding`：通过。
+- `npm.cmd run typecheck`：通过。
+- `git diff --check -- <本轮 11 个改动文件>`：通过。
+- `npm.cmd run build`：未执行成功，原因是仓库没有 `build` script；`npm.cmd run` 显示仅有 `check:encoding`、`wechat:auto`、`typecheck`。
+
+当前工作区状态：
+
+- `HEAD/main/origin/main` 当前为 `7c9c7e2 fix(frontend): block unauthorized share poster actions`。
+- 本轮首拍规则改动仍是未提交 tracked diff，涉及 11 个小程序前端/工具文件。
+- 当前还存在 3 个未提交 tracked diff，PM 本轮未写入，需由新 PM/对应负责人复核来源后再决定是否提交：
+  - `backend/data/admin.js`
+  - `backend/data/moments.js`
+  - `backend/public/admin/static/heatwave-ops/app.js`
+- 仍存在若干未跟踪历史证据/资产文件，PM 未将其纳入本轮提交范围，避免混入旧证据：
+  - `docs/design-assets/party-recorder/story-comic-20260622/`
+  - `docs/runtime/pr-fe-return-suspend-current-window.png`
+  - `docs/runtime/pr-fe-return-suspend-retest-011.md`
+  - `docs/runtime/pr-fe-share-auth-011-home-cover-window.png`
+  - `docs/runtime/pr-fe-share-auth-011-home-cover.png`
+  - `docs/runtime/pr-fe-share-auth-011.md`
+  - `docs/runtime/pr-int-share-auth-011.md`
+  - `docs/runtime/pr-qa-share-auth-011.md`
+  - `docs/runtime/pr-uiux-share-auth-011.md`
+  - `miniprogram/assets/party-recorder/party-recorder-app-icon-144.png`
+
+### PM 当前判断
+
+- `SHARE-AUTH-011`：各负责人证据已补入 PM 总台账，但仍不能整体写通过；上线闭环取决于线上部署、接口联调矩阵和 QA 预览框复测。
+- `返回挂起 011`：已有静态核查和命令验证，真实点击与侧滑仍待工具恢复后 QA 补测。
+- `首拍后才计入进行中`：本地代码和基础检查已完成，但未提交、未推送、未上传小程序包，也未做开发者工具点击复测；应交给前端/QA 继续验收。
+- 新 PM 总控线程已创建并置顶：`019ef398-1fe1-7423-9579-8afe0b54f353`，标题 `PM总控-聚会记录师-接管20260623`。
+
+### 接下来谁做什么
+
+- PM 新总控线程 `019ef398-1fe1-7423-9579-8afe0b54f353`：接管本文件，继续以本节为当前事实基线；不得通读旧长文档，优先读 `AGENTS.md`、`PRD.md`、`docs/runtime/pm-active-worklog.md` 和本轮短证据文件。
+- 前端负责人：复测并补证 `首拍后才计入进行中`，重点覆盖创建页返回、邀请页返回、拍照页未上传返回、首张照片保存后首页挂起条出现、我的/相册进行中计数变化；如通过，提交前端证据文件。
+- 测试验收负责人：在前端证据到位后，用微信开发者工具预览框执行点击链路；未完成前保持 waiting，不写通过。
+- 接口联调负责人：继续等待线上 `SHARE-AUTH-011` 部署证据后复跑矩阵；所有 token 只写后 8 位。
+- DBA/运维负责人：如用户要求线上部署，先确认仅部署 `api.pomer.cn` / `jiuzhuopanguan-backend`，不得触碰 `pomer.cn` 官网。

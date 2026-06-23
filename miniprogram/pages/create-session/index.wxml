@@ -1,6 +1,8 @@
 <navigation-bar
   title="创建聚会"
   back="{{true}}"
+  customBack="{{true}}"
+  bind:back="handleBackTap"
   color="#fff2dd"
   background="rgba(18,16,14,0.72)"
   ext-class="create-nav"

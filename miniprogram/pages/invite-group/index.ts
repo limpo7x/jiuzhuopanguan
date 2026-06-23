@@ -389,10 +389,14 @@ Page<InviteGroupState, InviteGroupMethods>({
   },
 
   async handleBackTap() {
+    const hasFirstPhoto = Boolean(String(getSessionRuntime().firstPhotoUploadedAt || '').trim())
     await confirmLeaveSessionPage({
       clearRuntime: false,
-      content: '离开后当前聚会会保持挂起，可从首页继续回到邀请或记录页。',
-      confirmText: '挂起离开',
+      content: hasFirstPhoto
+        ? '离开后当前聚会会保持挂起，可从首页继续回到邀请或记录页。'
+        : '还没有保存第一张照片，这场聚会不会计入进行中，也不会出现在继续记录入口。',
+      confirmText: hasFirstPhoto ? '挂起离开' : '离开',
+      cancelText: hasFirstPhoto ? '继续记录' : '继续邀请',
     })
   },
 

@@ -1,6 +1,7 @@
 import { createManagedSession } from '../../services/operations'
 import { clearSessionRuntime, setSessionRuntime } from '../../utils/session'
 import { buildSessionReturnFromRuntime } from '../../utils/session-return'
+import { disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
 
 interface NamePreset {
@@ -16,6 +17,7 @@ interface CreateSessionState {
 }
 
 interface CreateSessionMethods {
+  handleBackTap: () => void
   handleMoreTemplatesTap: () => void
   handleSessionNameInput: (event: WechatMiniprogram.Input) => void
   handleNextTap: () => Promise<void>
@@ -52,6 +54,7 @@ Page<CreateSessionState, CreateSessionMethods>({
     if (this.redirectActiveSessionIfNeeded()) {
       return
     }
+    enableSessionLeaveAlert()
 
     const profile = await ensureUserAuthorized('/pages/create-session/index')
     if (!profile) {
@@ -59,6 +62,28 @@ Page<CreateSessionState, CreateSessionMethods>({
     }
 
     this.setData({ currentTimeText: formatCreateTimeText() })
+  },
+
+  onUnload() {
+    disableSessionLeaveAlert()
+  },
+
+  handleBackTap() {
+    wx.showModal({
+      title: '离开创建？',
+      content: '还没有保存第一张照片，这场聚会不会计入进行中，也不会出现在继续记录入口。',
+      confirmText: '离开',
+      cancelText: '继续创建',
+      success: (result) => {
+        if (!result.confirm) return
+        disableSessionLeaveAlert()
+        wx.navigateBack({
+          fail: () => {
+            wx.reLaunch({ url: '/pages/index/index' })
+          },
+        })
+      },
+    })
   },
 
   handleSessionNameInput(event) {
@@ -124,7 +149,9 @@ Page<CreateSessionState, CreateSessionMethods>({
         selectedPlayers: [],
         sessionId: '',
         sessionName,
-        startedAt: Date.now(),
+        startedAt: 0,
+        state: '待首拍',
+        status: '待首拍',
       })
 
       const created = await createManagedSession({
