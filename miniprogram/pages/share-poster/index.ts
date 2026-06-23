@@ -112,6 +112,7 @@ interface SharePosterState {
   shareSummary: string
   shareHeadline: string
   shareItems: PosterShareItem[]
+  shareActionBlocked: boolean
   shareTask: ManagedShareImageTask | null
   taskIncludeLedger: boolean
   taskLayoutMode: string
@@ -487,8 +488,13 @@ const toSafeShareErrorText = (message: string) => {
   if (!raw) {
     return ''
   }
+  if (lower.includes('session not ended')) {
+    return '聚会结束后可查看分享图'
+  }
+  if (lower.includes('not session member')) {
+    return '当前账号已不在这场聚会中，暂不能查看分享图'
+  }
   if (
-    lower.includes('not session member') ||
     lower.includes('unauthorized') ||
     lower.includes('forbidden') ||
     lower.includes('401') ||
@@ -510,6 +516,25 @@ const toSafeShareErrorText = (message: string) => {
   }
   return '分享图暂时无法展示，请稍后重试'
 }
+
+const getErrorStatusCode = (error: unknown) =>
+  typeof (error as { statusCode?: unknown })?.statusCode === 'number'
+    ? Number((error as { statusCode?: number }).statusCode)
+    : 0
+
+const getShareAuthErrorKind = (error: unknown): 'session-not-ended' | 'not-member' | 'forbidden' | '' => {
+  const statusCode = getErrorStatusCode(error)
+  const message = error instanceof Error ? error.message : String(error || '')
+  const lower = message.toLowerCase()
+  if (statusCode === 409 && lower.includes('session not ended')) return 'session-not-ended'
+  if (lower.includes('session not ended')) return 'session-not-ended'
+  if (statusCode === 403 && lower.includes('not session member')) return 'not-member'
+  if (lower.includes('not session member')) return 'not-member'
+  if (statusCode === 403 || lower.includes('forbidden')) return 'forbidden'
+  return ''
+}
+
+const isShareActionBlockedError = (error: unknown) => Boolean(getShareAuthErrorKind(error))
 
 const isMissingSessionError = (error: unknown) => {
   const statusCode = (error as { statusCode?: number })?.statusCode
@@ -668,6 +693,7 @@ Page<SharePosterState, SharePosterMethods>({
     shareSummary: buildShareSummary(0, 0, 0),
     shareHeadline: SHARE_HEADLINE,
     shareItems: REPORT_SHARE_ITEMS,
+    shareActionBlocked: false,
     shareTask: null,
     taskIncludeLedger: false,
     taskLayoutMode: '',
@@ -816,6 +842,8 @@ Page<SharePosterState, SharePosterMethods>({
   applyShareTask(task) {
     const status = task?.status || ''
     const readyShareImageUrl = status === 'ready' && task?.imageUrl ? task.imageUrl : ''
+    const failedReason = task?.failedReason ? toSafeShareErrorText(task.failedReason) : this.data.errorText
+    const shareActionBlocked = task?.failedReason ? isShareActionBlockedError(task.failedReason) : false
     const taskPrimaryLabel =
       !task || !status
         ? '刷新状态'
@@ -826,7 +854,9 @@ Page<SharePosterState, SharePosterMethods>({
             : '刷新状态'
     const currentSaveState = this.data.saveState
     const nextSaveState: SharePosterState['saveState'] =
-      this.data.posterSaved
+      shareActionBlocked
+        ? 'failed'
+        : this.data.posterSaved
         ? 'saved'
         : status === 'failed' || status === 'expired'
           ? 'failed'
@@ -838,26 +868,28 @@ Page<SharePosterState, SharePosterMethods>({
 
     this.setData({
       briefId: task?.briefId || this.data.briefId,
-      errorText: task?.failedReason ? toSafeShareErrorText(task.failedReason) : this.data.errorText,
+      errorText: failedReason,
       ledgerIncluded: task?.ledgerIncluded === true,
       posterImagePath: readyShareImageUrl ? '' : this.data.posterImagePath,
       qrCodeImageUrl: task?.miniProgramQrUrl || task?.qrCodeUrl || this.data.qrCodeImageUrl,
       readyShareImageUrl,
       saveState: nextSaveState,
-      savePosterLabel: getSavePosterLabel(status, this.data.posterSaved, Boolean(readyShareImageUrl), nextSaveState),
+      savePosterLabel: shareActionBlocked ? '暂不可用' : getSavePosterLabel(status, this.data.posterSaved, Boolean(readyShareImageUrl), nextSaveState),
       sessionId: task?.sessionId || this.data.sessionId,
+      shareActionBlocked,
       shareTask: task,
       taskIncludeLedger: task?.includeLedger === true,
       taskLayoutMode: task?.layoutMode || '',
       displayTaskLayoutMode: getShareLayoutText(task?.layoutMode || ''),
       displayTaskStatus: getShareTaskStatusText(status),
-      posterStatusLine: getPosterStatusLine(status, nextSaveState, task?.failedReason ? toSafeShareErrorText(task.failedReason) : this.data.errorText),
-      taskPrimaryLabel,
+      posterStatusLine: getPosterStatusLine(status, nextSaveState, failedReason),
+      taskPrimaryLabel: shareActionBlocked ? '不可生成' : taskPrimaryLabel,
     })
   },
 
   applyShareTaskError(taskId, message, status = 'failed') {
     const safeMessage = toSafeShareErrorText(message)
+    const shareActionBlocked = isShareActionBlockedError(message)
     const task = {
       ...buildUnavailableShareTask(taskId, safeMessage, status),
       briefId: this.data.briefId,
@@ -874,13 +906,15 @@ Page<SharePosterState, SharePosterMethods>({
       displayTaskLayoutMode: getShareLayoutText(task.layoutMode),
       displayTaskStatus: getShareTaskStatusText(status),
       posterStatusLine: getPosterStatusLine(status || 'failed', 'failed', safeMessage),
-      savePosterLabel: getSavePosterLabel(status || 'failed', false, false, 'failed'),
-      taskPrimaryLabel: '重新生成',
+      savePosterLabel: shareActionBlocked ? '暂不可用' : getSavePosterLabel(status || 'failed', false, false, 'failed'),
+      shareActionBlocked,
+      taskPrimaryLabel: shareActionBlocked ? '不可生成' : '重新生成',
     })
   },
 
   applyPosterUnavailableState(message) {
     const safeMessage = toSafeShareErrorText(message) || '这张分享图还没有可展示内容'
+    const shareActionBlocked = isShareActionBlockedError(message)
     const taskId = this.data.shareTask?.id || this.data.briefId || this.data.sessionId || 'share-poster-unavailable'
     const task = {
       ...(this.data.shareTask || {}),
@@ -900,8 +934,9 @@ Page<SharePosterState, SharePosterMethods>({
       displayTaskLayoutMode: getShareLayoutText(task.layoutMode || 'dual_flow'),
       displayTaskStatus: getShareTaskStatusText('failed'),
       posterStatusLine: getPosterStatusLine('failed', 'failed', safeMessage),
-      savePosterLabel: getSavePosterLabel('failed', false),
-      taskPrimaryLabel: '重新生成',
+      savePosterLabel: shareActionBlocked ? '暂不可用' : getSavePosterLabel('failed', false),
+      shareActionBlocked,
+      taskPrimaryLabel: shareActionBlocked ? '不可生成' : '重新生成',
     })
   },
 
@@ -1093,6 +1128,10 @@ Page<SharePosterState, SharePosterMethods>({
   },
 
   async refreshShareTask() {
+    if (this.data.shareActionBlocked) {
+      this.showPreviewToast(this.data.errorText || '聚会结束后可查看分享图')
+      return
+    }
     const taskId = this.data.shareTask?.id || ''
     if (!taskId) {
       const message = '请先点击生成聚会图'
@@ -1195,6 +1234,10 @@ Page<SharePosterState, SharePosterMethods>({
   },
 
   async handleTaskPrimaryTap() {
+    if (this.data.shareActionBlocked) {
+      this.showPreviewToast(this.data.errorText || '聚会结束后可查看分享图')
+      return
+    }
     const status = this.data.shareTask?.status || ''
     if (isMissingSessionState(this.data.errorText || this.data.shareTask?.failedReason)) {
       const message = this.data.errorText || '这场聚会记录已失效，暂时无法刷新分享状态'
@@ -1231,7 +1274,11 @@ Page<SharePosterState, SharePosterMethods>({
     } catch (error) {
       const message = error instanceof Error ? error.message : '操作失败'
       const safeMessage = toSafeShareErrorText(message)
-      this.setData({ errorText: safeMessage, saveState: 'failed' })
+      if (isShareActionBlockedError(error)) {
+        this.applyPosterUnavailableState(message)
+      } else {
+        this.setData({ errorText: safeMessage, saveState: 'failed' })
+      }
       toastMessage = safeMessage
     } finally {
       if (shouldShowLoading) {
@@ -1244,6 +1291,10 @@ Page<SharePosterState, SharePosterMethods>({
   },
 
   async handleSaveTap() {
+    if (this.data.shareActionBlocked) {
+      this.showPreviewToast(this.data.errorText || '聚会结束后可查看分享图')
+      return
+    }
     const taskStatus = this.data.shareTask?.status || ''
     if (this.data.posterSaved || this.data.saveState === 'saved') {
       return
@@ -1257,12 +1308,16 @@ Page<SharePosterState, SharePosterMethods>({
       } catch (error) {
         const message = error instanceof Error ? error.message : '生成聚会图失败'
         const safeMessage = toSafeShareErrorText(message)
-        this.setData({
-          errorText: safeMessage,
-          posterStatusLine: getPosterStatusLine(taskStatus || 'failed', 'failed', safeMessage),
-          savePosterLabel: getSavePosterLabel(taskStatus || 'failed', false, false, 'failed'),
-          saveState: 'failed',
-        })
+        if (isShareActionBlockedError(error)) {
+          this.applyPosterUnavailableState(message)
+        } else {
+          this.setData({
+            errorText: safeMessage,
+            posterStatusLine: getPosterStatusLine(taskStatus || 'failed', 'failed', safeMessage),
+            savePosterLabel: getSavePosterLabel(taskStatus || 'failed', false, false, 'failed'),
+            saveState: 'failed',
+          })
+        }
         this.showPreviewToast(safeMessage)
       }
       return

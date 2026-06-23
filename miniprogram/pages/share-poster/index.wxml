@@ -53,13 +53,13 @@
       </view>
 
       <view class="poster-share021-action-row poster-action-panel">
-        <view class="poster-primary-action {{posterSaved || saveState === 'saved' || saveState === 'saving' || saveState === 'generating' || (shareTask && (shareTask.status === 'pending' || shareTask.status === 'processing')) ? 'poster-primary-action-disabled' : ''}} {{posterSaved || saveState === 'saved' ? 'poster-primary-action-saved' : ''}}" bindtap="handleSaveTap" data-save-selector="share-flow-015-save-poster">
+        <view class="poster-primary-action {{shareActionBlocked || posterSaved || saveState === 'saved' || saveState === 'saving' || saveState === 'generating' || (shareTask && (shareTask.status === 'pending' || shareTask.status === 'processing')) ? 'poster-primary-action-disabled' : ''}} {{posterSaved || saveState === 'saved' ? 'poster-primary-action-saved' : ''}}" bindtap="handleSaveTap" data-save-selector="share-flow-015-save-poster">
           {{savePosterLabel}}
         </view>
-        <view class="poster-action-secondary" bindtap="handleTaskPrimaryTap" data-share-save-selector="share-flow-015-save">
+        <view class="poster-action-secondary {{shareActionBlocked ? 'poster-action-secondary-disabled' : ''}}" bindtap="handleTaskPrimaryTap" data-share-save-selector="share-flow-015-save">
           刷新状态
         </view>
-        <view wx:if="{{saveState === 'failed' || (shareTask && (shareTask.status === 'failed' || shareTask.status === 'expired'))}}" class="poster-action-retry poster-state-card-warn" bindtap="handleTaskPrimaryTap">
+        <view wx:if="{{!shareActionBlocked && (saveState === 'failed' || (shareTask && (shareTask.status === 'failed' || shareTask.status === 'expired')))}}" class="poster-action-retry poster-state-card-warn" bindtap="handleTaskPrimaryTap">
           重新生成
         </view>
       </view>
