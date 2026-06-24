@@ -4,6 +4,7 @@ const os = require('os')
 const path = require('path')
 
 const {
+  endManagedSession,
   flushAdminStore,
   getAdminStore,
   reviewManagedMoment,
@@ -417,11 +418,8 @@ const createEvidence = async ({ args }) => {
   await flushStores()
   persistManifest('event-created')
 
-  await api(baseUrl, `/sessions/${encodeURIComponent(created.id)}/end`, {
-    method: 'POST',
-    token: host.token,
-    body: { reason: marker },
-  })
+  endManagedSession(created.id, { reason: marker })
+  await flushStores()
   const brief = createOrRefreshSessionBrief({
     sessionId: created.id,
     profile: host.profile,
