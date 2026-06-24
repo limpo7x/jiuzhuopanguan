@@ -1,3 +1,24 @@
+## 2026-06-24 PM 公告：FIX-014-07 满员加入错误映射本地实现
+
+面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
+
+用户已逐项同意 `FIX-014-07`。本轮只处理满员加入错误映射，不启动 `FIX-014-08` 或其他编号，不上传微信小程序包。
+
+交付与验证：
+
+- 工作树：`F:\codexlist\jiuzhuopanguan-fix-014-07`。
+- 分支：`codex/fix-014-07-join-full-error`。
+- 证据：`docs/runtime/pr-fix-014-07-session-full-join-20260624.md`。
+- 范围：`/sessions/join` 满员返回 409 `session full`；`/parties/join` 满员返回 409 `party full`；首页口令加入满员弹窗展示“聚会已满”。
+- 本地验证：`node backend/scripts/smoke-session-full-join-error.js` 已覆盖 2 人局加满后 outsider 两个 join 入口均为 409；编码检查、typecheck 和 diff 检查通过。
+
+下一步责任：
+
+- 接口联调负责人：接 `FIX-014-07-INT`，部署后用真实 token 样本覆盖满员 409、普通加入 200、被踢重加合同和测试数据清理。
+- 测试验收负责人：接 `FIX-014-07-QA`，在微信开发者工具预览框覆盖首页口令加入满员文案和普通加入回归。
+- 后端/API 与前端负责人：如 QA 或接口联调退回，只在 `FIX-014-07` 工作树或后续干净工作树内返工，不扩大到后台分享图、模板配置或分享页返回。
+- PM：未取得线上样本和预览框证据前，只能写“本地实现和静态门禁通过”，不得写正式真机发布准出。
+
 ## 2026-06-24 PM 公告：FIX-014-06 分享页来源返回本地实现
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。

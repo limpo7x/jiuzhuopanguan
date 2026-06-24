@@ -1669,3 +1669,12 @@ PM 边界：
 - 公网健康：`config/home` 200、`config/templates` 200、`admin/login` 200、`/sessions/live` 无参 400。
 - 服务器脏项：`backend/package-lock.json` 曾被服务器 `npm install` 改动，已恢复到 Git 状态；部署后仅保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**`。
 - 当前边界：未上传微信小程序包；`FIX-014-05` 未做真实线上推举全链路验收；`FIX-014-06` 未做微信开发者工具预览框四路径点击验收；不得写正式发布准出。
+
+## 2026-06-24 FIX-014-07 用户审批与本地实现
+
+- 用户已用编号授权启动 `FIX-014-07`。本轮只处理“满员加入错误映射”，不启动 `FIX-014-08` 或其他编号。
+- 工作树边界：新建干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-07`，分支 `codex/fix-014-07-join-full-error`，基线为 `origin/main` 的 `782fe5f`。
+- 证据：`docs/runtime/pr-fix-014-07-session-full-join-20260624.md`。
+- 已实现：`/api/v1/sessions/join` 满员返回 HTTP 409 `session full`；`/api/v1/parties/join` 满员返回 HTTP 409 `party full`；首页口令加入对 `409/session full/party full/SESSION_FULL` 展示“聚会已满”，保留非名单成员和普通口令错误提示。
+- 本地验证通过：`node --check backend/server.js`、`node --check backend/scripts/smoke-session-full-join-error.js`、`node backend/scripts/smoke-session-full-join-error.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。`npm.cmd install` 为新工作树补齐依赖时根目录报告既有 `10 vulnerabilities`，backend 为 `0 vulnerabilities`，未做无关升级。
+- 当前状态：后端/API 与前端本地实现通过；未提交、未推送、未部署、未上传小程序包；未做线上真实 token 样本、被踢重加和微信开发者工具预览框 QA；不得写正式发布准出。

@@ -1709,6 +1709,10 @@ const server = http.createServer((request, response) => {
           sendError(response, 404, 'session not found')
           return
         }
+        if (error?.code === 'SESSION_FULL') {
+          sendError(response, 409, 'session full')
+          return
+        }
         throw error
       }
       return
@@ -1734,6 +1738,10 @@ const server = http.createServer((request, response) => {
         }
         if (error?.code === 'SESSION_NOT_FOUND') {
           sendError(response, 404, 'party not found')
+          return
+        }
+        if (error?.code === 'SESSION_FULL') {
+          sendError(response, 409, 'party full')
           return
         }
         throw error

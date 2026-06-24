@@ -85,6 +85,11 @@ const normalizeName = (value?: string) => {
 
 const normalizeAvatar = (value?: string) => String(value || '').trim()
 const normalizeInviteCode = (value?: string) => String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12)
+const isSessionFullJoinError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || '')
+  const statusCode = Number((error as { statusCode?: number })?.statusCode) || 0
+  return statusCode === 409 || /session[_\s-]*full|party[_\s-]*full|SESSION_FULL/i.test(message)
+}
 const internalAlbumTitlePattern = /^(IT|PR|QA|DEV|TEST)[-_ ][A-Z0-9_-]+(?:\s+(opening|highlight|drinking|private|closing))?$/i
 const internalVisibleTextPattern = /(IT-MOMENTS|PR-BE-DB-LOGIN|PR[_-]?BE|QA[_-]?SEED|DEV[_-]?SEED|TEST[_-]?SEED|DEBUG|[a-z]+-[0-9a-f]{8,}|session-[0-9a-z-]+|brief-[0-9a-z-]+|share-task-[0-9a-z-]+)/i
 const internalProfilePattern = /^(PR|QA|DEV|TEST)\s+Seed\s+/i
@@ -529,9 +534,14 @@ Page<HomePageState, HomePageMethods>({
     } catch (error) {
       const message = error instanceof Error ? error.message : 'join failed'
       const notPlayer = message.includes('not session player')
+      const sessionFull = isSessionFullJoinError(error)
       wx.showModal({
-        title: notPlayer ? '暂不能加入' : '加入失败',
-        content: notPlayer ? '当前口令对应的聚会名单中没有你的账号，请联系发起人确认是否已添加你。' : '当前无法加入聚会，请检查口令是否正确。',
+        title: sessionFull ? '聚会已满' : notPlayer ? '暂不能加入' : '加入失败',
+        content: sessionFull
+          ? '这场聚会人数已满，暂时不能继续加入。请联系发起人调整人数或创建新的聚会。'
+          : notPlayer
+            ? '当前口令对应的聚会名单中没有你的账号，请联系发起人确认是否已添加你。'
+            : '当前无法加入聚会，请检查口令是否正确。',
         showCancel: false,
       })
     } finally {
