@@ -4,6 +4,7 @@ const os = require('os')
 const path = require('path')
 
 const {
+  flushAdminStore,
   getAdminStore,
   reviewManagedMoment,
   writeAdminStore,
@@ -11,15 +12,18 @@ const {
 } = require('../data/admin')
 const {
   createDefaultUserCommerceState,
+  flushContentStore,
   readContentStore,
   writeContentStore,
 } = require('../data/content')
 const {
+  flushMomentsStore,
   readMomentsStore,
   writeMomentsStore,
 } = require('../data/moments')
 const {
   bindWechatUser,
+  flushSocialStore,
   readSocialStore,
   writeSocialStore,
 } = require('../data/social')
@@ -145,7 +149,16 @@ const roleSpecs = (prefix) => [
   { role: 'outsider', name: 'PRCS Verify Outsider', openId: `${prefix}-outsider` },
 ]
 
-const createProfiles = (prefix) => {
+const flushStores = async () => {
+  await Promise.all([
+    flushAdminStore ? flushAdminStore() : Promise.resolve(),
+    flushContentStore ? flushContentStore() : Promise.resolve(),
+    flushMomentsStore ? flushMomentsStore() : Promise.resolve(),
+    flushSocialStore ? flushSocialStore() : Promise.resolve(),
+  ])
+}
+
+const createProfiles = async (prefix) => {
   const profiles = {}
   roleSpecs(prefix).forEach((spec) => {
     const bound = bindWechatUser({
@@ -177,6 +190,7 @@ const createProfiles = (prefix) => {
     }
   })
   writeContentStore(contentStore)
+  await flushStores()
   return profiles
 }
 
@@ -249,7 +263,7 @@ const createEvidence = async ({ args }) => {
   const privateManifestPath = resolvePath(args.manifest, defaultPrivateManifest)
   const publicEvidencePath = resolvePath(args.evidence, defaultPublicEvidence)
 
-  const profiles = createProfiles(prefix)
+  const profiles = await createProfiles(prefix)
   const host = profiles.host
   const memberA = profiles.memberA
   const memberB = profiles.memberB
@@ -451,6 +465,7 @@ const createEvidence = async ({ args }) => {
     reason: marker,
     operator: 'fix-014-final-evidence',
   })
+  await flushStores()
   const eligibility = await api(
     baseUrl,
     `/moments/${encodeURIComponent(opening.id)}/nomination-eligibility?category=best_opening`,
@@ -473,6 +488,7 @@ const createEvidence = async ({ args }) => {
     limit: 100,
     operator: 'fix-014-final-evidence',
   })
+  await flushStores()
   const payout = (reward.items || []).find((item) => item.momentId === opening.id && item.status === 'granted')
   assert(payout, 'reward payout missing for nominated moment')
 
@@ -643,7 +659,7 @@ const removeUpload = (urlValue = '') => {
   }
 }
 
-const cleanupEvidence = ({ args }) => {
+const cleanupEvidence = async ({ args }) => {
   const manifestPath = resolvePath(args.manifest, defaultPrivateManifest)
   assert(fs.existsSync(manifestPath), `manifest not found: ${manifestPath}`)
   const manifest = readJsonFile(manifestPath)
@@ -710,6 +726,7 @@ const cleanupEvidence = ({ args }) => {
 
   removeUpload(manifest.uploads?.openingImageUrl)
   removeUpload(manifest.shareTask?.readyShareImageUrl || manifest.shareTask?.imageUrl)
+  await flushStores()
 
   const after = scanManifest(manifest)
   console.log(JSON.stringify({ ok: true, mode: 'cleanup', manifest: manifestPath, before, after }, null, 2))
@@ -730,7 +747,7 @@ const main = async () => {
     return
   }
   if (mode === 'cleanup') {
-    cleanupEvidence({ args })
+    await cleanupEvidence({ args })
     return
   }
   if (mode === 'scan') {
