@@ -79,6 +79,18 @@ function redactStorageValue(key, value) {
   };
 }
 
+function readStdin() {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', (chunk) => {
+      body += chunk;
+    });
+    process.stdin.on('end', () => resolve(body));
+    process.stdin.on('error', reject);
+  });
+}
+
 function requestText(url) {
   return new Promise((resolve, reject) => {
     const request = http.get(url, { timeout: 5000 }, (response) => {
@@ -343,6 +355,19 @@ async function clearStorage(miniProgram) {
   }
 }
 
+async function setStorageValues(miniProgram, values) {
+  const keys = Object.keys(values || {}).filter((key) => STORAGE_KEYS.includes(key));
+  for (const key of keys) {
+    const value = values[key];
+    if (value === undefined || value === null || value === '') {
+      await miniProgram.callWxMethod('removeStorageSync', key).catch(() => {});
+    } else {
+      await miniProgram.callWxMethod('setStorageSync', key, value);
+    }
+  }
+  return keys;
+}
+
 async function run() {
   const args = parseArgs(process.argv.slice(2));
   const command = args._[0] || 'status';
@@ -407,6 +432,14 @@ async function run() {
       result.screenshot = await writeScreenshot(miniProgram, output);
     } else if (command === 'storage') {
       result.summary = await currentSummary(miniProgram, { storage: true });
+    } else if (command === 'set-storage') {
+      const raw = boolArg(args.storageStdin) ? await readStdin() : String(args.storageJson || '{}');
+      const values = JSON.parse(raw || '{}');
+      result.updatedKeys = await setStorageValues(miniProgram, values);
+      result.summary = await currentSummary(miniProgram, {
+        storage: true,
+        dataKeys: args.data ? String(args.data).split(',').filter(Boolean) : null,
+      });
     } else if (command === 'screenshot') {
       if (!output) throw new Error('Missing --output for screenshot.');
       result.summary = await currentSummary(miniProgram);

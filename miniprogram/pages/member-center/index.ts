@@ -25,7 +25,7 @@ interface MemberCenterMethods {
 Page<MemberCenterState, MemberCenterMethods>({
   data: {
     benefits: [],
-    membershipEnabled: true,
+    membershipEnabled: false,
     ctaText: '查看我的权益',
     packages: [],
   },
@@ -35,15 +35,6 @@ Page<MemberCenterState, MemberCenterMethods>({
       const catalog = await getMembershipCatalog()
       if (catalog.membershipEnabled === false) {
         this.setData({ membershipEnabled: false })
-        wx.showToast({
-          title: '闪享会员功能已关闭',
-          icon: 'none',
-        })
-        setTimeout(() => {
-          wx.reLaunch({ url: '/pages/index/index' }).catch(() => {
-            wx.switchTab({ url: '/pages/index/index' })
-          })
-        }, 600)
         return
       }
 
@@ -53,7 +44,7 @@ Page<MemberCenterState, MemberCenterMethods>({
           label: item.scope,
           value: `${item.name} · ${item.note}`,
         })),
-        ctaText: catalog.membership.active ? '查看我的权益' : '前往开通或领取权益',
+        ctaText: catalog.membership.active ? '查看我的权益' : '权益暂按后台配置开放',
         packages: catalog.plans.map((item) => ({
           active: Boolean(item.active),
           name: item.name,
@@ -62,7 +53,7 @@ Page<MemberCenterState, MemberCenterMethods>({
       })
     } catch (error) {
       wx.showToast({
-        title: error instanceof Error ? error.message : '会员数据加载失败',
+        title: error instanceof Error ? error.message : '权益数据加载失败',
         icon: 'none',
       })
     }

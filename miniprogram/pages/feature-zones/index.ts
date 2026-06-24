@@ -51,7 +51,7 @@ const zoneTitles: Record<FeatureZoneKey, { title: string; subtitle: string }> = 
   favorites: { title: '我的收藏', subtitle: '收藏内容接入新路径，旧历史页不再作为入口。' },
   usage: { title: '使用记录', subtitle: '只展示已归属当前用户的工具和内容记录。' },
   invite: { title: '邀请奖励', subtitle: '邀请奖励需后端结构化配置，未配置时显示待开通。' },
-  templates: { title: '模板中心', subtitle: '高级模板按真实配置和解锁状态展示。' },
+  templates: { title: '模板中心', subtitle: '主题模板按真实配置和解锁状态展示。' },
 }
 
 const normalizeZone = (value?: string): FeatureZoneKey =>

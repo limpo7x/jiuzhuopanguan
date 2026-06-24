@@ -1,5 +1,5 @@
 <navigation-bar
-  title="高级模板"
+  title="主题模板"
   back="{{true}}"
   color="#24160f"
   background="rgba(255,253,248,0.96)"
@@ -38,7 +38,7 @@
         <view class="pro-tag">{{unlockProgressText}}</view>
       </view>
       <view class="pro-primary" bindtap="handleUnlockTap">
-        {{membershipEnabled ? (membershipActive ? '会员已解锁' : '开通会员解锁更多权益') : '会员入口已关闭'}}
+        {{membershipEnabled ? (membershipActive ? '权益已解锁' : '更多权益待开放') : '权益入口暂未开放'}}
       </view>
     </view>
   </scroll-view>

@@ -668,7 +668,7 @@ const getMembershipCatalog = (profileId) => {
 const activateMembershipPlan = (profileId, planId) => {
   const adminStore = getAdminStore()
   if (adminStore.membershipEnabled === false) {
-    throw createHttpError('会员体系暂未对外开放', 403)
+    throw createHttpError('聚会权益暂未对外开放', 403)
   }
 
   const contentStore = readContentStore()
@@ -714,7 +714,7 @@ const getEnabledMerchants = (adminStore) => (adminStore.merchants || [])
     status: cleanText(item.status),
     claimAction: {
       disabled: true,
-      reason: '商户优惠领取合同未闭环，当前仅展示商户优惠状态',
+      reason: '商户优惠领取合同未闭环，当前仅展示合作状态',
     },
     redeemAction: {
       disabled: true,
@@ -865,12 +865,12 @@ const getTemplateActionState = (commerce) => {
       unlockState,
       canUse,
       disabled: !canUse,
-      reason: canUse ? '' : '高级模板需会员或完成解锁后使用',
+      reason: canUse ? '' : '主题模板需权益配置或完成解锁后使用',
       useAction: {
         method: 'POST',
         endpoint: `/api/v1/templates/${encodeURIComponent(template.id)}/use`,
         disabled: !canUse,
-        reason: canUse ? '' : '高级模板需会员或完成解锁后使用',
+        reason: canUse ? '' : '主题模板需权益配置或完成解锁后使用',
       },
       unlockAction: {
         method: 'POST',
@@ -993,7 +993,7 @@ const recordUserToolUsage = (profileId, toolId) => {
 const useMembershipBenefit = (profileId, benefitId) => {
   const adminStore = getAdminStore()
   if (adminStore.membershipEnabled === false) {
-    throw createHttpError('会员体系暂未对外开放', 403)
+    throw createHttpError('聚会权益暂未对外开放', 403)
   }
   const contentStore = readContentStore()
   const state = ensureUserCommerceState(contentStore, profileId)
@@ -1045,7 +1045,7 @@ const useTemplate = (profileId, templateId) => {
   }
   state.templateUsageRecords = [record, ...(state.templateUsageRecords || [])].slice(0, 80)
   appendOperationLog(adminStore, {
-    action: '使用高级模板',
+    action: '使用主题模板',
     targetId: template.id,
     targetName: template.title,
     detail: `profileId=${profileId}`,

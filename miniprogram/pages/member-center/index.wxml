@@ -1,10 +1,10 @@
-<navigation-bar title="闪享会员" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
+<navigation-bar title="聚会权益" back="{{true}}" color="#24160f" background="rgba(255,253,248,0.96)"></navigation-bar>
 
 <view class="member-page">
   <scroll-view wx:if="{{membershipEnabled}}" class="member-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="member-hero">
-      <text class="member-hero-title">开通会员，解锁完整酒局体验</text>
-      <text class="member-hero-subtitle">会员权益、战报、分享素材统一读取后台会员配置。</text>
+      <text class="member-hero-title">聚会权益暂按后台配置开放</text>
+      <text class="member-hero-subtitle">会员、模板和分享素材只展示真实配置，不生成假权益。</text>
     </view>
 
     <view class="member-card">
@@ -27,6 +27,6 @@
   </scroll-view>
 
   <view wx:else class="member-disabled">
-    <view class="member-disabled-text">闪享会员已关闭，当前入口不对外开放。</view>
+    <view class="member-disabled-text">聚会权益暂未开放，当前不支持开通或领取。</view>
   </view>
 </view>

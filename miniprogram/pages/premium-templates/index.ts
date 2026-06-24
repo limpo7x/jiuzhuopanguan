@@ -217,7 +217,7 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
   handleUnlockTap() {
     if (!this.data.membershipEnabled) {
       wx.showToast({
-        title: '闪享会员入口已关闭',
+        title: '权益入口暂未开放',
         icon: 'none',
       })
       return

@@ -13,11 +13,11 @@
     </view>
 
     <view class="merchant-banner">
-      <text class="merchant-banner-title">聚会好去处 · 专属优惠</text>
-      <text class="merchant-banner-meta">后台商户合作页修改后，这里会直接同步真实权益。</text>
+      <text class="merchant-banner-title">合作优惠待配置</text>
+      <text class="merchant-banner-meta">没有真实商户和核销合同前，不开放领取或核销。</text>
     </view>
 
-    <view class="merchant-grid">
+    <view wx:if="{{categories.length}}" class="merchant-grid">
       <view wx:for="{{categories}}" wx:key="name" class="merchant-tile {{item.toneClass}}">
         <view class="merchant-tile-icon {{item.iconClass}}"></view>
         <text class="merchant-tile-label">{{item.name}}</text>
@@ -28,7 +28,7 @@
       <text class="merchant-section-title">精选商户</text>
     </view>
 
-    <view class="merchant-list">
+    <view wx:if="{{shops.length}}" class="merchant-list">
       <view wx:for="{{shops}}" wx:key="id" class="merchant-item">
         <view class="merchant-thumb">
           <image wx:if="{{item.imageUrl}}" src="{{item.imageUrl}}" mode="aspectFill"></image>
@@ -40,12 +40,16 @@
         <view class="merchant-tag">{{item.status}}</view>
       </view>
     </view>
+    <view wx:else class="merchant-notice">
+      <view class="merchant-notice-icon"></view>
+      <text>暂无已验证商户优惠，当前仅保留合作入口占位。</text>
+    </view>
 
     <view class="merchant-section-head">
       <text class="merchant-section-title">安全返程</text>
     </view>
 
-    <view class="merchant-grid">
+    <view wx:if="{{safeBack.length}}" class="merchant-grid">
       <view wx:for="{{safeBack}}" wx:key="name" class="merchant-tile {{item.toneClass}}">
         <view class="merchant-tile-icon {{item.iconClass}}"></view>
         <text class="merchant-tile-label">{{item.name}}</text>

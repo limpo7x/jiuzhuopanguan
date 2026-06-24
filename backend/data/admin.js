@@ -1230,10 +1230,10 @@ const buildOverviewTable = (adminStore = readStore(), contentStore = readContent
     rows: [
       {
         id: 'overview-template',
-        name: topTemplate?.title || '酒局模板',
+        name: topTemplate?.title || '主题模板',
         current: `${templates.length} 套 / ${contentStore.templateConfig.filters.length} 类`,
         primary: `均价 ${formatNumber(avgBy(templates, (item) => item.cost))} 积分`,
-        secondary: `关联战报均分享 ${formatPercent(avgBy(reports, (item) => numberFromText(item.shareRate)))}`,
+        secondary: `关联分享图均分享 ${formatPercent(avgBy(reports, (item) => numberFromText(item.shareRate)))}`,
         status: topTemplate ? '已上架' : '待配置',
       },
       {
@@ -1246,9 +1246,9 @@ const buildOverviewTable = (adminStore = readStore(), contentStore = readContent
       },
       {
         id: 'overview-share',
-        name: topReport?.name || '战报分享',
-        current: `${reports.length} 份战报 / ${shareAssets.length} 套素材`,
-        primary: `战报均分享 ${formatPercent(avgBy(reports, (item) => numberFromText(item.shareRate)))}`,
+        name: topReport?.name || '分享图回流',
+        current: `${reports.length} 份分享图 / ${shareAssets.length} 套素材`,
+        primary: `分享图均分享 ${formatPercent(avgBy(reports, (item) => numberFromText(item.shareRate)))}`,
         secondary: `素材均回流 ${formatPercent(avgBy(shareAssets, (item) => numberFromText(item.returnRate)))}`,
         status: topReport?.status || '待生成',
       },
@@ -1282,8 +1282,8 @@ const overviewMetrics = () => {
   const activeSessions = countBy(adminStore.liveSessions, (item) => String(item.state || '').includes('进行中'))
   const complianceCopyLength = String(getCompliance().copy || '').length
   return [
-    { label: '酒局总数', value: String(adminStore.liveSessions.length), trend: `进行中 ${activeSessions}`, tone: 'up' },
-    { label: '战报分享率', value: formatPercent(avgBy(adminStore.reports, (item) => numberFromText(item.shareRate))), trend: `战报 ${adminStore.reports.length} 份`, tone: 'up' },
+    { label: '聚会总数', value: String(adminStore.liveSessions.length), trend: `进行中 ${activeSessions}`, tone: 'up' },
+    { label: '分享图回流率', value: formatPercent(avgBy(adminStore.reports, (item) => numberFromText(item.shareRate))), trend: `分享图 ${adminStore.reports.length} 份`, tone: 'up' },
     { label: '积分资产池', value: formatNumber(sumBy(contentStore.pointsConfig.rewards, (item) => item.cost)), trend: `任务 ${contentStore.pointsConfig.tasks.length} 个`, tone: 'up' },
     { label: '广告完成率', value: formatPercent(avgBy(adminStore.adSlots, (item) => numberFromText(item.completionRate))), trend: `广告位 ${adminStore.adSlots.length} 个`, tone: 'up' },
     { label: '用户总数', value: String(socialStore.profiles.length), trend: `酒友关系 ${listFriendships().length} 条`, tone: 'up' },
@@ -2626,8 +2626,8 @@ const getTemplateFilterOptions = () =>
 const getProfileNameOptions = () => uniqueOptions((listProfiles() || []).map((item) => item.name))
 const getQuestionTemplateOptions = () => mergeOptions(getTemplateTitleOptions().map((item) => item.value), ['生日专属', '整活大挑战', '友情互损'])
 const getQuestionStatusOptions = () => mergeOptions(['待审核', '上线中', '停用'], (readStore().questionBank || []).map((item) => item.status))
-const getShareAssetTypeOptions = () => mergeOptions(['战报海报', '邀局卡', '分享码'], (readStore().shareAssets || []).map((item) => item.assetType))
-const getShareSceneOptions = () => mergeOptions(['战报分享', '邀请好友', '群邀请'], (readStore().shareAssets || []).map((item) => item.scene))
+const getShareAssetTypeOptions = () => mergeOptions(['聚会分享图', '邀约卡', '分享码'], (readStore().shareAssets || []).map((item) => item.assetType))
+const getShareSceneOptions = () => mergeOptions(['聚会分享', '邀请好友', '群邀请'], (readStore().shareAssets || []).map((item) => item.scene))
 const getShareStatusOptions = () => mergeOptions(['上线中', '灰度', '停用'], (readStore().shareAssets || []).map((item) => item.status))
 const getToolCategoryOptions = () => mergeOptions(['分享生成', '图片处理', '开发工具', '计算工具'], (readStore().toolsCatalog || []).map((item) => item.category))
 const getToolTargetOptions = () => mergeOptions(['邀局裂变', '工具留存', '日活补充', '实用转化', '日常工具', '分享物料', '内容编辑'], (readStore().toolsCatalog || []).map((item) => item.target))
@@ -2639,9 +2639,9 @@ const getSessionStatusOptions = () => mergeOptions(['正常', '待观察', '灰�
 const getReportSceneOptions = () => mergeOptions(['常规局', '生日局', '夜场'], (readStore().reports || []).map((item) => item.scene))
 const getReportStatusOptions = () => mergeOptions(['正常', '爆发', '灰度', '停用'], (readStore().reports || []).map((item) => item.status))
 const getMembershipStatusOptions = () => mergeOptions(['上线中', '灰度', '停用'], (readStore().membershipPlans || []).map((item) => item.status))
-const getMembershipScopeOptions = () => mergeOptions(['高级模板页', '分享战报页', '海报模板'], (readStore().membershipBenefits || []).map((item) => item.scope))
+const getMembershipScopeOptions = () => mergeOptions(['主题模板页', '分享图页面', '聚会相册'], (readStore().membershipBenefits || []).map((item) => item.scope))
 const getBenefitStatusOptions = () => mergeOptions(['启用', '停用'], (readStore().membershipBenefits || []).map((item) => item.status))
-const getAdPageOptions = () => mergeOptions(['高级模板', '分享战报', '工具详情'], (readStore().adSlots || []).map((item) => item.page))
+const getAdPageOptions = () => mergeOptions(['主题模板', '分享图', '工具详情'], (readStore().adSlots || []).map((item) => item.page))
 const getAdTypeOptions = () => mergeOptions(['激励视频', 'Banner'], (readStore().adSlots || []).map((item) => item.adType))
 const getAdStatusOptions = () => mergeOptions(['启用', '停用', '灰度'], (readStore().adSlots || []).map((item) => item.status))
 const getMerchantCategoryOptions = () => mergeOptions(['代驾', '夜宵', '娱乐'], (readStore().merchants || []).map((item) => item.category))
@@ -2702,7 +2702,7 @@ const pageMap = {
         ],
       },
       {
-        title: '酒桌判官页主图',
+        title: '记录广场主图',
         fields: [
           { key: 'judgeHeroTitle', label: '页面标题', type: 'text' },
           { key: 'judgeHeroSubtitle', label: '页面副标题', type: 'textarea' },
@@ -2735,7 +2735,7 @@ const pageMap = {
   }),
   'content-templates': () => ({
     slug: 'content-templates',
-    title: '酒局模板',
+    title: '主题模板',
     view: 'multi-collection',
     metrics: getTemplateMetrics(),
     metaFields: [
@@ -3090,7 +3090,7 @@ const pageMap = {
     const membershipEnabled = String(store.membershipEnabled) === 'false' ? 'false' : 'true'
     return {
       slug: 'commerce-membership',
-      title: '会员体系',
+    title: '聚会权益',
       view: 'multi-collection',
       metrics: getMembershipMetrics(),
       meta: {

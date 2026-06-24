@@ -40,7 +40,7 @@
     <view class="tools-feature-zones">
       <view class="tools-feature-card" data-zone="templates" bindtap="handleFeatureZoneTap">
         <text class="tools-feature-title">模板中心</text>
-        <text class="tools-feature-meta">高级模板与解锁状态</text>
+        <text class="tools-feature-meta">主题模板与可用状态</text>
       </view>
       <view class="tools-feature-card" data-zone="merchants" bindtap="handleFeatureZoneTap">
         <text class="tools-feature-title">合作优惠</text>

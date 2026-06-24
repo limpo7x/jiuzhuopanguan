@@ -9,11 +9,48 @@ const isObject = (value) => value && typeof value === 'object' && !Array.isArray
 const BUILTIN_POINTS_TASKS = [
   {
     id: 'task-first-login',
-    title: '首次登录赠送',
+    title: '首次登录奖励',
     value: 500,
     iconClass: 'points-icon-coin',
   },
 ]
+const DEFAULT_HOME_CONFIG = {
+  hero: {
+    title: '聚会记录师',
+    subtitle: '三步创建聚会，先拍第一张照片。',
+    imageUrl: '',
+  },
+  quickTools: [
+    { id: 'tool-qr', name: '生成邀请码' },
+    { id: 'tool-compress', name: '照片压缩' },
+  ],
+  banner: {
+    title: '把照片、账本和时间线整理成一份聚会回忆。',
+    imageUrl: '',
+  },
+  judge: {
+    title: '记录广场',
+    subtitle: '历史玩法入口已降权，默认聚焦聚会记录、相册和分享。',
+    imageUrl: '',
+  },
+}
+const DEFAULT_TEMPLATE_CONFIG = {
+  filters: [
+    { id: 'all', name: '全部' },
+    { id: 'gathering', name: '聚会' },
+    { id: 'family', name: '家庭' },
+  ],
+  templates: [
+    { id: 'tpl-birthday', filterId: 'gathering', title: '生日聚会', meta: '适合生日、纪念日和朋友庆祝。', cost: 0, imageUrl: '' },
+    { id: 'tpl-friends', filterId: 'gathering', title: '老友见面', meta: '适合朋友小聚、同学会和周末饭局。', cost: 0, imageUrl: '' },
+    { id: 'tpl-team', filterId: 'gathering', title: '团建聚会', meta: '适合团队活动、聚餐和轻量相册记录。', cost: 0, imageUrl: '' },
+    { id: 'tpl-family', filterId: 'family', title: '家庭聚会', meta: '适合家庭聚餐、节日团圆和亲友合照。', cost: 0, imageUrl: '' },
+  ],
+  unlockCard: {
+    title: '更多主题待运营配置',
+    progressText: '当前免费模板可直接使用',
+  },
+}
 const normalizeTemplateImageUrl = (value = '') => {
   const text = cleanText(value)
   if (/^https?:\/\/(?:127\.0\.0\.1(?::\d+)?\/__store__|store\/)/i.test(text) || /\/__store__\//i.test(text) || /\/__tmp__\//i.test(text)) {
@@ -96,28 +133,46 @@ const createDefaultStore = () => ({
   userCommerce: {},
 })
 
-const normalizeHomeConfig = (homeConfig = {}) => ({
-  hero: {
+const normalizeHomeConfig = (homeConfig = {}) => {
+  const hero = {
     title: cleanText(homeConfig?.hero?.title),
     subtitle: cleanText(homeConfig?.hero?.subtitle),
     imageUrl: cleanText(homeConfig?.hero?.imageUrl),
     imageUploadEndpoint: '/api/v1/admin/upload/home-hero',
     imageUpdateEndpoint: '/api/v1/admin/config/home/hero',
-  },
-  quickTools: cleanArray(homeConfig?.quickTools).map((item) => ({
+  }
+  const quickTools = cleanArray(homeConfig?.quickTools).map((item) => ({
     id: cleanText(item?.id),
     name: cleanText(item?.name),
-  })).filter((item) => item.id || item.name),
-  banner: {
+  })).filter((item) => item.id || item.name)
+  const banner = {
     title: cleanText(homeConfig?.banner?.title),
     imageUrl: cleanText(homeConfig?.banner?.imageUrl),
-  },
-  judge: {
+  }
+  const judge = {
     title: cleanText(homeConfig?.judge?.title),
     subtitle: cleanText(homeConfig?.judge?.subtitle),
     imageUrl: cleanText(homeConfig?.judge?.imageUrl),
-  },
-})
+  }
+  return {
+    hero: {
+      ...hero,
+      title: hero.title || DEFAULT_HOME_CONFIG.hero.title,
+      subtitle: hero.subtitle || DEFAULT_HOME_CONFIG.hero.subtitle,
+      imageUrl: hero.imageUrl || DEFAULT_HOME_CONFIG.hero.imageUrl,
+    },
+    quickTools: quickTools.length ? quickTools : DEFAULT_HOME_CONFIG.quickTools,
+    banner: {
+      title: banner.title || DEFAULT_HOME_CONFIG.banner.title,
+      imageUrl: banner.imageUrl || DEFAULT_HOME_CONFIG.banner.imageUrl,
+    },
+    judge: {
+      title: judge.title || DEFAULT_HOME_CONFIG.judge.title,
+      subtitle: judge.subtitle || DEFAULT_HOME_CONFIG.judge.subtitle,
+      imageUrl: judge.imageUrl || DEFAULT_HOME_CONFIG.judge.imageUrl,
+    },
+  }
+}
 
 const normalizePointsTask = (item = {}) => ({
   id: cleanText(item.id),
@@ -284,14 +339,22 @@ const normalizeStore = (store = {}) => ({
     tasks: withBuiltinPointsTasks(store?.pointsConfig?.tasks),
     rewards: cleanArray(store?.pointsConfig?.rewards).map(normalizePointsReward).filter((item) => item.id || item.title),
   },
-  templateConfig: {
-    filters: cleanArray(store?.templateConfig?.filters).map(normalizeTemplateFilter).filter((item) => item.id || item.name),
-    templates: cleanArray(store?.templateConfig?.templates).map(normalizeTemplateItem).filter((item) => item.id || item.title),
-    unlockCard: {
+  templateConfig: (() => {
+    const filters = cleanArray(store?.templateConfig?.filters).map(normalizeTemplateFilter).filter((item) => item.id || item.name)
+    const templates = cleanArray(store?.templateConfig?.templates).map(normalizeTemplateItem).filter((item) => item.id || item.title)
+    const unlockCard = {
       title: cleanText(store?.templateConfig?.unlockCard?.title),
       progressText: cleanText(store?.templateConfig?.unlockCard?.progressText),
-    },
-  },
+    }
+    return {
+      filters: filters.length ? filters : DEFAULT_TEMPLATE_CONFIG.filters,
+      templates: templates.length ? templates : DEFAULT_TEMPLATE_CONFIG.templates,
+      unlockCard: {
+        title: unlockCard.title || DEFAULT_TEMPLATE_CONFIG.unlockCard.title,
+        progressText: unlockCard.progressText || DEFAULT_TEMPLATE_CONFIG.unlockCard.progressText,
+      },
+    }
+  })(),
   commerce: normalizeCommerce(store?.commerce),
   userCommerce: normalizeUserCommerceMap(store?.userCommerce),
 })

@@ -61,7 +61,7 @@
 
     <view class="report-action-row">
       <view class="report-ghost" bindtap="handleRestartTap">再开一局</view>
-      <view class="report-primary" bindtap="handleShareTap">分享战报</view>
+      <view class="report-primary" bindtap="handleShareTap">分享聚会图</view>
     </view>
 
     <view class="report-notice">

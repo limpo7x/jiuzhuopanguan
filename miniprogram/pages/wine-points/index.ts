@@ -50,7 +50,7 @@ interface WinePointsMethods {
 
 const TABS: PointsTab[] = [
   { id: 'tasks', name: '每日任务' },
-  { id: 'mall', name: '积分商城' },
+  { id: 'mall', name: '积分奖励' },
 ]
 
 const DEFAULT_TASKS: PointsTask[] = []

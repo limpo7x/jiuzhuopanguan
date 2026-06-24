@@ -263,7 +263,7 @@ const getShareConfig = () => {
   const poster = assets.find((item) => ['\u6218\u62a5', '\u5206\u4eab'].some((word) => String(item.assetType || item.scene || '').includes(word))) || null
   const invite = assets.find((item) => ['\u9080\u8bf7', '\u6d77\u62a5'].some((word) => String(item.assetType || item.scene || '').includes(word))) || null
   return {
-    notice: toText(compliance.copy),
+    notice: toText(compliance.copy) || '分享素材以动态聚会图为主；后台运营素材待配置。',
     poster: {
       imageUrl: toText(poster?.imageUrl),
       title: toText(poster?.name),
@@ -333,7 +333,9 @@ const getMerchantPartnersConfig = () => {
         iconClass: '',
         toneClass: '',
       })),
-    notice: 'merchant data from admin config',
+    notice: merchants.length
+      ? '合作优惠仅展示真实后台配置；领取和核销待合同闭环后开放。'
+      : '合作优惠待配置，当前不开放领取或核销。',
   }
 }
 

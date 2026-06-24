@@ -1770,3 +1770,24 @@ PM 边界：
 - 公网健康：`config/home` 200、`config/templates` 200、`admin/login` 200、`/sessions/live` 无参 400、`/user/commerce` 未登录 401。
 - 服务器脏项：`backend/package-lock.json` 曾被服务器 `npm install` 改动，已恢复到 Git 状态；部署后仅保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**`。
 - 当前边界：未上传微信小程序包；未做微信开发者工具预览框 QA；未做真实小程序 Network 点击复核；不得写正式发布准出。
+
+## 2026-06-24 FIX-014 阶段2/3自动化复测与第四阶段保守收敛
+
+- 用户要求按最新微信开发者工具自动化能力测试阶段2到阶段3改动，然后修改阶段4并做独立验收任务分派。
+- 自动化能力：`scripts/wechat-devtools-automator.js` 新增 `set-storage`，支持 `--storageStdin` 写入微信 storage；token 输出继续只显示 `length/tokenTail`。
+- 阶段2/3预览框复测证据：`docs/runtime/verify-fix-014-phase2-3-wechat-automation-20260624.md`。
+- 成员样本 `tokenTail=1dace82d` 直达分享页可见，`shareViewState=ready`、`canViewPosterContent=true`、`shareActionBlocked=false`，照片和账本高光可展示；仍无真实 `readyShareImageUrl`，不能覆盖 ready 图保存链路。
+- 非成员样本 `tokenTail=b81a4c83` 后端直接 POST `/sessions/session-1782137141037-b4e84c/brief` 返回 HTTP 403 `not session member`，说明接口权限合同正确；但微信预览框仍停在 `shareViewState=ready`，且 data 中出现错误文案未转阻断态。
+- 创建页预设和现场记录分享 tab 预览框均显示旧编译包：创建页仍有旧预设，现场记录页只有“记录/相册/账本”三个 tab，找不到源码里的 `分享` 禁用 tab。CLI `cache --clean compile` 被 `需要重新登录 (code 10)` 阻断。
+- 结论：阶段2/3微信开发者工具预览框自动化退回，原因是开发者工具预览包未刷新；不得写预览框通过或正式发布准出。
+- 第四阶段实现证据：`docs/runtime/pr-fix-014-phase4-ops-config-cleanup-20260624.md`。
+- `FIX-014-19`：模板配置为空时提供 4 个免费聚会主题模板，不新增高级/付费心智。
+- `FIX-014-20`：首页配置为空时提供“聚会记录师”最小口径与两个快捷工具；后台旧 Hero 文案降权。
+- `FIX-014-21`：会员/权益保持关闭；用户侧改为“聚会权益暂未开放”，不自动跳首页，不承诺开通。
+- `FIX-014-22`：商户合作不导入假商户；无真实商户和核销合同前展示待配置空态。
+- `FIX-014-23`：分享素材不新增后台素材；说明以动态聚会图为主，运营素材待配置。
+- `FIX-014-24`：积分只保留首次登录奖励；奖励兑换保持空态，不开放积分商城。
+- `FIX-014-25`：未注册旧页面继续不恢复；只收敛已注册页面的配置相关旧口径。
+- 独立验收负责人只读结论：`VERIFY-014-01` 缺 host/member/kicked/rejoined 完整线上矩阵和清理证据；`VERIFY-014-02` 缺真实 moment 后台通过到发奖全链路；`VERIFY-014-03` 可继续自动化但需先解决预览框旧包问题。
+- 本地验证通过：`node --check backend/data/content.js`、`node --check backend/data/front.js`、`node --check backend/data/commerce.js`、`node --check backend/data/admin.js`、`node --check scripts/wechat-devtools-automator.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`。
+- 当前状态：本地已修改，待提交、推送、部署；未上传微信小程序包；未做阶段4部署后公网复核。
