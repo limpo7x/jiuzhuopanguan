@@ -11,6 +11,8 @@
 - 证据：`docs/runtime/pr-fix-014-07-session-full-join-20260624.md`。
 - 范围：`/sessions/join` 满员返回 409 `session full`；`/parties/join` 满员返回 409 `party full`；首页口令加入满员弹窗展示“聚会已满”。
 - 本地验证：`node backend/scripts/smoke-session-full-join-error.js` 已覆盖 2 人局加满后 outsider 两个 join 入口均为 409；编码检查、typecheck 和 diff 检查通过。
+- 已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上代码 HEAD `a5c38bf9`。部署证据见 `docs/runtime/deploy-fix-014-07-20260624.md`。
+- PM2 `jiuzhuopanguan-backend` online；PM2 `pomer` 官网服务 online 且未重启。
 
 下一步责任：
 
