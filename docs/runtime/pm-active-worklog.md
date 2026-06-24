@@ -1720,3 +1720,13 @@ PM 边界：
 - 本地验证通过：`node --check backend/server.js`、`node --check backend/scripts/smoke-user-commerce-auth.js`、`node backend/scripts/smoke-user-commerce-auth.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。
 - 依赖安装说明：新工作树补装根目录与 backend 依赖后完成验证；根目录 `npm.cmd install` 报告既有 `10 vulnerabilities`，backend `npm.cmd install` 为 `0 vulnerabilities`，本轮未做无关升级。
 - 当前状态：本地合同通过；未提交、未推送、未部署、未上传小程序包。线上接口联调和 QA 复核仍待补证，不得写正式发布准出。
+
+## 2026-06-24 FIX-014-10 用户审批与本地实现
+
+- 用户已用编号授权启动 `FIX-014-10`。本轮只处理“后台聚会状态修复动作”，不启动 `FIX-014-11` 或其他编号。
+- 工作树边界：新建干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-10`，分支 `codex/fix-014-10-admin-session-state-repair`，基线为 `origin/main` 的 `8924ef4c`。
+- 证据：`docs/runtime/pr-fix-014-10-admin-session-state-repair-20260624.md`。
+- 已实现：后台 `sessions` 页面改为只读，不再允许整批覆盖 `liveSessions`；新增 `POST /api/v1/admin/sessions/:id/repair-state` 专用动作；状态修复同步 `endedAt/report/brief/share task` 并写 `operationLogs`。
+- 本地验证通过：`node --check backend/data/admin.js`、`node --check backend/server.js`、`node --check backend/scripts/smoke-admin-session-state-repair.js`、`node backend/scripts/smoke-admin-session-state-repair.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。
+- 依赖安装说明：新工作树补装根目录与 backend 依赖后完成验证；根目录 `npm.cmd install` 报告既有 `10 vulnerabilities`，backend `npm.cmd install` 为 `0 vulnerabilities`，本轮未做无关升级。
+- 当前状态：本地合同通过；未提交、未推送、未部署、未上传小程序包。线上接口联调、后台页面人工复核和 QA 复核仍待补证，不得写正式发布准出。

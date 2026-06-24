@@ -1,3 +1,28 @@
+## 2026-06-24 PM 公告：FIX-014-10 后台聚会状态修复动作本地通过
+
+面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
+
+用户已逐项同意 `FIX-014-10`。本轮只处理后台聚会状态修复动作，不启动 `FIX-014-11` 或其他编号，不上传微信小程序包。
+
+范围边界：
+
+- 后台 `sessions` 页面改为只读，不再允许整批覆盖 `liveSessions`。
+- 状态修复必须走 `POST /api/v1/admin/sessions/:id/repair-state`。
+- 本项不改小程序页面，不改公司官网，不改 Nginx，不重启 `pomer` 官网服务。
+
+本地结论：
+
+- `repair-state` 支持 `end/resume` 两类明确动作。
+- `end` 会同步 `endedAt/state/status`、已有 report 状态、brief/share task 关联，并写 operationLogs。
+- `resume` 会恢复 session 进行中状态并写 operationLogs，不删除已有 report/share 证据。
+- 本地 smoke 覆盖 sessions 页只读、直接保存 409、状态修复、关联同步和操作日志。
+
+下一步责任：
+
+- 接口联调负责人：部署后用固定测试样本覆盖直接保存 409、repair-state end/resume、operationLogs 和清理证据。
+- 后台管理负责人：补后台页面人工复核，确认运营只能看状态并使用专用修复动作。
+- QA：接口联调和后台复核证据齐全后再验收，不写正式发布准出。
+
 ## 2026-06-24 PM 公告：FIX-014-09 用户资产接口鉴权一致性本地通过
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。

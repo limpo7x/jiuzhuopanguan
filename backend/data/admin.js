@@ -902,6 +902,7 @@ const getOperationLogType = (entry = {}) => {
   if (text.includes('精彩瞬间举报')) return '瞬间举报'
   if (text.includes('精彩瞬间')) return '瞬间审核'
   if (text.includes('分享图')) return '分享图任务'
+  if (text.includes('聚会状态')) return '聚会状态'
   if (text.includes('榜单奖励')) return '榜单奖励'
   if (text.includes('积分')) return '积分调整'
   return '后台操作'
@@ -2060,6 +2061,121 @@ const updateManagedSession = (sessionId, payload = {}) => {
   return store.liveSessions.find((item) => item.id === sessionId) || null
 }
 
+const repairManagedSessionState = ({ sessionId, action, reason, operator = 'admin-console', endedAt = '' } = {}) => {
+  const normalizedSessionId = String(sessionId || '').trim()
+  const normalizedAction = String(action || '').trim()
+  const normalizedReason = String(reason || '').trim()
+  if (!normalizedSessionId) {
+    throw createAdminHttpError('sessionId required', 400)
+  }
+  if (!['end', 'resume'].includes(normalizedAction)) {
+    throw createAdminHttpError('invalid session repair action', 400)
+  }
+  if (!normalizedReason) {
+    throw createAdminHttpError('repair reason required', 400)
+  }
+
+  const store = readStore()
+  const index = (store.liveSessions || []).findIndex((item) => String(item.id || '').trim() === normalizedSessionId)
+  if (index === -1) {
+    throw createAdminHttpError('session not found', 404)
+  }
+
+  const before = store.liveSessions[index]
+  const timestamp = String(endedAt || '').trim() || iso()
+  const nextSession = normalizeLiveSession(
+    normalizedAction === 'end'
+      ? {
+          ...before,
+          endedAt: String(before.endedAt || timestamp).trim(),
+          state: SESSION_STATE_ENDED,
+          status: SESSION_STATE_ENDED,
+          updatedAt: timestamp,
+        }
+      : {
+          ...before,
+          endedAt: '',
+          state: SESSION_STATE_LIVE,
+          status: SESSION_STATE_LIVE,
+          updatedAt: timestamp,
+        },
+    index,
+  )
+  store.liveSessions[index] = nextSession
+
+  let reportCount = 0
+  if (normalizedAction === 'end') {
+    store.reports = (store.reports || []).map((report, reportIndex) => {
+      if (String(report.sessionId || '').trim() !== normalizedSessionId) {
+        return report
+      }
+      reportCount += 1
+      return normalizeReportItem(
+        {
+          ...report,
+          status: SESSION_STATE_ENDED,
+          updatedAt: timestamp,
+        },
+        reportIndex,
+      )
+    })
+  }
+
+  writeStore(store)
+
+  const momentsStore = readMomentsAdminStore()
+  let briefCount = 0
+  let shareTaskCount = 0
+  if (momentsStore) {
+    const shareTasks = (momentsStore.shareImageTasks || [])
+      .filter((task) => String(task.sessionId || '').trim() === normalizedSessionId)
+      .sort((left, right) => String(right.updatedAt || right.createdAt || '').localeCompare(String(left.updatedAt || left.createdAt || '')))
+    const latestTask = shareTasks[0] || null
+    shareTaskCount = shareTasks.length
+
+    momentsStore.sessionBriefs = (momentsStore.sessionBriefs || []).map((brief) => {
+      if (String(brief.sessionId || '').trim() !== normalizedSessionId) {
+        return brief
+      }
+      briefCount += 1
+      return {
+        ...brief,
+        shareImageTaskId: String(brief.shareImageTaskId || latestTask?.id || '').trim(),
+        shareImageStatus: String(latestTask?.status || brief.shareImageStatus || '').trim(),
+        updatedAt: timestamp,
+      }
+    })
+    momentsStore.shareImageTasks = (momentsStore.shareImageTasks || []).map((task) =>
+      String(task.sessionId || '').trim() === normalizedSessionId
+        ? {
+            ...task,
+            updatedAt: timestamp,
+          }
+        : task,
+    )
+    writeMomentsAdminStore(momentsStore)
+  }
+
+  const latestStore = readStore()
+  appendAdminOperationLog(latestStore, {
+    operator,
+    action: '修复聚会状态',
+    targetId: normalizedSessionId,
+    targetName: nextSession.name || normalizedSessionId,
+    detail: `动作 ${normalizedAction}；状态 ${before.state || ''}/${before.status || ''} -> ${nextSession.state}/${nextSession.status}；原因：${normalizedReason}；同步 report ${reportCount} 条，brief ${briefCount} 条，share task ${shareTaskCount} 条`,
+  })
+  writeStore(latestStore)
+
+  return {
+    session: nextSession,
+    synced: {
+      briefCount,
+      reportCount,
+      shareTaskCount,
+    },
+  }
+}
+
 const endManagedSession = (sessionId, payload = {}) =>
   updateManagedSession(sessionId, {
     ...payload,
@@ -2829,26 +2945,11 @@ const pageMap = {
     return {
       slug: 'sessions',
       title: '聚会管理',
-      view: 'collection',
+      view: 'readonly',
       metrics: getSessionMetrics(),
-      collection: {
-        key: 'liveSessions',
-        itemLabel: '聚会',
-        fields: [
-          { key: 'name', label: '聚会名称', type: 'text' },
-          { key: 'players', label: '人数', type: 'number' },
-          { key: 'template', label: '模板', type: 'select', options: getSessionTemplateOptions() },
-          { key: 'hostName', label: '记录人', type: 'select', options: getProfileNameOptions() },
-          { key: 'hostProfileId', label: '记录人唯一ID', type: 'text' },
-          { key: 'inviteCode', label: '口令', type: 'text' },
-          { key: 'participantsText', label: '参与人', type: 'textarea' },
-          { key: 'participantProfileIds', label: '参与人唯一ID', type: 'textarea' },
-          { key: 'state', label: '流程状态', type: 'select', options: getSessionStateOptions() },
-          { key: 'source', label: '分享来源', type: 'select', options: getSessionSourceOptions() },
-          { key: 'status', label: '运营状态', type: 'select', options: getSessionStatusOptions() },
-          { key: 'firstPhotoUploadedAt', label: '首拍时间', type: 'text' },
-          { key: 'endedAt', label: '结束时间', type: 'text' },
-        ],
+      tables: [
+        {
+          title: '聚会状态',
         columns: [
           { key: 'name', label: '聚会名称' },
           { key: 'players', label: '人数' },
@@ -2874,8 +2975,27 @@ const pageMap = {
           { key: 'shareTaskCount', label: '分享图任务数' },
           { key: 'manageLinks', label: '管理入口' },
         ],
-        items: sessions,
-      },
+          rowActions: [
+            {
+              key: 'repair-end',
+              label: '标记已结束',
+              endpoint: '/api/v1/admin/sessions/:id/repair-state',
+              payloadAction: 'end',
+              reasonPrompt: '请输入状态修复原因',
+              visibleWhen: { field: 'state', notValues: ['已结束'] },
+            },
+            {
+              key: 'repair-resume',
+              label: '恢复进行中',
+              endpoint: '/api/v1/admin/sessions/:id/repair-state',
+              payloadAction: 'resume',
+              reasonPrompt: '请输入状态修复原因',
+              visibleWhen: { field: 'state', values: ['已结束'] },
+            },
+          ],
+          rows: sessions,
+        },
+      ],
     }
   },
   'reports': () => {
@@ -4239,9 +4359,7 @@ const savePageData = (slug, payload = {}) => {
   }
 
   if (slug === 'sessions') {
-    adminStore.liveSessions = saveCollectionArray(payload.items, pageMap[slug]().collection.fields, adminStore.liveSessions)
-    writeStore(adminStore)
-    return getPageData(slug)
+    throw createAdminHttpError('sessions page is readonly; use repair-state action', 409)
   }
 
   if (slug === 'reports') {
@@ -4340,6 +4458,7 @@ module.exports = {
   loginAdmin,
   logoutAdmin,
   retryManagedShareImageTask,
+  repairManagedSessionState,
   resetAdminPassword,
   reviewManagedMoment,
   getSessionContactsByProfile,

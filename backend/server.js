@@ -90,6 +90,7 @@ const {
   getSession,
   loginAdmin,
   logoutAdmin,
+  repairManagedSessionState,
   retryManagedShareImageTask,
   resetAdminPassword,
   reviewManagedMoment,
@@ -933,6 +934,27 @@ const server = http.createServer((request, response) => {
         sendOk(response, reviewManagedMoment({
           momentId,
           action: 'require_resubmit',
+          reason: payload.reason,
+          operator: session.user?.username || session.user?.name || 'admin-console',
+        }))
+        return
+      }
+    }
+
+    if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/admin/sessions/')) {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
+      const parts = pathname.replace('/api/v1/admin/sessions/', '').split('/').filter(Boolean)
+      const sessionId = parts[0] || ''
+      const actionName = parts[1] || ''
+      const payload = await readJsonBody(request)
+      if (actionName === 'repair-state') {
+        sendOk(response, repairManagedSessionState({
+          sessionId,
+          action: payload.action,
+          endedAt: payload.endedAt,
           reason: payload.reason,
           operator: session.user?.username || session.user?.name || 'admin-console',
         }))
