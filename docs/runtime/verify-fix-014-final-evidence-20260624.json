@@ -1,0 +1,163 @@
+{
+  "id": "fix-014-final-1782287668844-f096f7",
+  "baseUrl": "https://api.pomer.cn/api/v1",
+  "prefix": "FIX-014-FINAL-20260624-1782287662467",
+  "createdAt": "2026-06-24T07:54:28.844Z",
+  "profiles": {
+    "host": {
+      "profileId": "user-1782287662470-ad6eb0",
+      "name": "PRCS Verify Host",
+      "tokenTail": "dd932a79"
+    },
+    "memberA": {
+      "profileId": "user-1782287662473-9eeeaa",
+      "name": "PRCS Verify Member A",
+      "tokenTail": "52ff42bf"
+    },
+    "memberB": {
+      "profileId": "user-1782287662477-07560e",
+      "name": "PRCS Verify Member B",
+      "tokenTail": "9d374a78"
+    },
+    "outsider": {
+      "profileId": "user-1782287662479-d75365",
+      "name": "PRCS Verify Outsider",
+      "tokenTail": "c8f30fc1"
+    }
+  },
+  "session": {
+    "sessionId": "session-1782287684779-15a736",
+    "inviteCode": "82EMAC"
+  },
+  "moments": {
+    "openingId": "moment-1782287689447-d4f18373",
+    "highlightId": "moment-1782287689468-d81c3459"
+  },
+  "events": {
+    "ledgerEventId": "event-1782287697994-ddc5843c"
+  },
+  "brief": {
+    "briefId": "brief-1782287700412-4874f09e"
+  },
+  "shareTask": {
+    "taskId": "share-task-1782287701617-388276de",
+    "status": "ready",
+    "imageUrl": "https://cdn.pomer.cn/moments/share-tasks/share-task-1782287701617-388276de.png",
+    "readyShareImageUrl": "https://cdn.pomer.cn/moments/share-tasks/share-task-1782287701617-388276de.png"
+  },
+  "nomination": {
+    "nominationId": "nomination-1782287707344-24f302ee",
+    "category": "best_opening",
+    "pointsSpent": 10,
+    "rankingMomentId": "moment-1782287689447-d4f18373",
+    "rankingRank": 1
+  },
+  "reward": {
+    "payoutId": "ranking-reward-payout-1782287709720-c8797d87",
+    "sourceId": "ranking-reward:2026-06-24:best_opening:moment-1782287689447-d4f18373:reward-rule-best-opening-1",
+    "points": 60,
+    "grantedCount": 1,
+    "totalPoints": 60,
+    "rewardLedgerId": "ledger-1782287709720-808a5379",
+    "nominationLedgerId": "ledger-1782287707348-c61c62e6"
+  },
+  "operationLogIds": [
+    "admin-op-1782287709723-a89e11",
+    "admin-op-1782287689501-97fe79",
+    "admin-op-1782287689491-f08285"
+  ],
+  "evidence": {
+    "exportedAt": "2026-06-24T07:55:13.345Z",
+    "r02": {
+      "readyTaskStatus": "ready",
+      "readyShareImageUrl": "https://cdn.pomer.cn/moments/share-tasks/share-task-1782287701617-388276de.png",
+      "imageProbe": {
+        "exists": true,
+        "status": 200,
+        "contentType": "image/png",
+        "byteLength": 154497
+      },
+      "memberShareTaskReadyUrl": "https://cdn.pomer.cn/moments/share-tasks/share-task-1782287701617-388276de.png"
+    },
+    "verify01401": {
+      "deferredToPublicCheck": true
+    },
+    "verify01402": {
+      "openingMomentId": "moment-1782287689447-d4f18373",
+      "eligibility": {
+        "alreadyNominatedToday": false,
+        "category": "best_opening",
+        "eligible": true,
+        "momentId": "moment-1782287689447-d4f18373",
+        "pointsCost": 10,
+        "reason": "",
+        "reasonCode": "",
+        "reasonText": ""
+      },
+      "nominationId": "nomination-1782287707344-24f302ee",
+      "rankingRank": 1,
+      "payoutId": "ranking-reward-payout-1782287709720-c8797d87",
+      "rewardPoints": 60,
+      "nominationLedgerId": "ledger-1782287707348-c61c62e6",
+      "rewardLedgerId": "ledger-1782287709720-808a5379",
+      "memberAPointsAfter": 70,
+      "hostPointsAfter": 60,
+      "operationLogIds": [
+        "admin-op-1782287709723-a89e11",
+        "admin-op-1782287689501-97fe79",
+        "admin-op-1782287689491-f08285"
+      ]
+    },
+    "tokens": {
+      "host": "***dd932a79",
+      "memberA": "***52ff42bf",
+      "memberB": "***9d374a78",
+      "outsider": "***c8f30fc1"
+    },
+    "publicCheck": {
+      "exportedAt": "2026-06-24T07:55:27.982Z",
+      "sessionLoaded": true,
+      "memberCanReadLive": true,
+      "memberBriefLoaded": true,
+      "memberTaskReady": true,
+      "memberTaskReadyShareImageUrl": "https://cdn.pomer.cn/moments/share-tasks/share-task-1782287701617-388276de.png",
+      "outsiderBlocked": {
+        "label": "outsider live blocked after reload",
+        "ok": true,
+        "expectedStatus": 403,
+        "actualStatus": 403,
+        "message": "not session member"
+      },
+      "kickedLiveBlocked": {
+        "label": "kicked member live blocked after reload",
+        "ok": true,
+        "expectedStatus": 403,
+        "actualStatus": 403,
+        "message": "not session member"
+      },
+      "kickedBriefBlocked": {
+        "label": "kicked member brief blocked after reload",
+        "ok": true,
+        "expectedStatus": 403,
+        "actualStatus": 403,
+        "message": "not session member"
+      },
+      "kickedShareTaskBlocked": {
+        "label": "kicked member share task blocked after reload",
+        "ok": true,
+        "expectedStatus": 403,
+        "actualStatus": 403,
+        "message": "not session member"
+      },
+      "rejoinedCanReadLive": true,
+      "rejoinedCanReadBrief": true,
+      "rejoinedCanReadShareTask": true,
+      "rankingContainsMoment": true,
+      "rankingPublicFieldsRedacted": true,
+      "payoutLedgerVisibleToHost": true,
+      "nominationLedgerVisibleToMemberA": true,
+      "hostPoints": 60,
+      "memberAPoints": 70
+    }
+  }
+}

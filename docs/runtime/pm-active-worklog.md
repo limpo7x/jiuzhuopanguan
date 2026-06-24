@@ -1814,3 +1814,23 @@ PM 边界：
 - 创建页预设已是聚会记录口径：今晚的聚会、朋友小聚、生日聚会、老友见面、团建聚会、周末小聚、家庭聚会、露营相册。
 - 现场记录页分享 tab：`.live-segment-tab-disabled` 存在，点击后 `activeSegment` 保持 `record`。
 - 当前边界：`FIX-014-02` R01、`FIX-014-16`、`FIX-014-17` 可写“预览框阶段通过”；`FIX-014-02` R02 仍缺真实 `readyShareImageUrl`；`VERIFY-014-01/02` 仍缺独立完整证据；未上传微信小程序包，不得写正式发布准出。
+
+## 2026-06-24 FIX-014 R02 与 VERIFY-014-01/02 独立验收收口
+
+- 触发原因：用户询问 `readyShareImageUrl` 真实 URL 保存链路和 `VERIFY-014-01/02` 如何测试，并要求“跑”。
+- 验收目标：仅 `api.pomer.cn` / `/www/wwwroot/jiuzhuopanguan-git` / PM2 `jiuzhuopanguan-backend`；未触碰 `pomer.cn` 公司官网目录、Nginx 或 PM2 `pomer` 服务。
+- 新增验收脚本：`backend/scripts/verify-fix-014-final-evidence.js`，支持 create / public-check / cleanup / scan；完整 token 只写服务器 `/tmp` 私有 manifest，公开证据仅记录 tokenTail。
+- 验收中发现并修复真实后端缺陷：`grantRankingRewards()` 原依赖公开榜单序列化后的 `uploaderProfileId`，但阶段3 P2 已按隐私边界裁剪该字段，导致发奖跳过。已修复为发奖内部按 momentId 从私有 moments store 读取上传者 profileId，不向公开榜单重新泄露身份字段。
+- 相关提交：`c9acb27 fix: grant ranking rewards from private moment store`、`702e7a1 test: add public API evidence check`、`8257336 test: persist verifier share evidence directly`、`a5c3522 test: persist verifier ended state directly`。
+- 服务器部署：已拉取到 `api.pomer.cn` 对应仓库并重启 PM2 `jiuzhuopanguan-backend`；PM2 `pomer` 官网服务未重启。
+- run7 证据：
+  - 私有 manifest：`/tmp/fix-014-final-evidence-20260624-run7.private.json`。
+  - 脱敏 JSON：`docs/runtime/verify-fix-014-final-evidence-20260624.json`。
+  - 人工记录：`docs/runtime/verify-fix-014-final-evidence-20260624.md`。
+  - 微信预览框截图：`docs/runtime/verify-fix-014-r02-wechat-ready-url-run7-20260624.png`。
+- `FIX-014-02 R02`：通过。`readyShareImageUrl=https://cdn.pomer.cn/moments/share-tasks/share-task-1782287701617-388276de.png`，HTTP 200 `image/png`，`byteLength=154497`；微信预览框 memberB tokenTail `9d374a78` 页面态为 `shareViewState=ready`、`canViewPosterContent=true`、`shareActionBlocked=false`、`savePosterLabel=保存聚会图`。
+- `VERIFY-014-01`：通过。服务重启后公开 API 复核 host/member 可读，outsider 403；memberB 被踢后 live / brief / share task 均 403，重新加入后 live / brief / share task 均可读。
+- `VERIFY-014-02`：通过。真实 opening moment 经审核后可推举，生成 nomination、ranking rank=1、payout、host 奖励积分流水、memberA 推举积分流水和 operationLogs；公开榜单仍裁剪 `uploaderProfileId`。
+- 边界：微信预览框中源 moment 图片标记 `imageBroken=true`，但 ready 分享图 URL 本身已生成、持久化、可访问且页面态读取成功；未上传微信小程序包，不写正式发布准出。
+- run7 清理：已执行 cleanup 并复跑 scan；social/content/admin/moments 相关残留计数全 0，上传文件残留为 false。
+- 下一步：若进入正式发布准出，再另开小程序包上传/体验版/真机采集任务。
