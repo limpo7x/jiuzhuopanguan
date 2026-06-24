@@ -995,6 +995,7 @@ const grantRankingRewards = ({ category = 'today_highlight', limit = 100, operat
   const normalizedCategory = RANKING_CATEGORIES.has(cleanText(category)) ? cleanText(category) : 'today_highlight'
   const ranking = listTodayRankings({ category: normalizedCategory, limit })
   const store = readMomentsStore()
+  const rawMomentMap = new Map((store.momentRecords || []).map((moment) => [cleanText(moment.id), moment]))
   const rules = getRankingRewardRules(store).filter((item) => item.category === normalizedCategory)
   const contentStore = readContentStore()
   const now = nowIso()
@@ -1005,8 +1006,9 @@ const grantRankingRewards = ({ category = 'today_highlight', limit = 100, operat
 
   ranking.items.forEach((item) => {
     const rule = rules.find((candidate) => item.rank >= candidate.rankStart && item.rank <= candidate.rankEnd)
-    const profileId = cleanText(item.moment?.uploaderProfileId)
     const momentId = cleanText(item.moment?.id)
+    const rawMoment = rawMomentMap.get(momentId) || {}
+    const profileId = cleanText(rawMoment.uploaderProfileId || item.moment?.uploaderProfileId)
     if (!rule || !profileId || !momentId) {
       skippedCount += 1
       return
@@ -1044,9 +1046,9 @@ const grantRankingRewards = ({ category = 'today_highlight', limit = 100, operat
       category: normalizedCategory,
       date: ranking.date,
       momentId,
-      sessionId: item.moment.sessionId,
+      sessionId: cleanText(rawMoment.sessionId || item.moment.sessionId),
       profileId,
-      profileName: item.moment.uploaderName,
+      profileName: cleanText(rawMoment.uploaderName || item.moment.uploaderName),
       rank: item.rank,
       points,
       ruleId: rule.id,
