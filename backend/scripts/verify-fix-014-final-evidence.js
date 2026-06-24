@@ -435,10 +435,14 @@ const createEvidence = async ({ args }) => {
       includeLedger: true,
     },
   })
-  const processed = await api(baseUrl, `/share-image-tasks/${encodeURIComponent(shareTaskSeed.id)}/process`, {
-    method: 'POST',
-    token: host.token,
-  })
+  const scheduledTask = await waitForReadyTask(baseUrl, shareTaskSeed.id, host.token, 5000)
+  const processed =
+    scheduledTask?.status === 'pending'
+      ? await api(baseUrl, `/share-image-tasks/${encodeURIComponent(shareTaskSeed.id)}/process`, {
+          method: 'POST',
+          token: host.token,
+        })
+      : scheduledTask
   const readyTask = processed.status === 'ready' ? processed : await waitForReadyTask(baseUrl, shareTaskSeed.id, host.token)
   const readyShareImageUrl = cleanText(readyTask?.readyShareImageUrl || readyTask?.imageUrl)
   assert(readyTask?.status === 'ready', `share task not ready: ${readyTask?.status || 'missing'}`)
