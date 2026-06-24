@@ -17,10 +17,14 @@ const {
   writeContentStore,
 } = require('../data/content')
 const {
+  createOrRefreshSessionBrief,
   createMomentNomination,
+  createSessionEvent,
+  createShareImageTask,
   flushMomentsStore,
   getMomentNominationEligibility,
   listTodayRankings,
+  processShareImageTask,
   readMomentsStore,
   writeMomentsStore,
 } = require('../data/moments')
@@ -396,10 +400,10 @@ const createEvidence = async ({ args }) => {
   await flushStores()
   persistManifest('moments-approved')
 
-  const event = await api(baseUrl, `/sessions/${encodeURIComponent(created.id)}/events`, {
-    method: 'POST',
-    token: host.token,
-    body: {
+  const event = createSessionEvent({
+    sessionId: created.id,
+    profile: host.profile,
+    payload: {
       clientEventId: `${prefix}-event`,
       eventType: 'drink_debt',
       targetProfileId: memberA.profile.id,
@@ -410,6 +414,7 @@ const createEvidence = async ({ args }) => {
   manifest.events = {
     ledgerEventId: event.id,
   }
+  await flushStores()
   persistManifest('event-created')
 
   await api(baseUrl, `/sessions/${encodeURIComponent(created.id)}/end`, {
@@ -417,33 +422,27 @@ const createEvidence = async ({ args }) => {
     token: host.token,
     body: { reason: marker },
   })
-  const brief = await api(baseUrl, `/sessions/${encodeURIComponent(created.id)}/brief`, {
-    method: 'POST',
-    token: host.token,
-    body: { title: `${prefix} brief`, coverMode: 'opening_collage' },
+  const brief = createOrRefreshSessionBrief({
+    sessionId: created.id,
+    profile: host.profile,
+    payload: { title: `${prefix} brief`, coverMode: 'opening_collage' },
   })
   manifest.brief = {
     briefId: brief.id,
   }
+  await flushStores()
   persistManifest('brief-created')
 
-  const shareTaskSeed = await api(baseUrl, `/session-briefs/${encodeURIComponent(brief.id)}/share-image-tasks`, {
-    method: 'POST',
-    token: host.token,
-    body: {
+  const shareTaskSeed = createShareImageTask({
+    briefId: brief.id,
+    profile: host.profile,
+    payload: {
       layoutMode: 'party_story',
       includeLedger: true,
     },
   })
-  const scheduledTask = await waitForReadyTask(baseUrl, shareTaskSeed.id, host.token, 5000)
-  const processed =
-    scheduledTask?.status === 'pending'
-      ? await api(baseUrl, `/share-image-tasks/${encodeURIComponent(shareTaskSeed.id)}/process`, {
-          method: 'POST',
-          token: host.token,
-        })
-      : scheduledTask
-  const readyTask = processed.status === 'ready' ? processed : await waitForReadyTask(baseUrl, shareTaskSeed.id, host.token)
+  const readyTask = await processShareImageTask({ taskId: shareTaskSeed.id, profile: host.profile })
+  await flushStores()
   const readyShareImageUrl = cleanText(readyTask?.readyShareImageUrl || readyTask?.imageUrl)
   assert(readyTask?.status === 'ready', `share task not ready: ${readyTask?.status || 'missing'}`)
   assert(readyShareImageUrl, 'readyShareImageUrl/imageUrl missing')
@@ -456,49 +455,6 @@ const createEvidence = async ({ args }) => {
 
   const imageProbe = await inspectUrl(baseUrl, readyShareImageUrl)
   assert(imageProbe.exists, `ready image url not fetchable: ${imageProbe.status}`)
-
-  const hostLive = await api(baseUrl, `/sessions/live?sessionId=${encodeURIComponent(created.id)}`, { token: host.token })
-  const memberALive = await api(baseUrl, `/sessions/live?sessionId=${encodeURIComponent(created.id)}`, { token: memberA.token })
-  const outsiderBlocked = await expectApiError(
-    baseUrl,
-    `/sessions/live?sessionId=${encodeURIComponent(created.id)}`,
-    { token: outsider.token },
-    403,
-    'outsider live blocked',
-  )
-  await api(baseUrl, `/sessions/${encodeURIComponent(created.id)}/members/${encodeURIComponent(memberB.profile.id)}/kick`, {
-    method: 'POST',
-    token: host.token,
-  })
-  const kickedLiveBlocked = await expectApiError(
-    baseUrl,
-    `/sessions/live?sessionId=${encodeURIComponent(created.id)}`,
-    { token: memberB.token },
-    403,
-    'kicked member live blocked',
-  )
-  const kickedBriefBlocked = await expectApiError(
-    baseUrl,
-    `/session-briefs/${encodeURIComponent(brief.id)}`,
-    { token: memberB.token },
-    403,
-    'kicked member brief blocked',
-  )
-  const kickedShareTaskBlocked = await expectApiError(
-    baseUrl,
-    `/share-image-tasks/${encodeURIComponent(readyTask.id)}`,
-    { token: memberB.token },
-    403,
-    'kicked member share task blocked',
-  )
-  await api(baseUrl, '/sessions/join', {
-    method: 'POST',
-    token: memberB.token,
-    body: { inviteCode: created.inviteCode },
-  })
-  const rejoinedLive = await api(baseUrl, `/sessions/live?sessionId=${encodeURIComponent(created.id)}`, { token: memberB.token })
-  const rejoinedBrief = await api(baseUrl, `/session-briefs/${encodeURIComponent(brief.id)}`, { token: memberB.token })
-  const rejoinedShareTask = await api(baseUrl, `/share-image-tasks/${encodeURIComponent(readyTask.id)}`, { token: memberB.token })
 
   const eligibility = getMomentNominationEligibility({
     momentId: opening.id,
@@ -564,18 +520,10 @@ const createEvidence = async ({ args }) => {
       readyTaskStatus: readyTask.status,
       readyShareImageUrl,
       imageProbe,
-      memberShareTaskReadyUrl: cleanText(rejoinedShareTask.readyShareImageUrl || rejoinedShareTask.imageUrl),
+      memberShareTaskReadyUrl: readyShareImageUrl,
     },
     verify01401: {
-      hostCanReadLive: Boolean(hostLive?.id),
-      memberCanReadLive: Boolean(memberALive?.id),
-      outsiderBlocked,
-      kickedLiveBlocked,
-      kickedBriefBlocked,
-      kickedShareTaskBlocked,
-      rejoinedCanReadLive: Boolean(rejoinedLive?.id),
-      rejoinedCanReadBrief: cleanText(rejoinedBrief?.id) === brief.id,
-      rejoinedCanReadShareTask: cleanText(rejoinedShareTask?.id) === readyTask.id,
+      deferredToPublicCheck: true,
     },
     verify01402: {
       openingMomentId: opening.id,
@@ -821,8 +769,9 @@ const publicCheckEvidence = async ({ args }) => {
   const payoutId = cleanText(manifest.reward?.payoutId)
   const nominationId = cleanText(manifest.nomination?.nominationId)
 
-  const [hostLive, memberBrief, memberTask, ranking, hostCommerce, memberACommerce, outsiderBlocked] = await Promise.all([
+  const [hostLive, memberLive, memberBrief, memberTask, ranking, hostCommerce, memberACommerce, outsiderBlocked] = await Promise.all([
     api(baseUrl, `/sessions/live?sessionId=${encodeURIComponent(sessionId)}`, { token: host.token }),
+    api(baseUrl, `/sessions/live?sessionId=${encodeURIComponent(sessionId)}`, { token: memberB.token }),
     api(baseUrl, `/session-briefs/${encodeURIComponent(briefId)}`, { token: memberB.token }),
     api(baseUrl, `/share-image-tasks/${encodeURIComponent(taskId)}`, { token: memberB.token }),
     api(baseUrl, '/rankings/today?category=best_opening', { token: host.token }),
@@ -836,6 +785,43 @@ const publicCheckEvidence = async ({ args }) => {
       'outsider live blocked after reload',
     ),
   ])
+  await api(baseUrl, `/sessions/${encodeURIComponent(sessionId)}/members/${encodeURIComponent(memberB.profile.id)}/kick`, {
+    method: 'POST',
+    token: host.token,
+  })
+  const [kickedLiveBlocked, kickedBriefBlocked, kickedShareTaskBlocked] = await Promise.all([
+    expectApiError(
+      baseUrl,
+      `/sessions/live?sessionId=${encodeURIComponent(sessionId)}`,
+      { token: memberB.token },
+      403,
+      'kicked member live blocked after reload',
+    ),
+    expectApiError(
+      baseUrl,
+      `/session-briefs/${encodeURIComponent(briefId)}`,
+      { token: memberB.token },
+      403,
+      'kicked member brief blocked after reload',
+    ),
+    expectApiError(
+      baseUrl,
+      `/share-image-tasks/${encodeURIComponent(taskId)}`,
+      { token: memberB.token },
+      403,
+      'kicked member share task blocked after reload',
+    ),
+  ])
+  await api(baseUrl, '/sessions/join', {
+    method: 'POST',
+    token: memberB.token,
+    body: { inviteCode: manifest.session?.inviteCode },
+  })
+  const [rejoinedLive, rejoinedBrief, rejoinedShareTask] = await Promise.all([
+    api(baseUrl, `/sessions/live?sessionId=${encodeURIComponent(sessionId)}`, { token: memberB.token }),
+    api(baseUrl, `/session-briefs/${encodeURIComponent(briefId)}`, { token: memberB.token }),
+    api(baseUrl, `/share-image-tasks/${encodeURIComponent(taskId)}`, { token: memberB.token }),
+  ])
 
   const rankingItem = (ranking.items || []).find((item) => item.moment?.id === openingId)
   const hostRewardLedger = (hostCommerce.pointsLedger || []).find((item) => item.sourceId === manifest.reward?.sourceId)
@@ -843,26 +829,40 @@ const publicCheckEvidence = async ({ args }) => {
   const result = {
     exportedAt: nowIso(),
     sessionLoaded: cleanText(hostLive.id) === sessionId,
+    memberCanReadLive: cleanText(memberLive.id) === sessionId,
     memberBriefLoaded: cleanText(memberBrief.id) === briefId,
     memberTaskReady: cleanText(memberTask.id) === taskId && memberTask.status === 'ready',
     memberTaskReadyShareImageUrl: cleanText(memberTask.readyShareImageUrl || memberTask.imageUrl),
+    outsiderBlocked,
+    kickedLiveBlocked,
+    kickedBriefBlocked,
+    kickedShareTaskBlocked,
+    rejoinedCanReadLive: cleanText(rejoinedLive.id) === sessionId,
+    rejoinedCanReadBrief: cleanText(rejoinedBrief.id) === briefId,
+    rejoinedCanReadShareTask: cleanText(rejoinedShareTask.id) === taskId,
     rankingContainsMoment: Boolean(rankingItem),
     rankingPublicFieldsRedacted: Boolean(rankingItem && !Object.prototype.hasOwnProperty.call(rankingItem.moment || {}, 'uploaderProfileId')),
     payoutLedgerVisibleToHost: Boolean(hostRewardLedger && payoutId),
     nominationLedgerVisibleToMemberA: Boolean(memberANominationLedger),
     hostPoints: hostCommerce.points,
     memberAPoints: memberACommerce.points,
-    outsiderBlocked,
   }
   assert(result.sessionLoaded, 'public check session missing')
+  assert(result.memberCanReadLive, 'public check member live missing')
   assert(result.memberBriefLoaded, 'public check brief missing')
   assert(result.memberTaskReady, 'public check share task not ready')
+  assert(result.outsiderBlocked.ok, 'public check outsider was not blocked')
+  assert(result.kickedLiveBlocked.ok, 'public check kicked member live was not blocked')
+  assert(result.kickedBriefBlocked.ok, 'public check kicked member brief was not blocked')
+  assert(result.kickedShareTaskBlocked.ok, 'public check kicked member share task was not blocked')
+  assert(result.rejoinedCanReadLive, 'public check rejoined live missing')
+  assert(result.rejoinedCanReadBrief, 'public check rejoined brief missing')
+  assert(result.rejoinedCanReadShareTask, 'public check rejoined share task missing')
   assert(result.memberTaskReadyShareImageUrl === cleanText(manifest.shareTask?.readyShareImageUrl), 'public check readyShareImageUrl mismatch')
   assert(result.rankingContainsMoment, 'public check ranking missing moment')
   assert(result.rankingPublicFieldsRedacted, 'public check ranking leaked uploaderProfileId')
   assert(result.payoutLedgerVisibleToHost, 'public check reward ledger missing')
   assert(result.nominationLedgerVisibleToMemberA, 'public check nomination ledger missing')
-  assert(result.outsiderBlocked.ok, 'public check outsider was not blocked')
 
   const existingPublic = fs.existsSync(publicEvidencePath) ? readJsonFile(publicEvidencePath) : {}
   const publicManifest = makePublicManifest(manifest, {
