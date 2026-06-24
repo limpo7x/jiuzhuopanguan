@@ -1741,3 +1741,21 @@ PM 边界：
 - 公网健康：`config/home` 200、`config/templates` 200、`admin/login` 200、`/sessions/live` 无参 400、`/user/commerce` 未登录 401。
 - 服务器脏项：`backend/package-lock.json` 曾被服务器 `npm install` 改动，已恢复到 Git 状态；部署后仅保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**`。
 - 当前边界：未上传微信小程序包；未做微信开发者工具预览框 QA；未用真实后台账号执行破坏性状态修复；不得写正式发布准出。
+
+## 2026-06-24 FIX-014 第三阶段用户审批与本地实现
+
+- 用户已同意第三阶段。本轮覆盖 `FIX-014-11` 到 `FIX-014-18`，统一按 P2 稳定性与体验收敛推进；不启动第四阶段运营配置项。
+- 工作树边界：新建干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-phase3`，分支 `codex/fix-014-phase3-p2-stability`，基线为 `origin/main` 的 `958efbe1`。
+- 证据：`docs/runtime/pr-fix-014-phase3-p2-stability-20260624.md`。
+- 已实现：
+  - `FIX-014-11`：分享图 modern/legacy fallback 只在 404/405 或明确 route-not-found/method-not-allowed 时触发，401/403/409 直接抛原错误。
+  - `FIX-014-12`：结束聚会 fallback 同样只处理路由缺失；权限和状态错误不再继续 `/finish` 或 `PUT /sessions/:id`。
+  - `FIX-014-13`：今日回忆榜按保守公开口径裁剪内部身份字段，不返回 `uploaderProfileId/visibleProfileIds/usageConsent/审核状态`。
+  - `FIX-014-14`：上传资产新增绑定标记、明确 cleanup 接口和 TTL 清理入口；前端创建失败后清理未绑定上传，已绑定资产禁止 cleanup。
+  - `FIX-014-15`：创建页高级设置未开放时当前页 toast，不跳占位页。
+  - `FIX-014-16`：创建聚会预设迁移为生日、老友、团建、家庭、周末、露营等聚会场景。
+  - `FIX-014-17`：记录页显示禁用态分享 tab，并说明结束聚会后生成分享图。
+  - `FIX-014-18`：分享预览页举报/反馈降级为非按钮说明，不伪装成已开通入口。
+- 本地验证通过：`node --check backend/data/object-storage.js`、`node --check backend/data/moments.js`、`node --check backend/server.js`、`node --check backend/scripts/smoke-phase3-p2-contracts.js`、`node backend/scripts/smoke-phase3-p2-contracts.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`。
+- 依赖安装说明：根目录 `npm.cmd install` 为新工作树补齐 typecheck 依赖，报告既有 `10 vulnerabilities`；backend `npm.cmd install` 为 `0 vulnerabilities`，本轮未做无关升级。
+- 当前状态：尚未提交、未推送、未部署到 `api.pomer.cn`，未上传微信小程序包，未做微信开发者工具预览框 QA；不得写正式发布准出。

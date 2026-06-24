@@ -1,4 +1,5 @@
 import {
+  cleanupManagedMomentUpload,
   createManagedMoment,
   getManagedLiveSession,
   uploadManagedMomentImage,
@@ -62,6 +63,7 @@ interface MomentEditorState {
   sourceMomentId: string
   submitLabel: string
   title: string
+  uploadedAssetId: string
   uploadError: string
   uploading: boolean
   visibility: ManagedMomentVisibility
@@ -83,6 +85,7 @@ interface MomentEditorMethods {
   handleVisibilityTap: (event: WechatMiniprogram.BaseEvent) => void
   loadSessionMembers: (sessionId: string, currentProfile: SocialProfile) => Promise<void>
   readLocalFileAsDataUrl: (filePath: string) => Promise<string>
+  cleanupUploadedAsset: () => Promise<void>
   showToast: (message: string) => void
   uploadImageFile: (filePath: string) => Promise<void>
 }
@@ -218,6 +221,7 @@ Page<MomentEditorState, MomentEditorMethods>({
     sourceMomentId: '',
     submitLabel: '保存照片',
     title: '拍照/上传',
+    uploadedAssetId: '',
     uploadError: '',
     uploading: false,
     visibility: 'session',
@@ -490,6 +494,7 @@ Page<MomentEditorState, MomentEditorMethods>({
       return
     }
 
+    await this.cleanupUploadedAsset()
     this.setData({ draftImageFilePath: filePath, uploadError: '', uploading: true })
     wx.showLoading({
       title: '上传图片',
@@ -503,7 +508,11 @@ Page<MomentEditorState, MomentEditorMethods>({
         fileName: buildFileName(filePath),
         sessionId: this.data.sessionId,
       })
-      this.setData({ imageUrl: normalizeManagedAssetPath(result.url) || result.url, uploadError: '' })
+      this.setData({
+        imageUrl: normalizeManagedAssetPath(result.url) || result.url,
+        uploadError: '',
+        uploadedAssetId: result.id || '',
+      })
       this.showToast('图片已上传')
     } catch (error) {
       const uploadError = error instanceof Error ? error.message : '图片上传失败'
@@ -559,6 +568,19 @@ Page<MomentEditorState, MomentEditorMethods>({
     })
   },
 
+  async cleanupUploadedAsset() {
+    const assetId = this.data.uploadedAssetId
+    if (!assetId) {
+      return
+    }
+    try {
+      await cleanupManagedMomentUpload(assetId)
+      this.setData({ imageUrl: '', uploadedAssetId: '' })
+    } catch (error) {
+      console.warn('[moment-editor] cleanup uploaded asset failed', error)
+    }
+  },
+
   buildPayload() {
     const usageConsent = this.data.consentItems.reduce<Partial<ManagedMomentUsageConsent>>((result, item) => {
       result[item.key] = item.checked
@@ -570,6 +592,7 @@ Page<MomentEditorState, MomentEditorMethods>({
       clientDraftId: this.data.clientDraftId,
       imageUrl: this.data.imageUrl,
       nodeType: this.data.nodeType,
+      uploadAssetId: this.data.uploadedAssetId,
       usageConsent,
       visibility: this.data.visibility,
       visibleProfileIds: shouldShowVisibleMemberPicker(this.data.nodeType, this.data.visibility)
@@ -620,6 +643,7 @@ Page<MomentEditorState, MomentEditorMethods>({
 
     try {
       const created = await createManagedMoment(this.data.sessionId, this.buildPayload())
+      this.setData({ uploadedAssetId: '' })
       if (created.imageUrl) {
         markSessionFirstPhotoUploaded(created.createdAt || created.updatedAt || new Date().toISOString())
       }
@@ -636,6 +660,7 @@ Page<MomentEditorState, MomentEditorMethods>({
         })
       }, 260)
     } catch (error) {
+      await this.cleanupUploadedAsset()
       this.showToast(error instanceof Error ? error.message : '保存失败')
     } finally {
       wx.hideLoading()

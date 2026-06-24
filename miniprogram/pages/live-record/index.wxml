@@ -56,7 +56,11 @@
         <text>账本</text>
         <image wx:if="{{activeSegment === 'ledger'}}" class="live-record008as-tab-active" src="/pages/live-record/assets/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
       </view>
+      <view class="live-segment-tab live-segment-tab-disabled" data-tab="share" bindtap="handleSegmentTap">
+        <text>分享</text>
+      </view>
     </view>
+    <view class="live-share-hint">结束聚会后会生成分享图，可在这里或“我的”里查看和保存。</view>
 
     <view wx:if="{{activeSegment === 'record'}}" class="live-record-timeline-stage">
       <view wx:if="{{timelineLoading}}" class="live-photo-empty live-record-timeline-empty">

@@ -604,6 +604,7 @@ export interface ManagedMomentPayload {
   imageUrl?: string
   nodeType?: ManagedMomentNodeType
   tags?: string[]
+  uploadAssetId?: string
   usageConsent?: Partial<ManagedMomentUsageConsent>
   visibility?: ManagedMomentVisibility
   visibleProfileIds?: string[]
@@ -676,8 +677,11 @@ export interface ManagedMomentUploadResult {
   fileName: string
   id: string
   mimeType: string
+  objectKey?: string
+  publicUrl?: string
   sessionId: string
   size: number
+  storageProvider?: string
   uploaderProfileId: string
   url: string
 }
@@ -857,6 +861,21 @@ const requestJson = <T>(path: string, method: 'GET' | 'POST' | 'PUT' | 'DELETE' 
       fail: reject,
     })
   })
+
+const getRequestStatusCode = (error: unknown) =>
+  Number((error as Error & { statusCode?: number })?.statusCode || 0)
+
+const isRouteFallbackError = (error: unknown) => {
+  const statusCode = getRequestStatusCode(error)
+  if (statusCode === 404 || statusCode === 405) {
+    return true
+  }
+  if (statusCode === 401 || statusCode === 403 || statusCode === 409) {
+    return false
+  }
+  const message = error instanceof Error ? error.message : ''
+  return /route\s+not\s+found|not\s+found|method\s+not\s+allowed/i.test(message)
+}
 
 const normalizeSessionPlayer = (player?: RemoteSessionPlayer): ManagedSessionPlayer => ({
   avatarUrl: normalizeManagedAvatarPath(player?.avatarUrl),
@@ -1050,10 +1069,16 @@ export const finishManagedSession = async (sessionId: string): Promise<ManagedSe
   const encodedSessionId = encodeURIComponent(sessionId)
   try {
     return normalizeSessionFinishResult(await requestJson<RemoteSessionFinishResult>(`/sessions/${encodedSessionId}/end`, 'POST'), sessionId)
-  } catch {
+  } catch (primaryError) {
+    if (!isRouteFallbackError(primaryError)) {
+      throw primaryError
+    }
     try {
       return normalizeSessionFinishResult(await requestJson<RemoteSessionFinishResult>(`/sessions/${encodedSessionId}/finish`, 'POST'), sessionId)
-    } catch {
+    } catch (legacyError) {
+      if (!isRouteFallbackError(legacyError)) {
+        throw legacyError
+      }
       return normalizeSessionFinishResult(
         await requestJson<RemoteSessionFinishResult>(`/sessions/${encodedSessionId}`, 'PUT', { state: '已结束', status: '已结束' }),
         sessionId,
@@ -1521,6 +1546,9 @@ export const uploadManagedMomentImage = async (payload: {
 }): Promise<ManagedMomentUploadResult> =>
   requestJson<ManagedMomentUploadResult>('/moments/uploads/image', 'POST', payload)
 
+export const cleanupManagedMomentUpload = async (assetId: string): Promise<{ assetId: string; removed: boolean }> =>
+  requestJson<{ assetId: string; removed: boolean }>(`/moments/uploads/${encodeURIComponent(assetId)}`, 'DELETE')
+
 export const createManagedMoment = async (
   sessionId: string,
   payload: ManagedMomentPayload,
@@ -1558,6 +1586,9 @@ export const getManagedSessionBrief = async (briefId: string): Promise<ManagedSe
   try {
     return normalizeSessionBrief(await requestJson<RemoteSessionBrief>(`/briefs/${encodeURIComponent(briefId)}`))
   } catch (cleanError) {
+    if (!isRouteFallbackError(cleanError)) {
+      throw cleanError
+    }
     try {
       return normalizeSessionBrief(await requestJson<RemoteSessionBrief>(`/session-briefs/${encodeURIComponent(briefId)}`))
     } catch {
@@ -1575,6 +1606,9 @@ export const createManagedShareImageTask = async (
       await requestJson<RemoteShareImageTask>(`/briefs/${encodeURIComponent(briefId)}/share-images`, 'POST', payload),
     )
   } catch (cleanError) {
+    if (!isRouteFallbackError(cleanError)) {
+      throw cleanError
+    }
     try {
       return normalizeShareImageTask(
         await requestJson<RemoteShareImageTask>(`/session-briefs/${encodeURIComponent(briefId)}/share-image-tasks`, 'POST', payload),
@@ -1589,6 +1623,9 @@ export const getManagedShareImageTask = async (taskId: string): Promise<ManagedS
   try {
     return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-images/${encodeURIComponent(taskId)}`))
   } catch (cleanError) {
+    if (!isRouteFallbackError(cleanError)) {
+      throw cleanError
+    }
     try {
       return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-image-tasks/${encodeURIComponent(taskId)}`))
     } catch {
@@ -1601,6 +1638,9 @@ export const processManagedShareImageTask = async (taskId: string): Promise<Mana
   try {
     return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-images/${encodeURIComponent(taskId)}/process`, 'POST'))
   } catch (cleanError) {
+    if (!isRouteFallbackError(cleanError)) {
+      throw cleanError
+    }
     try {
       return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-image-tasks/${encodeURIComponent(taskId)}/process`, 'POST'))
     } catch {
@@ -1614,6 +1654,9 @@ export const retryManagedShareImageTask = async (taskId: string): Promise<Manage
     try {
       return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-images/${encodeURIComponent(taskId)}/retry`, 'POST'))
     } catch (cleanError) {
+      if (!isRouteFallbackError(cleanError)) {
+        throw cleanError
+      }
       try {
         return normalizeShareImageTask(await requestJson<RemoteShareImageTask>(`/share-image-tasks/${encodeURIComponent(taskId)}/retry`, 'POST'))
       } catch {

@@ -39,12 +39,12 @@ Page<CreateSessionState, CreateSessionMethods>({
     sessionNamePresets: [
       { name: '今晚的聚会' },
       { name: '朋友小聚' },
-      { name: '复仇局' },
-      { name: "生'史'局" },
-      { name: '翻盘局' },
-      { name: '决战到天亮' },
+      { name: '生日聚会' },
+      { name: '老友见面' },
+      { name: '团建聚会' },
+      { name: '周末小聚' },
       { name: '家庭聚会' },
-      { name: '下班放松局' },
+      { name: '露营相册' },
     ],
   },
 
@@ -186,8 +186,9 @@ Page<CreateSessionState, CreateSessionMethods>({
   },
 
   handleMoreTemplatesTap() {
-    wx.navigateTo({
-      url: '/pages/privacy-state/index?type=feature',
+    wx.showToast({
+      title: '高级设置暂未开放，当前可直接调整人数',
+      icon: 'none',
     })
   },
 })

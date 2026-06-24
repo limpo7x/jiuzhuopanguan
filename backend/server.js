@@ -99,6 +99,7 @@ const {
   updateManagedSession,
 } = require('./data/admin')
 const {
+  cleanupMomentUpload,
   createMoment,
   createMomentNomination,
   createOrRefreshSessionBrief,
@@ -1333,6 +1334,16 @@ const server = http.createServer((request, response) => {
       const payload = await readJsonBody(request)
       const asset = await uploadMomentImage({ profile: userSession.profile, payload })
       sendOk(response, asset, 201)
+      return
+    }
+
+    if (request.method === 'DELETE' && pathname && pathname.startsWith('/api/v1/moments/uploads/')) {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const assetId = pathname.replace('/api/v1/moments/uploads/', '').replace(/^\/+|\/+$/g, '')
+      sendOk(response, await cleanupMomentUpload({ assetId, profile: userSession.profile }))
       return
     }
 

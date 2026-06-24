@@ -135,6 +135,34 @@ const putObject = async ({ key, buffer, contentType = 'application/octet-stream'
   }
 }
 
+const deleteObject = async ({ key = '' } = {}) => {
+  const objectKey = normalizeObjectKey(key)
+  const localPath = resolveLocalObjectPath(objectKey)
+  let localRemoved = false
+  if (fs.existsSync(localPath)) {
+    fs.unlinkSync(localPath)
+    localRemoved = true
+  }
+
+  if (isOssProvider()) {
+    try {
+      await getOssClient().delete(objectKey)
+    } catch (error) {
+      const status = Number(error?.status || error?.statusCode || 0)
+      if (status !== 404 && status !== 204) {
+        throw error
+      }
+    }
+  }
+
+  return {
+    key: objectKey,
+    localRemoved,
+    provider: isOssProvider() ? 'oss' : 'local',
+    removed: localRemoved || isOssProvider(),
+  }
+}
+
 const objectKeyFromUrl = (value = '') => {
   const text = String(value || '').trim()
   if (!text) return ''
@@ -205,6 +233,7 @@ module.exports = {
   getUploadProvider,
   isOssProvider,
   objectKeyFromUrl,
+  deleteObject,
   putObject,
   readObjectForRender,
   resolveLocalObjectPath,

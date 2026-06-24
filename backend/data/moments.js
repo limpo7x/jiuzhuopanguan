@@ -6,7 +6,7 @@ const { getAdminStore, getManagedSessionById, listManagedReports, markManagedSes
 const { createDefaultUserCommerceState, readContentStore, writeContentStore } = require('./content')
 const { listProfiles } = require('./social')
 const { createStoreAccessor } = require('./store-accessor')
-const { putObject, readObjectForRender } = require('./object-storage')
+const { deleteObject, putObject, readObjectForRender } = require('./object-storage')
 
 const storePath = path.join(__dirname, 'moments-store.json')
 const momentsUploadRoot = path.join(__dirname, '..', 'public', 'uploads', 'moments')
@@ -261,6 +261,29 @@ const normalizeRankingRewardPayout = (item = {}) => {
   }
 }
 
+const normalizeUploadedAsset = (item = {}) => {
+  const createdAt = cleanText(item.createdAt) || nowIso()
+  return {
+    id: cleanText(item.id) || createId('moment-asset'),
+    sessionId: cleanText(item.sessionId),
+    uploaderProfileId: cleanText(item.uploaderProfileId),
+    fileName: cleanText(item.fileName),
+    mimeType: cleanText(item.mimeType) || 'image/webp',
+    size: Math.max(0, Number(item.size) || 0),
+    url: cleanText(item.url),
+    objectKey: cleanText(item.objectKey),
+    publicUrl: cleanText(item.publicUrl),
+    localCompatUrl: cleanText(item.localCompatUrl),
+    storageProvider: cleanText(item.storageProvider),
+    boundMomentId: cleanText(item.boundMomentId),
+    boundAt: cleanText(item.boundAt),
+    removedAt: cleanText(item.removedAt),
+    cleanupReason: cleanText(item.cleanupReason),
+    createdAt,
+    updatedAt: cleanText(item.updatedAt) || createdAt,
+  }
+}
+
 const normalizeStore = (store = {}) => ({
   momentRecords: Array.isArray(store.momentRecords) ? store.momentRecords.map(normalizeMomentRecord) : [],
   sessionEvents: Array.isArray(store.sessionEvents) ? store.sessionEvents.map(normalizeSessionEvent) : [],
@@ -270,7 +293,7 @@ const normalizeStore = (store = {}) => ({
   momentNominations: Array.isArray(store.momentNominations) ? store.momentNominations.map(normalizeMomentNomination) : [],
   rankingRewardPayouts: Array.isArray(store.rankingRewardPayouts) ? store.rankingRewardPayouts.map(normalizeRankingRewardPayout) : [],
   rankingRewardRules: Array.isArray(store.rankingRewardRules) ? store.rankingRewardRules : [],
-  uploadedAssets: Array.isArray(store.uploadedAssets) ? store.uploadedAssets : [],
+  uploadedAssets: Array.isArray(store.uploadedAssets) ? store.uploadedAssets.map(normalizeUploadedAsset) : [],
 })
 
 const storeAccessor = createStoreAccessor({
@@ -460,6 +483,28 @@ const serializeMomentForViewer = (moment = {}, profileId = '') => {
     imageUrl: moment.imageUrl,
     caption: moment.caption,
     visibleProfileIds: moment.visibleProfileIds,
+  }
+}
+
+const serializeMomentForPublicRanking = (moment = {}) => {
+  const viewerMoment = serializeMomentForViewer(moment, moment.uploaderProfileId)
+  return {
+    id: viewerMoment.id,
+    nodeKind: viewerMoment.nodeKind,
+    sessionId: viewerMoment.sessionId,
+    nodeType: viewerMoment.nodeType,
+    mediaType: viewerMoment.mediaType,
+    uploaderName: viewerMoment.uploaderName,
+    uploaderAvatarUrl: viewerMoment.uploaderAvatarUrl,
+    tags: viewerMoment.tags,
+    visibility: 'public',
+    timelineTitle: viewerMoment.timelineTitle,
+    completionStatus: viewerMoment.completionStatus,
+    rankingEligible: viewerMoment.rankingEligible,
+    createdAt: viewerMoment.createdAt,
+    updatedAt: viewerMoment.updatedAt,
+    imageUrl: viewerMoment.imageUrl,
+    caption: viewerMoment.caption,
   }
 }
 
@@ -1488,10 +1533,33 @@ const createMoment = ({ sessionId, profile, payload = {} }) => {
     ...status,
     timelineTitle: cleanText(payload.timelineTitle) || buildTimelineTitle(base),
   })
+  const uploadAssetId = cleanText(payload.uploadAssetId)
 
   store.momentRecords = reusableOpening
     ? store.momentRecords.map((item) => (item.id === reusableOpening.id ? next : item))
     : [next, ...store.momentRecords]
+  if (uploadAssetId && cleanText(next.imageUrl)) {
+    const assetIndex = store.uploadedAssets.findIndex((item) => cleanText(item.id) === uploadAssetId)
+    if (assetIndex === -1) {
+      throw createHttpError('upload asset not found', 404)
+    }
+    const asset = normalizeUploadedAsset(store.uploadedAssets[assetIndex])
+    if (asset.uploaderProfileId !== profileId || asset.sessionId !== cleanText(sessionId)) {
+      throw createHttpError('upload asset forbidden', 403)
+    }
+    if (asset.removedAt) {
+      throw createHttpError('upload asset removed', 410)
+    }
+    if (asset.boundMomentId && asset.boundMomentId !== next.id) {
+      throw createHttpError('upload asset already bound', 409)
+    }
+    store.uploadedAssets[assetIndex] = {
+      ...asset,
+      boundAt: nowIso(),
+      boundMomentId: next.id,
+      updatedAt: nowIso(),
+    }
+  }
   writeMomentsStore(store)
   if (cleanText(next.imageUrl) && next.completionStatus === 'complete') {
     markManagedSessionFirstPhotoUploaded({
@@ -1500,6 +1568,75 @@ const createMoment = ({ sessionId, profile, payload = {} }) => {
     })
   }
   return serializeMomentForViewer(next, profileId)
+}
+
+const cleanupMomentUpload = async ({ assetId, profile, reason = 'client-create-failed' } = {}) => {
+  const profileId = getProfileId(profile)
+  if (!profileId) {
+    throw createHttpError('unauthorized', 401)
+  }
+  const normalizedAssetId = cleanText(assetId)
+  if (!normalizedAssetId) {
+    throw createHttpError('asset id required', 400)
+  }
+  const store = readMomentsStore()
+  const index = store.uploadedAssets.findIndex((item) => cleanText(item.id) === normalizedAssetId)
+  if (index === -1) {
+    throw createHttpError('upload asset not found', 404)
+  }
+  const asset = normalizeUploadedAsset(store.uploadedAssets[index])
+  if (asset.uploaderProfileId !== profileId) {
+    throw createHttpError('forbidden', 403)
+  }
+  if (asset.boundMomentId) {
+    throw createHttpError('upload asset already bound', 409)
+  }
+  if (!asset.removedAt && asset.objectKey) {
+    await deleteObject({ key: asset.objectKey })
+  }
+  const removedAt = nowIso()
+  store.uploadedAssets[index] = {
+    ...asset,
+    cleanupReason: cleanText(reason) || 'client-create-failed',
+    removedAt,
+    updatedAt: removedAt,
+  }
+  writeMomentsStore(store)
+  return { assetId: asset.id, removed: true }
+}
+
+const cleanupExpiredMomentUploads = async ({ ttlMs = 24 * 60 * 60 * 1000, limit = 50 } = {}) => {
+  const store = readMomentsStore()
+  const cutoff = Date.now() - Math.max(0, Number(ttlMs) || 0)
+  const candidates = store.uploadedAssets
+    .map(normalizeUploadedAsset)
+    .filter((asset) => !asset.boundMomentId && !asset.removedAt && new Date(asset.createdAt).getTime() < cutoff)
+    .slice(0, Math.max(1, Math.min(200, Number(limit) || 50)))
+  const cleaned = []
+  for (const asset of candidates) {
+    if (asset.objectKey) {
+      await deleteObject({ key: asset.objectKey })
+    }
+    cleaned.push(asset.id)
+  }
+  if (cleaned.length) {
+    const cleanedSet = new Set(cleaned)
+    const removedAt = nowIso()
+    store.uploadedAssets = store.uploadedAssets.map((item) => {
+      const asset = normalizeUploadedAsset(item)
+      if (!cleanedSet.has(asset.id)) {
+        return item
+      }
+      return {
+        ...asset,
+        cleanupReason: 'ttl-expired',
+        removedAt,
+        updatedAt: removedAt,
+      }
+    })
+    writeMomentsStore(store)
+  }
+  return { cleaned, cleanedCount: cleaned.length }
 }
 
 const updateMoment = ({ momentId, profile, payload = {} }) => {
@@ -2020,7 +2157,7 @@ const buildRankingEntry = ({ moment, nominations, rank, category }) => {
     .at(-1) || ''
   return {
     category,
-    moment: serializeMomentForViewer(moment, moment.uploaderProfileId),
+    moment: serializeMomentForPublicRanking(moment),
     nominationCount,
     pointsTotal,
     rank,
@@ -2223,6 +2360,8 @@ const uploadMomentImage = async ({ profile, payload = {} }) => {
 }
 
 module.exports = {
+  cleanupExpiredMomentUploads,
+  cleanupMomentUpload,
   createMoment,
   createOrRefreshSessionBrief,
   createSessionEvent,

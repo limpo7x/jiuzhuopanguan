@@ -54,8 +54,8 @@
 
     <view class="create-advanced-row" bindtap="handleMoreTemplatesTap">
       <text>高级设置</text>
-      <text>人数 {{playerCount}} 人 · 可直接调整</text>
-      <text class="create-advanced-arrow">⌄</text>
+      <text>暂未开放 · 人数可在下方直接调整</text>
+      <text class="create-advanced-arrow">未开通</text>
     </view>
 
     <view class="create-player-count-panel">

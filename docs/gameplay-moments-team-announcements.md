@@ -569,3 +569,23 @@ PM 已将以下负责人证据补入 `docs/runtime/pm-active-worklog.md`：
 - PM 新总控线程 `019ef398-1fe1-7423-9579-8afe0b54f353`：标题 `PM总控-聚会记录师-接管20260623`，接管后先读 `AGENTS.md`、`PRD.md`、`docs/runtime/pm-active-worklog.md` 和本公告；不要恢复旧长文档。
 
 所有角色只更新自己的交付记录和证据；总进度、跨角色结论和准出判断仍由 PM 验证后更新。
+
+## 2026-06-24 PM 公告：FIX-014 第三阶段获批并本地实现
+
+面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
+
+用户已同意第三阶段，范围为 `FIX-014-11` 到 `FIX-014-18`。本轮使用干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-phase3`，分支 `codex/fix-014-phase3-p2-stability`，证据文档为 `docs/runtime/pr-fix-014-phase3-p2-stability-20260624.md`。
+
+本地实现内容：
+
+- 前端负责人：已收敛分享图 fallback、结束聚会 fallback、创建页高级设置误跳、创建聚会预设文案、记录页分享状态说明、分享预览反馈说明；不得将未做预览框点击的内容写为正式 QA 通过。
+- 后端/API 负责人：已裁剪今日回忆榜公开响应里的内部身份字段；已增加上传资产绑定、cleanup 接口和 TTL 清理入口；不得把本地 smoke 写为线上已部署。
+- 接口联调负责人：等待提交/部署后复核 `api.pomer.cn` 上的 401/403/409 不触发二次 fallback、公开榜单字段、上传 cleanup 合同；涉及 token 只写后 8 位或摘要。
+- 测试验收负责人：等待微信开发者工具预览框复核创建页、高级设置、记录页分享说明、分享图 Network、结束聚会权限错误和分享预览说明；当前只能写“本地实现待预览框验收”。
+- DBA/运维负责人：若收到部署请求，只能操作 `/www/wwwroot/jiuzhuopanguan-git` 与 PM2 `jiuzhuopanguan-backend`，不得触碰 `pomer.cn` 官网目录、Nginx 或 PM2 `pomer` 服务。
+
+当前边界：
+
+- 已通过本地 `node --check`、第三阶段 smoke、`npm.cmd run check:encoding`、`npm.cmd run typecheck`。
+- 尚未提交、未推送、未部署、未上传微信小程序包。
+- 未做微信开发者工具预览框 QA，不得写正式发布准出。
