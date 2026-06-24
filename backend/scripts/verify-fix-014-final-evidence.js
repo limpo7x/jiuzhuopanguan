@@ -804,6 +804,75 @@ const scanEvidence = ({ args }) => {
   console.log(JSON.stringify({ ok: true, mode: 'scan', manifest: manifestPath, residual: scanManifest(manifest) }, null, 2))
 }
 
+const publicCheckEvidence = async ({ args }) => {
+  const manifestPath = resolvePath(args.manifest, defaultPrivateManifest)
+  assert(fs.existsSync(manifestPath), `manifest not found: ${manifestPath}`)
+  const manifest = readJsonFile(manifestPath)
+  const baseUrl = normalizeBaseUrl(args['base-url'] || manifest.baseUrl)
+  const publicEvidencePath = resolvePath(args.evidence, defaultPublicEvidence)
+  const host = manifest.profiles.host
+  const memberA = manifest.profiles.memberA
+  const memberB = manifest.profiles.memberB
+  const outsider = manifest.profiles.outsider
+  const sessionId = cleanText(manifest.session?.sessionId)
+  const briefId = cleanText(manifest.brief?.briefId)
+  const taskId = cleanText(manifest.shareTask?.taskId)
+  const openingId = cleanText(manifest.moments?.openingId)
+  const payoutId = cleanText(manifest.reward?.payoutId)
+  const nominationId = cleanText(manifest.nomination?.nominationId)
+
+  const [hostLive, memberBrief, memberTask, ranking, hostCommerce, memberACommerce, outsiderBlocked] = await Promise.all([
+    api(baseUrl, `/sessions/live?sessionId=${encodeURIComponent(sessionId)}`, { token: host.token }),
+    api(baseUrl, `/session-briefs/${encodeURIComponent(briefId)}`, { token: memberB.token }),
+    api(baseUrl, `/share-image-tasks/${encodeURIComponent(taskId)}`, { token: memberB.token }),
+    api(baseUrl, '/rankings/today?category=best_opening', { token: host.token }),
+    api(baseUrl, '/user/commerce', { token: host.token }),
+    api(baseUrl, '/user/commerce', { token: memberA.token }),
+    expectApiError(
+      baseUrl,
+      `/sessions/live?sessionId=${encodeURIComponent(sessionId)}`,
+      { token: outsider.token },
+      403,
+      'outsider live blocked after reload',
+    ),
+  ])
+
+  const rankingItem = (ranking.items || []).find((item) => item.moment?.id === openingId)
+  const hostRewardLedger = (hostCommerce.pointsLedger || []).find((item) => item.sourceId === manifest.reward?.sourceId)
+  const memberANominationLedger = (memberACommerce.pointsLedger || []).find((item) => item.sourceId === nominationId)
+  const result = {
+    exportedAt: nowIso(),
+    sessionLoaded: cleanText(hostLive.id) === sessionId,
+    memberBriefLoaded: cleanText(memberBrief.id) === briefId,
+    memberTaskReady: cleanText(memberTask.id) === taskId && memberTask.status === 'ready',
+    memberTaskReadyShareImageUrl: cleanText(memberTask.readyShareImageUrl || memberTask.imageUrl),
+    rankingContainsMoment: Boolean(rankingItem),
+    rankingPublicFieldsRedacted: Boolean(rankingItem && !Object.prototype.hasOwnProperty.call(rankingItem.moment || {}, 'uploaderProfileId')),
+    payoutLedgerVisibleToHost: Boolean(hostRewardLedger && payoutId),
+    nominationLedgerVisibleToMemberA: Boolean(memberANominationLedger),
+    hostPoints: hostCommerce.points,
+    memberAPoints: memberACommerce.points,
+    outsiderBlocked,
+  }
+  assert(result.sessionLoaded, 'public check session missing')
+  assert(result.memberBriefLoaded, 'public check brief missing')
+  assert(result.memberTaskReady, 'public check share task not ready')
+  assert(result.memberTaskReadyShareImageUrl === cleanText(manifest.shareTask?.readyShareImageUrl), 'public check readyShareImageUrl mismatch')
+  assert(result.rankingContainsMoment, 'public check ranking missing moment')
+  assert(result.rankingPublicFieldsRedacted, 'public check ranking leaked uploaderProfileId')
+  assert(result.payoutLedgerVisibleToHost, 'public check reward ledger missing')
+  assert(result.nominationLedgerVisibleToMemberA, 'public check nomination ledger missing')
+  assert(result.outsiderBlocked.ok, 'public check outsider was not blocked')
+
+  const existingPublic = fs.existsSync(publicEvidencePath) ? readJsonFile(publicEvidencePath) : {}
+  const publicManifest = makePublicManifest(manifest, {
+    ...(existingPublic.evidence || {}),
+    publicCheck: result,
+  })
+  writeJsonFile(publicEvidencePath, publicManifest)
+  console.log(JSON.stringify({ ok: true, mode: 'public-check', manifest: manifestPath, publicEvidence: publicEvidencePath, result }, null, 2))
+}
+
 const main = async () => {
   const args = parseArgs()
   const mode = cleanText(args.mode) || 'create'
@@ -817,6 +886,10 @@ const main = async () => {
   }
   if (mode === 'scan') {
     scanEvidence({ args })
+    return
+  }
+  if (mode === 'public-check') {
+    await publicCheckEvidence({ args })
     return
   }
   throw new Error(`unknown mode: ${mode}`)
