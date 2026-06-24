@@ -11,11 +11,10 @@ const { deleteObject, putObject, readObjectForRender } = require('./object-stora
 const storePath = path.join(__dirname, 'moments-store.json')
 const momentsUploadRoot = path.join(__dirname, '..', 'public', 'uploads', 'moments')
 const shareImageOutputRoot = path.join(momentsUploadRoot, 'share-tasks')
-const sharePosterLongBgPath = path.join(__dirname, '..', '..', 'miniprogram', 'assets', 'party-recorder', 'party-recorder-share-long-bg.webp')
+const publicStaticRoot = path.join(__dirname, '..', 'public', 'static')
+const sharePosterLongBgPath = path.join(publicStaticRoot, 'party-recorder-share-long-bg.webp')
 const staticShareMiniappQrCandidates = [
-  path.join(__dirname, '..', '..', 'miniprogram', 'assets', 'home', 'share-miniapp-qr.png'),
-  path.join(__dirname, '..', '..', 'miniprogram', 'assets', 'share', 'share-poster-miniapp-code.png'),
-  path.join(__dirname, '..', '..', 'miniprogram', 'pages', 'share-poster', 'assets', 'share', 'share-poster-miniapp-code.png'),
+  path.join(publicStaticRoot, 'share-poster-miniapp-code.png'),
 ]
 const MAX_MOMENT_IMAGE_BYTES = 5 * 1024 * 1024
 const MOMENT_IMAGE_WIDTH = 1800

@@ -44,6 +44,6 @@
 </view>
 
 <view wx:elif="{{emptyText}}" class="session-moment-summary-empty">
-  <image class="session-moment-summary-empty-sticker" src="/assets/party-recorder/party-recorder-empty-album-sticker.png" mode="aspectFit"></image>
+  <image class="session-moment-summary-empty-sticker" src="https://cdn.pomer.cn/static/party-recorder/party-recorder-empty-album-sticker.png" mode="aspectFit"></image>
   <text>{{emptyText}}</text>
 </view>

@@ -7,7 +7,7 @@
 ></navigation-bar>
 
 <view class="tools-page">
-  <image class="tools-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
+  <image class="tools-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="tools-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="tools-search">
       <view class="tools-search-icon tools-icon-search"></view>

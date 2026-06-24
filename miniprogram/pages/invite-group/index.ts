@@ -48,7 +48,7 @@ interface InviteGroupMethods {
 }
 
 const SHARE_CARD_CANVAS_ID = 'inviteShareCardCanvas'
-const SHARE_CARD_FALLBACK_ASSET = '/assets/party-recorder/pr-cs008ak-native-share-thumb-1000x800.png'
+const SHARE_CARD_FALLBACK_ASSET = 'https://cdn.pomer.cn/static/party-recorder/pr-cs008ak-native-share-thumb-1000x800.png'
 const internalDisplayPattern = /(PR\s+Seed|PR-BE-DB-LOGIN|IT-MOMENTS|DEBUG|openid|openId|unionId|signature)/i
 
 const cleanDisplayName = (value?: string, fallback = '好友') => {

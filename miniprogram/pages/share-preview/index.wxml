@@ -1,4 +1,4 @@
-﻿<navigation-bar
+<navigation-bar
   title="邀请预览"
   back="{{true}}"
   customBack="{{true}}"
@@ -27,7 +27,7 @@
     <view wx:if="{{!showJoinStatus && !shareReturnMode}}" class="share-poster-card share-invite-minimal-card">
       <view class="share-poster-glow share-poster-glow-a"></view>
       <view class="share-poster-glow share-poster-glow-b"></view>
-      <image class="share-clean-stage-glow" src="/assets/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
+      <image class="share-clean-stage-glow" src="https://cdn.pomer.cn/static/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
       <view class="share-poster-copy">
         <view class="share-poster-kicker">聚会记录师</view>
         <text class="share-poster-title">邀请好友加入</text>
@@ -45,7 +45,7 @@
     <view wx:elif="{{!showJoinStatus}}" class="share-poster-card share020-return-card">
       <view class="share-poster-glow share-poster-glow-a"></view>
       <view class="share-poster-glow share-poster-glow-b"></view>
-      <image class="share-clean-stage-glow" src="/assets/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
+      <image class="share-clean-stage-glow" src="https://cdn.pomer.cn/static/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
       <view class="share-poster-copy">
         <view class="share-poster-kicker">聚会记录师</view>
         <text class="share-poster-title">这场聚会的回忆</text>
@@ -79,7 +79,7 @@
     <view wx:else class="share-poster-card share020-return-card">
       <view class="share-poster-glow share-poster-glow-a"></view>
       <view class="share-poster-glow share-poster-glow-b"></view>
-      <image class="share-clean-stage-glow" src="/assets/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
+      <image class="share-clean-stage-glow" src="https://cdn.pomer.cn/static/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
       <view class="share-poster-copy">
         <view class="share-poster-kicker">成员入局进度</view>
         <text class="share-poster-title">口令加入状态</text>

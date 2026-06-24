@@ -13,7 +13,7 @@ if (!posterBgSource || !leafletBgSource) {
   process.exit(1)
 }
 
-const qrPath = path.join(repoRoot, 'miniprogram', 'assets', 'share', 'share-poster-miniapp-code.png')
+const qrPath = path.join(repoRoot, 'backend', 'public', 'static', 'share-poster-miniapp-code.png')
 const posterBgPath = path.join(outputDir, 'party-recorder-ops-poster-bg.png')
 const leafletBgPath = path.join(outputDir, 'party-recorder-mobile-leaflet-bg.png')
 const posterOut = path.join(outputDir, 'party-recorder-ops-poster-1080x1920.png')
@@ -193,7 +193,7 @@ async function main() {
 
 ## 二维码
 
-二维码来源：miniprogram/assets/share/share-poster-miniapp-code.png
+二维码来源：backend/public/static/share-poster-miniapp-code.png
 `, 'utf8')
 
   console.log(JSON.stringify({

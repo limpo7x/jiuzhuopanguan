@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
+    "build:static-pages": "node scripts/build-static-page-pack.js",
     "check:encoding": "node scripts/check-encoding.js",
     "wechat:auto": "node scripts/wechat-devtools-automator.js",
     "typecheck": "tsc --noEmit --pretty false"

@@ -11,11 +11,11 @@
 <view wx:if="{{isShareMode}}" class="album-manage-link" style="{{headerActionStyle}}">管</view>
 
 <view class="album-page {{isShareMode ? 'album-share-page' : 'album-memory-page'}}">
-  <image class="album-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
+  <image class="album-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="album-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="album-header">
       <view wx:if="{{!isShareMode}}" class="album-paper-title">
-        <image class="album-title-paper" src="/assets/party-recorder/pr-cs008cn-title-paper-label.svg" mode="aspectFill"></image>
+        <image class="album-title-paper" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-title-paper-label.svg" mode="aspectFill"></image>
         <text>{{pageTitle}}</text>
       </view>
       <view wx:else class="album-share-title-wrap">
@@ -25,17 +25,17 @@
     </view>
 
     <view wx:if="{{!isShareMode}}" class="album-filter-bar">
-      <image class="album-filter-bg" src="/assets/party-recorder/pr-cs008cn-segmented-bg.svg" mode="aspectFill"></image>
+      <image class="album-filter-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-segmented-bg.svg" mode="aspectFill"></image>
       <view class="album-filter {{activeRecordFilter === 'all' ? 'album-filter-active' : ''}}" data-filter="all" bindtap="handleFilterTap">
-        <image wx:if="{{activeRecordFilter === 'all'}}" class="album-filter-pill" src="/assets/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
+        <image wx:if="{{activeRecordFilter === 'all'}}" class="album-filter-pill" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
         <text>全部</text>
       </view>
       <view class="album-filter {{activeRecordFilter === 'ongoing' ? 'album-filter-active' : ''}}" data-filter="ongoing" bindtap="handleFilterTap">
-        <image wx:if="{{activeRecordFilter === 'ongoing'}}" class="album-filter-pill" src="/assets/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
+        <image wx:if="{{activeRecordFilter === 'ongoing'}}" class="album-filter-pill" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
         <text>进行中</text>
       </view>
       <view class="album-filter {{activeRecordFilter === 'ended' ? 'album-filter-active' : ''}}" data-filter="ended" bindtap="handleFilterTap">
-        <image wx:if="{{activeRecordFilter === 'ended'}}" class="album-filter-pill" src="/assets/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
+        <image wx:if="{{activeRecordFilter === 'ended'}}" class="album-filter-pill" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
         <text>已结束</text>
       </view>
     </view>
@@ -52,7 +52,7 @@
         bindtap="handleItemTap"
       >
         <view class="album-share-art">
-          <image class="album-share-frame" src="/assets/party-recorder/pr-cs008cj-share-thumb-frame.svg" mode="aspectFill"></image>
+          <image class="album-share-frame" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cj-share-thumb-frame.svg" mode="aspectFill"></image>
           <image class="album-share-image" src="{{item.shareImageUrl}}" mode="aspectFill"></image>
         </view>
         <view class="album-share-copy">
@@ -65,7 +65,7 @@
     <view wx:elif="{{items.length}}" class="album-memory-list">
       <view wx:if="{{activeRecordFilter !== 'ended' && ongoingItems.length}}" class="album-group-title">
         <text>进行中 · {{ongoingCount}}</text>
-        <image src="/assets/party-recorder/pr-cs008cn-section-divider-spark.svg" mode="widthFix"></image>
+        <image src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-section-divider-spark.svg" mode="widthFix"></image>
       </view>
       <block wx:if="{{activeRecordFilter !== 'ended'}}">
         <view
@@ -78,17 +78,17 @@
           data-state-type="{{item.stateType}}"
           bindtap="handleItemTap"
         >
-          <image class="album-memory-shell" src="/assets/party-recorder/pr-cs008cn-memory-list-card-shell.svg" mode="aspectFill"></image>
+          <image class="album-memory-shell" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-memory-list-card-shell.svg" mode="aspectFill"></image>
           <view class="album-cover-wrap">
             <image wx:if="{{item.coverUrl && !item.coverBroken}}" class="album-cover-image" src="{{item.coverUrl}}" mode="aspectFill" data-brief-id="{{item.briefId}}" data-session-id="{{item.sessionId}}" bindload="handleCoverLoad" binderror="handleCoverError"></image>
-            <image wx:else class="album-cover-image" src="/assets/party-recorder/pr-cs008cj-memory-default-cover.svg" mode="aspectFill"></image>
+            <image wx:else class="album-cover-image" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cj-memory-default-cover.svg" mode="aspectFill"></image>
           </view>
           <view class="album-memory-copy">
             <text class="album-memory-status">{{item.statusText}}</text>
             <text class="album-memory-title">{{item.title}}</text>
             <text class="album-memory-meta">{{item.meta}}</text>
             <view class="album-memory-action-strip">
-              <image src="/assets/party-recorder/pr-cs008cn-memory-list-action-strip.svg" mode="aspectFill"></image>
+              <image src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-memory-list-action-strip.svg" mode="aspectFill"></image>
               <text>继续记录</text>
               <text>待分享</text>
             </view>
@@ -98,7 +98,7 @@
 
       <view wx:if="{{activeRecordFilter !== 'ongoing' && endedItems.length}}" class="album-group-title album-group-title-ended">
         <text>已结束 · {{endedCount}}</text>
-        <image src="/assets/party-recorder/pr-cs008cn-section-divider-spark.svg" mode="widthFix"></image>
+        <image src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-section-divider-spark.svg" mode="widthFix"></image>
       </view>
       <block wx:if="{{activeRecordFilter !== 'ongoing'}}">
         <view
@@ -111,10 +111,10 @@
           data-state-type="{{item.stateType}}"
           bindtap="handleItemTap"
         >
-          <image class="album-memory-shell" src="/assets/party-recorder/pr-cs008cn-memory-list-card-shell.svg" mode="aspectFill"></image>
+          <image class="album-memory-shell" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-memory-list-card-shell.svg" mode="aspectFill"></image>
           <view class="album-cover-wrap">
             <image wx:if="{{item.coverUrl && !item.coverBroken}}" class="album-cover-image" src="{{item.coverUrl}}" mode="aspectFill" data-brief-id="{{item.briefId}}" data-session-id="{{item.sessionId}}" bindload="handleCoverLoad" binderror="handleCoverError"></image>
-            <image wx:else class="album-cover-image" src="/assets/party-recorder/pr-cs008cj-memory-default-cover.svg" mode="aspectFill"></image>
+            <image wx:else class="album-cover-image" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cj-memory-default-cover.svg" mode="aspectFill"></image>
           </view>
           <view class="album-memory-copy">
             <text class="album-memory-status">{{item.statusText}}</text>
@@ -128,7 +128,7 @@
               data-nomination-reason="{{item.nominationReason}}"
               catchtap="handleNominateTap"
             >
-              <image src="/assets/party-recorder/pr-cs008cn-memory-list-action-strip.svg" mode="aspectFill"></image>
+              <image src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-memory-list-action-strip.svg" mode="aspectFill"></image>
               <text>{{item.nominationLabel}}</text>
             </view>
           </view>

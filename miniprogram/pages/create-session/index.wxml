@@ -9,7 +9,7 @@
 ></navigation-bar>
 
 <view class="create-page create-redesign">
-  <image class="create-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
+  <image class="create-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="create-scroll create-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="create-step-line">
       <view class="create-step-pill create-step-pill-active">1 创建</view>

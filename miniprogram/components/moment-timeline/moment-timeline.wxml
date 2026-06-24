@@ -5,7 +5,7 @@
   </view>
 
   <view wx:if="{{loading}}" class="moment-timeline-empty">
-    <image class="moment-timeline-empty-sticker" src="/assets/party-recorder/party-recorder-uploading-sticker.png" mode="aspectFit"></image>
+    <image class="moment-timeline-empty-sticker" src="https://cdn.pomer.cn/static/party-recorder/party-recorder-uploading-sticker.png" mode="aspectFit"></image>
     <text>同步中...</text>
   </view>
 
@@ -20,7 +20,7 @@
   </block>
 
   <view wx:else class="moment-timeline-empty">
-    <image class="moment-timeline-empty-sticker" src="/assets/party-recorder/party-recorder-empty-album-sticker.png" mode="aspectFit"></image>
+    <image class="moment-timeline-empty-sticker" src="https://cdn.pomer.cn/static/party-recorder/party-recorder-empty-album-sticker.png" mode="aspectFit"></image>
     <text>{{emptyText}}</text>
   </view>
 </view>

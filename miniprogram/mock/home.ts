@@ -39,7 +39,7 @@ export const homePageMock: HomePageData = {
   hero: {
     title: '聚会记录师',
     subtitle: '轻松记录每一次聚会的美好时刻，三步创建房间并拍第一张照片。',
-    imageUrl: '/assets/home/table-party-bg.jpg',
+    imageUrl: 'https://cdn.pomer.cn/static/party-recorder/table-party-bg.jpg',
     shareTitle: '聚会记录师：一起记录今晚',
   },
   quickTools: [
@@ -53,7 +53,7 @@ export const homePageMock: HomePageData = {
       id: 'last-party',
       name: '周五聚会相册',
       usedAt: '刚刚记录',
-      imageUrl: '/assets/home/table-party-bg.jpg',
+      imageUrl: 'https://cdn.pomer.cn/static/party-recorder/table-party-bg.jpg',
       badgeText: '相册',
       badgeClass: 'green',
       route: '/pages/album/index',

@@ -9,7 +9,7 @@
 ></navigation-bar>
 
 <view class="invite-page invite-redesign">
-  <image class="invite-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
+  <image class="invite-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="invite-scroll invite-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="invite-hero">
       <text class="invite-title">邀请好友</text>
@@ -18,7 +18,7 @@
     <view class="invite-code-card">
       <image
         class="invite-code-card-image"
-        src="/assets/party-recorder/pr-cs008aq-invite-paper-mobile-750w-no-checkerboard.png"
+        src="https://cdn.pomer.cn/static/party-recorder/pr-cs008aq-invite-paper-mobile-750w-no-checkerboard.png"
         mode="widthFix"
       ></image>
       <view class="invite-code-content">

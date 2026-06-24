@@ -19,4 +19,4 @@
 
 ## 二维码
 
-二维码来源：miniprogram/assets/share/share-poster-miniapp-code.png
+二维码来源：backend/public/static/share-poster-miniapp-code.png

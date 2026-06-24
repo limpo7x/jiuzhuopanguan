@@ -1,0 +1,1479 @@
+{
+  "generatedAt": "2026-06-24T12:17:25.082Z",
+  "productName": "聚会记录师",
+  "routeFileMap": {
+    "pages/album/index": "pages/pages-album-index.html",
+    "pages/compliance-guide/index": "pages/pages-compliance-guide-index.html",
+    "pages/create-session/index": "pages/pages-create-session-index.html",
+    "pages/feature-zones/index": "pages/pages-feature-zones-index.html",
+    "pages/friend-hub/index": "pages/pages-friend-hub-index.html",
+    "pages/index/index": "pages/pages-index-index.html",
+    "pages/invalid-state/index": "pages/pages-invalid-state-index.html",
+    "pages/invite-group/index": "pages/pages-invite-group-index.html",
+    "pages/ledger/index": "pages/pages-ledger-index.html",
+    "pages/live-record/index": "pages/pages-live-record-index.html",
+    "pages/me/index": "pages/pages-me-index.html",
+    "pages/moment-editor/index": "pages/pages-moment-editor-index.html",
+    "pages/privacy-state/index": "pages/pages-privacy-state-index.html",
+    "pages/rankings/index": "pages/pages-rankings-index.html",
+    "pages/session-brief/index": "pages/pages-session-brief-index.html",
+    "pages/settings/index": "pages/pages-settings-index.html",
+    "pages/share-poster/index": "pages/pages-share-poster-index.html",
+    "pages/share-preview/index": "pages/pages-share-preview-index.html",
+    "pages/tool-detail/index": "pages/pages-tool-detail-index.html",
+    "pages/tools/index": "pages/pages-tools-index.html",
+    "pages/waiting-room/index": "pages/pages-waiting-room-index.html",
+    "pages/add-players/index": "pages/pages-add-players-index.html",
+    "pages/coupon-center/index": "pages/pages-coupon-center-index.html",
+    "pages/favorites/index": "pages/pages-favorites-index.html",
+    "pages/flow-overview/index": "pages/pages-flow-overview-index.html",
+    "pages/invite-friends/index": "pages/pages-invite-friends-index.html",
+    "pages/judge-wheel/index": "pages/pages-judge-wheel-index.html",
+    "pages/judge/index": "pages/pages-judge-index.html",
+    "pages/logs/index": "pages/pages-logs-index.html",
+    "pages/member-center/index": "pages/pages-member-center-index.html",
+    "pages/merchant-partners/index": "pages/pages-merchant-partners-index.html",
+    "pages/premium-templates/index": "pages/pages-premium-templates-index.html",
+    "pages/question-bank/index": "pages/pages-question-bank-index.html",
+    "pages/restart-state/index": "pages/pages-restart-state-index.html",
+    "pages/result-report/index": "pages/pages-result-report-index.html",
+    "pages/session-rules/index": "pages/pages-session-rules-index.html",
+    "pages/table-mode/index": "pages/pages-table-mode-index.html",
+    "pages/usage-history/index": "pages/pages-usage-history-index.html",
+    "pages/wine-history/index": "pages/pages-wine-history-index.html",
+    "pages/wine-points/index": "pages/pages-wine-points-index.html"
+  },
+  "pages": [
+    {
+      "actions": [
+        "handleBackTap",
+        "handleFilterTap",
+        "handleItemTap",
+        "handleNominateTap",
+        "handleCreateTap",
+        "handleBottomTabTap"
+      ],
+      "file": "pages/pages-album-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/album/index",
+      "routes": [
+        "pages/index/index"
+      ],
+      "slug": "pages-album-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 49,
+        "colorCount": 16
+      },
+      "texts": [
+        "管",
+        "已生成的聚会分享图作品",
+        "全部",
+        "进行中",
+        "已结束",
+        "正在整理聚会记录...",
+        "进行中 ·",
+        "继续记录",
+        "待分享",
+        "已结束 ·",
+        "去创建聚会",
+        "首页",
+        "工具箱",
+        "排行榜",
+        "我的"
+      ],
+      "title": ""
+    },
+    {
+      "actions": [
+        "handleConfirmTap"
+      ],
+      "file": "pages/pages-compliance-guide-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/compliance-guide/index",
+      "routes": [],
+      "slug": "pages-compliance-guide-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 22,
+        "colorCount": 16
+      },
+      "texts": [
+        "新手引导",
+        "合规提示",
+        "理性饮酒 快乐为主",
+        "我知道了"
+      ],
+      "title": "新手引导"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleSessionNameInput",
+        "handlePresetTap",
+        "handleMoreTemplatesTap",
+        "handlePlayerCountTap",
+        "handleNextTap"
+      ],
+      "file": "pages/pages-create-session-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/create-session/index",
+      "routes": [
+        "pages/index/index",
+        "pages/invite-group/index"
+      ],
+      "slug": "pages-create-session-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 135,
+        "colorCount": 83
+      },
+      "texts": [
+        "1 创建",
+        "2 邀请",
+        "3 拍照",
+        "创建聚会",
+        "默认生成房间和邀请方式，马上拍第一张照片。",
+        "✦",
+        "✎",
+        "◷",
+        "›",
+        "高级设置",
+        "暂未开放 · 人数可在下方直接调整",
+        "未开通",
+        "今晚聚会人数",
+        "2 到 12 人，创建后用于邀请名额和账本成员数。",
+        "−",
+        "人",
+        "= 12 ? 'create-stepper-btn-disabled' : ''}}\"",
+        "data-action=\"plus\"",
+        "bindtap=\"handlePlayerCountTap\"",
+        ">＋",
+        "默认仅本聚会成员可见，公开分享需单独授权。",
+        "创建并邀请"
+      ],
+      "title": "创建聚会"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleEntryTap"
+      ],
+      "file": "pages/pages-feature-zones-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/feature-zones/index",
+      "routes": [
+        "pages/me/index"
+      ],
+      "slug": "pages-feature-zones-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 36,
+        "colorCount": 9
+      },
+      "texts": [
+        "功能区",
+        "加载中",
+        "正在读取真实功能配置。",
+        "暂无可展示内容",
+        "该功能区等待接口数据或后台配置完成。"
+      ],
+      "title": "{{title}}"
+    },
+    {
+      "actions": [
+        "handleNewFriendInput",
+        "handlePokeTap",
+        "handleDeleteFriendTap"
+      ],
+      "file": "pages/pages-friend-hub-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/friend-hub/index",
+      "routes": [],
+      "slug": "pages-friend-hub-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 37,
+        "colorCount": 23
+      },
+      "texts": [
+        "仅显示你参与过的聚会好友，支持拍一拍和删除。",
+        "拍一拍",
+        "删除"
+      ],
+      "title": "我的聚友"
+    },
+    {
+      "actions": [
+        "handlePrimaryTap",
+        "handleJoinByCodeTap",
+        "handleContinueRecordTap",
+        "handleLoginTextTap",
+        "handleSessionReturnOpen",
+        "handleAlbumListTap",
+        "handleAlbumTap",
+        "handleTabTap",
+        "closeAuthPanel",
+        "noop",
+        "handleLoginSubmit",
+        "handleAuthAvatar",
+        "handleAuthNameInput"
+      ],
+      "file": "pages/pages-index-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/index/index",
+      "routes": [
+        "pages/create-session/index",
+        "pages/album/index"
+      ],
+      "slug": "pages-index-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 289,
+        "colorCount": 123
+      },
+      "texts": [
+        "⌁",
+        "☆",
+        "▣",
+        "聚会记录师",
+        "轻松记录每一次聚会的美好时刻",
+        "＋",
+        "创建聚会",
+        "⌗",
+        "加入口令/扫码",
+        "◴",
+        "登录后创建聚会",
+        "用于保存房间、相册和成员记录",
+        "最近相册",
+        "全部相册",
+        "首页",
+        "工具箱",
+        "排行榜",
+        "我的",
+        "微信授权登录",
+        "关闭",
+        "点击头像授权",
+        "用于聚会成员展示，不会使用默认图片占位。",
+        "确认登录"
+      ],
+      "title": "聚会记录师"
+    },
+    {
+      "actions": [
+        "handleReportTap",
+        "handleRestartTap",
+        "handleQuickTap"
+      ],
+      "file": "pages/pages-invalid-state-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/invalid-state/index",
+      "routes": [
+        "pages/album/index",
+        "pages/create-session/index"
+      ],
+      "slug": "pages-invalid-state-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 28,
+        "colorCount": 23
+      },
+      "texts": [
+        "这场聚会已结束",
+        "照片、账本和分享图会保存在相册里",
+        "查看相册",
+        "再开一场",
+        "仅展示可分享内容，私密记录不会进入公开页"
+      ],
+      "title": "聚会已结束"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleKickTap",
+        "handleCopyTap",
+        "handleRefreshTap",
+        "handleNextTap"
+      ],
+      "file": "pages/pages-invite-group-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/invite-group/index",
+      "routes": [],
+      "slug": "pages-invite-group-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 97,
+        "colorCount": 58
+      },
+      "texts": [
+        "邀请好友",
+        "房间码",
+        "6 ? 'invite-avatar-slots-two-row' : ''}}\">",
+        "+",
+        "踢出",
+        "复制口令",
+        "刷新状态",
+        "分享给好友",
+        "拍第一张"
+      ],
+      "title": "邀请好友"
+    },
+    {
+      "actions": [
+        "handleAdjustTap",
+        "handleConfirmTap",
+        "handleRecordTap",
+        "handleCreateTap"
+      ],
+      "file": "pages/pages-ledger-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/ledger/index",
+      "routes": [],
+      "slug": "pages-ledger-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 34,
+        "colorCount": 26
+      },
+      "texts": [
+        "已同步 条账本动态，欠酒和加酒会进入本局记录。",
+        "欠酒",
+        "−",
+        "＋",
+        "加酒",
+        "进入聚会后，成员账本会显示在这里。",
+        "可编辑",
+        "先调整欠酒和加酒，再点确定修改同步到本局记录。",
+        "创建聚会"
+      ],
+      "title": "聚会账本"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleRefreshTap",
+        "handleSegmentTap",
+        "handleTimelineSelect",
+        "handleAddPlayerTap",
+        "handleAdjustTap",
+        "handleConfirmLedgerTap",
+        "handleHighlightMomentTap",
+        "handleFinishTap"
+      ],
+      "file": "pages/pages-live-record-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/live-record/index",
+      "routes": [],
+      "slug": "pages-live-record-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 329,
+        "colorCount": 136
+      },
+      "texts": [
+        "进行中",
+        "记录",
+        "相册",
+        "账本",
+        "分享",
+        "结束聚会后会生成分享图，可在这里或“我的”里查看和保存。",
+        "现场时间线同步中",
+        "照片同步中...",
+        "♥",
+        "＋",
+        "邀请",
+        "聚会账本",
+        "欠酒",
+        "−",
+        "杯",
+        "加酒",
+        "确认后会同步账本，并写入本局记录时间线。",
+        "继续拍照",
+        "结束聚会"
+      ],
+      "title": ""
+    },
+    {
+      "actions": [
+        "handleFeatureTap",
+        "handleLoginTextTap",
+        "handleAssetTap",
+        "handlePendingAlbumAllTap",
+        "handlePendingAlbumTap",
+        "handleShareGalleryAllTap",
+        "handleShareGalleryTap",
+        "closeAuthPanel",
+        "noop",
+        "handleLoginSubmit",
+        "handleAuthAvatarTap",
+        "handleAuthAvatar",
+        "handleAuthNameInput",
+        "handleTabTap"
+      ],
+      "file": "pages/pages-me-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/me/index",
+      "routes": [],
+      "slug": "pages-me-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 113,
+        "colorCount": 21
+      },
+      "texts": [
+        "⚙",
+        "聚会记录师",
+        "记录每一次相聚的温度",
+        "点击登录",
+        "记录师 Lv.3",
+        "我的回忆",
+        "待分享回忆",
+        "查看全部",
+        "暂无待分享回忆",
+        "分享图合集",
+        "还没有生成过分享图",
+        "权",
+        "我的权益",
+        "积",
+        "积分奖励",
+        "藏",
+        "我的收藏",
+        "史",
+        "使用记录",
+        "邀",
+        "邀请奖励",
+        "模",
+        "模板中心",
+        "友"
+      ],
+      "title": ""
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleChooseImage",
+        "handleRetryUploadTap",
+        "handleReturnInviteTap",
+        "handleCaptionInput",
+        "handleCaptionPresetTap",
+        "handleVisibilityTap",
+        "handleConsentTap",
+        "handleMemberTap",
+        "handleSubmitTap"
+      ],
+      "file": "pages/pages-moment-editor-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/moment-editor/index",
+      "routes": [
+        "pages/live-record/index"
+      ],
+      "slug": "pages-moment-editor-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 90,
+        "colorCount": 74
+      },
+      "texts": [
+        "照片详情",
+        "▣",
+        "▧",
+        "从相册选择",
+        "已保留文字、可见范围和授权选择。",
+        "重试上传",
+        "返回邀请页",
+        "✓",
+        "默认仅本聚会成员可见",
+        "一句话说明",
+        "/ 80",
+        "可见范围",
+        "选择谁能看见",
+        "授权用途",
+        "默认 4 项全选",
+        "可见成员",
+        "已选 人",
+        "未同步到本聚会成员，返回聚会页刷新后再试。"
+      ],
+      "title": "{{title}}"
+    },
+    {
+      "actions": [
+        "handlePrimaryTap",
+        "handleSecondaryTap"
+      ],
+      "file": "pages/pages-privacy-state-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/privacy-state/index",
+      "routes": [
+        "pages/index/index",
+        "pages/album/index"
+      ],
+      "slug": "pages-privacy-state-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 10,
+        "colorCount": 8
+      },
+      "texts": [
+        "查看相册"
+      ],
+      "title": "状态提示"
+    },
+    {
+      "actions": [
+        "handleRefreshTap",
+        "handleFeatureZoneTap",
+        "handleCategoryTap",
+        "handleImageTap",
+        "handleNominateTap",
+        "handleTabTap"
+      ],
+      "file": "pages/pages-rankings-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/rankings/index",
+      "routes": [
+        "pages/index/index",
+        "pages/feature-zones/index"
+      ],
+      "slug": "pages-rankings-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 91,
+        "colorCount": 57
+      },
+      "texts": [
+        "今日回忆榜",
+        "查看积分与奖励",
+        "榜单暂时没刷新出来",
+        "重试",
+        "今天还没有上榜回忆",
+        "拍下第一张照片后，回忆会慢慢排起来。",
+        "#",
+        "排名",
+        "无图",
+        "热度",
+        "次推举",
+        "首页",
+        "工具箱",
+        "排行榜",
+        "我的"
+      ],
+      "title": "今日回忆榜"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleRankingTap",
+        "handlePreviewFirstImageTap",
+        "handleRefreshTap",
+        "handleNominatePhotoTap"
+      ],
+      "file": "pages/pages-session-brief-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/session-brief/index",
+      "routes": [
+        "pages/rankings/index",
+        "pages/album/index"
+      ],
+      "slug": "pages-session-brief-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 73,
+        "colorCount": 64
+      },
+      "texts": [
+        "查看今日回忆榜",
+        "加载中...",
+        "查看大图",
+        "照片推举",
+        "刷新",
+        "还没有可推举照片"
+      ],
+      "title": "聚会简报"
+    },
+    {
+      "actions": [],
+      "file": "pages/pages-settings-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/settings/index",
+      "routes": [],
+      "slug": "pages-settings-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 7,
+        "colorCount": 6
+      },
+      "texts": [],
+      "title": "设置"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleSaveTap",
+        "handleTaskPrimaryTap",
+        "handlePermissionPrimaryTap",
+        "handlePermissionSecondaryTap",
+        "handleExitShareTap"
+      ],
+      "file": "pages/pages-share-poster-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/share-poster/index",
+      "routes": [
+        "pages/index/index",
+        "pages/me/index",
+        "pages/invite-group/index",
+        "pages/album/index",
+        "pages/create-session/index"
+      ],
+      "slug": "pages-share-poster-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 411,
+        "colorCount": 117
+      },
+      "texts": [
+        "相",
+        "聚会记录师",
+        "分享预览 · 照片和账本",
+        "暂无可保存节点，先去记录照片或账本变动。",
+        "刷新状态",
+        "重新生成",
+        "稍后可在“我的”页面查看分享图",
+        "返回首页"
+      ],
+      "title": "分享图"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleTabTap",
+        "handleRetryTap",
+        "handleReturnAlbumTap"
+      ],
+      "file": "pages/pages-share-preview-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/share-preview/index",
+      "routes": [
+        "pages/album/index"
+      ],
+      "slug": "pages-share-preview-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 207,
+        "colorCount": 104
+      },
+      "texts": [
+        "邀请预览",
+        "口令加入状态",
+        "分享页暂时无法展示",
+        "重试",
+        "查看相册",
+        "聚会记录师",
+        "邀请好友加入",
+        "输入口令，一起进入这场聚会",
+        "加入口令",
+        "这场聚会的回忆",
+        "和朋友一起留下的美好时刻",
+        "公开分享",
+        "可见范围",
+        "仅展示可分享内容",
+        "隐私保护",
+        "私密内容不会进入分享",
+        "加入提示",
+        "好友加入后再查看回忆",
+        "成员入局进度",
+        "邀请码 ·",
+        "好友加入后会在这里显示状态；没有成员数据时不会展示生硬数字。",
+        "公开分享只展示可分享内容，私密记录不会进入分享页。",
+        "如需反馈，请联系聚会发起人处理。"
+      ],
+      "title": "邀请预览"
+    },
+    {
+      "actions": [
+        "handleTextInput",
+        "handleJsonInput",
+        "handleFormatJson",
+        "handleMinifyJson",
+        "handleCopyOutput",
+        "handleLoanInput",
+        "handleCurrencyAmountInput",
+        "handleCurrencyPickerChange",
+        "handleSwapCurrency",
+        "handleUnitDimensionChange",
+        "handleUnitAmountInput",
+        "handleUnitPickerChange",
+        "handleQrInput",
+        "handleGenerateShareCode",
+        "handleCopyShareCode",
+        "handleDownloadQrCode",
+        "handleChooseImage",
+        "handleRunCompress"
+      ],
+      "file": "pages/pages-tool-detail-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/tool-detail/index",
+      "routes": [],
+      "slug": "pages-tool-detail-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 72,
+        "colorCount": 54
+      },
+      "texts": [
+        "能力说明",
+        "立即使用",
+        "格式化",
+        "压缩",
+        "复制结果",
+        "贷款总额（万元）",
+        "年利率（%）",
+        "年限",
+        "月供",
+        "总利息",
+        "总还款",
+        "金额",
+        "⇄",
+        "换算结果",
+        "→",
+        "生成分享码",
+        "复制分享码",
+        "保存二维码",
+        "把这串分享码配合口令一起发给朋友即可。",
+        "选择图片",
+        "开始压缩",
+        "保存结果",
+        "压缩质量",
+        "原图大小"
+      ],
+      "title": "{{toolName}}"
+    },
+    {
+      "actions": [
+        "handleSearchInput",
+        "handleSearchClear",
+        "handleFeatureZoneTap",
+        "handleCategoryTap",
+        "handleToolTap",
+        "handleTabTap"
+      ],
+      "file": "pages/pages-tools-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/tools/index",
+      "routes": [],
+      "slug": "pages-tools-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 132,
+        "colorCount": 46
+      },
+      "texts": [
+        "清空",
+        "模板中心",
+        "主题模板与可用状态",
+        "合作优惠",
+        "商户配置与可用状态",
+        "使用记录",
+        "新路径工具记录",
+        "热门工具",
+        "没有匹配工具",
+        "请切换分类，或更换关键词。",
+        "工具分类",
+        ">",
+        "当前没有分类结果。",
+        "当前分类下暂无工具。",
+        "首页",
+        "工具箱",
+        "排行榜",
+        "我的"
+      ],
+      "title": "工具箱"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleRefreshTap",
+        "handleInviteTap",
+        "handleOverviewTap",
+        "handleOpeningMomentTap",
+        "handleCodeTap",
+        "handleStartTap"
+      ],
+      "file": "pages/pages-waiting-room-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/waiting-room/index",
+      "routes": [],
+      "slug": "pages-waiting-room-index",
+      "source": "registered",
+      "statusLabel": "app.json 正式页",
+      "styleStats": {
+        "classCount": 79,
+        "colorCount": 54
+      },
+      "texts": [
+        "/",
+        "已加入人数",
+        "↻",
+        "刷新成员",
+        "+",
+        "继续邀请",
+        "?",
+        "待加入",
+        "聚会信息",
+        "更多",
+        "人数： 人",
+        "邀请码：",
+        "开局签到",
+        "提醒好友",
+        "查看邀请卡"
+      ],
+      "title": "等待开局"
+    },
+    {
+      "actions": [
+        "handleSearchInput",
+        "handleAddRegisteredTap",
+        "handlePlayerToggle",
+        "handleSelectAllTap",
+        "handleNextTap"
+      ],
+      "file": "pages/pages-add-players-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/add-players/index",
+      "routes": [
+        "pages/invite-group/index"
+      ],
+      "slug": "pages-add-players-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 54,
+        "colorCount": 42
+      },
+      "texts": [
+        "1",
+        "创建酒局",
+        "2",
+        "玩法设置",
+        "3",
+        "邀请开局",
+        "预选玩家（ / ，判官本人已在局内）",
+        "已注册用户",
+        "搜索结果",
+        "未找到 “ ”",
+        "只能邀请已授权登录的真实用户，请让对方先登录或换个昵称搜索",
+        "常用玩家",
+        "更多",
+        "最近联系人",
+        "还没有可预选的酒友",
+        "可以先去分享邀请；好友通过链接或邀请码加入后会进入本局",
+        "全选",
+        "去分享邀请（已预选 / ）"
+      ],
+      "title": "创建酒局"
+    },
+    {
+      "actions": [
+        "handleUseTap"
+      ],
+      "file": "pages/pages-coupon-center-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/coupon-center/index",
+      "routes": [],
+      "slug": "pages-coupon-center-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 8,
+        "colorCount": 10
+      },
+      "texts": [
+        "去查看"
+      ],
+      "title": "我的权益"
+    },
+    {
+      "actions": [],
+      "file": "pages/pages-favorites-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/favorites/index",
+      "routes": [],
+      "slug": "pages-favorites-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 8,
+        "colorCount": 6
+      },
+      "texts": [],
+      "title": "我的收藏"
+    },
+    {
+      "actions": [
+        "handleEnterTap"
+      ],
+      "file": "pages/pages-flow-overview-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/flow-overview/index",
+      "routes": [
+        "pages/live-record/index"
+      ],
+      "slug": "pages-flow-overview-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 19,
+        "colorCount": 17
+      },
+      "texts": [
+        "理性饮酒，适量饮酒，未成年人禁止饮酒",
+        "进入本局"
+      ],
+      "title": "链路进度"
+    },
+    {
+      "actions": [
+        "handleInviteTap",
+        "handlePosterTap"
+      ],
+      "file": "pages/pages-invite-friends-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/invite-friends/index",
+      "routes": [
+        "pages/invite-group/index",
+        "pages/share-preview/index"
+      ],
+      "slug": "pages-invite-friends-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 16,
+        "colorCount": 15
+      },
+      "texts": [
+        "一起把酒局圈子拉起来",
+        "邀请越多，积分、模板和商户福利越多。",
+        "邀请奖励",
+        "去发邀请",
+        "先看分享海报"
+      ],
+      "title": "邀请好友"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleTypeTap",
+        "handleSpinTap",
+        "handleAcceptTap"
+      ],
+      "file": "pages/pages-judge-wheel-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/judge-wheel/index",
+      "routes": [],
+      "slug": "pages-judge-wheel-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 74,
+        "colorCount": 30
+      },
+      "texts": [
+        "判官主控转盘",
+        "转一下，今晚谁来接这杯",
+        "题目直接读取后台已上线题库，确认后写回当前酒局记录，不再走空壳演示。",
+        "当前欠酒 杯 · 已消 /",
+        "确认本轮消 1 杯",
+        "本轮消杯说明"
+      ],
+      "title": "判官转盘"
+    },
+    {
+      "actions": [
+        "handleSessionReturnOpen",
+        "handleCreateTap",
+        "handleEntryTap",
+        "handlePokeActionTap",
+        "handleTabTap"
+      ],
+      "file": "pages/pages-judge-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/judge/index",
+      "routes": [
+        "pages/create-session/index"
+      ],
+      "slug": "pages-judge-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 110,
+        "colorCount": 52
+      },
+      "texts": [
+        "聚会记录",
+        "开始记录",
+        "双主线入口",
+        "我的聚会",
+        "忽略",
+        "回拍",
+        "首页",
+        "相册",
+        "记录",
+        "我的"
+      ],
+      "title": "记录/相册"
+    },
+    {
+      "actions": [],
+      "file": "pages/pages-logs-index.html",
+      "hasLess": false,
+      "hasTs": false,
+      "hasWxml": false,
+      "route": "pages/logs/index",
+      "routes": [],
+      "slug": "pages-logs-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 0,
+        "colorCount": 0
+      },
+      "texts": [],
+      "title": "Logs"
+    },
+    {
+      "actions": [
+        "handleOpenTap"
+      ],
+      "file": "pages/pages-member-center-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/member-center/index",
+      "routes": [
+        "pages/coupon-center/index"
+      ],
+      "slug": "pages-member-center-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 19,
+        "colorCount": 18
+      },
+      "texts": [
+        "聚会权益暂按后台配置开放",
+        "会员、模板和分享素材只展示真实配置，不生成假权益。",
+        "会员权益",
+        "可选方案",
+        "聚会权益暂未开放，当前不支持开通或领取。"
+      ],
+      "title": "聚会权益"
+    },
+    {
+      "actions": [],
+      "file": "pages/pages-merchant-partners-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/merchant-partners/index",
+      "routes": [],
+      "slug": "pages-merchant-partners-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 33,
+        "colorCount": 21
+      },
+      "texts": [
+        "商户合作",
+        "合作优惠待配置",
+        "没有真实商户和核销合同前，不开放领取或核销。",
+        "精选商户",
+        "暂无已验证商户优惠，当前仅保留合作入口占位。",
+        "安全返程"
+      ],
+      "title": "合作商户"
+    },
+    {
+      "actions": [
+        "handleFilterTap",
+        "handleTemplateTap",
+        "handleUnlockTap"
+      ],
+      "file": "pages/pages-premium-templates-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/premium-templates/index",
+      "routes": [
+        "pages/create-session/index",
+        "pages/member-center/index"
+      ],
+      "slug": "pages-premium-templates-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 21,
+        "colorCount": 22
+      },
+      "texts": [],
+      "title": "主题模板"
+    },
+    {
+      "actions": [
+        "handleSelectTap",
+        "handleUseTap"
+      ],
+      "file": "pages/pages-question-bank-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/question-bank/index",
+      "routes": [],
+      "slug": "pages-question-bank-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 11,
+        "colorCount": 13
+      },
+      "texts": [
+        "挑一题更合适的",
+        "这里只展示后台题库里已上线的题目，保存后台后前台会同步更新。",
+        "暂无题目",
+        "后台当前没有可用题目，请先在后台题库页上架后再使用。",
+        "使用这题继续"
+      ],
+      "title": "换个问题"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleReuseTap",
+        "handleQuickStartTap",
+        "handleShareTap"
+      ],
+      "file": "pages/pages-restart-state-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/restart-state/index",
+      "routes": [
+        "pages/index/index"
+      ],
+      "slug": "pages-restart-state-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 36,
+        "colorCount": 23
+      },
+      "texts": [
+        "换个玩法，继续快乐！",
+        "上次使用模板",
+        "多模板混合局",
+        "6人",
+        "继续同款",
+        "推荐模板",
+        "查看全部",
+        "快速开局",
+        "邀请好友一起玩",
+        "理性饮酒，适量饮酒，未成年人禁止饮酒"
+      ],
+      "title": "再来一局？"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleBriefTap",
+        "handleRestartTap",
+        "handleShareTap"
+      ],
+      "file": "pages/pages-result-report-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/result-report/index",
+      "routes": [
+        "pages/index/index"
+      ],
+      "slug": "pages-result-report-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 73,
+        "colorCount": 43
+      },
+      "texts": [
+        "本局战报",
+        "全场焦点",
+        "本局精彩事件",
+        "·",
+        "查看时间线简报",
+        "按开场、过程和收尾整理本局精彩瞬间",
+        "查看",
+        "再开一局",
+        "分享聚会图",
+        "理性饮酒，适量玩局，未成年人禁止饮酒。"
+      ],
+      "title": "本局战报"
+    },
+    {
+      "actions": [
+        "handleChipTap",
+        "handleTaskCountTap",
+        "handlePenaltyToggle",
+        "handleNextTap"
+      ],
+      "file": "pages/pages-session-rules-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/session-rules/index",
+      "routes": [
+        "pages/add-players/index"
+      ],
+      "slug": "pages-session-rules-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 52,
+        "colorCount": 31
+      },
+      "texts": [
+        "1",
+        "创建酒局",
+        "2",
+        "玩法设置",
+        "3",
+        "邀请开局",
+        "局内规则",
+        "欠酒规则",
+        "整活任务数量",
+        "每轮触发轻整活",
+        "-",
+        "个",
+        "+",
+        "是否开启惩罚卡",
+        "惩罚卡强度",
+        "下一步 添加玩家"
+      ],
+      "title": "创建酒局"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleRefreshTap",
+        "handleReactionTap",
+        "handleClosingMomentTap",
+        "handleFinishTap"
+      ],
+      "file": "pages/pages-table-mode-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/table-mode/index",
+      "routes": [
+        "pages/result-report/index"
+      ],
+      "slug": "pages-table-mode-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 58,
+        "colorCount": 41
+      },
+      "texts": [
+        "桌面模式",
+        "↻",
+        "刷新最新数据",
+        "玩家",
+        "欠酒",
+        "已喝",
+        "已消",
+        "总计",
+        "已获 👍 · 😵",
+        "👍 点赞",
+        "😵 小拷打",
+        "已开局时长",
+        "桌面模式已放大所有信息，方便酒桌上远一点也能看清。",
+        "收尾照",
+        "可选上传，不影响结束本局。",
+        "上传",
+        "返回",
+        "结束本局"
+      ],
+      "title": "{{sessionName}}"
+    },
+    {
+      "actions": [
+        "handleRecordTap"
+      ],
+      "file": "pages/pages-usage-history-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/usage-history/index",
+      "routes": [],
+      "slug": "pages-usage-history-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 9,
+        "colorCount": 8
+      },
+      "texts": [
+        "›",
+        "暂无使用记录",
+        "空状态",
+        "使用工具或查看战报后，这里会展示最近记录。"
+      ],
+      "title": "使用记录"
+    },
+    {
+      "actions": [
+        "handleBackTap",
+        "handleSessionReturnOpen",
+        "handleModeTap",
+        "handleFilterTap",
+        "handleRankingTap",
+        "handleSessionTap",
+        "handleBriefTap",
+        "handleLoginTap",
+        "handleCreateTap"
+      ],
+      "file": "pages/pages-wine-history-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/wine-history/index",
+      "routes": [
+        "pages/me/index",
+        "pages/index/index"
+      ],
+      "slug": "pages-wine-history-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 60,
+        "colorCount": 48
+      },
+      "texts": [
+        "我创建的",
+        "我加入的",
+        "分享图",
+        "回忆榜",
+        "发起人：",
+        "简报",
+        "去登录"
+      ],
+      "title": "{{pageTitle}}"
+    },
+    {
+      "actions": [
+        "handleTabTap",
+        "handleTaskClaim",
+        "handleRewardRedeem"
+      ],
+      "file": "pages/pages-wine-points-index.html",
+      "hasLess": true,
+      "hasTs": true,
+      "hasWxml": true,
+      "route": "pages/wine-points/index",
+      "routes": [],
+      "slug": "pages-wine-points-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 37,
+        "colorCount": 26
+      },
+      "texts": [
+        "可用积分",
+        "每日任务",
+        "积分明细",
+        "暂无可领取任务",
+        "当前仅保留首次登录奖励，更多任务待运营配置。",
+        "积分奖励",
+        "兑换待开放",
+        "奖励兑换暂未开放",
+        "没有真实权益和发放流水前，不展示可兑换商品。"
+      ],
+      "title": "积分中心"
+    }
+  ]
+}

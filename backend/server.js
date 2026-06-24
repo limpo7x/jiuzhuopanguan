@@ -134,7 +134,7 @@ const heatwaveDir = path.join(publicDir, 'admin', 'static', 'heatwave-ops')
 const assetsDir = path.join(__dirname, '..', 'miniprogram', 'assets')
 const publicStaticDir = path.join(publicDir, 'static')
 const uploadsDir = path.join(publicDir, 'uploads')
-const sharePosterMiniappCodePath = path.join(__dirname, '..', 'miniprogram', 'pages', 'share-poster', 'assets', 'share', 'share-poster-miniapp-code.png')
+const sharePosterMiniappCodePath = path.join(publicStaticDir, 'share-poster-miniapp-code.png')
 const sessionCookieName = 'jiuzhuopanguan_admin_session'
 const userSessionHeaderName = 'x-jzp-user-token'
 const wechatConfig = {
@@ -177,6 +177,9 @@ const staticAssetMap = {
   '/static/share-miniapp-qr.png': resolveFirstExistingPath(
     path.join(publicStaticDir, 'share-miniapp-qr.png'),
     path.join(assetsDir, 'home', 'share-miniapp-qr.png'),
+  ),
+  '/static/share-poster-miniapp-code.png': resolveFirstExistingPath(
+    sharePosterMiniappCodePath,
   ),
   '/static/toolbox-hero.png': resolveFirstExistingPath(
     path.join(publicStaticDir, 'toolbox-hero.png'),

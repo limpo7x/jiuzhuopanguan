@@ -9,7 +9,7 @@
 <view class="me-settings-link" style="{{headerActionStyle}}" data-name="资料设置" bindtap="handleFeatureTap">⚙</view>
 
 <view class="me-page">
-  <image class="me-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
+  <image class="me-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="me-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="me-hero">
       <view class="me-hero-glow"></view>
@@ -39,7 +39,7 @@
     </view>
     <view class="me-stats-row">
       <view wx:for="{{assetStats}}" wx:key="label" wx:for-index="index" class="me-stat-cell" data-label="{{item.label}}" bindtap="handleAssetTap">
-        <image wx:if="{{index}}" class="me-stat-divider" src="/assets/party-recorder/pr-cs008cn-stat-divider.svg" mode="heightFix"></image>
+        <image wx:if="{{index}}" class="me-stat-divider" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stat-divider.svg" mode="heightFix"></image>
         <text class="me-stat-value">{{item.value}}</text>
         <text class="me-stat-label">{{item.label}}</text>
       </view>
@@ -59,10 +59,10 @@
           bindtap="handlePendingAlbumTap"
         >
           <view class="me-pending-badge-wrap">
-            <image class="me-pending-badge" src="/assets/party-recorder/pr-cs008cj-pending-badge.svg" mode="widthFix"></image>
+            <image class="me-pending-badge" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cj-pending-badge.svg" mode="widthFix"></image>
           </view>
           <image wx:if="{{item.coverUrl}}" class="me-pending-cover" src="{{item.coverUrl}}" mode="aspectFill"></image>
-          <image wx:else class="me-pending-cover" src="/assets/party-recorder/pr-cs008cj-memory-default-cover.svg" mode="aspectFill"></image>
+          <image wx:else class="me-pending-cover" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cj-memory-default-cover.svg" mode="aspectFill"></image>
           <view class="me-pending-copy">
             <text class="me-pending-title">{{item.title}}</text>
             <text class="me-pending-meta">{{item.meta}}</text>
@@ -85,7 +85,7 @@
         bindtap="handleShareGalleryTap"
       >
         <view class="me-share-art">
-          <image class="me-share-frame" src="/assets/party-recorder/pr-cs008cj-share-thumb-frame.svg" mode="aspectFill"></image>
+          <image class="me-share-frame" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cj-share-thumb-frame.svg" mode="aspectFill"></image>
           <image class="me-share-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
         </view>
         <view class="me-share-copy">

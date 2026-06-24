@@ -7,7 +7,7 @@
 ></navigation-bar>
 
 <view class="rankings-page">
-  <image class="rankings-stage-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
+  <image class="rankings-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="rankings-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="rankings-hero">
       <view class="rankings-hero-top">

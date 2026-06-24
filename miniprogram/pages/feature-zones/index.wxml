@@ -9,7 +9,7 @@
 ></navigation-bar>
 
 <view class="feature-zone-page">
-  <image class="feature-zone-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
+  <image class="feature-zone-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="feature-zone-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="feature-zone-hero">
       <text class="feature-zone-kicker">功能区</text>

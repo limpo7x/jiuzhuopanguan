@@ -9,31 +9,31 @@
 ></navigation-bar>
 
 <view class="live-page live-redesign live-record008as-page">
-  <image class="live-record008as-bg" src="/assets/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
+  <image class="live-record008as-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
   <scroll-view class="live-scroll live-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="live-record008as-hero">
-      <image class="live-record008as-hero-bg" src="/pages/live-record/assets/pr-cs008ar-hero-bg-750x420.jpg" mode="aspectFill"></image>
+      <image class="live-record008as-hero-bg" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-hero-bg-750x420.jpg" mode="aspectFill"></image>
       <view class="live-record008as-hero-shade"></view>
       <view class="live-record008as-hero-top">
         <view class="live-record008as-tools">
           <view class="live-record008as-tool-btn" bindtap="handleRefreshTap">
-            <image class="live-record008as-tool-bg" src="/pages/live-record/assets/pr-cs008ar-circle-tool-btn.png" mode="aspectFit"></image>
-            <image class="live-record008as-tool-icon" src="/pages/live-record/assets/pr-cs008ar-icon-gear.png" mode="aspectFit"></image>
+            <image class="live-record008as-tool-bg" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-circle-tool-btn.png" mode="aspectFit"></image>
+            <image class="live-record008as-tool-icon" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-icon-gear.png" mode="aspectFit"></image>
           </view>
         </view>
       </view>
       <view class="live-record008as-title-wrap">
         <text class="live-record008as-title-text">{{sessionName}}</text>
-        <image class="live-record008as-title-underline" src="/pages/live-record/assets/pr-cs008ar-title-underline-scribble.png" mode="widthFix"></image>
-        <image class="live-record008as-title-star" src="/pages/live-record/assets/pr-cs008ar-title-star-sticker.png" mode="aspectFit"></image>
+        <image class="live-record008as-title-underline" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-title-underline-scribble.png" mode="widthFix"></image>
+        <image class="live-record008as-title-star" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-title-star-sticker.png" mode="aspectFit"></image>
       </view>
       <view class="live-record008as-meta-row">
         <view class="live-record008as-meta">
-          <image src="/pages/live-record/assets/pr-cs008ar-icon-people.png" mode="aspectFit"></image>
+          <image src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-icon-people.png" mode="aspectFit"></image>
           <text>{{memberCountText}}</text>
         </view>
         <view class="live-record008as-meta">
-          <image src="/pages/live-record/assets/pr-cs008ar-icon-clock.png" mode="aspectFit"></image>
+          <image src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-icon-clock.png" mode="aspectFit"></image>
           <text>{{startTimeText}}</text>
         </view>
         <text class="live-record008as-elapsed">{{elapsedText}}</text>
@@ -46,15 +46,15 @@
     <view class="live-segment-tabs">
       <view class="live-segment-tab {{activeSegment === 'record' ? 'live-segment-tab-active' : ''}}" data-tab="record" bindtap="handleSegmentTap">
         <text>记录</text>
-        <image wx:if="{{activeSegment === 'record'}}" class="live-record008as-tab-active" src="/pages/live-record/assets/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
+        <image wx:if="{{activeSegment === 'record'}}" class="live-record008as-tab-active" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
       </view>
       <view class="live-segment-tab {{activeSegment === 'album' ? 'live-segment-tab-active' : ''}}" data-tab="album" bindtap="handleSegmentTap">
         <text>相册</text>
-        <image wx:if="{{activeSegment === 'album'}}" class="live-record008as-tab-active" src="/pages/live-record/assets/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
+        <image wx:if="{{activeSegment === 'album'}}" class="live-record008as-tab-active" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
       </view>
       <view class="live-segment-tab {{activeSegment === 'ledger' ? 'live-segment-tab-active' : ''}}" data-tab="ledger" bindtap="handleSegmentTap">
         <text>账本</text>
-        <image wx:if="{{activeSegment === 'ledger'}}" class="live-record008as-tab-active" src="/pages/live-record/assets/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
+        <image wx:if="{{activeSegment === 'ledger'}}" class="live-record008as-tab-active" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
       </view>
       <view class="live-segment-tab live-segment-tab-disabled" data-tab="share" bindtap="handleSegmentTap">
         <text>分享</text>
@@ -64,11 +64,11 @@
 
     <view wx:if="{{activeSegment === 'record'}}" class="live-record-timeline-stage">
       <view wx:if="{{timelineLoading}}" class="live-photo-empty live-record-timeline-empty">
-        <image class="live-record008as-state-image" src="/pages/live-record/assets/pr-cs008ar-state-loading-spinner.png" mode="aspectFit"></image>
+        <image class="live-record008as-state-image" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-state-loading-spinner.png" mode="aspectFit"></image>
         <text>现场时间线同步中</text>
       </view>
       <view wx:elif="{{recordTimelineDisplayItems.length}}" class="live-record-timeline-list">
-        <image class="live-record-timeline-rail" src="/pages/live-record/assets/pr-cs008ar-timeline-rail.png" mode="scaleToFill"></image>
+        <image class="live-record-timeline-rail" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-timeline-rail.png" mode="scaleToFill"></image>
         <view
           wx:for="{{recordTimelineDisplayItems}}"
           wx:key="id"
@@ -84,19 +84,19 @@
             <view wx:if="{{item.displayKind === 'photoGroup'}}" class="live-record-photo-compact-group">
               <view wx:for="{{item.compactPhotos}}" wx:for-item="photo" wx:key="id" class="live-record-photo-compact-thumb">
                 <image wx:if="{{photo.imageUrl && !photo.imageBroken}}" class="live-record-photo-compact-image" src="{{photo.imageUrl}}" mode="aspectFill" data-id="{{photo.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
-                <image wx:else class="live-record-photo-compact-failed" src="/pages/live-record/assets/pr-cs008ar-state-photo-failed.png" mode="aspectFit"></image>
+                <image wx:else class="live-record-photo-compact-failed" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-state-photo-failed.png" mode="aspectFit"></image>
               </view>
               <text wx:if="{{item.compactPhotoCountText}}" class="live-record-photo-compact-count">{{item.compactPhotoCountText}}</text>
               <text class="live-record-photo-compact-copy">{{item.title}}</text>
             </view>
             <block wx:else>
               <view class="live-record-photo-card" wx:if="{{item.type === 'photo'}}">
-                <image class="live-record-photo-frame" src="/assets/party-recorder/clean-slate/pr-cs002-photo-polaroid-frame.svg" mode="scaleToFill"></image>
-                <image class="live-record008as-tape" src="/pages/live-record/assets/pr-cs008ar-tape-purple.png" mode="aspectFit"></image>
-                <image class="live-record008as-sticker live-record008as-sticker-coin" src="/pages/live-record/assets/pr-cs008ar-sticker-smile-coin.png" mode="aspectFit"></image>
-                <image class="live-record008as-sticker live-record008as-sticker-star" src="/pages/live-record/assets/pr-cs008ar-sticker-star-outline.png" mode="aspectFit"></image>
+                <image class="live-record-photo-frame" src="https://cdn.pomer.cn/static/party-recorder/clean-slate/pr-cs002-photo-polaroid-frame.svg" mode="scaleToFill"></image>
+                <image class="live-record008as-tape" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-tape-purple.png" mode="aspectFit"></image>
+                <image class="live-record008as-sticker live-record008as-sticker-coin" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-sticker-smile-coin.png" mode="aspectFit"></image>
+                <image class="live-record008as-sticker live-record008as-sticker-star" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-sticker-star-outline.png" mode="aspectFit"></image>
                 <image wx:if="{{item.imageUrl && !item.imageBroken}}" class="live-record-photo-image" src="{{item.imageUrl}}" mode="aspectFill" data-id="{{item.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
-                <image wx:else class="live-record008as-photo-failed" src="/pages/live-record/assets/pr-cs008ar-state-photo-failed.png" mode="aspectFit"></image>
+                <image wx:else class="live-record008as-photo-failed" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-state-photo-failed.png" mode="aspectFit"></image>
               </view>
               <view class="live-record-ledger-chip" wx:else>
                 <image class="live-record-ledger-chip-bg" src="{{item.chipAsset}}" mode="scaleToFill"></image>
@@ -117,19 +117,19 @@
         </view>
       </view>
       <view wx:else class="live-photo-empty live-record-timeline-empty">
-        <image class="live-record008as-state-image" src="/pages/live-record/assets/pr-cs008ar-state-empty.png" mode="aspectFit"></image>
+        <image class="live-record008as-state-image" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-state-empty.png" mode="aspectFit"></image>
         <text>{{timelineEmptyText}}</text>
       </view>
       <view wx:if="{{hiddenTimelineNotice}}" class="live-timeline-notice">{{hiddenTimelineNotice}}</view>
       <view class="live-record008as-comment-deco">
-        <image src="/pages/live-record/assets/pr-cs008ar-shell-comment-deco.png" mode="widthFix"></image>
-        <image src="/pages/live-record/assets/pr-cs008ar-handdrawn-marker.png" mode="widthFix"></image>
+        <image src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-shell-comment-deco.png" mode="widthFix"></image>
+        <image src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-handdrawn-marker.png" mode="widthFix"></image>
       </view>
     </view>
 
     <view wx:if="{{activeSegment === 'album'}}" class="live-photo-wall">
       <view wx:if="{{timelineLoading}}" class="live-photo-empty">
-        <image class="live-photo-empty-sticker" src="/assets/party-recorder/party-recorder-uploading-sticker.png" mode="aspectFit"></image>
+        <image class="live-photo-empty-sticker" src="https://cdn.pomer.cn/static/party-recorder/party-recorder-uploading-sticker.png" mode="aspectFit"></image>
         <text>照片同步中...</text>
       </view>
       <view wx:elif="{{photoNodes.length}}" class="live-photo-grid">
@@ -149,7 +149,7 @@
         </view>
       </view>
       <view wx:else class="live-photo-empty">
-        <image class="live-photo-empty-sticker" src="/assets/party-recorder/party-recorder-empty-album-sticker.png" mode="aspectFit"></image>
+        <image class="live-photo-empty-sticker" src="https://cdn.pomer.cn/static/party-recorder/party-recorder-empty-album-sticker.png" mode="aspectFit"></image>
         <text>{{timelineEmptyText}}</text>
       </view>
       <view wx:if="{{hiddenTimelineNotice}}" class="live-timeline-notice">{{hiddenTimelineNotice}}</view>
@@ -217,7 +217,7 @@
 
   <view wx:if="{{activeSegment === 'record' || activeSegment === 'album'}}" class="live-record008as-cta-row">
     <view class="live-record008as-cta live-record008as-photo-cta" bindtap="handleHighlightMomentTap">
-      <image class="live-record008as-cta-icon" src="/pages/live-record/assets/pr-cs008ar-icon-camera-cta.png" mode="aspectFit"></image>
+      <image class="live-record008as-cta-icon" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-icon-camera-cta.png" mode="aspectFit"></image>
       <text>继续拍照</text>
     </view>
     <view class="live-record008as-cta live-record008as-end-cta" bindtap="handleFinishTap">

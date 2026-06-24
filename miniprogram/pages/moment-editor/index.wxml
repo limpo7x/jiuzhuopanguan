@@ -18,7 +18,7 @@
     <view class="moment-camera-stage">
       <image
         class="moment-editor-guide-sticker"
-        src="{{uploadError ? '/assets/party-recorder/party-recorder-upload-failed-retry-sticker.png' : (uploading ? '/assets/party-recorder/party-recorder-uploading-sticker.png' : '/assets/party-recorder/party-recorder-photo-guide-sticker.png')}}"
+        src="{{uploadError ? 'https://cdn.pomer.cn/static/party-recorder/party-recorder-upload-failed-retry-sticker.png' : (uploading ? 'https://cdn.pomer.cn/static/party-recorder/party-recorder-uploading-sticker.png' : 'https://cdn.pomer.cn/static/party-recorder/party-recorder-photo-guide-sticker.png')}}"
         mode="aspectFit"
       ></image>
       <view wx:if="{{detailMode && (draftImageFilePath || imageUrl)}}" class="moment-editor-image-wrap">

@@ -164,7 +164,7 @@ const JUDGE_WHEEL_RESULT_KEY = 'judge-wheel-result'
 const MAX_CLEAR_PER_PLAYER = 3
 const SAMPLE_008AS_SESSION_ID = 'session-1781787045680-8e406c'
 const SAMPLE_008AS_SESSION_NAME = '周末聚会记录'
-const SAMPLE_008AS_TITLE_ASSET = '/pages/live-record/assets/pr-cs008at-title-sample-zhoumojuhuijilu.png'
+const SAMPLE_008AS_TITLE_ASSET = 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008at-title-sample-zhoumojuhuijilu.png'
 let liveTimer = 0
 
 const internalDisplayPattern = /(PR\s+Seed|PR-BE-DB-LOGIN|IT-MOMENTS|DEBUG|openid|openId|unionId|signature)/i
@@ -340,8 +340,8 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         const signText = delta < 0 ? '-' : '+'
         const chipAsset =
           node.eventType === 'drink_debt'
-            ? (score === 1 ? '/pages/live-record/assets/pr-cs008ar-neon-debt-plus1.png' : '/pages/live-record/assets/pr-cs008ar-neon-plate-debt-base.png')
-            : (score === 1 ? '/pages/live-record/assets/pr-cs008au-neon-drink-plus1.png' : score === 2 ? '/pages/live-record/assets/pr-cs008ar-neon-drink-plus2.png' : '/pages/live-record/assets/pr-cs008ar-neon-plate-drink-base.png')
+            ? (score === 1 ? 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-neon-debt-plus1.png' : 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-neon-plate-debt-base.png')
+            : (score === 1 ? 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008au-neon-drink-plus1.png' : score === 2 ? 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-neon-drink-plus2.png' : 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-neon-plate-drink-base.png')
         ledgerTimelineItems.push({
           detail: buildEventDetail(node),
           id: node.id,
@@ -365,8 +365,8 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
               : (delta < 0 ? `${operatorName} 为 ${targetName} 减少加酒 ${score} 杯` : `${operatorName} 为 ${targetName} 加了 ${score} 杯酒`),
           iconAsset:
             node.eventType === 'drink_debt'
-              ? '/pages/live-record/assets/pr-cs008ar-node-debt.png'
-              : '/pages/live-record/assets/pr-cs008ar-node-drink.png',
+              ? 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-node-debt.png'
+              : 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-node-drink.png',
           id: node.id,
           imageUrl: '',
           nodeKind: 'event',
@@ -397,7 +397,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         chipTextVisible: false,
         createdAt: node.createdAt || node.updatedAt || '',
         detail: node.caption || '照片已进入相册和分享记录',
-        iconAsset: '/pages/live-record/assets/pr-cs008ar-node-camera.png',
+        iconAsset: 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-node-camera.png',
         id: node.id,
         imageUrl: node.imageUrl,
         nodeKind: 'moment',

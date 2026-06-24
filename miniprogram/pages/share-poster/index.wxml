@@ -13,7 +13,7 @@
     <view class="poster-stage-card poster-share021-hero" data-share-entry-selector="share-flow-015-entry">
       <view class="poster-stage-glow poster-stage-glow-a"></view>
       <view class="poster-stage-glow poster-stage-glow-b"></view>
-      <image class="poster-clean-stage-glow" src="/assets/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
+      <image class="poster-clean-stage-glow" src="https://cdn.pomer.cn/static/party-recorder/clean-slate/pr-cs002-stage-glow.svg" mode="aspectFill"></image>
       <view class="poster-brand-row">
         <view class="poster-brand-mark">相</view>
         <view class="poster-brand-copy">
@@ -24,7 +24,7 @@
       </view>
 
       <text class="poster-hero-title">{{canViewPosterContent ? '聚会分享预览' : permissionTitle}}</text>
-      <image class="poster-share020-underline" src="/assets/party-recorder/share-flow/pr-share020-underline-coral.svg" mode="aspectFit"></image>
+      <image class="poster-share020-underline" src="https://cdn.pomer.cn/static/party-recorder/share-flow/pr-share020-underline-coral.svg" mode="aspectFit"></image>
       <text class="poster-hero-subtitle">{{canViewPosterContent ? '按时间节点保存这场聚会' : permissionDescription}}</text>
 
       <view wx:if="{{!canViewPosterContent}}" class="poster-permission-card poster-permission-card-{{shareViewState}}">
