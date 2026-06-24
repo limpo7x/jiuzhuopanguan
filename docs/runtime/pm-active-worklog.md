@@ -1698,4 +1698,15 @@ PM 边界：
 - 已实现：后台 `retryManagedShareImageTask()` 对齐用户端分享图合同，要求任务状态为 `failed/expired`、聚会已结束、brief/session 归属一致、可见节点非空；不保留超管绕过；拒绝和成功重试均写入 `operationLogs`。
 - 本地验证通过：`node --check backend/data/admin.js`、`node --check backend/scripts/smoke-moments-flow.js`、`node --check backend/scripts/smoke-admin-moments-flow.js`、`node backend/scripts/smoke-moments-flow.js`、`node backend/scripts/smoke-admin-moments-flow.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。
 - 依赖安装说明：新工作树补装根目录与 backend 依赖后完成验证；根目录 `npm.cmd install` 报告既有 `10 vulnerabilities`，backend `npm.cmd install` 为 `0 vulnerabilities`，本轮未做无关升级。
-- 当前状态：本地合同通过；未提交、未推送、未部署、未上传小程序包。线上接口联调、后台页面人工复核和 QA 复核仍待补证，不得写正式发布准出。
+- 当前状态：已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上代码 HEAD `56e4b8f9`；部署证据见 `docs/runtime/deploy-fix-014-08-20260624.md`。未上传小程序包；未做后台页面人工点击复核和真实线上后台账号破坏性 retry；不得写正式发布准出。
+
+## 2026-06-24 FIX-014-08 提交部署收口
+
+- Git：业务提交 `3d7c76a3 fix: guard admin share task retries` 与测试稳定性提交 `56e4b8f9 test: isolate admin moments smoke store` 已推送到 `origin/main`。
+- 部署目标：仅 `api.pomer.cn` / `/www/wwwroot/jiuzhuopanguan-git` / PM2 `jiuzhuopanguan-backend`；未触碰 `pomer.cn` 公司官网目录、Nginx 或 PM2 `pomer` 服务。
+- 服务器备份：`/www/backup/jiuzhuopanguan/fix-014-08-20260624120930`，已保存部署前 git 状态、HEAD、runtime diff、PM2 jlist、`admin.js`、`server.js`、`package-lock.json` 和 `social-store.json`。
+- 部署命令摘要：`git fetch origin main`、`git pull --ff-only origin main`、`node --check backend/data/admin.js`、`node --check backend/scripts/smoke-moments-flow.js`、`node --check backend/scripts/smoke-admin-moments-flow.js`、`cd backend && npm install`、`. ./.env && npm run mysql:test`、两个服务器 smoke、`pm2 restart jiuzhuopanguan-backend --update-env`。
+- 部署验证：服务器 HEAD 从 `bc6d58ef` fast-forward 到 `56e4b8f9`；`npm install` 返回 `found 0 vulnerabilities`；MySQL test 返回 `ok=true`、表 `app_store`、`total=5`；两个服务器 smoke 均通过；PM2 `jiuzhuopanguan-backend` online，PM2 `pomer` 官网服务 online 且 restart 仍为 `0`。
+- 公网健康：`config/home` 200、`config/templates` 200、`admin/login` 200、`/sessions/live` 无参 400。
+- 服务器脏项：`backend/package-lock.json` 曾被服务器 `npm install` 改动，已恢复到 Git 状态；部署后仅保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**`。
+- 当前边界：未上传微信小程序包；未做后台页面人工点击复核和真实线上后台账号破坏性 retry；不得写正式发布准出。

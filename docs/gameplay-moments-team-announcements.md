@@ -22,6 +22,22 @@
 - 接口联调负责人：部署后用真实或固定测试样本覆盖不合格 409、合格 pending、operationLogs 可追溯，并给出清理证据。
 - QA：后台与接口联调证据齐全后再复核，不得把本地 smoke 写成正式发布准出。
 
+### 2026-06-24 PM 公告：FIX-014-08 已提交并部署
+
+`FIX-014-08` 已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上代码 HEAD `56e4b8f9`。部署证据见 `docs/runtime/deploy-fix-014-08-20260624.md`。
+
+部署边界：
+
+- 只操作 `/www/wwwroot/jiuzhuopanguan-git` 与 PM2 `jiuzhuopanguan-backend`。
+- PM2 `pomer` 官网服务保持 online，restart 仍为 `0`，未重启。
+- 未上传微信小程序包。
+
+后续责任：
+
+- 接口联调负责人：如需线上破坏性 retry 样本，必须使用可清理的固定测试任务，并记录 operationLogs 与清理证据。
+- 后台管理负责人：补后台页面人工复核，确认失败/过期任务行操作和拒绝文案不误导运营。
+- QA：等待后台与接口联调证据后再验收，不写正式发布准出。
+
 ## 2026-06-24 PM 公告：FIX-014-07 满员加入错误映射本地实现
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
