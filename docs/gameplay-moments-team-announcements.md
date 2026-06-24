@@ -23,6 +23,22 @@
 - 后台管理负责人：补后台页面人工复核，确认运营只能看状态并使用专用修复动作。
 - QA：接口联调和后台复核证据齐全后再验收，不写正式发布准出。
 
+### 2026-06-24 PM 公告：FIX-014-09 / FIX-014-10 已提交并部署
+
+`FIX-014-09` 与 `FIX-014-10` 已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上代码 HEAD `6dc147c1`。部署证据见 `docs/runtime/deploy-fix-014-09-10-20260624.md`。
+
+部署边界：
+
+- 只操作 `/www/wwwroot/jiuzhuopanguan-git` 与 PM2 `jiuzhuopanguan-backend`。
+- PM2 `pomer` 官网服务保持 online，restart 仍为 `0`，未重启。
+- 未上传微信小程序包。
+
+后续责任：
+
+- 接口联调负责人：补线上无 token `/user/commerce` 401、有效 token 200、后台 session repair 固定样本和清理证据。
+- 后台管理负责人：补 `sessions` 页面只读与专用修复动作的人工复核。
+- QA：等待接口联调和后台复核证据后再验收，不写正式发布准出。
+
 ## 2026-06-24 PM 公告：FIX-014-09 用户资产接口鉴权一致性本地通过
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。

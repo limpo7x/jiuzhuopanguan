@@ -1719,7 +1719,7 @@ PM 边界：
 - 已实现：`GET /api/v1/user/commerce` 未登录统一返回 401；登录用户返回自身资产；前端内容服务保留 401 statusCode；权益页、模板页不再把未登录误判为空资产。
 - 本地验证通过：`node --check backend/server.js`、`node --check backend/scripts/smoke-user-commerce-auth.js`、`node backend/scripts/smoke-user-commerce-auth.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。
 - 依赖安装说明：新工作树补装根目录与 backend 依赖后完成验证；根目录 `npm.cmd install` 报告既有 `10 vulnerabilities`，backend `npm.cmd install` 为 `0 vulnerabilities`，本轮未做无关升级。
-- 当前状态：本地合同通过；未提交、未推送、未部署、未上传小程序包。线上接口联调和 QA 复核仍待补证，不得写正式发布准出。
+- 当前状态：已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上代码 HEAD `6dc147c1`；部署证据见 `docs/runtime/deploy-fix-014-09-10-20260624.md`。未上传小程序包；未做微信开发者工具预览框 QA；不得写正式发布准出。
 
 ## 2026-06-24 FIX-014-10 用户审批与本地实现
 
@@ -1729,4 +1729,15 @@ PM 边界：
 - 已实现：后台 `sessions` 页面改为只读，不再允许整批覆盖 `liveSessions`；新增 `POST /api/v1/admin/sessions/:id/repair-state` 专用动作；状态修复同步 `endedAt/report/brief/share task` 并写 `operationLogs`。
 - 本地验证通过：`node --check backend/data/admin.js`、`node --check backend/server.js`、`node --check backend/scripts/smoke-admin-session-state-repair.js`、`node backend/scripts/smoke-admin-session-state-repair.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。
 - 依赖安装说明：新工作树补装根目录与 backend 依赖后完成验证；根目录 `npm.cmd install` 报告既有 `10 vulnerabilities`，backend `npm.cmd install` 为 `0 vulnerabilities`，本轮未做无关升级。
-- 当前状态：本地合同通过；未提交、未推送、未部署、未上传小程序包。线上接口联调、后台页面人工复核和 QA 复核仍待补证，不得写正式发布准出。
+- 当前状态：已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上代码 HEAD `6dc147c1`；部署证据见 `docs/runtime/deploy-fix-014-09-10-20260624.md`。未上传小程序包；未做后台页面人工点击复核和真实后台账号破坏性修复；不得写正式发布准出。
+
+## 2026-06-24 FIX-014-09 / FIX-014-10 提交部署收口
+
+- Git：`FIX-014-09` 提交 `ccf7b8b1 fix: require auth for user commerce`；`FIX-014-10` 提交 `6dc147c1 fix: route admin session state repairs`；均已推送到 `origin/main`。
+- 部署目标：仅 `api.pomer.cn` / `/www/wwwroot/jiuzhuopanguan-git` / PM2 `jiuzhuopanguan-backend`；未触碰 `pomer.cn` 公司官网目录、Nginx 或 PM2 `pomer` 服务。
+- 服务器备份：`/www/backup/jiuzhuopanguan/fix-014-09-10-20260624124734`，已保存部署前 git 状态、HEAD、runtime diff、PM2 jlist、`server.js`、`admin.js`、`package-lock.json` 和 `social-store.json`。
+- 部署命令摘要：`git fetch origin main`、`git pull --ff-only origin main`、`node --check backend/server.js`、`node --check backend/data/admin.js`、两个 smoke 脚本语法检查、`cd backend && npm install`、`. ./.env && npm run mysql:test`、两个服务器 smoke、`pm2 restart jiuzhuopanguan-backend --update-env`。
+- 部署验证：服务器 HEAD 从 `8924ef4c` fast-forward 到 `6dc147c1`；`npm install` 返回 `found 0 vulnerabilities`；MySQL test 返回 `ok=true`、表 `app_store`、`total=5`；`/user/commerce` 未登录 smoke 为 401；后台 session repair smoke 通过；PM2 `jiuzhuopanguan-backend` online，PM2 `pomer` 官网服务 online 且 restart 仍为 `0`。
+- 公网健康：`config/home` 200、`config/templates` 200、`admin/login` 200、`/sessions/live` 无参 400、`/user/commerce` 未登录 401。
+- 服务器脏项：`backend/package-lock.json` 曾被服务器 `npm install` 改动，已恢复到 Git 状态；部署后仅保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**`。
+- 当前边界：未上传微信小程序包；未做微信开发者工具预览框 QA；未用真实后台账号执行破坏性状态修复；不得写正式发布准出。

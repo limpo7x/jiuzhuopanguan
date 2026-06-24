@@ -102,7 +102,7 @@
 - 责任角色：后端/API、前端；接口联调、QA 验收。
 - 动作：`GET /api/v1/user/commerce` 未登录统一返回 401，或明确返回 `loggedIn=false`；前端按合同区分未登录和零资产。
 - 验收：登录态和未登录态显示无混淆；与用户摘要接口鉴权口径一致。
-- 状态：用户已同意；后端/API 与前端本地合同已实现并通过 smoke，证据见 `docs/runtime/pr-fix-014-09-user-commerce-auth-20260624.md`。当前未提交、未推送、未部署，未做线上接口联调和 QA 复核，不得写正式准出。
+- 状态：用户已同意；已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上代码 HEAD `6dc147c1`，部署证据见 `docs/runtime/deploy-fix-014-09-10-20260624.md`。未上传微信小程序包，未做预览框 QA，不得写正式准出。
 
 ### FIX-014-10 后台聚会状态修复动作
 
@@ -110,7 +110,7 @@
 - 责任角色：后台管理、后端/API；接口联调、QA 验收。
 - 动作：禁止后台直接覆盖 `liveSessions` 造成关联断裂；查看与修复分离，状态修复同步 `endedAt/report/brief/share task` 并写操作日志。
 - 验收：后台修改后，小程序摘要、相册分类和分享任务关联一致；可审计、可回滚。
-- 状态：用户已同意；后台/后端本地合同已实现并通过 smoke，证据见 `docs/runtime/pr-fix-014-10-admin-session-state-repair-20260624.md`。当前未提交、未推送、未部署，未做线上接口联调和 QA 复核，不得写正式准出。
+- 状态：用户已同意；已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上代码 HEAD `6dc147c1`，部署证据见 `docs/runtime/deploy-fix-014-09-10-20260624.md`。未上传微信小程序包，未做后台页面人工点击复核和真实后台账号破坏性修复，不得写正式准出。
 
 ## 第三阶段：P2 稳定性与体验
 
