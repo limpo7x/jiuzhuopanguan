@@ -263,33 +263,46 @@ const createEvidence = async ({ args }) => {
   const privateManifestPath = resolvePath(args.manifest, defaultPrivateManifest)
   const publicEvidencePath = resolvePath(args.evidence, defaultPublicEvidence)
 
-  const profiles = await createProfiles(prefix)
+  let manifest = null
+  if (fs.existsSync(privateManifestPath) && args.fresh !== 'true') {
+    const existed = readJsonFile(privateManifestPath)
+    if (existed?.profiles?.host?.token && !cleanText(existed?.session?.sessionId)) {
+      manifest = existed
+      manifest.baseUrl = baseUrl
+    }
+  }
+  if (!manifest) {
+    const profiles = await createProfiles(prefix)
+    manifest = {
+      id: createId('fix-014-final'),
+      createdAt: nowIso(),
+      baseUrl,
+      prefix,
+      marker,
+      profiles,
+      session: {},
+      moments: {},
+      events: {},
+      brief: {},
+      shareTask: {},
+      nomination: {},
+      reward: {},
+      operationLogIds: [],
+      cleanup: {
+        privateManifestPath,
+        command: `node backend/scripts/verify-fix-014-final-evidence.js --mode cleanup --manifest ${privateManifestPath}`,
+        scanCommand: `node backend/scripts/verify-fix-014-final-evidence.js --mode scan --manifest ${privateManifestPath}`,
+      },
+    }
+    writeJsonFile(privateManifestPath, manifest)
+    writeJsonFile(publicEvidencePath, makePublicManifest(manifest, { status: 'profiles-prepared' }))
+  }
+
+  const profiles = manifest.profiles
   const host = profiles.host
   const memberA = profiles.memberA
   const memberB = profiles.memberB
   const outsider = profiles.outsider
-
-  const manifest = {
-    id: createId('fix-014-final'),
-    createdAt: nowIso(),
-    baseUrl,
-    prefix,
-    marker,
-    profiles,
-    session: {},
-    moments: {},
-    events: {},
-    brief: {},
-    shareTask: {},
-    nomination: {},
-    reward: {},
-    operationLogIds: [],
-    cleanup: {
-      privateManifestPath,
-      command: `node backend/scripts/verify-fix-014-final-evidence.js --mode cleanup --manifest ${privateManifestPath}`,
-      scanCommand: `node backend/scripts/verify-fix-014-final-evidence.js --mode scan --manifest ${privateManifestPath}`,
-    },
-  }
 
   const created = await api(baseUrl, '/sessions', {
     method: 'POST',
