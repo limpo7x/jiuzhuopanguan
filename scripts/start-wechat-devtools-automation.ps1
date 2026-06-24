@@ -1,7 +1,7 @@
 param(
   [int]$Port = 9420,
   [string]$ProjectPath = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
-  [string]$CliPath = "D:\wechatkaifa\微信web开发者工具\cli.bat",
+  [string]$CliPath = "D:\wechatkaifa\wechat_devtools_1.05.2204250_x64\cli.bat",
   [switch]$QuitExisting,
   [switch]$AllowPortFallback
 )

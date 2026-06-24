@@ -8,7 +8,7 @@ const automator = require('miniprogram-automator');
 const WebSocket = require('ws');
 
 const DEFAULT_PORT = 9420;
-const DEFAULT_CLI = 'D:\\wechatkaifa\\微信web开发者工具\\cli.bat';
+const DEFAULT_CLI = 'D:\\wechatkaifa\\wechat_devtools_1.05.2204250_x64\\cli.bat';
 const DEFAULT_PROJECT = path.resolve(__dirname, '..');
 
 const STORAGE_KEYS = [
@@ -67,6 +67,17 @@ function pick(obj, keys) {
 
 function redactStorageValue(key, value) {
   if (!SENSITIVE_STORAGE_KEYS.has(key)) {
+    if (/profile/i.test(key) && value && typeof value === 'object') {
+      const copy = { ...value };
+      delete copy.openid;
+      delete copy.openId;
+      delete copy.unionid;
+      delete copy.unionId;
+      delete copy.wechatOpenId;
+      delete copy.wechatUnionId;
+      delete copy.phone;
+      return copy;
+    }
     return value;
   }
   const text = String(value || '');
@@ -76,6 +87,20 @@ function redactStorageValue(key, value) {
   return {
     length: text.length,
     tokenTail: text.slice(-8),
+  };
+}
+
+function summarizeResponseData(data) {
+  const payload = data && typeof data === 'object' ? data : {};
+  const body = payload.data && typeof payload.data === 'object' ? payload.data : payload;
+  const keys = body && typeof body === 'object' ? Object.keys(body) : [];
+  return {
+    code: payload.code,
+    dataKeys: keys,
+    message: payload.message,
+    nodeCount: Array.isArray(body.nodes) ? body.nodes.length : undefined,
+    photoHighlightCount: Array.isArray(body.photoHighlights) ? body.photoHighlights.length : undefined,
+    timelineNodeCount: body.timeline && Array.isArray(body.timeline.nodes) ? body.timeline.nodes.length : undefined,
   };
 }
 
@@ -368,6 +393,29 @@ async function setStorageValues(miniProgram, values) {
   return keys;
 }
 
+async function requestFromMiniProgram(miniProgram, args) {
+  const requestPath = String(args.path || args.url || '');
+  if (!requestPath) throw new Error('Missing --path for request.');
+  const runtimeApiBase = await miniProgram.callWxMethod('getStorageSync', 'runtime-api-base').catch(() => '');
+  const apiBase = String(runtimeApiBase || 'https://api.pomer.cn/api/v1').replace(/\/+$/, '');
+  const url = /^https?:\/\//i.test(requestPath) ? requestPath : `${apiBase}${requestPath.startsWith('/') ? '' : '/'}${requestPath}`;
+  const token = await miniProgram.callWxMethod('getStorageSync', 'jzp-user-token').catch(() => '');
+  const header = token ? { 'X-JZP-User-Token': token } : {};
+  const response = await miniProgram.callWxMethod('request', {
+    data: args.bodyJson ? JSON.parse(String(args.bodyJson)) : undefined,
+    header,
+    method: String(args.method || 'GET').toUpperCase(),
+    timeout: Number(args.timeout || 8000),
+    url,
+  });
+  return {
+    statusCode: response && response.statusCode,
+    summary: summarizeResponseData(response && response.data),
+    token: redactStorageValue('jzp-user-token', token),
+    url,
+  };
+}
+
 async function run() {
   const args = parseArgs(process.argv.slice(2));
   const command = args._[0] || 'status';
@@ -444,6 +492,8 @@ async function run() {
       if (!output) throw new Error('Missing --output for screenshot.');
       result.summary = await currentSummary(miniProgram);
       result.screenshot = await writeScreenshot(miniProgram, output);
+    } else if (command === 'request') {
+      result.request = await requestFromMiniProgram(miniProgram, args);
     } else if (command === 'flow') {
       const name = args._[1];
       if (name !== 'home-login') {

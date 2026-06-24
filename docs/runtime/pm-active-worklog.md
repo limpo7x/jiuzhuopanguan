@@ -1802,3 +1802,15 @@ PM 边界：
 - 公网健康：`config/home` 200 且标题为“聚会记录师”；`config/templates` 200 且 4 个模板均免费；`config/points` 200 且只保留首次登录任务、无奖励商品；`merchants/catalog` 200 且无商户时返回待配置 notice；`admin/login` 200；`/sessions/live` 无参 400；`/user/commerce` 未登录 401。
 - 服务器脏项：`backend/package-lock.json` 曾被服务器 `npm install` 改动，已恢复到 Git 状态；部署后仅保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**`。
 - 当前边界：未上传微信小程序包；阶段2/3微信开发者工具预览框自动化仍因旧编译包退回；当前样本没有真实 `readyShareImageUrl`；独立验收缺口未闭环，不得写正式发布准出。
+
+## 2026-06-24 FIX-014 阶段2/3登录刷新后复测收口
+
+- 用户已重新登录并刷新微信开发者工具。PM 按最新团队公告改用 `D:\wechatkaifa\wechat_devtools_1.05.2204250_x64\cli.bat` 与 `--auto-port 9420` 恢复 SDK 自动化控制。
+- 自动化脚本更新：`scripts/start-wechat-devtools-automation.ps1` 默认 CLI 改为旧版有效路径；`scripts/wechat-devtools-automator.js` 新增只读 `request` 命令，并对 profile storage 输出去除 openId/phone 等不必要字段。
+- 关键排查：首轮重测误把 `runtime-api-base` 写成 `https://api.pomer.cn`，导致预览框内部请求缺少 `/api/v1` 并全部 404；修正为 `https://api.pomer.cn/api/v1` 后，预览框内部 `wx.request` 可正常得到成员 200/201 与非成员 403。
+- 复测证据：`docs/runtime/verify-fix-014-phase2-3-wechat-automation-20260624.md`。
+- 成员 tokenTail `1dace82d` 分享页回归：`shareViewState=ready`、`canViewPosterContent=true`、`shareActionBlocked=false`、`photoCount=2`、`photoHighlights.length=2`、`posterTimelineNodes.length=2`、`accountingHighlights.length=4`。
+- 非成员 tokenTail `b81a4c83` 分享页阻断：`shareViewState=notMember`、`canViewPosterContent=false`、`shareActionBlocked=true`，照片、时间线、账本、ready 图和正常保存入口均不展示。
+- 创建页预设已是聚会记录口径：今晚的聚会、朋友小聚、生日聚会、老友见面、团建聚会、周末小聚、家庭聚会、露营相册。
+- 现场记录页分享 tab：`.live-segment-tab-disabled` 存在，点击后 `activeSegment` 保持 `record`。
+- 当前边界：`FIX-014-02` R01、`FIX-014-16`、`FIX-014-17` 可写“预览框阶段通过”；`FIX-014-02` R02 仍缺真实 `readyShareImageUrl`；`VERIFY-014-01/02` 仍缺独立完整证据；未上传微信小程序包，不得写正式发布准出。
