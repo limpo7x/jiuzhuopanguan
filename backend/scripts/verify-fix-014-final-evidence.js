@@ -303,6 +303,10 @@ const createEvidence = async ({ args }) => {
   const memberA = profiles.memberA
   const memberB = profiles.memberB
   const outsider = profiles.outsider
+  const persistManifest = (status) => {
+    writeJsonFile(privateManifestPath, manifest)
+    writeJsonFile(publicEvidencePath, makePublicManifest(manifest, { status }))
+  }
 
   const created = await api(baseUrl, '/sessions', {
     method: 'POST',
@@ -318,6 +322,7 @@ const createEvidence = async ({ args }) => {
     sessionId: created.id,
     inviteCode: created.inviteCode,
   }
+  persistManifest('session-created')
 
   await api(baseUrl, '/sessions/join', {
     method: 'POST',
@@ -343,6 +348,7 @@ const createEvidence = async ({ args }) => {
     openingAssetId: asset.id || '',
     openingImageUrl: asset.url || '',
   }
+  persistManifest('asset-uploaded')
 
   const opening = await api(baseUrl, `/sessions/${encodeURIComponent(created.id)}/moments`, {
     method: 'POST',
@@ -372,6 +378,20 @@ const createEvidence = async ({ args }) => {
     openingId: opening.id,
     highlightId: highlight.id,
   }
+  reviewManagedMoment({
+    momentId: opening.id,
+    action: 'approve',
+    reason: marker,
+    operator: 'fix-014-final-evidence',
+  })
+  reviewManagedMoment({
+    momentId: highlight.id,
+    action: 'approve',
+    reason: marker,
+    operator: 'fix-014-final-evidence',
+  })
+  await flushStores()
+  persistManifest('moments-approved')
 
   const event = await api(baseUrl, `/sessions/${encodeURIComponent(created.id)}/events`, {
     method: 'POST',
@@ -387,6 +407,7 @@ const createEvidence = async ({ args }) => {
   manifest.events = {
     ledgerEventId: event.id,
   }
+  persistManifest('event-created')
 
   await api(baseUrl, `/sessions/${encodeURIComponent(created.id)}/end`, {
     method: 'POST',
@@ -401,6 +422,7 @@ const createEvidence = async ({ args }) => {
   manifest.brief = {
     briefId: brief.id,
   }
+  persistManifest('brief-created')
 
   const shareTaskSeed = await api(baseUrl, `/session-briefs/${encodeURIComponent(brief.id)}/share-image-tasks`, {
     method: 'POST',
@@ -472,13 +494,6 @@ const createEvidence = async ({ args }) => {
   const rejoinedBrief = await api(baseUrl, `/session-briefs/${encodeURIComponent(brief.id)}`, { token: memberB.token })
   const rejoinedShareTask = await api(baseUrl, `/share-image-tasks/${encodeURIComponent(readyTask.id)}`, { token: memberB.token })
 
-  reviewManagedMoment({
-    momentId: opening.id,
-    action: 'approve',
-    reason: marker,
-    operator: 'fix-014-final-evidence',
-  })
-  await flushStores()
   const eligibility = await api(
     baseUrl,
     `/moments/${encodeURIComponent(opening.id)}/nomination-eligibility?category=best_opening`,
@@ -614,6 +629,22 @@ const scanManifest = (manifest) => {
   const contentStore = readContentStore()
   const adminStore = getAdminStore()
   const momentsStore = readMomentsStore()
+  const sessionIds = new Set(
+    (adminStore.liveSessions || [])
+      .filter(
+        (item) =>
+          cleanText(item?.id) === sessionId ||
+          cleanText(item?.sessionName).includes(prefix) ||
+          cleanText(item?.name).includes(prefix) ||
+          cleanText(item?.templateName).includes(prefix) ||
+          cleanText(item?.source).includes(marker),
+      )
+      .map((item) => cleanText(item.id))
+      .filter(Boolean),
+  )
+  if (sessionId) {
+    sessionIds.add(sessionId)
+  }
   const shareImagePath = resolveUploadPath(manifest.shareTask?.readyShareImageUrl || manifest.shareTask?.imageUrl)
   const openingPath = resolveUploadPath(manifest.uploads?.openingImageUrl)
 
@@ -622,9 +653,9 @@ const scanManifest = (manifest) => {
     if (!Array.isArray(value)) return
     adminCounts[key] = value.filter(
       (item) =>
-        cleanText(item?.id) === sessionId ||
-        cleanText(item?.sessionId) === sessionId ||
-        cleanText(item?.meta?.sessionId) === sessionId ||
+        sessionIds.has(cleanText(item?.id)) ||
+        sessionIds.has(cleanText(item?.sessionId)) ||
+        sessionIds.has(cleanText(item?.meta?.sessionId)) ||
         profileIds.has(cleanText(item?.profileId)) ||
         profileIds.has(cleanText(item?.hostProfileId)) ||
         targetIds.has(cleanText(item?.id)) ||
@@ -639,7 +670,7 @@ const scanManifest = (manifest) => {
     if (!Array.isArray(value)) return
     momentCounts[key] = value.filter(
       (item) =>
-        cleanText(item?.sessionId) === sessionId ||
+        sessionIds.has(cleanText(item?.sessionId)) ||
         targetIds.has(cleanText(item?.id)) ||
         targetIds.has(cleanText(item?.momentId)) ||
         targetIds.has(cleanText(item?.briefId)) ||
@@ -651,6 +682,7 @@ const scanManifest = (manifest) => {
 
   return {
     sessionId,
+    sessionIds: Array.from(sessionIds),
     profileIds: Array.from(profileIds),
     counts: {
       socialProfiles: (socialStore.profiles || []).filter((item) => profileIds.has(cleanText(item.id)) || cleanText(item.wechatOpenId).includes(prefix)).length,
@@ -678,6 +710,10 @@ const cleanupEvidence = async ({ args }) => {
   const manifest = readJsonFile(manifestPath)
   const before = scanManifest(manifest)
   const sessionId = cleanText(manifest.session?.sessionId)
+  const sessionIds = new Set(before.sessionIds || [])
+  if (sessionId) {
+    sessionIds.add(sessionId)
+  }
   const profileIds = new Set(profileIdsFromManifest(manifest))
   const targetIds = new Set(targetIdsFromManifest(manifest))
   const prefix = cleanText(manifest.prefix)
@@ -708,9 +744,9 @@ const cleanupEvidence = async ({ args }) => {
     if (!Array.isArray(adminStore[key])) return
     adminStore[key] = adminStore[key].filter(
       (item) =>
-        cleanText(item?.id) !== sessionId &&
-        cleanText(item?.sessionId) !== sessionId &&
-        cleanText(item?.meta?.sessionId) !== sessionId &&
+        !sessionIds.has(cleanText(item?.id)) &&
+        !sessionIds.has(cleanText(item?.sessionId)) &&
+        !sessionIds.has(cleanText(item?.meta?.sessionId)) &&
         !profileIds.has(cleanText(item?.profileId)) &&
         !profileIds.has(cleanText(item?.hostProfileId)) &&
         !targetIds.has(cleanText(item?.id)) &&
@@ -722,11 +758,21 @@ const cleanupEvidence = async ({ args }) => {
   writeAdminStore(adminStore)
 
   const momentsStore = readMomentsStore()
+  const uploadUrls = [
+    ...(momentsStore.uploadedAssets || [])
+      .filter((item) => sessionIds.has(cleanText(item?.sessionId)))
+      .map((item) => cleanText(item?.url)),
+    ...(momentsStore.shareImageTasks || [])
+      .filter((item) => sessionIds.has(cleanText(item?.sessionId)))
+      .map((item) => cleanText(item?.readyShareImageUrl || item?.imageUrl)),
+    cleanText(manifest.uploads?.openingImageUrl),
+    cleanText(manifest.shareTask?.readyShareImageUrl || manifest.shareTask?.imageUrl),
+  ].filter(Boolean)
   Object.keys(momentsStore).forEach((key) => {
     if (!Array.isArray(momentsStore[key])) return
     momentsStore[key] = momentsStore[key].filter(
       (item) =>
-        cleanText(item?.sessionId) !== sessionId &&
+        !sessionIds.has(cleanText(item?.sessionId)) &&
         !targetIds.has(cleanText(item?.id)) &&
         !targetIds.has(cleanText(item?.momentId)) &&
         !targetIds.has(cleanText(item?.briefId)) &&
@@ -737,8 +783,7 @@ const cleanupEvidence = async ({ args }) => {
   })
   writeMomentsStore(momentsStore)
 
-  removeUpload(manifest.uploads?.openingImageUrl)
-  removeUpload(manifest.shareTask?.readyShareImageUrl || manifest.shareTask?.imageUrl)
+  uploadUrls.forEach(removeUpload)
   await flushStores()
 
   const after = scanManifest(manifest)
