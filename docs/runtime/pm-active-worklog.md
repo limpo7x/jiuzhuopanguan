@@ -1689,3 +1689,13 @@ PM 边界：
 - 公网健康：`config/home` 200、`config/templates` 200、`admin/login` 200、`/sessions/live` 无参 400。
 - 服务器脏项：`backend/package-lock.json` 曾被服务器 `npm install` 改动，已恢复到 Git 状态；部署后仅保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**`。
 - 当前边界：未上传微信小程序包；未做被踢重加和微信开发者工具预览框 QA；不得写正式发布准出。
+
+## 2026-06-24 FIX-014-08 用户审批与本地实现
+
+- 用户已用编号授权启动 `FIX-014-08`。本轮只处理“后台分享图重试权限合同”，不启动 `FIX-014-09` 或其他编号。
+- 工作树边界：新建干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-08`，分支 `codex/fix-014-08-admin-share-retry-auth`，基线为 `origin/main` 的 `bc6d58ef`。
+- 证据：`docs/runtime/pr-fix-014-08-admin-share-retry-auth-20260624.md`。
+- 已实现：后台 `retryManagedShareImageTask()` 对齐用户端分享图合同，要求任务状态为 `failed/expired`、聚会已结束、brief/session 归属一致、可见节点非空；不保留超管绕过；拒绝和成功重试均写入 `operationLogs`。
+- 本地验证通过：`node --check backend/data/admin.js`、`node --check backend/scripts/smoke-moments-flow.js`、`node --check backend/scripts/smoke-admin-moments-flow.js`、`node backend/scripts/smoke-moments-flow.js`、`node backend/scripts/smoke-admin-moments-flow.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。
+- 依赖安装说明：新工作树补装根目录与 backend 依赖后完成验证；根目录 `npm.cmd install` 报告既有 `10 vulnerabilities`，backend `npm.cmd install` 为 `0 vulnerabilities`，本轮未做无关升级。
+- 当前状态：本地合同通过；未提交、未推送、未部署、未上传小程序包。线上接口联调、后台页面人工复核和 QA 复核仍待补证，不得写正式发布准出。

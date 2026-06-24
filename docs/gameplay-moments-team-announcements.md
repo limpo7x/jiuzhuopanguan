@@ -1,3 +1,27 @@
+## 2026-06-24 PM 公告：FIX-014-08 后台分享图重试权限合同本地通过
+
+面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。
+
+用户已逐项同意 `FIX-014-08`。本轮只处理后台分享图任务 retry 权限合同，不启动 `FIX-014-09` 或其他编号，不上传微信小程序包。
+
+范围边界：
+
+- 项目用户侧名称仍为“聚会记录师”；技术目标只限 `api.pomer.cn` / `jiuzhuopanguan`。
+- 禁止触碰 `pomer.cn` 公司官网目录、Nginx、PM2 服务或路由。
+- 本项只改后台/后端合同和 smoke，不改小程序前端页面。
+
+本地结论：
+
+- 后台 `retryManagedShareImageTask()` 已要求聚会已结束、任务状态为 `failed/expired`、brief/session 归属一致、可见节点非空。
+- 不保留超管绕过；不合格任务拒绝重试并写 `operationLogs`，合格失败任务可恢复为 `pending` 并记录原因、brief 和可见节点数。
+- 本地验证通过：`smoke-moments-flow` 覆盖未结束拒绝、无可见节点拒绝、合格恢复；`smoke-admin-moments-flow` 覆盖 HTTP 409、成功恢复和操作日志页可见。
+
+下一步责任：
+
+- 后台管理/后端负责人：等待提交、推送和部署后，用线上后台 API 复核拒绝/成功两类 retry 合同。
+- 接口联调负责人：部署后用真实或固定测试样本覆盖不合格 409、合格 pending、operationLogs 可追溯，并给出清理证据。
+- QA：后台与接口联调证据齐全后再复核，不得把本地 smoke 写成正式发布准出。
+
 ## 2026-06-24 PM 公告：FIX-014-07 满员加入错误映射本地实现
 
 面向用户统一名称仍为“聚会记录师”。本公告仅面向 `api.pomer.cn` / `jiuzhuopanguan`，不得触碰 `pomer.cn` 公司官网。

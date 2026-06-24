@@ -38,6 +38,15 @@ const iso = (value = Date.now()) => new Date(value).toISOString()
 const SESSION_STATE_LIVE = '进行中'
 const SESSION_STATE_ENDED = '已结束'
 const isEndedSessionState = (value = '') => String(value || '').trim().includes('结束')
+const createAdminHttpError = (message, statusCode = 400) => {
+  const error = new Error(message)
+  error.statusCode = statusCode
+  return error
+}
+const normalizeAdminStringArray = (value) =>
+  (Array.isArray(value) ? value : String(value || '').split(/[,\s，、]+/))
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
 const hasSessionFirstPhoto = (session = {}) =>
   Boolean(session.hasFirstPhoto === true || String(session.firstPhotoUploadedAt || '').trim())
 const getSessionFirstPhotoState = (session = {}) => {
@@ -3975,26 +3984,113 @@ const reviewManagedMoment = ({ momentId, action, reason, operator = 'admin-conso
   }
 }
 
+const isAdminShareImageMomentEligible = (moment = {}) => {
+  if (!moment || moment.removedAt) {
+    return false
+  }
+  const usageConsent = moment.usageConsent && typeof moment.usageConsent === 'object' ? moment.usageConsent : {}
+  const visibility = String(moment.visibility || '').trim()
+  const isPrivate = moment.nodeType === 'private' || visibility === 'private' || visibility === 'selected'
+  return Boolean(
+    !isPrivate &&
+      usageConsent.share !== false &&
+      moment.completionStatus === 'complete' &&
+      moment.reviewStatus === 'approved' &&
+      moment.secondaryReviewStatus === 'approved',
+  )
+}
+
+const isAdminShareImageEventEligible = (event = {}) => Boolean(event?.id)
+
+const isSessionEndedForAdminShareRetry = (session = {}) =>
+  Boolean(String(session?.endedAt || '').trim()) ||
+  isEndedSessionState(session?.state) ||
+  isEndedSessionState(session?.status)
+
+const assertManagedShareImageTaskRetryContract = ({ momentsStore, task } = {}) => {
+  const sessionId = String(task?.sessionId || '').trim()
+  const briefId = String(task?.briefId || '').trim()
+  const session = sessionId ? getManagedSessionById(sessionId) : null
+  if (!session?.id) {
+    throw createAdminHttpError('share task session not found', 409)
+  }
+  if (!isSessionEndedForAdminShareRetry(session)) {
+    throw createAdminHttpError('share task session not ended', 409)
+  }
+
+  const brief = (momentsStore.sessionBriefs || []).find((item) => String(item.id || '').trim() === briefId)
+  if (!brief) {
+    throw createAdminHttpError('share task brief not found', 409)
+  }
+  if (String(brief.sessionId || '').trim() !== sessionId) {
+    throw createAdminHttpError('share task brief session mismatch', 409)
+  }
+
+  const selectedNodeIds = normalizeAdminStringArray(task.selectedNodeIds)
+  if (!selectedNodeIds.length) {
+    throw createAdminHttpError('share task selected nodes required', 409)
+  }
+  const visibleNodes = selectedNodeIds
+    .map((nodeId) => {
+      const moment = (momentsStore.momentRecords || []).find(
+        (item) => String(item.id || '').trim() === nodeId && String(item.sessionId || '').trim() === sessionId,
+      )
+      if (moment) {
+        return isAdminShareImageMomentEligible(moment) ? moment : null
+      }
+      const event = (momentsStore.sessionEvents || []).find(
+        (item) => String(item.id || '').trim() === nodeId && String(item.sessionId || '').trim() === sessionId,
+      )
+      return isAdminShareImageEventEligible(event) ? event : null
+    })
+    .filter(Boolean)
+  if (!visibleNodes.length) {
+    throw createAdminHttpError('share task has no visible nodes', 409)
+  }
+
+  return {
+    brief,
+    session,
+    visibleNodeCount: visibleNodes.length,
+  }
+}
+
 const retryManagedShareImageTask = ({ taskId, reason, operator = 'admin-console' } = {}) => {
   const normalizedTaskId = String(taskId || '').trim()
   const normalizedReason = String(reason || '').trim()
   if (!normalizedTaskId) {
-    throw new Error('taskId required')
+    throw createAdminHttpError('taskId required', 400)
   }
   if (!normalizedReason) {
-    throw new Error('retry reason required')
+    throw createAdminHttpError('retry reason required', 400)
   }
   const momentsStore = readMomentsAdminStore()
   if (!momentsStore) {
-    throw new Error('moments store not available')
+    throw createAdminHttpError('moments store not available', 503)
   }
   const index = (momentsStore.shareImageTasks || []).findIndex((item) => String(item.id || '').trim() === normalizedTaskId)
   if (index === -1) {
-    throw new Error('share task not found')
+    throw createAdminHttpError('share task not found', 404)
   }
   const before = momentsStore.shareImageTasks[index]
   if (!['failed', 'expired'].includes(String(before.status || '').trim())) {
-    throw new Error('only failed or expired share tasks can be retried')
+    throw createAdminHttpError('only failed or expired share tasks can be retried', 409)
+  }
+
+  let contract
+  try {
+    contract = assertManagedShareImageTaskRetryContract({ momentsStore, task: before })
+  } catch (error) {
+    const adminStore = readStore()
+    appendAdminOperationLog(adminStore, {
+      operator,
+      action: '拒绝重试分享图任务',
+      targetId: normalizedTaskId,
+      targetName: normalizedTaskId,
+      detail: `状态 ${before.status || ''} 保持不变；原因：${normalizedReason}；阻断：${error instanceof Error ? error.message : String(error)}`,
+    })
+    writeStore(adminStore)
+    throw error
   }
   const next = {
     ...before,
@@ -4012,7 +4108,7 @@ const retryManagedShareImageTask = ({ taskId, reason, operator = 'admin-console'
     action: '重试分享图任务',
     targetId: normalizedTaskId,
     targetName: normalizedTaskId,
-    detail: `状态 ${before.status || ''} -> pending；原因：${normalizedReason}`,
+    detail: `状态 ${before.status || ''} -> pending；原因：${normalizedReason}；合同：聚会已结束，简报 ${contract.brief.id}，可见节点 ${contract.visibleNodeCount}`,
   })
   writeStore(adminStore)
   return {

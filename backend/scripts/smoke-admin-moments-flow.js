@@ -89,6 +89,16 @@ const api = async (pathname, { method = 'GET', cookie = '', body } = {}) => {
   }
 }
 
+const expectApiError = async (pathname, options, statusCode, message) => {
+  try {
+    await api(pathname, options)
+  } catch (error) {
+    assert(error.statusCode === statusCode, message)
+    return error
+  }
+  throw new Error(message)
+}
+
 const loginAdmin = async () => {
   const body = JSON.stringify({
     username: process.env.SMOKE_ADMIN_USERNAME || 'admin',
@@ -171,6 +181,8 @@ const main = async () => {
   const reportMomentId = `admin-smoke-report-moment-${stamp}`
   const reportId = `admin-smoke-report-${stamp}`
   const taskId = `admin-smoke-task-${stamp}`
+  const noVisibleTaskId = `admin-smoke-task-no-visible-${stamp}`
+  const briefId = `admin-smoke-brief-${stamp}`
   const originalAdminStore = removeAdminSmokeResidue(getAdminStore())
   const originalMomentsStore = removeAdminSmokeResidue(readMomentsStore())
   let child = null
@@ -187,9 +199,10 @@ const main = async () => {
           hostName: 'Admin Smoke Host',
           hostProfileId: `admin-smoke-host-${stamp}`,
           inviteCode: `AS${String(stamp).slice(-5)}`,
-          state: '进行中',
+          state: '已结束',
           source: 'smoke',
-          status: '正常',
+          status: '已结束',
+          endedAt: new Date().toISOString(),
           members: [
             {
               profileId: `admin-smoke-host-${stamp}`,
@@ -266,16 +279,49 @@ const main = async () => {
         },
         ...(originalMomentsStore.momentReports || []),
       ],
+      sessionBriefs: [
+        {
+          id: briefId,
+          sessionId,
+          title: 'Admin Smoke Brief',
+          coverMode: 'opening_collage',
+          openingMomentIds: [],
+          closingMomentIds: [],
+          timelineNodeIds: [reviewMomentId],
+          shareImageTaskId: taskId,
+          shareImageStatus: 'failed',
+          pendingMediaCount: 0,
+          rankingEligible: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        ...(originalMomentsStore.sessionBriefs || []),
+      ],
       shareImageTasks: [
         {
           id: taskId,
           sessionId,
-          briefId: `admin-smoke-brief-${stamp}`,
+          briefId,
           status: 'failed',
           layoutMode: 'timeline',
           selectedNodeIds: [reviewMomentId],
           imageUrl: '',
           failedReason: 'smoke failure',
+          retryCount: 0,
+          createdAt: new Date().toISOString(),
+          startedAt: '',
+          finishedAt: '',
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: noVisibleTaskId,
+          sessionId,
+          briefId,
+          status: 'failed',
+          layoutMode: 'timeline',
+          selectedNodeIds: [`admin-smoke-missing-node-${stamp}`],
+          imageUrl: '',
+          failedReason: 'smoke no visible nodes',
           retryCount: 0,
           createdAt: new Date().toISOString(),
           startedAt: '',
@@ -350,6 +396,18 @@ const main = async () => {
       taskPage.data.page.tables[0].rows.some((row) => row.id === taskId),
       'admin share task page did not include smoke task',
     )
+    await expectApiError(
+      `/api/v1/admin/share-image-tasks/${encodeURIComponent(noVisibleTaskId)}/retry`,
+      {
+        method: 'POST',
+        cookie,
+        body: {
+          reason: 'admin smoke retry no visible nodes',
+        },
+      },
+      409,
+      'admin retry accepted share task without visible nodes',
+    )
     const retryResult = await api(`/api/v1/admin/share-image-tasks/${encodeURIComponent(taskId)}/retry`, {
       method: 'POST',
       cookie,
@@ -411,6 +469,10 @@ const main = async () => {
     assert(
       operationRows.some((row) => row.targetId === taskId && row.logType === '分享图任务'),
       'operation logs page did not expose share task retry log',
+    )
+    assert(
+      operationRows.some((row) => row.targetId === noVisibleTaskId && row.logType === '分享图任务'),
+      'operation logs page did not expose share task retry denial log',
     )
     assert(
       operationRows.some((row) => row.targetId === 'commerce-ranking-rewards' && row.logType === '榜单奖励'),

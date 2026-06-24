@@ -222,6 +222,51 @@ const main = async () => {
     assert(privateForHost && privateForHost.caption === 'private moment', 'private receiver cannot read private moment')
     assert(privateForMemberB && privateForMemberB.isTimelinePlaceholder === true, 'non receiver can read private moment content')
 
+    const activeBrief = createOrRefreshSessionBrief({ sessionId: session.id, profile: host })
+    const activeAdminTaskId = `share-task-admin-active-${suffix}`
+    const activeStore = readMomentsStore()
+    activeStore.shareImageTasks.unshift({
+      id: activeAdminTaskId,
+      sessionId: session.id,
+      briefId: activeBrief.id,
+      status: 'failed',
+      layoutMode: 'admin-active-smoke',
+      selectedNodeIds: [event.id],
+      imageUrl: '',
+      failedReason: 'smoke active session failure',
+      retryCount: 0,
+      createdAt: new Date().toISOString(),
+      startedAt: '',
+      finishedAt: '',
+      updatedAt: new Date().toISOString(),
+    })
+    writeMomentsStore(activeStore)
+    targetIds.push(activeAdminTaskId)
+    expectHttpError(
+      () =>
+        retryManagedShareImageTaskAsAdmin({
+          taskId: activeAdminTaskId,
+          reason: 'smoke admin retry active session task',
+          operator: 'smoke-admin',
+        }),
+      409,
+      'admin share task retry accepted active session task',
+    )
+
+    const adminStoreForEndedSession = getAdminStore()
+    adminStoreForEndedSession.liveSessions = (adminStoreForEndedSession.liveSessions || []).map((item) =>
+      item.id === session.id
+        ? {
+            ...item,
+            state: '已结束',
+            status: '已结束',
+            endedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+        : item,
+    )
+    writeAdminStore(adminStoreForEndedSession)
+
     const brief = createOrRefreshSessionBrief({ sessionId: session.id, profile: host })
     expectHttpError(
       () =>
@@ -262,16 +307,32 @@ const main = async () => {
     const failedTask = await processShareImageTask({ taskId: failedTaskId, profile: host })
     const retriedTask = retryShareImageTask({ taskId: failedTask.id, profile: host })
     const adminFailedTaskId = `share-task-admin-failed-${suffix}`
+    const adminNoVisibleTaskId = `share-task-admin-no-visible-${suffix}`
     const nextStore = readMomentsStore()
     nextStore.shareImageTasks.unshift({
       id: adminFailedTaskId,
       sessionId: session.id,
       briefId: brief.id,
-      status: 'pending',
+      status: 'failed',
       layoutMode: 'admin-failed-smoke',
+      selectedNodeIds: [event.id],
+      imageUrl: '',
+      failedReason: 'smoke admin retryable failure',
+      retryCount: 0,
+      createdAt: new Date().toISOString(),
+      startedAt: '',
+      finishedAt: '',
+      updatedAt: new Date().toISOString(),
+    })
+    nextStore.shareImageTasks.unshift({
+      id: adminNoVisibleTaskId,
+      sessionId: session.id,
+      briefId: brief.id,
+      status: 'failed',
+      layoutMode: 'admin-no-visible-smoke',
       selectedNodeIds: [`missing-admin-node-${suffix}`],
       imageUrl: '',
-      failedReason: '',
+      failedReason: 'smoke admin no visible nodes',
       retryCount: 0,
       createdAt: new Date().toISOString(),
       startedAt: '',
@@ -279,7 +340,17 @@ const main = async () => {
       updatedAt: new Date().toISOString(),
     })
     writeMomentsStore(nextStore)
-    const adminFailedTask = await processShareImageTask({ taskId: adminFailedTaskId, profile: host })
+    const adminFailedTask = readMomentsStore().shareImageTasks.find((item) => item.id === adminFailedTaskId)
+    expectHttpError(
+      () =>
+        retryManagedShareImageTaskAsAdmin({
+          taskId: adminNoVisibleTaskId,
+          reason: 'smoke admin retry no visible nodes',
+          operator: 'smoke-admin',
+        }),
+      409,
+      'admin share task retry accepted task without visible nodes',
+    )
     const approvedReview = reviewManagedMoment({
       momentId: highlight.id,
       action: 'approve',
@@ -335,7 +406,7 @@ const main = async () => {
       reason: 'smoke admin retry failed task',
       operator: 'smoke-admin',
     })
-    targetIds.push(failedTask.id, adminFailedTask.id)
+    targetIds.push(failedTask.id, adminFailedTask.id, adminNoVisibleTaskId)
 
     assert(brief.timelineNodeIds.includes(opening.id), 'brief missing opening node')
     assert(task.status === 'pending', 'share task was not created as pending')
@@ -369,6 +440,14 @@ const main = async () => {
     assert(
       operationLogs.some((item) => item.targetId === adminFailedTask.id && item.action === '重试分享图任务'),
       'admin retry operation log missing',
+    )
+    assert(
+      operationLogs.some((item) => item.targetId === activeAdminTaskId && item.action === '拒绝重试分享图任务'),
+      'admin active session retry denial operation log missing',
+    )
+    assert(
+      operationLogs.some((item) => item.targetId === adminNoVisibleTaskId && item.action === '拒绝重试分享图任务'),
+      'admin no visible nodes retry denial operation log missing',
     )
 
     console.log(
