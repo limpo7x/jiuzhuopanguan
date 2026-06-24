@@ -1,4 +1,4 @@
-import { getMembershipCatalog, getUserCommerceState } from '../../services/content'
+import { getMembershipCatalog, getUserCommerceState, isContentUnauthorizedError } from '../../services/content'
 
 interface CouponItem {
   desc: string
@@ -22,11 +22,19 @@ Page<CouponCenterState, CouponCenterMethods>({
 
   async onLoad() {
     try {
-      const [commerce, membership] = await Promise.all([getUserCommerceState(), getMembershipCatalog()])
+      const [commerce, membership] = await Promise.all([
+        getUserCommerceState().catch((error) => {
+          if (isContentUnauthorizedError(error)) {
+            return null
+          }
+          throw error
+        }),
+        getMembershipCatalog(),
+      ])
       const coupons: CouponItem[] = []
       const membershipEnabled = membership.membershipEnabled !== false
 
-      if (commerce.rewardRedemptions.length) {
+      if (commerce?.rewardRedemptions.length) {
         commerce.rewardRedemptions.forEach((item) => {
           coupons.push({
             name: item.title,
@@ -48,9 +56,9 @@ Page<CouponCenterState, CouponCenterMethods>({
 
       if (!coupons.length) {
         coupons.push({
-          name: '暂无已领取权益',
-          desc: '当前没有已兑换商户券或已开通会员权益，可前往积分或商户页领取。',
-          tag: '未领取',
+          name: commerce ? '暂无已领取权益' : '登录后查看权益',
+          desc: commerce ? '当前没有已兑换商户券或已开通会员权益，可前往积分或商户页领取。' : '登录后可查看已兑换商户券、会员权益和积分资产。',
+          tag: commerce ? '未领取' : '未登录',
           route: '/pages/wine-points/index',
         })
       }

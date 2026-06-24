@@ -103,8 +103,17 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
         },
         this.applyVisibleTemplates,
       )
-    } catch {
-      // keep default state
+    } catch (error) {
+      void error
+      this.setData(
+        {
+          membershipActive: false,
+          templateUnlockProgress: {},
+          templateUnlockRequiredViews: 0,
+          unlockedTemplateIds: [],
+        },
+        this.applyVisibleTemplates,
+      )
     }
   },
 

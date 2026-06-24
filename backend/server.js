@@ -1107,8 +1107,11 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/user/commerce') {
-      const session = resolveUserSession(request)
-      sendOk(response, getUserCommerceState(session?.profile?.id || ''))
+      const session = requireUserSession(request, response)
+      if (!session) {
+        return
+      }
+      sendOk(response, getUserCommerceState(session.profile.id))
       return
     }
 

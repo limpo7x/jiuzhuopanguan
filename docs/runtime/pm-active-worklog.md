@@ -1710,3 +1710,13 @@ PM 边界：
 - 公网健康：`config/home` 200、`config/templates` 200、`admin/login` 200、`/sessions/live` 无参 400。
 - 服务器脏项：`backend/package-lock.json` 曾被服务器 `npm install` 改动，已恢复到 Git 状态；部署后仅保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**`。
 - 当前边界：未上传微信小程序包；未做后台页面人工点击复核和真实线上后台账号破坏性 retry；不得写正式发布准出。
+
+## 2026-06-24 FIX-014-09 用户审批与本地实现
+
+- 用户已用编号授权启动 `FIX-014-09`。本轮只处理“用户资产接口鉴权一致性”，不启动 `FIX-014-10` 或其他编号。
+- 工作树边界：新建干净工作树 `F:\codexlist\jiuzhuopanguan-fix-014-09`，分支 `codex/fix-014-09-user-commerce-auth`，基线为 `origin/main` 的 `8924ef4c`。
+- 证据：`docs/runtime/pr-fix-014-09-user-commerce-auth-20260624.md`。
+- 已实现：`GET /api/v1/user/commerce` 未登录统一返回 401；登录用户返回自身资产；前端内容服务保留 401 statusCode；权益页、模板页不再把未登录误判为空资产。
+- 本地验证通过：`node --check backend/server.js`、`node --check backend/scripts/smoke-user-commerce-auth.js`、`node backend/scripts/smoke-user-commerce-auth.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`、`git diff --check`。
+- 依赖安装说明：新工作树补装根目录与 backend 依赖后完成验证；根目录 `npm.cmd install` 报告既有 `10 vulnerabilities`，backend `npm.cmd install` 为 `0 vulnerabilities`，本轮未做无关升级。
+- 当前状态：本地合同通过；未提交、未推送、未部署、未上传小程序包。线上接口联调和 QA 复核仍待补证，不得写正式发布准出。

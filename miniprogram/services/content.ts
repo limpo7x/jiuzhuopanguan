@@ -144,6 +144,19 @@ export interface MembershipCatalog {
   plans: MembershipPlan[]
 }
 
+export class ContentRequestError extends Error {
+  statusCode: number
+
+  constructor(message: string, statusCode: number) {
+    super(message)
+    this.name = 'ContentRequestError'
+    this.statusCode = statusCode
+  }
+}
+
+export const isContentUnauthorizedError = (error: unknown) =>
+  error instanceof ContentRequestError && error.statusCode === 401
+
 const request = <T>(path: string, method: 'GET' | 'PUT' | 'POST' = 'GET', data?: unknown) =>
   new Promise<T>((resolve, reject) => {
     wx.request({
@@ -162,11 +175,11 @@ const request = <T>(path: string, method: 'GET' | 'PUT' | 'POST' = 'GET', data?:
 
         if (response.statusCode === 401) {
           clearUserSessionToken()
-          reject(new Error('请先登录'))
+          reject(new ContentRequestError('请先登录', 401))
           return
         }
 
-        reject(new Error(payload?.message || 'request failed'))
+        reject(new ContentRequestError(payload?.message || 'request failed', response.statusCode))
       },
       fail: reject,
     })
