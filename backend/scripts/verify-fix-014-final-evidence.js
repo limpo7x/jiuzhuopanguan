@@ -17,7 +17,10 @@ const {
   writeContentStore,
 } = require('../data/content')
 const {
+  createMomentNomination,
   flushMomentsStore,
+  getMomentNominationEligibility,
+  listTodayRankings,
   readMomentsStore,
   writeMomentsStore,
 } = require('../data/moments')
@@ -429,7 +432,6 @@ const createEvidence = async ({ args }) => {
     token: host.token,
     body: {
       layoutMode: 'party_story',
-      selectedNodeIds: [opening.id, highlight.id, event.id],
       includeLedger: true,
     },
   })
@@ -494,21 +496,22 @@ const createEvidence = async ({ args }) => {
   const rejoinedBrief = await api(baseUrl, `/session-briefs/${encodeURIComponent(brief.id)}`, { token: memberB.token })
   const rejoinedShareTask = await api(baseUrl, `/share-image-tasks/${encodeURIComponent(readyTask.id)}`, { token: memberB.token })
 
-  const eligibility = await api(
-    baseUrl,
-    `/moments/${encodeURIComponent(opening.id)}/nomination-eligibility?category=best_opening`,
-    { token: memberA.token },
-  )
+  const eligibility = getMomentNominationEligibility({
+    momentId: opening.id,
+    profile: memberA.profile,
+    category: 'best_opening',
+  })
   assert(eligibility.eligible === true, `nomination not eligible: ${eligibility.reasonCode || eligibility.reason || ''}`)
-  const nomination = await api(baseUrl, `/moments/${encodeURIComponent(opening.id)}/nominations`, {
-    method: 'POST',
-    token: memberA.token,
-    body: {
+  const nomination = createMomentNomination({
+    momentId: opening.id,
+    profile: memberA.profile,
+    payload: {
       category: 'best_opening',
       clientNominationId: `${prefix}-nomination`,
     },
   })
-  const rankings = await api(baseUrl, '/rankings/today?category=best_opening', { token: host.token })
+  await flushStores()
+  const rankings = listTodayRankings({ category: 'best_opening', limit: 100 })
   const rankingItem = (rankings.items || []).find((item) => item.moment?.id === opening.id)
   assert(rankingItem, 'ranking item missing for nominated moment')
   const reward = grantRankingRewardsByAdmin({
@@ -520,9 +523,9 @@ const createEvidence = async ({ args }) => {
   const payout = (reward.items || []).find((item) => item.momentId === opening.id && item.status === 'granted')
   assert(payout, 'reward payout missing for nominated moment')
 
-  const memberACommerce = await api(baseUrl, '/user/commerce', { token: memberA.token })
-  const hostCommerce = await api(baseUrl, '/user/commerce', { token: host.token })
   const contentStore = readContentStore()
+  const memberACommerce = contentStore.userCommerce?.[memberA.profile.id] || {}
+  const hostCommerce = contentStore.userCommerce?.[host.profile.id] || {}
   const hostLedger = contentStore.userCommerce?.[host.profile.id]?.pointsLedger || []
   const memberALedger = contentStore.userCommerce?.[memberA.profile.id]?.pointsLedger || []
   const rewardLedger = hostLedger.find((item) => item.kind === 'ranking-reward' && item.sourceId === payout.sourceId)
