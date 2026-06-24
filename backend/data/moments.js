@@ -97,8 +97,8 @@ const normalizeMomentRecord = (item = {}) => {
   const visibility = VISIBILITIES.has(cleanText(item.visibility)) ? cleanText(item.visibility) : 'session'
   const imageUrl = cleanText(item.imageUrl)
   const completionStatus = cleanText(item.completionStatus) || (imageUrl ? 'complete' : 'needs_media')
-  const reviewStatus = cleanText(item.reviewStatus) || 'pending'
-  const secondaryReviewStatus = cleanText(item.secondaryReviewStatus) || 'pending'
+  const reviewStatus = cleanText(item.reviewStatus) || 'approved'
+  const secondaryReviewStatus = cleanText(item.secondaryReviewStatus) || 'approved'
   const usageConsent = normalizeUsageConsent(item.usageConsent)
   const isPrivate = nodeType === 'private' || visibility === 'private' || visibility === 'selected'
   const reviewPass = reviewStatus === 'approved' && secondaryReviewStatus === 'approved'
@@ -434,8 +434,8 @@ const computeMomentStatus = (moment = {}) => {
   const usageConsent = normalizeUsageConsent(moment.usageConsent)
   const completionStatus = imageUrl ? 'complete' : 'needs_media'
   const isPrivate = nodeType === 'private' || visibility === 'private' || visibility === 'selected'
-  const reviewStatus = cleanText(moment.reviewStatus) || 'pending'
-  const secondaryReviewStatus = cleanText(moment.secondaryReviewStatus) || 'pending'
+  const reviewStatus = cleanText(moment.reviewStatus) || 'approved'
+  const secondaryReviewStatus = cleanText(moment.secondaryReviewStatus) || 'approved'
   const approved = reviewStatus === 'approved' && secondaryReviewStatus === 'approved'
 
   return {
@@ -1522,8 +1522,8 @@ const createMoment = ({ sessionId, profile, payload = {} }) => {
     visibility,
     visibleProfileIds,
     usageConsent: normalizeUsageConsent(payload.usageConsent),
-    reviewStatus: reusableOpening?.reviewStatus || 'pending',
-    secondaryReviewStatus: reusableOpening?.secondaryReviewStatus || 'pending',
+    reviewStatus: reusableOpening?.reviewStatus || 'approved',
+    secondaryReviewStatus: reusableOpening?.secondaryReviewStatus || 'approved',
     removedAt: '',
     createdAt: reusableOpening?.createdAt || nowIso(),
     updatedAt: nowIso(),

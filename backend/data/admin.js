@@ -3566,12 +3566,17 @@ pageMap['content-moments-review'] = () => {
             visibleWhen: { field: 'reviewStatus', values: ['pending', 'rejected', '待审核', '已拒绝'] },
           },
           {
-            key: 'hide',
-            label: '隐藏',
+            key: 'cancel-approve',
+            label: '取消通过',
             endpoint: '/api/v1/admin/moments/:id/review',
-            payloadAction: 'hide',
-            reasonPrompt: '请输入隐藏原因',
-            visibleWhen: { field: 'reviewStatus', notValues: ['hidden', '已隐藏'] },
+            payloadAction: 'cancel_approve',
+            reasonPrompt: '请输入取消通过原因',
+            visibleWhen: {
+              all: [
+                { field: 'reviewStatus', values: ['approved', '已通过'] },
+                { field: 'secondaryReviewStatus', values: ['approved', '二审通过'] },
+              ],
+            },
           },
           {
             key: 'require-resubmit',
@@ -3897,7 +3902,7 @@ const saveRankingRewardRules = (adminStore, items = []) => {
 }
 
 const refundMomentNominationsAfterRankingRemoval = ({ momentId, action, reason, operator }) => {
-  if (!['hide', 'reject', 'require_resubmit', 'remove_ranking', 'valid_hide'].includes(String(action || '').trim())) {
+  if (!['hide', 'cancel_approve', 'reject', 'require_resubmit', 'remove_ranking', 'valid_hide'].includes(String(action || '').trim())) {
     return {
       refundedCount: 0,
       refundedPoints: 0,
@@ -3940,8 +3945,9 @@ const applyAdminMomentReviewState = (moment = {}, action = '') => {
     next.rewardEligible = eligible
   } else if (action === 'approve_primary') {
     next.reviewStatus = 'approved'
-  } else if (action === 'hide') {
+  } else if (action === 'hide' || action === 'cancel_approve') {
     next.reviewStatus = 'hidden'
+    next.secondaryReviewStatus = 'rejected'
     next.rankingEligible = false
     next.rewardEligible = false
   } else if (action === 'reject') {
