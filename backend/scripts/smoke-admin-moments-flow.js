@@ -47,6 +47,12 @@ const startServer = async () => {
     cwd: backendDir,
     env: {
       ...process.env,
+      MYSQL_HOST: '',
+      MYSQL_USER: '',
+      MYSQL_DATABASE: '',
+      NORMALIZED_DB_READ: '',
+      NORMALIZED_DB_WRITE: '',
+      STORE_FILE_MIRROR: '1',
       PORT: String(port),
     },
     silent: true,
