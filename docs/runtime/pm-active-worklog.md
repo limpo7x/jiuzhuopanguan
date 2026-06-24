@@ -1790,4 +1790,15 @@ PM 边界：
 - `FIX-014-25`：未注册旧页面继续不恢复；只收敛已注册页面的配置相关旧口径。
 - 独立验收负责人只读结论：`VERIFY-014-01` 缺 host/member/kicked/rejoined 完整线上矩阵和清理证据；`VERIFY-014-02` 缺真实 moment 后台通过到发奖全链路；`VERIFY-014-03` 可继续自动化但需先解决预览框旧包问题。
 - 本地验证通过：`node --check backend/data/content.js`、`node --check backend/data/front.js`、`node --check backend/data/commerce.js`、`node --check backend/data/admin.js`、`node --check scripts/wechat-devtools-automator.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`。
-- 当前状态：本地已修改，待提交、推送、部署；未上传微信小程序包；未做阶段4部署后公网复核。
+- 当前状态：已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上代码 HEAD `392575c3`；部署证据见 `docs/runtime/deploy-fix-014-phase4-20260624.md`。未上传微信小程序包；微信开发者工具预览框仍因旧包和登录态阻断退回；不得写正式发布准出。
+
+## 2026-06-24 FIX-014 第四阶段提交部署收口
+
+- Git：提交 `392575c3 fix: close phase4 ops config gaps` 已推送到 `origin/main`。
+- 部署目标：仅 `api.pomer.cn` / `/www/wwwroot/jiuzhuopanguan-git` / PM2 `jiuzhuopanguan-backend`；未触碰 `pomer.cn` 公司官网目录、Nginx 或 PM2 `pomer` 服务。
+- 服务器备份：`/www/backup/jiuzhuopanguan/fix-014-phase4-20260624145120`，已保存部署前 git 状态、HEAD、runtime diff、PM2 状态和关键配置文件。
+- 部署命令摘要：`git fetch origin main`、`git pull --ff-only origin main`、`node --check backend/data/admin.js`、`node --check backend/data/commerce.js`、`node --check backend/data/content.js`、`node --check backend/data/front.js`、`node --check backend/server.js`、`cd backend && npm install`、`. ./.env && npm run mysql:test`、`pm2 restart jiuzhuopanguan-backend --update-env`。
+- 部署验证：服务器 HEAD 从 `7bdb21e` fast-forward 到 `392575c`；`npm install` 返回 `found 0 vulnerabilities`；MySQL test 返回 `ok=true`、表 `app_store`、`total=5`；PM2 `jiuzhuopanguan-backend` online，PM2 `pomer` 官网服务 online 且 restart 仍为 `0`。
+- 公网健康：`config/home` 200 且标题为“聚会记录师”；`config/templates` 200 且 4 个模板均免费；`config/points` 200 且只保留首次登录任务、无奖励商品；`merchants/catalog` 200 且无商户时返回待配置 notice；`admin/login` 200；`/sessions/live` 无参 400；`/user/commerce` 未登录 401。
+- 服务器脏项：`backend/package-lock.json` 曾被服务器 `npm install` 改动，已恢复到 Git 状态；部署后仅保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**`。
+- 当前边界：未上传微信小程序包；阶段2/3微信开发者工具预览框自动化仍因旧编译包退回；当前样本没有真实 `readyShareImageUrl`；独立验收缺口未闭环，不得写正式发布准出。
