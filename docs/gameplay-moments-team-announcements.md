@@ -587,5 +587,12 @@ PM 已将以下负责人证据补入 `docs/runtime/pm-active-worklog.md`：
 当前边界：
 
 - 已通过本地 `node --check`、第三阶段 smoke、`npm.cmd run check:encoding`、`npm.cmd run typecheck`。
-- 尚未提交、未推送、未部署、未上传微信小程序包。
+- 已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`；线上代码 HEAD `28885c8b`，部署证据见 `docs/runtime/deploy-fix-014-phase3-20260624.md`。
+- 未上传微信小程序包。
 - 未做微信开发者工具预览框 QA，不得写正式发布准出。
+
+部署后责任分工：
+
+- 接口联调负责人：基于线上 `28885c8b` 复核公开榜单字段裁剪和上传 cleanup 合同；涉及 token 只写后 8 位或摘要。
+- 测试验收负责人：等待微信开发者工具预览框复核前端交互和 Network；未覆盖前只能写“待预览框验收”。
+- DBA/运维负责人：线上服务器只保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**` 脏项；如需清理必须另行记录清理范围和回滚方式。

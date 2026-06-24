@@ -1758,4 +1758,15 @@ PM 边界：
   - `FIX-014-18`：分享预览页举报/反馈降级为非按钮说明，不伪装成已开通入口。
 - 本地验证通过：`node --check backend/data/object-storage.js`、`node --check backend/data/moments.js`、`node --check backend/server.js`、`node --check backend/scripts/smoke-phase3-p2-contracts.js`、`node backend/scripts/smoke-phase3-p2-contracts.js`、`npm.cmd run check:encoding`、`npm.cmd run typecheck`。
 - 依赖安装说明：根目录 `npm.cmd install` 为新工作树补齐 typecheck 依赖，报告既有 `10 vulnerabilities`；backend `npm.cmd install` 为 `0 vulnerabilities`，本轮未做无关升级。
-- 当前状态：尚未提交、未推送、未部署到 `api.pomer.cn`，未上传微信小程序包，未做微信开发者工具预览框 QA；不得写正式发布准出。
+- 当前状态：已提交、推送并部署到 `api.pomer.cn` 对应 `jiuzhuopanguan-backend`，线上代码 HEAD `28885c8b`；部署证据见 `docs/runtime/deploy-fix-014-phase3-20260624.md`。未上传微信小程序包，未做微信开发者工具预览框 QA；不得写正式发布准出。
+
+## 2026-06-24 FIX-014 第三阶段提交部署收口
+
+- Git：提交 `28885c8b fix: complete phase3 p2 stability pass` 已推送到 `origin/main`。
+- 部署目标：仅 `api.pomer.cn` / `/www/wwwroot/jiuzhuopanguan-git` / PM2 `jiuzhuopanguan-backend`；未触碰 `pomer.cn` 公司官网目录、Nginx 或 PM2 `pomer` 服务。
+- 服务器备份：`/www/backup/jiuzhuopanguan/fix-014-phase3-20260624134138`，已保存部署前 git 状态、HEAD、runtime diff、PM2 jlist、`server.js`、`moments.js`、`object-storage.js`、`backend/package-lock.json` 和 `social-store.json`。
+- 部署命令摘要：`git fetch origin main`、`git pull --ff-only origin main`、`node --check backend/server.js`、`node --check backend/data/moments.js`、`node --check backend/data/object-storage.js`、`node --check backend/scripts/smoke-phase3-p2-contracts.js`、`cd backend && npm install`、`. ./.env && npm run mysql:test`、第三阶段服务器 smoke、`pm2 restart jiuzhuopanguan-backend --update-env`。
+- 部署验证：服务器 HEAD 从 `958efbe1` fast-forward 到 `28885c8b`；`npm install` 返回 `found 0 vulnerabilities`；MySQL test 返回 `ok=true`、表 `app_store`、`total=5`；第三阶段服务器 smoke 通过，覆盖公开榜单字段裁剪、未绑定上传 cleanup、已绑定上传 cleanup 409；PM2 `jiuzhuopanguan-backend` online，PM2 `pomer` 官网服务 online 且 restart 仍为 `0`。
+- 公网健康：`config/home` 200、`config/templates` 200、`admin/login` 200、`/sessions/live` 无参 400、`/user/commerce` 未登录 401。
+- 服务器脏项：`backend/package-lock.json` 曾被服务器 `npm install` 改动，已恢复到 Git 状态；部署后仅保留运行期 `backend/data/social-store.json`、`backend/backups/`、`backend/public/uploads/**`。
+- 当前边界：未上传微信小程序包；未做微信开发者工具预览框 QA；未做真实小程序 Network 点击复核；不得写正式发布准出。
