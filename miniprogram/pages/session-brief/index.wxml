@@ -10,6 +10,7 @@
         <view wx:for="{{stats}}" wx:key="label" class="pp-stat"><text class="pp-stat-value">{{item.value}}</text><text class="pp-stat-label">{{item.label}}</text></view>
       </view>
       <view class="pp-action-row" style="margin-top: 16px;">
+        <view class="pp-button pp-button-primary" bindtap="handleSharePosterTap">生成分享图</view>
         <view class="pp-button pp-button-secondary" bindtap="handleRefreshTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-refresh.png" mode="aspectFit"></image><text>刷新</text></view>
         <view class="pp-button pp-button-ghost" bindtap="handleRankingTap">今日回忆榜</view>
       </view>

@@ -199,8 +199,8 @@ Page<WineHistoryState, WineHistoryMethods>({
         reportId: item.reportId,
         role: item.role,
         sessionId: item.sessionId,
-        status: item.status || '进行中',
-        tag: item.status || '进行中',
+        status: item.status || '待首拍',
+        tag: item.status || '待首拍',
         templateName: item.templateName,
       }))
       const sessionIds = new Set(sessions.map((item) => item.sessionId).filter(Boolean))
@@ -392,6 +392,7 @@ Page<WineHistoryState, WineHistoryMethods>({
     if (status === '已结束') {
       const legacyAlbumSource = 'wine' + '-history'
       const returnQuery = `from=${legacyAlbumSource}&returnMode=${encodeURIComponent(this.data.mode)}&returnFilter=${encodeURIComponent(this.data.activeFilter)}`
+      const sessionQuery = sessionId ? `sessionId=${encodeURIComponent(sessionId)}` : ''
       if (this.data.mode === 'unshared' && reportId) {
         this.openPage(`/pages/share-poster/index?reportId=${encodeURIComponent(reportId)}&${returnQuery}`)
         return
@@ -400,7 +401,11 @@ Page<WineHistoryState, WineHistoryMethods>({
         this.openPage(`/pages/share-poster/index?reportId=${encodeURIComponent(reportId)}&${returnQuery}`)
         return
       }
-      wx.showToast({ title: '该聚会缺少相册数据', icon: 'none' })
+      if (sessionQuery) {
+        this.openPage(`/pages/share-poster/index?${sessionQuery}&${returnQuery}`)
+        return
+      }
+      wx.showToast({ title: '该聚会缺少可生成数据', icon: 'none' })
       return
     }
 
@@ -412,6 +417,11 @@ Page<WineHistoryState, WineHistoryMethods>({
           wx.reLaunch({ url })
         },
       })
+      return
+    }
+
+    if (status === '待首拍' && sessionId) {
+      this.openPage(`/pages/waiting-room/index?sessionId=${encodeURIComponent(sessionId)}&role=${encodeURIComponent(role === 'host' ? 'judge' : 'viewer')}`)
       return
     }
 

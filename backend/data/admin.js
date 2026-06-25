@@ -2395,20 +2395,22 @@ const buildManagedReportDetail = (report) => {
 const resolveHistoryStatus = (session, report) => {
   const sessionState = String(session?.state || '').trim()
   const sessionStatus = String(session?.status || report?.status || '').trim()
+  const sessionEndedAt = String(session?.endedAt || report?.endedAt || report?.finishedAt || '').trim()
+  const firstPhotoState = getSessionFirstPhotoState(session)
 
   if (sessionStatus.includes('失效') || sessionStatus.includes('停用') || sessionState.includes('失效')) {
     return '已失效'
   }
 
-  if (sessionState.includes('进行中') || sessionState.includes('等待')) {
-    return '进行中'
-  }
-
-  if (sessionState.includes('结束') || report) {
+  if (sessionEndedAt || sessionState.includes('结束') || sessionStatus.includes('结束')) {
     return '已结束'
   }
 
-  return '进行中'
+  if (firstPhotoState.isActiveForResume) {
+    return '进行中'
+  }
+
+  return '待首拍'
 }
 
 const getSessionHost = (session = {}) => {
@@ -2487,6 +2489,7 @@ const listManagedReports = (profileId = '', mode = 'all') => {
       .filter((report) => report?.sessionId)
       .map((report) => [String(report.sessionId), report]),
   )
+  const getFirstPhotoState = buildFirstPhotoStateBySessionId(store)
   const templateConfig = getTemplateConfig()
   const templateByName = new Map(
     (Array.isArray(templateConfig?.templates) ? templateConfig.templates : [])
@@ -2496,7 +2499,8 @@ const listManagedReports = (profileId = '', mode = 'all') => {
 
   const rows = sessions.map((session) => {
     const report = reportBySessionId.get(String(session.id || ''))
-    const status = resolveHistoryStatus(session, report)
+    const firstPhotoState = getFirstPhotoState(session)
+    const status = resolveHistoryStatus({ ...session, ...firstPhotoState }, report)
     const host = getSessionHost(session)
     const createdAt = report?.createdAt || session?.createdAt || ''
     const templateName = String(report?.template || session?.template || session?.templateName || '').trim()
@@ -2556,7 +2560,7 @@ const getUserJudgeStats = (profileId = '') => {
     ).length,
     unsharedReportCount: joinedSessions.filter((session) => {
       const report = reportBySessionId.get(String(session.id || ''))
-      return report && resolveHistoryStatus(session, report) === '已结束' && !hasSharedReport(store, normalizedProfileId, report)
+      return report && resolveHistoryStatus({ ...session, ...getFirstPhotoState(session) }, report) === '已结束' && !hasSharedReport(store, normalizedProfileId, report)
     }).length,
   }
 }

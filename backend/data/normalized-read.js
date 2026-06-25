@@ -37,23 +37,24 @@ const parseJson = (value, fallback) => {
 
 const isEndedSessionState = (value = '') => cleanText(value).includes('结束')
 
-const resolveHistoryStatus = (session, report) => {
+const resolveHistoryStatus = (session, report, firstPhotoState = {}) => {
   const sessionState = cleanText(session?.state)
   const sessionStatus = cleanText(session?.status || report?.status)
+  const endedAt = cleanText(session?.ended_at || report?.ended_at || report?.finished_at)
 
   if (sessionStatus.includes('失效') || sessionStatus.includes('停用') || sessionState.includes('失效')) {
     return '已失效'
   }
 
-  if (sessionState.includes('进行中') || sessionState.includes('等待')) {
-    return '进行中'
-  }
-
-  if (isEndedSessionState(sessionState) || report) {
+  if (endedAt || isEndedSessionState(sessionState) || isEndedSessionState(sessionStatus)) {
     return '已结束'
   }
 
-  return '进行中'
+  if (firstPhotoState.isActiveForResume) {
+    return '进行中'
+  }
+
+  return '待首拍'
 }
 
 const normalizeMode = (mode = 'all') => {
@@ -260,6 +261,9 @@ const listManagedReportsFromNormalized = async (profileId = '', mode = 'all') =>
   const [members] = await pool.query('SELECT * FROM `wine_session_members`')
   const [reports] = await pool.query('SELECT * FROM `wine_reports`')
   const [templates] = await pool.query('SELECT * FROM `templates`')
+  const [firstPhotoMoments] = await pool.query(
+    "SELECT `session_id`, `id`, `image_url`, `created_at` FROM `moment_records` WHERE `removed_at` IS NULL AND `image_url` IS NOT NULL AND `image_url` <> '' ORDER BY `created_at` ASC, `id` ASC",
+  )
   const [shareEvents] = await pool.query(
     "SELECT `type`, `profile_id`, `report_id`, `meta_json` FROM `analytics_events` WHERE `type` = 'report_share'",
   )
@@ -277,6 +281,13 @@ const listManagedReportsFromNormalized = async (profileId = '', mode = 'all') =>
       .filter((report) => cleanText(report.session_id))
       .map((report) => [cleanText(report.session_id), report]),
   )
+  const firstPhotoBySessionId = new Map()
+  for (const moment of firstPhotoMoments) {
+    const sessionId = cleanText(moment.session_id)
+    if (sessionId && !firstPhotoBySessionId.has(sessionId)) {
+      firstPhotoBySessionId.set(sessionId, moment)
+    }
+  }
   const templateByName = new Map(
     templates
       .flatMap((template) => [template.title, template.name, template.id].map((key) => [cleanText(key), template]))
@@ -302,7 +313,11 @@ const listManagedReportsFromNormalized = async (profileId = '', mode = 'all') =>
   const rows = relatedSessions.map((session) => {
     const sessionId = cleanText(session.id)
     const report = reportBySessionId.get(sessionId)
-    const status = resolveHistoryStatus(session, report)
+    const firstPhotoState = getFirstPhotoStateFromNormalized({
+      firstMoment: firstPhotoBySessionId.get(sessionId) || null,
+      isEnded: isEndedSession(session),
+    })
+    const status = resolveHistoryStatus(session, report, firstPhotoState)
     const sessionMembers = membersBySessionId.get(sessionId) || []
     const host = sessionMembers.find((item) => Number(item.is_host) === 1) || {}
     const createdAt = toDateText(report?.created_at || session?.created_at, report?.id || sessionId)

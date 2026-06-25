@@ -152,7 +152,7 @@ Page<JudgePageState, JudgePageMethods>({
       heroImageUrl: '',
       heroSubtitle: '拍照记录和聚会账本并行，最后一起生成分享。',
       heroTitle: '记录这一刻',
-      pokeCards: pokeCards.slice(0, 3),
+      pokeCards: pokeCards.slice(0, 6),
       sessionReturn: buildSessionReturnFromRuntime(runtime),
       sessionMeta: runtime.startedAt ? `${sessionName} 的照片和成员动态` : '还没有进行中的聚会时，可先创建并邀请好友。',
       sessionName: runtime.startedAt ? '记录中' : sessionName,

@@ -77,7 +77,7 @@
 
     <view wx:if="{{activeSegment === 'share'}}" class="pp-panel pp-panel-yellow">
       <text class="pp-section-title">分享图</text>
-      <text class="pp-body">结束聚会后会自动保存当前记录长图到相册。</text>
+      <text class="pp-body">结束聚会后会交给服务器生成超长回忆录，稍后可在相册记录里保存到手机。</text>
     </view>
   </scroll-view>
   <view wx:if="{{(activeSegment === 'record' || activeSegment === 'album') && (!sessionEnded || !sharePosterSaved)}}" class="pp-fixed-actions">
@@ -87,6 +87,14 @@
     </block>
     <view wx:else class="pp-button pp-button-primary {{finishSaving ? 'pp-button-disabled' : ''}}" bindtap="handleSaveEndedPosterTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-end.png" mode="aspectFit"></image><text>{{finishSaving ? '保存中' : finishMatchLabel}}</text></view>
   </view>
-  <canvas canvas-id="liveRecordPosterCanvas" class="pp-hidden-canvas" style="width: {{canvasWidth}}px; height: {{canvasHeight}}px;"></canvas>
+  <view wx:if="{{photoPreviewVisible}}" class="{{photoPreviewClass}}" catchtap="handlePhotoPreviewCloseTap">
+    <view class="{{photoPreviewStageClass}}" catchtap="handlePhotoPreviewStopTap">
+      <image class="live-photo-preview-image" src="{{photoPreviewImageUrl}}" mode="aspectFit"></image>
+      <view wx:if="{{photoPreviewInfoVisible}}" class="live-photo-preview-info">
+        <text wx:if="{{photoPreviewTitle}}" class="live-photo-preview-title">{{photoPreviewTitle}}</text>
+        <text wx:if="{{photoPreviewCaption}}" class="live-photo-preview-caption">{{photoPreviewCaption}}</text>
+      </view>
+    </view>
+  </view>
   <pp-dialog state="{{__ppDialog}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

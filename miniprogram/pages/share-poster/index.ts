@@ -73,6 +73,7 @@ interface PosterTimelineNode {
 }
 
 type ShareReturnSource = 'album' | 'external' | 'finish' | 'home' | 'me' | 'result-report' | 'session-brief'
+type PosterSaveState = 'idle' | 'generating' | 'saving' | 'saved' | 'failed' | 'retrying' | 'previewReady'
 
 interface SharePosterState {
   accountingHighlights: PosterMetric[]
@@ -114,7 +115,7 @@ interface SharePosterState {
   posterTitle: string
   reportId: string
   readyShareImageUrl: string
-  saveState: 'idle' | 'generating' | 'saving' | 'saved' | 'failed' | 'retrying'
+  saveState: PosterSaveState
   secondaryRanks: PosterRank[]
   sessionId: string
   sessionName: string
@@ -471,6 +472,7 @@ const getSavePosterLabel = (
   saveState: SharePosterState['saveState'] = 'idle',
 ) => {
   if (posterSaved || saveState === 'saved') return '已保存'
+  if (saveState === 'previewReady') return '真机保存'
   if (saveState === 'saving') return '保存中'
   if (saveState === 'generating' || status === 'pending' || status === 'processing') return '生成中'
   if (status === 'ready') return '保存聚会图'
@@ -485,6 +487,7 @@ const getPosterStatusLine = (
   if (saveState === 'generating') return '聚会图生成中，可点右侧刷新状态'
   if (saveState === 'saving') return '正在保存聚会图，请稍候'
   if (saveState === 'saved') return '聚会图已保存到相册'
+  if (saveState === 'previewReady') return '开发者工具已生成预览，真机点击后会保存到相册'
   if (saveState === 'failed') return errorText || '生成失败，请刷新或重新生成'
   if (saveState === 'retrying') return '正在重新生成，请稍候'
   if (status === 'pending') return '分享图等待生成，可刷新状态'
@@ -1104,7 +1107,7 @@ Page<SharePosterState, SharePosterMethods>({
             ? '重新生成'
             : '刷新状态'
     const currentSaveState = this.data.saveState
-    const nextSaveState: SharePosterState['saveState'] =
+    const nextSaveState: PosterSaveState =
       shareActionBlocked
         ? 'failed'
         : this.data.posterSaved
@@ -1113,9 +1116,9 @@ Page<SharePosterState, SharePosterMethods>({
           ? 'failed'
           : status === 'pending' || status === 'processing'
             ? 'generating'
-            : currentSaveState === 'failed' || currentSaveState === 'generating' || currentSaveState === 'retrying' || currentSaveState === 'saving'
-              ? 'idle'
-              : currentSaveState
+        : currentSaveState === 'failed' || currentSaveState === 'generating' || currentSaveState === 'retrying' || currentSaveState === 'saving'
+          ? 'idle'
+          : currentSaveState
 
     const blockedPatch = shareActionBlocked ? buildBlockedPosterContentPatch(blockedState) : {}
     this.setData({
@@ -1580,7 +1583,7 @@ Page<SharePosterState, SharePosterMethods>({
       this.showPreviewToast(message)
       return
     }
-    const nextSaveState: SharePosterState['saveState'] =
+    const nextSaveState: PosterSaveState =
       status === 'failed' || status === 'expired'
         ? 'retrying'
         : this.data.saveState === 'saving'
@@ -1701,12 +1704,12 @@ Page<SharePosterState, SharePosterMethods>({
         this.setData({
           errorText: '',
           posterImagePath: tempFilePath,
-          posterSaved: true,
-          posterStatusLine: getPosterStatusLine(taskStatus, 'saved'),
-          savePosterLabel: getSavePosterLabel(taskStatus, true, Boolean(this.data.readyShareImageUrl), 'saved'),
-          saveState: 'saved',
+          posterSaved: false,
+          posterStatusLine: getPosterStatusLine(taskStatus, 'previewReady'),
+          savePosterLabel: getSavePosterLabel(taskStatus, false, Boolean(this.data.readyShareImageUrl), 'previewReady'),
+          saveState: 'previewReady',
         })
-        this.showPreviewToast('预览框已准备分享图')
+        this.showPreviewToast('开发者工具已生成预览，真机可保存到相册')
         return
       }
       const tempFilePath = await withTimeout(this.ensurePosterImage(), 8000, '分享图生成超时，请重试')
@@ -1763,18 +1766,24 @@ Page<SharePosterState, SharePosterMethods>({
         })
       }
 
-      wx.getSetting({
-        success: (setting) => {
-          if (setting.authSetting['scope.writePhotosAlbum'] === false) {
-            wx.openSetting({
-              success: save,
-              fail: reject,
-            })
-            return
-          }
-          save()
-        },
-        fail: save,
+      const openAlbumSetting = (sourceError: WechatMiniprogram.GeneralCallbackResult) => {
+        wx.openSetting({
+          success: (setting) => {
+            const authSetting = (setting.authSetting || {}) as Record<string, boolean>
+            if (authSetting['scope.writePhotosAlbum']) {
+              save()
+              return
+            }
+            reject(sourceError)
+          },
+          fail: () => reject(sourceError),
+        })
+      }
+
+      wx.authorize({
+        scope: 'scope.writePhotosAlbum',
+        success: save,
+        fail: openAlbumSetting,
       })
     })
   },

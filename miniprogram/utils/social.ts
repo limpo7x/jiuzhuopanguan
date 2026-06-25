@@ -159,13 +159,13 @@ const normalizePokeThread = (thread?: Partial<PokeThread> | null): PokeThread =>
   id: String(thread?.id || `poke-${randomId()}`).trim(),
   senderId: String(thread?.senderId || '').trim(),
   senderName: String(thread?.senderName || '').trim(),
-  senderAvatarUrl: '',
+  senderAvatarUrl: normalizeSocialAvatarUrl(thread?.senderAvatarUrl),
   receiverId: String(thread?.receiverId || '').trim(),
   receiverName: String(thread?.receiverName || '').trim(),
-  receiverAvatarUrl: '',
+  receiverAvatarUrl: normalizeSocialAvatarUrl(thread?.receiverAvatarUrl),
   counterpartId: String(thread?.counterpartId || '').trim(),
   counterpartName: String(thread?.counterpartName || '').trim(),
-  counterpartAvatarUrl: '',
+  counterpartAvatarUrl: normalizeSocialAvatarUrl(thread?.counterpartAvatarUrl),
   actionState: thread?.actionState === 'incoming' || thread?.actionState === 'matched' ? thread.actionState : 'outgoing',
   status: thread?.status === 'matched' ? 'matched' : 'pending',
   updatedAt: Number(thread?.updatedAt) || Date.now(),
@@ -704,19 +704,9 @@ export const ignorePokeThread = async (threadId: string): Promise<PokeThread[]> 
 
 export const replyPokeThread = async (threadId: string): Promise<PokeThread | null> => {
   const profile = await ensureCurrentProfile()
-  try {
-    const remote = await request<PokeThread>(`/social/pokes/${encodeURIComponent(threadId)}/reply`, 'POST', { profileId: profile.id })
-    const thread = normalizePokeThread(remote)
-    saveLocalPokeThreads([thread, ...getLocalPokeThreads().filter((item) => item.id !== thread.id)])
-    return thread
-  } catch {
-    const target = getLocalPokeThreads().find((item) => item.id === threadId)
-    if (!target) {
-      return null
-    }
-    const next = normalizePokeThread({ ...target, status: 'matched', actionState: 'matched', updatedAt: Date.now() })
-    saveLocalPokeThreads([next, ...getLocalPokeThreads().filter((item) => item.id !== next.id)])
-    return next
-  }
+  const remote = await request<PokeThread>(`/social/pokes/${encodeURIComponent(threadId)}/reply`, 'POST', { profileId: profile.id })
+  const thread = normalizePokeThread(remote)
+  saveLocalPokeThreads([thread, ...getLocalPokeThreads().filter((item) => item.id !== thread.id)])
+  return thread
 }
 

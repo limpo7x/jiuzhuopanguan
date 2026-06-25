@@ -1,7 +1,6 @@
 <navigation-bar title="我的" back="{{false}}" customBack="{{false}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
 <view class="pp-page">
   <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
-  <view class="pp-chip" style="{{headerActionStyle}}" data-name="资料设置" bindtap="handleFeatureTap">设置</view>
   <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="pp-hero">
       <view class="pp-brand">

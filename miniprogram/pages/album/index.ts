@@ -9,8 +9,10 @@ import {
   type ManagedSessionMomentSummary,
   type ManagedTimelineNode,
 } from '../../services/operations'
+import { getApiBase } from '../../config/api'
 import { hasFirstPhotoEvidence, isEndedFirstPhotoState } from '../../utils/first-photo-state'
 import { resolveNominationDisabledLabel, resolveNominationReasonText } from '../../utils/nomination-reason'
+import { getUserAuthHeaders } from '../../utils/social'
 
 type AlbumNominationState = 'active' | 'done' | 'empty' | 'unavailable'
 
@@ -44,6 +46,7 @@ interface AlbumPageState {
   loading: boolean
   mode: string
   pageTitle: string
+  savingShareImageId: string
   totalCount: number
 }
 
@@ -57,8 +60,11 @@ interface AlbumPageMethods {
   handleItemTap: (event: WechatMiniprogram.BaseEvent) => void
   handleNominateTap: (event: WechatMiniprogram.BaseEvent) => void
   handleRefreshTap: () => Promise<void>
+  handleSaveShareImageTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   loadAlbums: () => Promise<void>
+  downloadShareImageToFile: (imageUrl: string) => Promise<string>
   openPage: (url: string) => void
+  saveImageFile: (filePath: string) => Promise<void>
   updateHeaderActionStyle: () => void
 }
 
@@ -342,7 +348,7 @@ const mapAlbumItem = async (item: ManagedSessionMomentSummary, index: number): P
 
 const mapShareImageSummaryItem = (item: ManagedShareImageSummary, index: number): AlbumItem => ({
   briefId: item.briefId || '',
-  coverUrl: '',
+  coverUrl: item.readyShareImageUrl || item.imageUrl || '',
   meta: formatAlbumTime(item.finishedAt || item.updatedAt || item.createdAt) || '分享图已生成',
   nominationDisabled: true,
   nominationLabel: '已生成',
@@ -374,6 +380,20 @@ const buildHeaderActionStyle = () => {
   }
 }
 
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs)
+    promise
+      .then((value) => {
+        clearTimeout(timer)
+        resolve(value)
+      })
+      .catch((error) => {
+        clearTimeout(timer)
+        reject(error)
+      })
+  })
+
 Page<AlbumPageState, AlbumPageMethods>({
   data: {
     activeRecordFilter: 'all',
@@ -388,6 +408,7 @@ Page<AlbumPageState, AlbumPageMethods>({
     ongoingCount: 0,
     ongoingItems: [],
     pageTitle: modeTitleMap.album,
+    savingShareImageId: '',
     totalCount: 0,
   },
 
@@ -538,6 +559,84 @@ Page<AlbumPageState, AlbumPageMethods>({
       return
     }
     wx.showToast({ title: '缺少回忆信息', icon: 'none' })
+  },
+
+  async handleSaveShareImageTap(event) {
+    const { id, imageUrl } = event.currentTarget.dataset as {
+      id?: string
+      imageUrl?: string
+    }
+    const shareImageUrl = String(imageUrl || '').trim()
+    const shareImageId = String(id || shareImageUrl || '').trim()
+    if (!shareImageUrl) {
+      wx.showToast({ title: '分享图还未生成', icon: 'none' })
+      return
+    }
+    if (this.data.savingShareImageId) {
+      return
+    }
+
+    this.setData({ savingShareImageId: shareImageId })
+    wx.showLoading({ title: '正在保存', mask: false })
+    try {
+      const filePath = await withTimeout(this.downloadShareImageToFile(shareImageUrl), 15000, '下载超时，请稍后重试')
+      await withTimeout(this.saveImageFile(filePath), 12000, '保存超时，请检查相册权限')
+      wx.showToast({ title: '已保存到手机相册', icon: 'success' })
+    } catch (error) {
+      wx.showToast({ title: error instanceof Error ? error.message : '保存失败，请稍后重试', icon: 'none' })
+    } finally {
+      wx.hideLoading()
+      this.setData({ savingShareImageId: '' })
+    }
+  },
+
+  downloadShareImageToFile(imageUrl) {
+    const source = String(imageUrl || '').trim()
+    const url = source.startsWith('http') ? source : `${getApiBase()}${source.startsWith('/') ? source : `/${source}`}`
+    return new Promise<string>((resolve, reject) => {
+      wx.downloadFile({
+        url,
+        header: getUserAuthHeaders(),
+        success: (result) => {
+          if (result.statusCode >= 200 && result.statusCode < 300 && result.tempFilePath) {
+            resolve(result.tempFilePath)
+            return
+          }
+          reject(new Error(`下载失败 ${result.statusCode}`))
+        },
+        fail: reject,
+      })
+    })
+  },
+
+  saveImageFile(filePath) {
+    return new Promise<void>((resolve, reject) => {
+      const save = () => {
+        wx.saveImageToPhotosAlbum({
+          filePath,
+          success: () => resolve(),
+          fail: reject,
+        })
+      }
+      const openAlbumSetting = (sourceError: WechatMiniprogram.GeneralCallbackResult) => {
+        wx.openSetting({
+          success: (setting) => {
+            const authSetting = (setting.authSetting || {}) as Record<string, boolean>
+            if (authSetting['scope.writePhotosAlbum']) {
+              save()
+              return
+            }
+            reject(sourceError)
+          },
+          fail: () => reject(sourceError),
+        })
+      }
+      wx.authorize({
+        scope: 'scope.writePhotosAlbum',
+        success: save,
+        fail: openAlbumSetting,
+      })
+    })
   },
 
   handleNominateTap(event) {

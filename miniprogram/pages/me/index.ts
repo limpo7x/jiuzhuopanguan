@@ -75,7 +75,6 @@ interface MePageState {
   authPanelVisible: boolean
   authSubmitting: boolean
   currentProfile: SocialProfile
-  headerActionStyle: string
   membershipEnabled: boolean
   features: FeatureItem[]
   loggedIn: boolean
@@ -124,7 +123,6 @@ interface MePageMethods {
   noop: () => void
   openPage: (url: string) => void
   showPreviewToast: (message: string) => void
-  updateHeaderActionStyle: () => void
 }
 
 const TAB_ROUTES: Record<string, string> = {
@@ -309,24 +307,6 @@ const persistAvatar = (avatarUrl: string) =>
     resolve(source)
   })
 
-const buildHeaderActionStyle = () => {
-  try {
-    const rect = wx.getMenuButtonBoundingClientRect()
-    const system = wx.getSystemInfoSync()
-    const windowWidth = Number(system.windowWidth || 375)
-    const menuTop = Number(rect.top || Number(system.statusBarHeight || 0) + 4)
-    const menuHeight = Number(rect.height || 32)
-    const menuLeft = Number(rect.left || windowWidth - 96)
-    const capsuleReserveWidth = Math.max(88, windowWidth - menuLeft)
-    const size = Math.max(32, Math.min(40, menuHeight))
-    const top = menuTop + Math.max(0, (menuHeight - size) / 2)
-    const right = capsuleReserveWidth + 12
-    return `position: fixed; top: ${top}px; right: ${right}px; width: ${size}px; height: ${size}px;`
-  } catch {
-    return ''
-  }
-}
-
 Page<MePageState, MePageMethods>({
   data: {
     activeMePanel: 'overview',
@@ -337,7 +317,6 @@ Page<MePageState, MePageMethods>({
     authPanelVisible: false,
     authSubmitting: false,
     currentProfile: DEFAULT_PROFILE,
-    headerActionStyle: '',
     membershipEnabled: true,
     features: DEFAULT_FEATURES,
     loggedIn: false,
@@ -356,12 +335,10 @@ Page<MePageState, MePageMethods>({
   },
 
   async onLoad() {
-    this.updateHeaderActionStyle()
     await this.loadSocialData()
   },
 
   async onShow() {
-    this.updateHeaderActionStyle()
     await this.loadSocialData()
   },
 
@@ -665,10 +642,6 @@ Page<MePageState, MePageMethods>({
 
   openPage(url) {
     wx.navigateTo({ url, fail: () => wx.redirectTo({ url }) })
-  },
-
-  updateHeaderActionStyle() {
-    this.setData({ headerActionStyle: buildHeaderActionStyle() })
   },
 })
 

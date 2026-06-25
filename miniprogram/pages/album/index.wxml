@@ -23,7 +23,8 @@
         <image wx:if="{{item.coverUrl}}" class="pp-thumb" style="width: 92px; height: 82px;" src="{{item.coverUrl}}" mode="aspectFill" bindload="handleCoverLoad" binderror="handleCoverError"></image>
         <image wx:else class="pp-thumb" style="width: 92px; height: 82px;" src="https://cdn.pomer.cn/static/party-pop-clean/home-hero-750x420.png" mode="aspectFill"></image>
         <view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">{{item.meta}}</text></view>
-        <text class="pp-chip">{{item.statusText}}</text>
+        <view wx:if="{{isShareMode}}" class="pp-chip" data-id="{{item.shareImageTaskId}}" data-image-url="{{item.shareImageUrl}}" catchtap="handleSaveShareImageTap">{{savingShareImageId === item.shareImageTaskId ? '保存中' : '保存到手机'}}</view>
+        <text wx:else class="pp-chip">{{item.statusText}}</text>
       </view>
     </view>
     <view wx:else class="pp-empty"><image class="pp-empty-sticker" src="https://cdn.pomer.cn/static/party-pop-clean/empty-memory-sticker.png" mode="aspectFit"></image><text class="pp-section-title">{{emptyText}}</text><view class="pp-button pp-button-primary" bindtap="handleCreateTap">去创建聚会</view></view>

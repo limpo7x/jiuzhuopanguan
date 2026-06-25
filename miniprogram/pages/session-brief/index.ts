@@ -82,6 +82,7 @@ interface SessionBriefMethods {
   handlePreviewFirstImageTap: () => Promise<void>
   handleRankingTap: () => void
   handleRefreshTap: () => Promise<void>
+  handleSharePosterTap: () => void
   handleTimelineSelect: (event: WechatMiniprogram.CustomEvent<{ id?: string; nodeKind?: string }>) => Promise<void>
   hydrateBriefTimeline: (brief: ManagedSessionBrief) => Promise<ManagedSessionBrief>
   loadBrief: () => Promise<void>
@@ -455,6 +456,25 @@ Page<SessionBriefState, SessionBriefMethods>({
 
   async handleRefreshTap() {
     await this.loadBrief()
+  },
+
+  handleSharePosterTap() {
+    const { briefId, sessionId } = this.data
+    const query = [
+      sessionId ? `sessionId=${encodeURIComponent(sessionId)}` : '',
+      briefId ? `briefId=${encodeURIComponent(briefId)}` : '',
+      'from=session-brief',
+    ].filter(Boolean).join('&')
+    if (!query) {
+      this.showToast('未找到可生成分享图的聚会')
+      return
+    }
+    wx.navigateTo({
+      url: `/pages/share-poster/index?${query}`,
+      fail: () => {
+        wx.redirectTo({ url: `/pages/share-poster/index?${query}` })
+      },
+    })
   },
 
   handleRankingTap() {

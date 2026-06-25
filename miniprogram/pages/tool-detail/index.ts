@@ -76,6 +76,7 @@ interface ToolDetailMethods {
   handleJsonInput: (event: WechatMiniprogram.Input) => void
   handleLoanInput: (event: WechatMiniprogram.Input) => void
   handleMinifyJson: () => void
+  handleBackTap: () => void
   handleQrInput: (event: WechatMiniprogram.Input) => void
   handleRunCompress: () => void
   handleSaveImageResult: () => void
@@ -356,6 +357,28 @@ Page<ToolDetailState, ToolDetailMethods>({
 
   handleSecondaryTap() {
     this.openPage('/pages/tools/index')
+  },
+
+  handleBackTap() {
+    const pages = getCurrentPages()
+    const fallbackUrl = '/pages/tools/index'
+    if (pages.length > 1) {
+      wx.navigateBack({
+        delta: 1,
+        fail: () => {
+          wx.redirectTo({
+            url: fallbackUrl,
+            fail: () => wx.reLaunch({ url: fallbackUrl }),
+          })
+        },
+      })
+      return
+    }
+
+    wx.redirectTo({
+      url: fallbackUrl,
+      fail: () => wx.reLaunch({ url: fallbackUrl }),
+    })
   },
 
   openPage(url) {
