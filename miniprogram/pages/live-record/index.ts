@@ -20,9 +20,10 @@ import {
   uploadManagedMomentImage,
   type ManagedTimelineNode,
 } from '../../services/operations'
+import { getApiBase } from '../../config/api'
 import { normalizeManagedAssetPath } from '../../config/assets'
 import { confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
-import { ensureUserAuthorized, getCurrentDisplayProfile } from '../../utils/social'
+import { ensureUserAuthorized, getCurrentDisplayProfile, getUserAuthHeaders } from '../../utils/social'
 import { resolveCachedManagedImagePath } from '../../utils/imageCache'
 
 interface LivePlayer {
@@ -112,21 +113,27 @@ interface LiveSessionEvent {
 
 interface LiveRecordState {
   activeSegment: 'album' | 'ledger' | 'record' | 'share'
+  canvasHeight: number
+  canvasWidth: number
   desktopModeLabel: string
   elapsedText: string
   events: LiveEvent[]
   finishMatchLabel: string
+  finishSaving: boolean
   isJudge: boolean
   ledgerDirty: boolean
   ledgerSubmitting: boolean
   memberCountText: string
   playerCount: number
   players: LivePlayer[]
+  sharePosterSaved: boolean
   quickPhotoSaving: boolean
   baselineRecords: LiveRecordItem[]
   records: LiveRecordItem[]
   sessionId: string
   sessionName: string
+  sessionEnded: boolean
+  sessionEndedAt: string
   startTimeText: string
   hiddenTimelineNotice: string
   ledgerTimelineItems: LiveLedgerTimelineItem[]
@@ -147,6 +154,7 @@ interface LiveRecordMethods {
   handleAddPlayerTap: () => void
   handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handleBackTap: () => Promise<void>
+  handleSaveEndedPosterTap: () => Promise<void>
   handleConfirmLedgerTap: () => Promise<void>
   handleFinishTap: () => Promise<void>
   handleHighlightMomentTap: () => Promise<void>
@@ -163,12 +171,20 @@ interface LiveRecordMethods {
   handleWheelTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   createLedgerEventsForDiff: (previousRecords: LiveRecordItem[], nextRecords: LiveRecordItem[]) => Promise<boolean>
   createQuickPhotoMoment: (filePath: string) => Promise<void>
+  buildLiveRecordPosterImage: () => Promise<string>
+  downloadPosterImageToFile: (imageUrl: string) => Promise<string>
   persistRecordsToManagedSession: (records: LiveRecordItem[]) => Promise<boolean>
+  saveEndedPosterToAlbum: () => Promise<void>
+  saveImageFile: (filePath: string) => Promise<void>
   showPreviewToast: (message: string) => void
   syncRecordsToRuntime: (records: LiveRecordItem[]) => void
 }
 
 const JUDGE_WHEEL_RESULT_KEY = 'judge-wheel-result'
+const LIVE_RECORD_POSTER_CANVAS_ID = 'liveRecordPosterCanvas'
+const LIVE_RECORD_POSTER_WIDTH = 750
+const LIVE_RECORD_POSTER_MIN_HEIGHT = 1120
+const LIVE_RECORD_QR_FALLBACK = normalizeManagedAssetPath('/static/share-poster-miniapp-code.png')
 const MAX_CLEAR_PER_PLAYER = 3
 const SAMPLE_008AS_SESSION_ID = 'session-1781787045680-8e406c'
 const SAMPLE_008AS_SESSION_NAME = '周末聚会记录'
@@ -247,10 +263,26 @@ const formatStartTimeText = (value?: number | string) => {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
+const isEndedState = (value?: string) => /已结束|结束|ended|finished|closed|complete|completed|done/i.test(String(value || ''))
+
 const isForbiddenError = (error: unknown) => {
   const message = error instanceof Error ? error.message : String(error || '')
   return /forbidden|403|无权限|权限/i.test(message)
 }
+
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs)
+    promise
+      .then((value) => {
+        clearTimeout(timer)
+        resolve(value)
+      })
+      .catch((error) => {
+        clearTimeout(timer)
+        reject(error)
+      })
+  })
 
 const resolveSessionStartTime = (
   runtimeStartedAt: number,
@@ -628,20 +660,26 @@ const toPlayerStats = (records: LiveRecordItem[]): SessionPlayerStat[] =>
 Page<LiveRecordState, LiveRecordMethods>({
   data: {
     activeSegment: 'record',
+    canvasHeight: LIVE_RECORD_POSTER_MIN_HEIGHT,
+    canvasWidth: LIVE_RECORD_POSTER_WIDTH,
     desktopModeLabel: '打开账本',
     elapsedText: '00:00:00',
     playerCount: 0,
     players: [],
     finishMatchLabel: '结束聚会',
+    finishSaving: false,
     isJudge: false,
     ledgerDirty: false,
     ledgerSubmitting: false,
     memberCountText: '成员待加入',
     records: [],
+    sharePosterSaved: false,
     quickPhotoSaving: false,
     baselineRecords: [],
     sessionId: '',
     sessionName: '',
+    sessionEnded: false,
+    sessionEndedAt: '',
     startTimeText: '开始时间未记录',
     events: [],
     hiddenTimelineNotice: '',
@@ -742,8 +780,10 @@ Page<LiveRecordState, LiveRecordMethods>({
     )
 
     const sessionName = cleanSessionName(liveSession.sessionName)
+    const sessionEnded = Boolean(liveSession.endedAt) || isEndedState(liveSession.stateText || liveSession.status)
 
     setSessionRuntime({
+      endedAt: liveSession.endedAt || (sessionEnded ? new Date().toISOString() : ''),
       inviteCode: liveSession.inviteCode,
       isJudge: inferredIsJudge,
       playerCount: liveSession.playerCount,
@@ -759,9 +799,13 @@ Page<LiveRecordState, LiveRecordMethods>({
       startedAt: sessionStartTime,
       templateImageUrl: liveSession.templateImageUrl || runtime.templateImageUrl || '',
       templateName: liveSession.templateName,
+      state: sessionEnded ? 'ended' : liveSession.stateText || runtime.state,
+      status: sessionEnded ? '已结束' : liveSession.status || runtime.status,
     })
 
     this.setData({
+      desktopModeLabel: sessionEnded ? '已结束' : '打开账本',
+      finishMatchLabel: sessionEnded ? '保存分享图' : '结束聚会',
       isJudge: inferredIsJudge,
       playerCount: liveSession.playerCount,
       players,
@@ -769,8 +813,11 @@ Page<LiveRecordState, LiveRecordMethods>({
       ledgerDirty: false,
       ledgerSubmitting: false,
       records,
+      sharePosterSaved: false,
       sessionId: liveSession.id,
       sessionName,
+      sessionEnded,
+      sessionEndedAt: liveSession.endedAt || '',
       memberCountText: buildMemberCountText(players.length, liveSession.playerCount),
       startTimeText: formatStartTimeText(sessionStartTime),
       titleImageSrc: resolveTitleImageSrc(sessionName, liveSession.id),
@@ -898,9 +945,11 @@ Page<LiveRecordState, LiveRecordMethods>({
 
   handleTimerTick() {
     const runtime = getSessionRuntime()
+    const endedAt = this.data.sessionEndedAt || runtime.endedAt || ''
+    const endedTimestamp = endedAt ? new Date(endedAt).getTime() : 0
 
     this.setData({
-      elapsedText: formatElapsed(runtime.startedAt),
+      elapsedText: formatElapsed(runtime.startedAt, Number.isFinite(endedTimestamp) && endedTimestamp > 0 ? endedTimestamp : Date.now()),
     })
   },
 
@@ -1157,6 +1206,10 @@ Page<LiveRecordState, LiveRecordMethods>({
       this.showPreviewToast('未找到当前聚会信息')
       return
     }
+    if (this.data.sessionEnded) {
+      this.showPreviewToast('聚会已结束，不能继续拍照')
+      return
+    }
     if (this.data.quickPhotoSaving) {
       return
     }
@@ -1339,7 +1392,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     }
 
     if (tab === 'share') {
-      this.showPreviewToast('结束聚会后再生成分享图')
+      this.showPreviewToast(this.data.sessionEnded ? '分享图已保存在相册' : '结束聚会后会自动保存分享图')
       return
     }
 
@@ -1366,17 +1419,425 @@ Page<LiveRecordState, LiveRecordMethods>({
     this.showPreviewToast('账本已保存')
   },
 
+  async saveEndedPosterToAlbum() {
+    const filePath = await withTimeout(this.buildLiveRecordPosterImage(), 30000, '分享图生成超时，请稍后重试')
+    await withTimeout(this.saveImageFile(filePath), 12000, '保存超时，请检查相册权限后重试')
+  },
+
+  async buildLiveRecordPosterImage() {
+    const timelineItems = this.data.recordTimelineDisplayItems.length
+      ? this.data.recordTimelineDisplayItems
+      : buildRecordTimelineDisplayItems(this.data.recordTimelineItems)
+    const posterItems = await Promise.all(
+      timelineItems.map(async (item) => ({
+        ...item,
+        localImagePath:
+          item.type === 'photo' && item.imageUrl && !item.imageBroken
+            ? await this.downloadPosterImageToFile(item.imageUrl).catch(() => '')
+            : '',
+      })),
+    )
+    const posterPlayers = await Promise.all(
+      this.data.players.map(async (player) => ({
+        ...player,
+        localAvatarPath: player.avatarUrl ? await this.downloadPosterImageToFile(player.avatarUrl).catch(() => '') : '',
+      })),
+    )
+    const qrLocalPath = await this.downloadPosterImageToFile(LIVE_RECORD_QR_FALLBACK).catch(() => '')
+    const width = LIVE_RECORD_POSTER_WIDTH
+    const margin = 28
+    const contentWidth = width - margin * 2
+    const playerColumns = 5
+    const playerRows = posterPlayers.length ? Math.ceil(posterPlayers.length / playerColumns) : 0
+    const heroHeight = 318 + Math.max(1, playerRows) * 92
+    const rowHeights = posterItems.map((item) => (item.type === 'photo' ? 388 : 168))
+    const timelineHeight = 134 + Math.max(132, rowHeights.reduce((sum, value) => sum + value, 0)) + 34
+    const summaryHeight = 186
+    const qrBoxSize = 206
+    const heroY = 34
+    const timelineY = heroY + heroHeight + 34
+    const summaryY = timelineY + timelineHeight + 34
+    const qrY = summaryY + summaryHeight + 42
+    const height = Math.max(LIVE_RECORD_POSTER_MIN_HEIGHT, qrY + qrBoxSize + 78)
+    const photoCount = posterItems.filter((item) => item.type === 'photo').length
+    const ledgerCount = posterItems.length - photoCount
+    const debtTotal = this.data.records.reduce((sum, item) => sum + (Number(item.debtCount) || 0), 0)
+    const drinkTotal = this.data.records.reduce((sum, item) => sum + (Number(item.drinkCount) || 0), 0)
+    const title = cleanSessionName(this.data.sessionName || getSessionRuntime().sessionName, '今晚聚会高光')
+    const inviteCode = getSessionRuntime().inviteCode || ''
+
+    return new Promise<string>((resolve, reject) => {
+      this.setData({ canvasWidth: width, canvasHeight: height }, () => {
+        const ctx = wx.createCanvasContext(LIVE_RECORD_POSTER_CANVAS_ID, this)
+        const measure = (text: string, fontSize: number) => {
+          const measurer = ctx as unknown as { measureText?: (value: string) => { width: number } }
+          try {
+            return measurer.measureText ? measurer.measureText(text).width : text.length * fontSize
+          } catch {
+            return text.length * fontSize
+          }
+        }
+        const drawRoundRect = (
+          x: number,
+          y: number,
+          w: number,
+          h: number,
+          radius: number,
+          fill: string,
+          stroke = '',
+          lineWidth = 0,
+        ) => {
+          const r = Math.min(radius, w / 2, h / 2)
+          ctx.beginPath()
+          ctx.moveTo(x + r, y)
+          ctx.lineTo(x + w - r, y)
+          ctx.arc(x + w - r, y + r, r, -Math.PI / 2, 0)
+          ctx.lineTo(x + w, y + h - r)
+          ctx.arc(x + w - r, y + h - r, r, 0, Math.PI / 2)
+          ctx.lineTo(x + r, y + h)
+          ctx.arc(x + r, y + h - r, r, Math.PI / 2, Math.PI)
+          ctx.lineTo(x, y + r)
+          ctx.arc(x + r, y + r, r, Math.PI, Math.PI * 1.5)
+          ctx.closePath()
+          ctx.setFillStyle(fill)
+          ctx.fill()
+          if (stroke && lineWidth) {
+            ctx.setStrokeStyle(stroke)
+            ctx.setLineWidth(lineWidth)
+            ctx.stroke()
+          }
+        }
+        const drawText = (value: string, x: number, y: number, maxWidth: number, fontSize: number, color: string) => {
+          let content = String(value || '').trim()
+          ctx.setFillStyle(color)
+          ctx.setFontSize(fontSize)
+          while (content.length > 1 && measure(content, fontSize) > maxWidth) {
+            content = `${content.slice(0, -2)}...`
+          }
+          if (content) {
+            ctx.fillText(content, x, y)
+          }
+        }
+        const drawLines = (
+          value: string,
+          x: number,
+          y: number,
+          maxWidth: number,
+          fontSize: number,
+          lineHeight: number,
+          color: string,
+          maxLines = 2,
+        ) => {
+          const chars = Array.from(String(value || '').trim())
+          const lines: string[] = []
+          let current = ''
+          ctx.setFontSize(fontSize)
+          chars.forEach((char) => {
+            const next = current + char
+            if (measure(next, fontSize) > maxWidth && current) {
+              lines.push(current)
+              current = char
+              return
+            }
+            current = next
+          })
+          if (current) {
+            lines.push(current)
+          }
+          lines.slice(0, maxLines).forEach((line, index) => {
+            const content = index === maxLines - 1 && lines.length > maxLines ? `${line.slice(0, Math.max(1, line.length - 2))}...` : line
+            drawText(content, x, y + index * lineHeight, maxWidth, fontSize, color)
+          })
+        }
+        const drawPill = (value: string, x: number, y: number, w: number, h: number, fill: string, color: string) => {
+          drawRoundRect(x, y, w, h, Math.floor(h / 2), fill, '#111317', 3)
+          drawText(value, x + 18, y + Math.floor(h * 0.68), w - 36, 22, color)
+        }
+        const drawImageSafe = (filePath: string, x: number, y: number, w: number, h: number) => {
+          if (!filePath) return false
+          try {
+            ctx.drawImage(filePath, x, y, w, h)
+            return true
+          } catch {
+            return false
+          }
+        }
+
+        ctx.setFillStyle('#fffaf0')
+        ctx.fillRect(0, 0, width, height)
+        ctx.setFillStyle('rgba(211,255,45,0.35)')
+        ctx.beginPath()
+        ctx.arc(width - 92, 86, 112, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.setFillStyle('rgba(0,203,255,0.18)')
+        ctx.beginPath()
+        ctx.arc(70, 260, 130, 0, Math.PI * 2)
+        ctx.fill()
+
+        drawRoundRect(margin, heroY + 8, contentWidth, heroHeight, 32, '#111317')
+        drawRoundRect(margin, heroY, contentWidth, heroHeight, 32, '#d3ff2d', '#111317', 5)
+        drawText('PARTY RECORDER', 66, heroY + 68, 320, 22, '#ff504d')
+        drawLines(title, 66, heroY + 126, contentWidth - 132, 56, 62, '#111317', 2)
+        drawText('记录时间线', 66, heroY + 258, 220, 28, '#111317')
+        drawPill(`${photoCount} 张照片`, width - 300, heroY + 58, 220, 54, '#fffaf0', '#111317')
+        drawPill(`${ledgerCount} 条账本`, width - 300, heroY + 128, 220, 54, '#00cbff', '#111317')
+        drawText(`成员 ${this.data.players.length || this.data.playerCount || 0} 人 · 时长 ${this.data.elapsedText}`, 66, heroY + 306, contentWidth - 132, 26, '#111317')
+
+        const avatarSize = 58
+        const cellWidth = 122
+        const playersStartY = heroY + 336
+        if (posterPlayers.length) {
+          posterPlayers.forEach((player, index) => {
+            const col = index % playerColumns
+            const row = Math.floor(index / playerColumns)
+            const x = 66 + col * cellWidth
+            const y = playersStartY + row * 92
+            drawRoundRect(x, y, avatarSize, avatarSize, 18, '#fffaf0', '#111317', 4)
+            if (player.localAvatarPath) {
+              ctx.save()
+              ctx.beginPath()
+              ctx.arc(x + avatarSize / 2, y + avatarSize / 2, avatarSize / 2 - 5, 0, Math.PI * 2)
+              ctx.clip()
+              drawImageSafe(player.localAvatarPath, x + 5, y + 5, avatarSize - 10, avatarSize - 10)
+              ctx.restore()
+            } else {
+              drawText(player.initial || getInitial(player.name), x + 19, y + 38, 26, 24, '#111317')
+            }
+            drawText(player.name, x - 12, y + 82, cellWidth - 14, 19, '#111317')
+          })
+        } else {
+          drawText('成员头像会显示在这里', 66, playersStartY + 44, contentWidth - 132, 24, '#111317')
+        }
+
+        drawRoundRect(margin, timelineY + 8, contentWidth, timelineHeight, 32, '#111317')
+        drawRoundRect(margin, timelineY, contentWidth, timelineHeight, 32, '#ffffff', '#111317', 5)
+        drawText('现场时间线', 66, timelineY + 70, 260, 34, '#111317')
+        const lineX = 82
+        const firstItemY = timelineY + 132
+        const lineBottom = firstItemY + Math.max(96, rowHeights.reduce((sum, value) => sum + value, 0)) - 16
+        ctx.setStrokeStyle('#111317')
+        ctx.setLineWidth(5)
+        ctx.beginPath()
+        ctx.moveTo(lineX, firstItemY - 30)
+        ctx.lineTo(lineX, lineBottom)
+        ctx.stroke()
+
+        if (!posterItems.length) {
+          drawRoundRect(112, firstItemY - 28, width - 158, 106, 22, '#fffaf0', '#111317', 4)
+          drawText('还没有可保存记录', 136, firstItemY + 18, 360, 28, '#111317')
+          drawText(this.data.timelineEmptyText, 136, firstItemY + 56, 430, 23, 'rgba(17,19,23,0.62)')
+        }
+
+        let cursorY = firstItemY
+        posterItems.forEach((item, index) => {
+          const rowHeight = rowHeights[index]
+          const color = item.type === 'photo' ? '#00cbff' : item.type === 'debt' ? '#ffcd40' : '#d3ff2d'
+          ctx.setFillStyle(color)
+          ctx.beginPath()
+          ctx.arc(lineX, cursorY, 17, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.setStrokeStyle('#111317')
+          ctx.setLineWidth(4)
+          ctx.stroke()
+          drawRoundRect(112, cursorY - 38, width - 158, rowHeight - 22, 24, '#fffaf0', '#111317', 4)
+          drawPill(item.actionLabel || (item.type === 'photo' ? '拍照' : '记录'), 136, cursorY - 15, 118, 42, color, '#111317')
+          drawText(item.timeText || '时间未记录', width - 170, cursorY + 12, 92, 22, 'rgba(17,19,23,0.62)')
+          drawText(item.title || '聚会记录', 136, cursorY + 64, width - 240, 30, '#111317')
+          if (item.type === 'photo') {
+            const imageX = 136
+            const imageY = cursorY + 88
+            const imageW = width - 206
+            const imageH = 210
+            drawRoundRect(imageX, imageY, imageW, imageH, 22, '#111317')
+            if (!drawImageSafe(item.localImagePath, imageX + 4, imageY + 4, imageW - 8, imageH - 8)) {
+              drawRoundRect(imageX + 4, imageY + 4, imageW - 8, imageH - 8, 18, '#00cbff')
+              drawText('照片已记录', imageX + 34, imageY + 112, imageW - 68, 30, '#111317')
+            }
+            drawLines(item.detail || item.caption || '等会儿一起回看这一刻', 136, cursorY + 332, width - 206, 22, 28, 'rgba(17,19,23,0.68)', 1)
+          } else {
+            drawLines(item.detail || '账本发生了变化', 136, cursorY + 104, width - 206, 24, 32, 'rgba(17,19,23,0.68)', 2)
+          }
+          cursorY += rowHeight
+        })
+
+        drawRoundRect(margin, summaryY + 8, contentWidth, summaryHeight, 32, '#111317')
+        drawRoundRect(margin, summaryY, contentWidth, summaryHeight, 32, '#fffaf0', '#111317', 5)
+        drawText('聚会总结', 66, summaryY + 66, 220, 34, '#111317')
+        drawLines(
+          `本场已记录 ${photoCount} 张照片、${ledgerCount} 条账本动态，当前欠酒 ${debtTotal} 杯，加酒 ${drinkTotal} 杯。`,
+          66,
+          summaryY + 112,
+          contentWidth - 132,
+          28,
+          38,
+          '#111317',
+          2,
+        )
+
+        const qrX = Math.round((width - qrBoxSize) / 2)
+        drawRoundRect(qrX - 16, qrY - 16, qrBoxSize + 32, qrBoxSize + 72, 28, '#111317')
+        drawRoundRect(qrX, qrY, qrBoxSize, qrBoxSize + 56, 26, '#ffffff', '#111317', 4)
+        if (qrLocalPath) {
+          drawImageSafe(qrLocalPath, qrX + 28, qrY + 20, qrBoxSize - 56, qrBoxSize - 56)
+        } else {
+          drawText('小程序码', qrX + 54, qrY + 96, 112, 24, '#111317')
+        }
+        drawText(inviteCode ? `扫码回到小程序 · ${inviteCode}` : '扫码回到小程序', qrX + 22, qrY + qrBoxSize + 28, qrBoxSize - 44, 21, '#111317')
+
+        ctx.draw(false, () => {
+          wx.canvasToTempFilePath(
+            {
+              canvasId: LIVE_RECORD_POSTER_CANVAS_ID,
+              width,
+              height,
+              destWidth: width,
+              destHeight: height,
+              fileType: 'png',
+              success: (result) => resolve(result.tempFilePath),
+              fail: reject,
+            },
+            this,
+          )
+        })
+      })
+    })
+  },
+
+  async downloadPosterImageToFile(imageUrl) {
+    const source = normalizeManagedAssetPath(imageUrl) || String(imageUrl || '').trim()
+    if (!source) {
+      return ''
+    }
+    if (/^(wxfile|file):\/\//i.test(source)) {
+      return source
+    }
+
+    const cached = await resolveCachedManagedImagePath(source).catch(() => source)
+    if (!cached || !/^https?:\/\//i.test(cached)) {
+      return cached || ''
+    }
+
+    const url = cached.startsWith('http')
+      ? cached
+      : `${getApiBase()}${cached.startsWith('/') ? cached : `/${cached}`}`
+    return new Promise<string>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('download live poster image timeout')), 6000)
+      wx.downloadFile({
+        url,
+        header: getUserAuthHeaders(),
+        success: (result) => {
+          clearTimeout(timer)
+          if (result.statusCode >= 200 && result.statusCode < 300 && result.tempFilePath) {
+            resolve(result.tempFilePath)
+            return
+          }
+          reject(new Error(`download live poster image failed: ${result.statusCode}`))
+        },
+        fail: (error) => {
+          clearTimeout(timer)
+          reject(error)
+        },
+      })
+    })
+  },
+
+  saveImageFile(filePath) {
+    return new Promise<void>((resolve, reject) => {
+      const save = () => {
+        wx.saveImageToPhotosAlbum({
+          filePath,
+          success: () => resolve(),
+          fail: (error) => {
+            const message = String(error?.errMsg || '')
+            if (message.includes('auth deny') || message.includes('authorize')) {
+              wx.openSetting({
+                success: () => reject(error),
+                fail: () => reject(error),
+              })
+              return
+            }
+            reject(error)
+          },
+        })
+      }
+
+      wx.getSetting({
+        success: (setting) => {
+          if (setting.authSetting['scope.writePhotosAlbum'] === false) {
+            wx.openSetting({
+              success: save,
+              fail: reject,
+            })
+            return
+          }
+          save()
+        },
+        fail: save,
+      })
+    })
+  },
+
+  async handleSaveEndedPosterTap() {
+    if (!this.data.sessionEnded) {
+      await this.handleFinishTap()
+      return
+    }
+    if (this.data.finishSaving) {
+      return
+    }
+
+    this.setData({ finishSaving: true, finishMatchLabel: '保存中' })
+    wx.showLoading({
+      title: '正在保存',
+      mask: true,
+    })
+    let toastMessage = ''
+    let saved = false
+    try {
+      await this.saveEndedPosterToAlbum()
+      this.setData({
+        finishMatchLabel: '已保存',
+        sharePosterSaved: true,
+      })
+      toastMessage = '分享图已保存在相册'
+      saved = true
+    } catch (error) {
+      this.setData({
+        finishMatchLabel: '保存分享图',
+        sharePosterSaved: false,
+      })
+      toastMessage = error instanceof Error ? error.message : '分享图未保存，请检查相册权限'
+    } finally {
+      wx.hideLoading()
+      this.setData({ finishSaving: false })
+      if (toastMessage) {
+        if (saved) {
+          wx.showToast({ title: toastMessage, icon: 'success' })
+        } else {
+          this.showPreviewToast(toastMessage)
+        }
+      }
+    }
+  },
+
   async handleFinishTap() {
     const sessionId = this.data.sessionId || getSessionRuntime().sessionId || ''
     if (!sessionId) {
       this.showPreviewToast('未找到当前聚会')
       return
     }
+    if (this.data.finishSaving) {
+      return
+    }
+    if (this.data.sessionEnded) {
+      await this.handleSaveEndedPosterTap()
+      return
+    }
 
     const confirmed = await new Promise<boolean>((resolve) => {
       wx.showModal({
         title: '确认结束聚会',
-        content: '结束后聚会会保留在我的记录中，可继续查看相册、账本和分享内容。',
+        content: '结束后会自动保存当前记录长图到相册，长图不包含顶部导航和底部按钮。',
         confirmText: '结束聚会',
         cancelText: '继续记录',
         success: (result) => resolve(Boolean(result.confirm)),
@@ -1395,10 +1856,13 @@ Page<LiveRecordState, LiveRecordMethods>({
       }
     }
 
+    this.setData({ finishSaving: true, finishMatchLabel: '保存中' })
     wx.showLoading({
-      title: '正在结束',
+      title: '正在保存',
       mask: true,
     })
+    let toastTitle = ''
+    let toastIcon: WechatMiniprogram.ShowToastOption['icon'] = 'none'
 
     try {
       const result = await finishManagedSession(sessionId)
@@ -1417,24 +1881,42 @@ Page<LiveRecordState, LiveRecordMethods>({
         state: result.state || 'ended',
         status: result.status || '已结束',
       })
-      wx.showToast({
-        title: '聚会已结束',
-        icon: 'success',
+      if (liveTimer) {
+        clearInterval(liveTimer)
+        liveTimer = 0
+      }
+      this.setData({
+        desktopModeLabel: '已结束',
+        finishMatchLabel: '保存中',
+        sessionEnded: true,
+        sessionEndedAt: result.endedAt || result.updatedAt || new Date().toISOString(),
       })
-      const sharePosterUrl = `/pages/share-poster/index?sessionId=${encodeURIComponent(sessionId)}&from=finish`
-      wx.redirectTo({
-        url: sharePosterUrl,
-        fail: () => {
-          wx.reLaunch({ url: sharePosterUrl })
-        },
+      this.handleTimerTick()
+      await this.loadTimeline().catch(() => undefined)
+      await this.saveEndedPosterToAlbum()
+      this.setData({
+        finishMatchLabel: '已保存',
+        sharePosterSaved: true,
       })
+      toastTitle = '分享图已保存在相册'
+      toastIcon = 'success'
     } catch (error) {
-      wx.showToast({
-        title: '聚会暂未结束，请稍后重试',
-        icon: 'none',
+      const sessionAlreadyEnded = this.data.sessionEnded
+      this.setData({
+        finishMatchLabel: sessionAlreadyEnded ? '保存分享图' : '结束聚会',
+        sharePosterSaved: false,
       })
+      toastTitle = sessionAlreadyEnded ? '分享图未保存，请重试' : '聚会暂未结束，请稍后重试'
+      toastIcon = 'none'
     } finally {
       wx.hideLoading()
+      this.setData({ finishSaving: false })
+      if (toastTitle) {
+        wx.showToast({
+          title: toastTitle,
+          icon: toastIcon,
+        })
+      }
     }
   },
 
