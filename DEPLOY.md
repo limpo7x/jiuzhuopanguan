@@ -1,6 +1,6 @@
 # 酒桌判官部署说明
 
-更新时间：2026-06-13
+更新时间：2026-06-26
 
 ## 1. 部署目标
 
@@ -42,18 +42,24 @@ pm2 -v
 nginx -v
 ```
 
-## 3. 项目目录
+## 3. 生产项目目录
 
-建议部署目录：
+当前生产部署目录：
 
 ```bash
-mkdir -p /data/www
-cd /data/www
-git clone <repo-url> jiuzhuopanguan
-cd /data/www/jiuzhuopanguan
+/www/wwwroot/jiuzhuopanguan-git
 ```
 
-如果服务器已经存在同机其他项目，先确认 Nginx、PM2、端口和域名归属，不要覆盖已有 `pomer.cn` 官网配置。
+首次部署时按这个目录创建：
+
+```bash
+mkdir -p /www/wwwroot
+cd /www/wwwroot
+git clone https://github.com/limpo7x/jiuzhuopanguan.git jiuzhuopanguan-git
+cd /www/wwwroot/jiuzhuopanguan-git
+```
+
+同机存在公司官网服务 `pomer`。本项目只允许操作 `/www/wwwroot/jiuzhuopanguan-git`、`api.pomer.cn` 和 PM2 服务 `jiuzhuopanguan-backend`；不要修改、重启或覆盖 `pomer.cn` 官网服务。
 
 ## 4. MySQL 初始化
 
@@ -62,13 +68,13 @@ cd /data/www/jiuzhuopanguan
 初始化数据库：
 
 ```bash
-mysql -uroot -p < /data/www/jiuzhuopanguan/backend/sql/mysql-init.sql
+mysql -uroot -p < /www/wwwroot/jiuzhuopanguan-git/backend/sql/mysql-init.sql
 ```
 
 创建后端环境变量：
 
 ```bash
-cd /data/www/jiuzhuopanguan/backend
+cd /www/wwwroot/jiuzhuopanguan-git/backend
 cp .env.mysql.example .env
 ```
 
@@ -96,7 +102,7 @@ STORE_FILE_MIRROR=1
 测试 MySQL：
 
 ```bash
-cd /data/www/jiuzhuopanguan/backend
+cd /www/wwwroot/jiuzhuopanguan-git/backend
 set -a
 . ./.env
 set +a
@@ -106,8 +112,8 @@ npm run mysql:test
 ## 5. 安装依赖与本机验证
 
 ```bash
-cd /data/www/jiuzhuopanguan/backend
-npm install
+cd /www/wwwroot/jiuzhuopanguan-git/backend
+npm ci --omit=dev
 set -a
 . ./.env
 set +a
@@ -141,7 +147,7 @@ backend/ecosystem.config.js
 启动：
 
 ```bash
-cd /data/www/jiuzhuopanguan/backend
+cd /www/wwwroot/jiuzhuopanguan-git/backend
 pm2 start ecosystem.config.js
 pm2 save
 pm2 startup
@@ -190,12 +196,14 @@ systemctl reload nginx
 公网验证：
 
 ```bash
-curl -i https://api.pomer.cn/api/v1/config/home
-curl -i https://api.pomer.cn/api/v1/config/points
-curl -i https://api.pomer.cn/api/v1/config/templates
-curl -i https://api.pomer.cn/admin
-curl -i https://api.pomer.cn/admin/login
+curl -fsS https://api.pomer.cn/api/v1/config/home
+curl -fsS https://api.pomer.cn/api/v1/config/points
+curl -fsS https://api.pomer.cn/api/v1/config/templates
+curl -fsS https://api.pomer.cn/api/v1/share/config
+curl -s -o /dev/null -w "%{http_code}\n" https://api.pomer.cn/admin
 ```
+
+接口 JSON 返回 `{"code":0,"message":"ok",...}` 表示通过；未登录访问 `/admin` 返回 `302` 跳转到登录页属于正常结果。
 
 ## 8. 小程序配置
 
@@ -237,13 +245,17 @@ https://api.pomer.cn/admin/login
 
 ## 10. 发布更新流程
 
-推荐更新命令：
+生产更新命令：
 
 ```bash
-cd /data/www/jiuzhuopanguan
+cd /www/wwwroot/jiuzhuopanguan-git
+git status -sb
+mkdir -p backend/backups/deploy
+cp backend/data/social-store.json backend/backups/deploy/social-store.json.$(date +%Y%m%d-%H%M%S).bak
+git fetch origin main
 git pull --ff-only origin main
 cd backend
-npm install
+npm ci --omit=dev
 set -a
 . ./.env
 set +a
@@ -252,14 +264,25 @@ pm2 restart jiuzhuopanguan-backend --update-env
 pm2 logs jiuzhuopanguan-backend --lines 80
 ```
 
+发布约束：
+
+- `backend/data/social-store.json` 是运行时业务数据，部署前必须备份。
+- `backend/public/uploads/` 是运行时上传资源，不能用清理命令删除。
+- 如依赖安装导致 `backend/package-lock.json` 在服务器上出现本地差异，不要提交；确认无业务影响后用 `git checkout -- backend/package-lock.json` 还原部署副作用。
+- 只重启 `jiuzhuopanguan-backend`，不要重启 PM2 中的 `pomer`。
+
 更新后验证：
 
 ```bash
-curl -f https://api.pomer.cn/api/v1/config/home
-curl -f https://api.pomer.cn/api/v1/config/points
-curl -f https://api.pomer.cn/api/v1/config/templates
-curl -I https://api.pomer.cn/admin
+curl -fsS https://api.pomer.cn/api/v1/config/home
+curl -fsS https://api.pomer.cn/api/v1/config/points
+curl -fsS https://api.pomer.cn/api/v1/config/templates
+curl -fsS https://api.pomer.cn/api/v1/share/config
+curl -s -o /dev/null -w "%{http_code}\n" https://api.pomer.cn/admin
+pm2 status jiuzhuopanguan-backend
 ```
+
+接口 JSON 返回 `code=0` 表示通过；`/admin` 未登录返回 `302` 表示后台登录跳转正常。
 
 ## 11. 当前待升级项
 
