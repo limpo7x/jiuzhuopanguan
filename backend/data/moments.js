@@ -23,6 +23,7 @@ const MOMENT_IMAGE_QUALITY = 84
 const SHARE_IMAGE_WIDTH = 900
 const SHARE_IMAGE_MIN_HEIGHT = 1400
 const DEFAULT_MINI_PROGRAM_QR_URL = '/static/share-poster-miniapp-code.png'
+const FULL_TIMELINE_RENDERER_VERSION = 'live-page-v2'
 
 const IMAGE_MIME_EXTENSION_MAP = {
   'image/jpeg': 'jpg',
@@ -184,6 +185,7 @@ const normalizeSessionBrief = (item = {}) => {
 const normalizeShareImageTask = (item = {}) => {
   const status = SHARE_TASK_STATUSES.has(cleanText(item.status)) ? cleanText(item.status) : 'pending'
   const layoutMode = cleanText(item.layoutMode) || 'timeline'
+  const rendererVersion = cleanText(item.rendererVersion)
   const createdAt = cleanText(item.createdAt) || nowIso()
   return {
     id: cleanText(item.id) || createId('share-task'),
@@ -191,7 +193,8 @@ const normalizeShareImageTask = (item = {}) => {
     briefId: cleanText(item.briefId),
     status,
     layoutMode,
-    ledgerIncluded: item.ledgerIncluded === true || item.includeLedger === true || layoutMode === 'dual_flow',
+    ledgerIncluded: item.ledgerIncluded === true || item.includeLedger === true || layoutMode === 'dual_flow' || layoutMode === 'full-timeline',
+    rendererVersion,
     selectedNodeIds: normalizeStringArray(item.selectedNodeIds),
     imageUrl: cleanText(item.imageUrl),
     objectKey: cleanText(item.objectKey),
@@ -1372,7 +1375,223 @@ const renderPosterPhotoWall = (imageDataUris = []) => {
     .join('')
 }
 
+const splitPosterLines = (value = '', maxChars = 18, maxLines = 2) => {
+  const text = cleanText(value)
+  if (!text) {
+    return []
+  }
+  const lines = []
+  let rest = text
+  while (rest && lines.length < maxLines) {
+    const line = rest.slice(0, maxChars)
+    rest = rest.slice(maxChars)
+    lines.push(rest && lines.length === maxLines - 1 ? `${line.slice(0, Math.max(1, maxChars - 2))}...` : line)
+  }
+  return lines
+}
+
+const renderPosterTextLines = ({
+  text = '',
+  x = 0,
+  y = 0,
+  maxChars = 18,
+  maxLines = 2,
+  fontSize = 24,
+  fontWeight = 800,
+  lineHeight = 32,
+  fill = '#111317',
+  textAnchor = 'start',
+  opacity = '',
+} = {}) =>
+  splitPosterLines(text, maxChars, maxLines)
+    .map((line, index) => {
+      const opacityAttr = opacity ? ` opacity="${opacity}"` : ''
+      return `<text x="${x}" y="${y + index * lineHeight}" text-anchor="${textAnchor}" font-size="${fontSize}" font-weight="${fontWeight}" fill="${fill}"${opacityAttr}>${escapeXml(line)}</text>`
+    })
+    .join('')
+
+const formatFullTimelineDuration = (startValue = '', endValue = '') => {
+  const start = Date.parse(startValue)
+  const end = Date.parse(endValue)
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return '00:00'
+  }
+  const seconds = Math.floor((end - start) / 1000)
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const restSeconds = seconds % 60
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(restSeconds).padStart(2, '0')}`
+  }
+  return `${String(minutes).padStart(2, '0')}:${String(restSeconds).padStart(2, '0')}`
+}
+
+const getFullTimelineAction = (node = {}) => {
+  if (node.nodeKind === 'moment') {
+    return { color: '#00cbff', label: '拍照' }
+  }
+  if (node.eventType === 'drink_add') {
+    return { color: '#d3ff2d', label: '加酒' }
+  }
+  return { color: '#ffcd40', label: '欠酒' }
+}
+
+const getFullTimelineEventDetail = (node = {}) => {
+  const operatorName = toPosterSafeText(node.operatorName, '成员', 10)
+  const targetName = toPosterSafeText(node.targetName || node.operatorName, '成员', 10)
+  const delta = Number(node.scoreDelta) || 0
+  const score = Math.max(1, Math.abs(delta))
+  if (node.eventType === 'drink_add') {
+    return delta < 0 ? `${operatorName} 为 ${targetName} 减少加酒 ${score} 杯` : `${operatorName} 为 ${targetName} 加了 ${score} 杯酒`
+  }
+  if (node.eventType === 'wheel_result') {
+    return toPosterSafeText(node.caption || node.operatorName, '记录了一条关键互动', 24)
+  }
+  return delta < 0 ? `${targetName} 消酒 ${score} 杯` : `${operatorName} 给 ${targetName} 记了 ${score} 杯欠酒`
+}
+
+const buildFullTimelineShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null }) => {
+  const session = getManagedSessionById(task.sessionId) || {}
+  const timelineItems = nodes
+    .filter((item) => item.nodeKind === 'event' || item.nodeKind === 'moment')
+    .sort((left, right) => {
+      const leftTime = new Date(left.createdAt || left.updatedAt || 0).getTime() || 0
+      const rightTime = new Date(right.createdAt || right.updatedAt || 0).getTime() || 0
+      return leftTime - rightTime
+    })
+  const imageNodes = timelineItems.filter((item) => item.nodeKind === 'moment' && item.imageUrl)
+  const imageDataUris = await Promise.all(imageNodes.map((item) => resolveImageDataUri(item.imageUrl)))
+  const imageDataUriById = new Map(imageNodes.map((item, index) => [item.id, imageDataUris[index]]))
+  const participants = buildPosterParticipants(session)
+  const participantAvatarDataUris = await Promise.all(participants.map((item) => resolvePosterAvatarDataUri(item.avatarUrl)))
+  const qrDataUri = await resolveMiniProgramQrDataUri(getMiniProgramQrUrl(task))
+  const totalPlayers = Math.max(Number(session.players) || Number(session.playerCount) || participants.length, participants.length)
+  const joinedText = totalPlayers ? `${participants.length}/${totalPlayers} 人` : `${participants.length} 人`
+  const startTime = cleanText(session.startedAt || session.firstPhotoUploadedAt || session.createdAt || brief.createdAt)
+  const endTime = cleanText(session.endedAt || session.updatedAt || task.finishedAt || task.updatedAt || nowIso())
+  const durationText = formatFullTimelineDuration(startTime, endTime)
+  const sessionTitle = toPosterSafeText(session.name || brief.title, '聚会记录', 16)
+  const inviteCode = toPosterSafeText(session.inviteCode || '', '回到小程序', 10)
+  const ledgerSummary = ledgerSnapshot?.ledgerSummary || {}
+  const settlementSummary = ledgerSnapshot?.settlementSummary || {}
+  const ledgerCount = Number(ledgerSummary.ledgerCount) || 0
+  const photoCount = imageDataUris.filter(Boolean).length
+  const heroY = 44
+  const heroHeight = participants.length ? 470 : 376
+  const heroBottom = heroY + heroHeight
+  const tabY = heroBottom + 48
+  const timelinePanelY = tabY + 128
+  const panelX = 42
+  const panelW = 816
+  const cardX = 142
+  const cardW = 658
+  let currentY = timelinePanelY + 118
+  const timelineRows = timelineItems
+    .map((item, index) => {
+      const action = getFullTimelineAction(item)
+      const isMoment = item.nodeKind === 'moment'
+      const imageDataUri = isMoment ? imageDataUriById.get(item.id) : ''
+      const title = isMoment ? getPosterMomentCaptionTitle(item) : getPosterEventTitle(item)
+      const detail = isMoment ? getPosterMomentCaptionMeta(item) : getFullTimelineEventDetail(item)
+      const cardHeight = imageDataUri ? 418 : 176
+      const y = currentY
+      currentY += cardHeight + 30
+      return `
+        <circle cx="92" cy="${y + 34}" r="19" fill="#ffcd40" stroke="#111317" stroke-width="5"/>
+        <rect x="${cardX + 8}" y="${y + 8}" width="${cardW}" height="${cardHeight}" rx="28" fill="#111317"/>
+        <rect x="${cardX}" y="${y}" width="${cardW}" height="${cardHeight}" rx="28" fill="#ffffff" stroke="#111317" stroke-width="5"/>
+        <text x="${cardX + 28}" y="${y + 46}" font-size="22" font-weight="850" fill="#777b82">${escapeXml(formatPosterTime(item.createdAt || item.updatedAt))}</text>
+        <rect x="${cardX + cardW - 112}" y="${y + 20}" width="82" height="38" rx="19" fill="${action.color}" stroke="#111317" stroke-width="4"/>
+        <text x="${cardX + cardW - 71}" y="${y + 46}" text-anchor="middle" font-size="19" font-weight="950" fill="#111317">${escapeXml(action.label)}</text>
+        ${renderPosterTextLines({ text: title, x: cardX + 28, y: y + 88, maxChars: 18, maxLines: 1, fontSize: 28, fontWeight: 950, lineHeight: 34 })}
+        ${renderPosterTextLines({ text: detail, x: cardX + 28, y: y + 125, maxChars: 25, maxLines: 2, fontSize: 21, fontWeight: 800, lineHeight: 30, fill: '#5d626b' })}
+        ${
+          imageDataUri
+            ? `<rect x="${cardX + 28}" y="${y + 166}" width="${cardW - 56}" height="222" rx="22" fill="#111317"/><clipPath id="fullTimelinePhoto${index}"><rect x="${cardX + 28}" y="${y + 166}" width="${cardW - 56}" height="222" rx="22"/></clipPath><image href="${imageDataUri}" x="${cardX + 28}" y="${y + 166}" width="${cardW - 56}" height="222" preserveAspectRatio="xMidYMid slice" clip-path="url(#fullTimelinePhoto${index})"/>`
+            : ''
+        }
+      `
+    })
+    .join('')
+  const emptyTimeline = timelineItems.length
+    ? ''
+    : `<rect x="${cardX}" y="${currentY}" width="${cardW}" height="150" rx="28" fill="#ffffff" stroke="#111317" stroke-width="5"/><text x="450" y="${currentY + 90}" text-anchor="middle" font-size="28" font-weight="950" fill="#111317">暂无公开时间线记录</text>`
+  if (!timelineItems.length) {
+    currentY += 180
+  }
+  const timelinePanelHeight = currentY - timelinePanelY + 40
+  const summaryY = timelinePanelY + timelinePanelHeight + 48
+  const qrY = summaryY + 214
+  const footerY = qrY + 244
+  const height = Math.max(SHARE_IMAGE_MIN_HEIGHT, footerY + 70)
+  const avatars = participants.slice(0, 10).map((item, index) => {
+    const col = index % 5
+    const row = Math.floor(index / 5)
+    const x = 108 + col * 138
+    const y = 356 + row * 78
+    const avatarDataUri = participantAvatarDataUris[index] || ''
+    return `
+      <rect x="${x}" y="${y}" width="58" height="58" rx="18" fill="#d3ff2d" stroke="#111317" stroke-width="5"/>
+      <clipPath id="fullTimelineAvatar${index}"><rect x="${x}" y="${y}" width="58" height="58" rx="18"/></clipPath>
+      ${avatarDataUri ? `<image href="${avatarDataUri}" x="${x}" y="${y}" width="58" height="58" preserveAspectRatio="xMidYMid slice" clip-path="url(#fullTimelineAvatar${index})"/>` : `<text x="${x + 29}" y="${y + 38}" text-anchor="middle" font-size="24" font-weight="950" fill="#111317">${escapeXml(item.initial)}</text>`}
+      <text x="${x + 29}" y="${y + 82}" text-anchor="middle" font-size="18" font-weight="850" fill="#111317">${escapeXml(trimText(item.name, 5))}</text>
+    `
+  }).join('')
+  const summaryText = cleanText(settlementSummary.text) || (ledgerCount > 0 ? '聚会账本和照片已整理完成。' : '照片和时间线已整理完成。')
+
+  return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${SHARE_IMAGE_WIDTH}" height="${height}" viewBox="0 0 ${SHARE_IMAGE_WIDTH} ${height}" font-family="'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', sans-serif">
+      <defs>
+        <style>text { font-family: 'SimHei', 'DengXian', 'Microsoft YaHei', 'SimSun', sans-serif; }</style>
+        <pattern id="partyDots" width="84" height="84" patternUnits="userSpaceOnUse">
+          <circle cx="18" cy="18" r="6" fill="#d3ff2d" opacity=".32"/>
+          <rect x="52" y="46" width="12" height="12" rx="3" fill="#00cbff" opacity=".26"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="#fffaf0"/>
+      <rect width="100%" height="100%" fill="url(#partyDots)" opacity=".9"/>
+      <rect x="${panelX + 9}" y="${heroY + 10}" width="${panelW}" height="${heroHeight}" rx="38" fill="#111317"/>
+      <rect x="${panelX}" y="${heroY}" width="${panelW}" height="${heroHeight}" rx="38" fill="#ffffff" stroke="#111317" stroke-width="6"/>
+      <text x="92" y="${heroY + 70}" font-size="28" font-weight="950" fill="#ff504d">已结束</text>
+      <text x="92" y="${heroY + 132}" font-size="64" font-weight="950" fill="#111317">${escapeXml(sessionTitle)}</text>
+      ${renderPosterTextLines({ text: '记录、相册、分享和聚会账本在同一场聚会里同步。', x: 92, y: heroY + 184, maxChars: 22, maxLines: 2, fontSize: 31, fontWeight: 900, lineHeight: 42, fill: '#5d626b' })}
+      <rect x="92" y="${heroY + 250}" width="284" height="126" rx="28" fill="#ffffff" stroke="#111317" stroke-width="5"/>
+      <text x="132" y="${heroY + 316}" font-size="50" font-weight="950" fill="#111317">${escapeXml(joinedText)}</text>
+      <text x="132" y="${heroY + 354}" font-size="22" font-weight="900" fill="#5d626b">成员</text>
+      <rect x="414" y="${heroY + 250}" width="296" height="126" rx="28" fill="#ffffff" stroke="#111317" stroke-width="5"/>
+      <text x="454" y="${heroY + 316}" font-size="50" font-weight="950" fill="#111317">${escapeXml(durationText)}</text>
+      <text x="454" y="${heroY + 354}" font-size="22" font-weight="900" fill="#5d626b">时长</text>
+      ${avatars}
+      <rect x="${panelX + 9}" y="${tabY + 9}" width="${panelW}" height="82" rx="41" fill="#111317"/>
+      <rect x="${panelX}" y="${tabY}" width="${panelW}" height="82" rx="41" fill="#ffffff" stroke="#111317" stroke-width="6"/>
+      <rect x="90" y="${tabY + 12}" width="168" height="58" rx="29" fill="#d3ff2d"/>
+      <text x="174" y="${tabY + 51}" text-anchor="middle" font-size="25" font-weight="950" fill="#111317">记录</text>
+      <text x="342" y="${tabY + 51}" text-anchor="middle" font-size="25" font-weight="900" fill="#777b82">相册</text>
+      <text x="526" y="${tabY + 51}" text-anchor="middle" font-size="25" font-weight="900" fill="#777b82">账本</text>
+      <text x="704" y="${tabY + 51}" text-anchor="middle" font-size="25" font-weight="900" fill="#777b82">分享</text>
+      <rect x="${panelX + 9}" y="${timelinePanelY + 10}" width="${panelW}" height="${timelinePanelHeight}" rx="38" fill="#111317"/>
+      <rect x="${panelX}" y="${timelinePanelY}" width="${panelW}" height="${timelinePanelHeight}" rx="38" fill="#ffffff" stroke="#111317" stroke-width="6"/>
+      <text x="92" y="${timelinePanelY + 76}" font-size="42" font-weight="950" fill="#111317">现场时间线</text>
+      <line x1="92" y1="${timelinePanelY + 118}" x2="92" y2="${timelinePanelY + timelinePanelHeight - 52}" stroke="#111317" stroke-width="6"/>
+      ${timelineRows}
+      ${emptyTimeline}
+      <rect x="${panelX + 9}" y="${summaryY + 10}" width="${panelW}" height="168" rx="34" fill="#111317"/>
+      <rect x="${panelX}" y="${summaryY}" width="${panelW}" height="168" rx="34" fill="#d3ff2d" stroke="#111317" stroke-width="6"/>
+      <text x="92" y="${summaryY + 58}" font-size="30" font-weight="950" fill="#111317">聚会总结</text>
+      ${renderPosterTextLines({ text: summaryText, x: 92, y: summaryY + 106, maxChars: 28, maxLines: 2, fontSize: 26, fontWeight: 900, lineHeight: 34, fill: '#111317' })}
+      <text x="808" y="${summaryY + 140}" text-anchor="end" font-size="22" font-weight="950" fill="#111317">${photoCount} 张照片 · ${ledgerCount} 条账本</text>
+      <rect x="326" y="${qrY}" width="248" height="248" rx="36" fill="#ffffff" stroke="#111317" stroke-width="6"/>
+      ${qrDataUri ? `<image href="${qrDataUri}" x="366" y="${qrY + 30}" width="168" height="168" preserveAspectRatio="xMidYMid meet"/>` : ''}
+      <text x="450" y="${qrY + 224}" text-anchor="middle" font-size="22" font-weight="950" fill="#111317">扫码回到小程序</text>
+      <text x="450" y="${footerY}" text-anchor="middle" font-size="24" font-weight="950" fill="#111317">聚会记录师 · ${escapeXml(inviteCode)}</text>
+    </svg>
+  `
+}
+
 const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null }) => {
+  if (task.layoutMode === 'full-timeline' || task.rendererVersion === FULL_TIMELINE_RENDERER_VERSION) {
+    return buildFullTimelineShareImageSvg({ brief, task, nodes, ledgerSnapshot })
+  }
   const session = getManagedSessionById(task.sessionId) || {}
   const imageNodes = nodes.filter((item) => item.nodeKind === 'moment' && item.imageUrl)
   const imageDataUris = await Promise.all(imageNodes.map((item) => resolveImageDataUri(item.imageUrl)))
@@ -1824,6 +2043,7 @@ const createShareImageTask = ({ briefId, profile, payload = {} }) => {
   const brief = getSessionBrief({ briefId, profile })
   assertEndedSessionHostForShareImage(brief.sessionId, profile)
   const layoutMode = cleanText(payload.layoutMode) || 'timeline'
+  const rendererVersion = cleanText(payload.rendererVersion) || (layoutMode === 'full-timeline' ? FULL_TIMELINE_RENDERER_VERSION : '')
   const store = readMomentsStore()
   const availableNodeIds = brief.timeline.nodes.filter(isTimelineNodeShareImageEligible).map((item) => item.id)
   const availableNodeIdSet = new Set(availableNodeIds)
@@ -1840,6 +2060,7 @@ const createShareImageTask = ({ briefId, profile, payload = {} }) => {
     (item) =>
       item.briefId === brief.id &&
       item.layoutMode === layoutMode &&
+      cleanText(item.rendererVersion) === rendererVersion &&
       ['pending', 'processing', 'ready'].includes(item.status) &&
       hasSameStringSet(item.selectedNodeIds, selectedNodeIds),
   )
@@ -1852,6 +2073,7 @@ const createShareImageTask = ({ briefId, profile, payload = {} }) => {
     briefId: brief.id,
     status: 'pending',
     layoutMode,
+    rendererVersion,
     ledgerIncluded: payload.includeLedger === true || layoutMode === 'dual_flow',
     selectedNodeIds,
     createdAt: nowIso(),
@@ -1902,6 +2124,8 @@ const serializeShareImageSummary = ({ task, session }) => {
     posterImageUrl: cleanText(decoratedTask.posterImageUrl),
     miniProgramQrUrl: cleanText(decoratedTask.miniProgramQrUrl),
     qrCodeUrl: cleanText(decoratedTask.qrCodeUrl),
+    layoutMode: cleanText(task.layoutMode),
+    rendererVersion: cleanText(task.rendererVersion),
     createdAt: cleanText(task.createdAt),
     updatedAt: cleanText(task.updatedAt),
     finishedAt: cleanText(task.finishedAt),
@@ -1914,13 +2138,24 @@ const getUserShareImageSummaries = ({ profile }) => {
     throw createHttpError('unauthorized', 401)
   }
   const store = readMomentsStore()
-  return store.shareImageTasks
-    .filter((task) => cleanText(task.status) === 'ready' && cleanText(task.imageUrl))
+  const latestBySessionId = new Map()
+  store.shareImageTasks
     .map((task) => {
       const session = getManagedSessionById(task.sessionId)
       return { task, session }
     })
     .filter(({ session }) => isSessionEndedForShareImage(session) && canAccessSessionShareImages(session, profileId))
+    .forEach((entry) => {
+      const sessionId = cleanText(entry.task.sessionId)
+      const previous = latestBySessionId.get(sessionId)
+      const entryTime = cleanText(entry.task.finishedAt || entry.task.updatedAt || entry.task.createdAt)
+      const previousTime = cleanText(previous?.task?.finishedAt || previous?.task?.updatedAt || previous?.task?.createdAt)
+      if (!previous || entryTime.localeCompare(previousTime) >= 0) {
+        latestBySessionId.set(sessionId, entry)
+      }
+    })
+
+  return Array.from(latestBySessionId.values())
     .map(serializeShareImageSummary)
     .sort((left, right) => {
       const rightTime = cleanText(right.finishedAt || right.updatedAt || right.createdAt)

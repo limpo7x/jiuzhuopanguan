@@ -263,6 +263,7 @@ interface RemoteShareImageTask {
   posterImageUrl?: string
   readyShareImageUrl?: string
   renderMode?: string
+  rendererVersion?: string
   retryCount?: number
   qrCodeUrl?: string
   selectedNodeIds?: string[]
@@ -723,6 +724,7 @@ export interface ManagedShareImageTask {
   layoutMode: string
   miniProgramQrUrl: string
   qrCodeUrl: string
+  rendererVersion?: string
   retryCount: number
   selectedNodeIds: string[]
   sessionId: string
@@ -1303,6 +1305,7 @@ const normalizeShareImageTask = (task?: RemoteShareImageTask): ManagedShareImage
   layoutMode: task?.layoutMode || task?.renderMode || 'timeline',
   miniProgramQrUrl: normalizeManagedAssetPath(task?.miniProgramQrUrl),
   qrCodeUrl: normalizeManagedAssetPath(task?.qrCodeUrl),
+  rendererVersion: task?.rendererVersion || '',
   retryCount: Number(task?.retryCount) || 0,
   selectedNodeIds: Array.isArray(task?.selectedNodeIds) ? task.selectedNodeIds.filter(Boolean) : [],
   sessionId: task?.sessionId || task?.partyId || '',
@@ -1619,7 +1622,7 @@ export const getManagedSessionBrief = async (briefId: string): Promise<ManagedSe
 
 export const createManagedShareImageTask = async (
   briefId: string,
-  payload: { includeLedger?: boolean; layoutMode?: string; selectedNodeIds?: string[] } = {},
+  payload: { includeLedger?: boolean; layoutMode?: string; rendererVersion?: string; selectedNodeIds?: string[] } = {},
 ): Promise<ManagedShareImageTask> => {
   try {
     return normalizeShareImageTask(

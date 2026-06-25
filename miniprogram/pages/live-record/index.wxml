@@ -78,14 +78,20 @@
     <view wx:if="{{activeSegment === 'share'}}" class="pp-panel pp-panel-yellow">
       <text class="pp-section-title">分享图</text>
       <text class="pp-body">结束聚会后会交给服务器生成超长回忆录，稍后可在相册记录里保存到手机。</text>
+      <view class="pp-button pp-button-secondary" style="width: 100%; margin-top: 14px;" bindtap="handleOpenShareAlbumTap">
+        <text>打开分享图相册</text>
+      </view>
     </view>
   </scroll-view>
-  <view wx:if="{{(activeSegment === 'record' || activeSegment === 'album') && (!sessionEnded || !sharePosterSaved)}}" class="pp-fixed-actions">
+  <view wx:if="{{activeSegment === 'record' || activeSegment === 'album' || activeSegment === 'share'}}" class="pp-fixed-actions">
     <block wx:if="{{!sessionEnded}}">
       <view class="pp-button pp-button-secondary {{quickPhotoSaving || finishSaving ? 'pp-button-disabled' : ''}}" bindtap="handleHighlightMomentTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-camera.png" mode="aspectFit"></image><text>{{quickPhotoSaving ? '保存中' : '继续拍照'}}</text></view>
       <view class="pp-button pp-button-primary {{finishSaving ? 'pp-button-disabled' : ''}}" bindtap="handleFinishTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-end.png" mode="aspectFit"></image><text>{{finishSaving ? '保存中' : finishMatchLabel}}</text></view>
     </block>
-    <view wx:else class="pp-button pp-button-primary {{finishSaving ? 'pp-button-disabled' : ''}}" bindtap="handleSaveEndedPosterTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-end.png" mode="aspectFit"></image><text>{{finishSaving ? '保存中' : finishMatchLabel}}</text></view>
+    <block wx:else>
+      <view class="pp-button pp-button-secondary" bindtap="handleOpenShareAlbumTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-album.png" mode="aspectFit"></image><text>去相册下载</text></view>
+      <view class="pp-button pp-button-primary {{finishSaving ? 'pp-button-disabled' : ''}}" bindtap="handleSaveEndedPosterTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-end.png" mode="aspectFit"></image><text>{{finishSaving ? '保存中' : finishMatchLabel}}</text></view>
+    </block>
   </view>
   <view wx:if="{{photoPreviewVisible}}" class="{{photoPreviewClass}}" catchtap="handlePhotoPreviewCloseTap">
     <view class="{{photoPreviewStageClass}}" catchtap="handlePhotoPreviewStopTap">

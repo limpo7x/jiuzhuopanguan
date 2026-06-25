@@ -23,7 +23,7 @@
         <image wx:if="{{item.coverUrl}}" class="pp-thumb" style="width: 92px; height: 82px;" src="{{item.coverUrl}}" mode="aspectFill" bindload="handleCoverLoad" binderror="handleCoverError"></image>
         <image wx:else class="pp-thumb" style="width: 92px; height: 82px;" src="https://cdn.pomer.cn/static/party-pop-clean/home-hero-750x420.png" mode="aspectFill"></image>
         <view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">{{item.meta}}</text></view>
-        <view wx:if="{{isShareMode}}" class="pp-chip" data-id="{{item.shareImageTaskId}}" data-image-url="{{item.shareImageUrl}}" catchtap="handleSaveShareImageTap">{{savingShareImageId === item.shareImageTaskId ? '保存中' : '保存到手机'}}</view>
+        <view wx:if="{{item.shareImageUrl}}" class="pp-chip" data-id="{{item.shareImageTaskId}}" data-image-url="{{item.shareImageUrl}}" catchtap="handleSaveShareImageTap">{{savingShareImageId === item.shareImageTaskId ? '保存中' : '保存到手机'}}</view>
         <text wx:else class="pp-chip">{{item.statusText}}</text>
       </view>
     </view>

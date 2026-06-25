@@ -471,7 +471,7 @@ const listUserShareImageSummariesFromNormalized = async ({ profile } = {}) => {
     throw new Error('MySQL is not enabled')
   }
   const pool = await ensureMysqlPool()
-  const [tasks] = await pool.query("SELECT * FROM `share_image_tasks` WHERE `status` = 'ready' AND `image_url` IS NOT NULL AND `image_url` <> ''")
+  const [tasks] = await pool.query('SELECT * FROM `share_image_tasks`')
   const [sessions] = await pool.query('SELECT `id`, `host_profile_id`, `name`, `state`, `status`, `ended_at` FROM `wine_sessions`')
   const [members] = await pool.query('SELECT `session_id`, `profile_id` FROM `wine_session_members`')
   const sessionById = new Map(sessions.map((item) => [cleanText(item.id), item]))
@@ -484,7 +484,8 @@ const listUserShareImageSummariesFromNormalized = async ({ profile } = {}) => {
     membersBySessionId.get(sessionId).push(member)
   }
 
-  return tasks
+  const latestBySessionId = new Map()
+  tasks
     .map((task) => ({
       session: sessionById.get(cleanText(task.session_id)),
       task,
@@ -492,6 +493,17 @@ const listUserShareImageSummariesFromNormalized = async ({ profile } = {}) => {
     .filter(({ session, task }) =>
       isEndedSession(session) && canAccessSessionFromNormalized(session, membersBySessionId.get(cleanText(task.session_id)) || [], profileId),
     )
+    .forEach((entry) => {
+      const sessionId = cleanText(entry.task.session_id)
+      const previous = latestBySessionId.get(sessionId)
+      const entryTime = toDateText(entry.task.finished_at || entry.task.updated_at || entry.task.created_at, entry.task.id)
+      const previousTime = previous ? toDateText(previous.task.finished_at || previous.task.updated_at || previous.task.created_at, previous.task.id) : ''
+      if (!previous || entryTime.localeCompare(previousTime) >= 0) {
+        latestBySessionId.set(sessionId, entry)
+      }
+    })
+
+  return Array.from(latestBySessionId.values())
     .map(({ session, task }) => {
       const imageUrl = cleanText(task.image_url)
       return {
@@ -501,7 +513,7 @@ const listUserShareImageSummariesFromNormalized = async ({ profile } = {}) => {
         briefId: cleanText(task.brief_id),
         status: cleanText(task.status),
         imageUrl,
-        readyShareImageUrl: imageUrl,
+        readyShareImageUrl: cleanText(task.status) === 'ready' ? imageUrl : '',
         posterImageUrl: imageUrl,
         miniProgramQrUrl: DEFAULT_MINI_PROGRAM_QR_URL,
         qrCodeUrl: DEFAULT_MINI_PROGRAM_QR_URL,

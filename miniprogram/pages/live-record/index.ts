@@ -171,6 +171,7 @@ interface LiveRecordMethods {
   handlePhotoImageLoad: (event: WechatMiniprogram.BaseEvent) => void
   handleLedgerTap: () => Promise<void>
   handleNextRoundTap: () => void
+  handleOpenShareAlbumTap: () => void
   handleTimerTick: () => void
   handleTimelineSelect: (event: WechatMiniprogram.BaseEvent | WechatMiniprogram.CustomEvent<{ id: string; nodeKind: string }>) => void
   loadTimeline: () => Promise<void>
@@ -1493,6 +1494,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       createManagedShareImageTask(brief.id, {
         includeLedger: true,
         layoutMode: 'full-timeline',
+        rendererVersion: 'live-page-v2',
       }),
       8000,
       '回忆录排队超时，请稍后在相册刷新',
@@ -1519,7 +1521,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     try {
       await this.queueEndedShareImageTask()
       this.setData({
-        finishMatchLabel: '已排队',
+        finishMatchLabel: '重新整理',
         sharePosterSaved: true,
       })
       toastMessage = SERVER_SHARE_IMAGE_QUEUED_MESSAGE
@@ -1618,7 +1620,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       await this.loadTimeline().catch(() => undefined)
       await this.queueEndedShareImageTask()
       this.setData({
-        finishMatchLabel: '已排队',
+        finishMatchLabel: '重新整理',
         sharePosterSaved: true,
       })
       toastTitle = SERVER_SHARE_IMAGE_QUEUED_MESSAGE
@@ -1675,6 +1677,10 @@ Page<LiveRecordState, LiveRecordMethods>({
 
   handleNextRoundTap() {
     this.openPage('/pages/ledger/index')
+  },
+
+  handleOpenShareAlbumTap() {
+    this.openPage('/pages/album/index?mode=shares')
   },
 
   async handleBackTap() {

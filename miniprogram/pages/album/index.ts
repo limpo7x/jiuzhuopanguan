@@ -346,18 +346,27 @@ const mapAlbumItem = async (item: ManagedSessionMomentSummary, index: number): P
   }
 }
 
+const buildShareImageSummaryStatusText = (status?: string, imageUrl = '') => {
+  if (status === 'ready' && imageUrl) return '分享图已生成'
+  if (status === 'processing') return '正在生成'
+  if (status === 'pending') return '等待生成'
+  if (status === 'failed') return '生成失败'
+  if (status === 'expired') return '已过期'
+  return imageUrl ? '分享图已生成' : '待生成'
+}
+
 const mapShareImageSummaryItem = (item: ManagedShareImageSummary, index: number): AlbumItem => ({
   briefId: item.briefId || '',
-  coverUrl: item.readyShareImageUrl || item.imageUrl || '',
-  meta: formatAlbumTime(item.finishedAt || item.updatedAt || item.createdAt) || '分享图已生成',
+  coverUrl: item.status === 'ready' ? item.readyShareImageUrl || item.imageUrl || '' : '',
+  meta: formatAlbumTime(item.finishedAt || item.updatedAt || item.createdAt) || buildShareImageSummaryStatusText(item.status, item.readyShareImageUrl || item.imageUrl),
   nominationDisabled: true,
-  nominationLabel: '已生成',
-  nominationState: 'done',
+  nominationLabel: buildShareImageSummaryStatusText(item.status, item.readyShareImageUrl || item.imageUrl),
+  nominationState: item.status === 'ready' ? 'done' : 'unavailable',
   sessionId: item.sessionId || '',
-  shareImageUrl: item.readyShareImageUrl || item.imageUrl || '',
+  shareImageUrl: item.status === 'ready' ? item.readyShareImageUrl || item.imageUrl || '' : '',
   shareImageTaskId: item.id || '',
   stateType: 'ended',
-  statusText: '分享图已生成',
+  statusText: buildShareImageSummaryStatusText(item.status, item.readyShareImageUrl || item.imageUrl),
   title: normalizeTitle(item.sessionName, item.sessionName, index),
   nominationReason: '',
 })
