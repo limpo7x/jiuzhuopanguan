@@ -1,116 +1,101 @@
-<navigation-bar
-  title="聚会记录师"
-  back="{{false}}"
-  color="#fff2dd"
-  background="rgba(18,16,14,0.72)"
-  ext-class="home-nav"
-></navigation-bar>
-
-<view class="page-shell home-redesign">
-  <image class="home-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/home-stage-party-bg.webp" mode="aspectFill"></image>
-  <scroll-view class="screen-body scroll-body with-tabs home-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="home-stage">
-      <view class="home-sticker home-sticker-a">⌁</view>
-      <view class="home-sticker home-sticker-b">☆</view>
-      <view class="home-camera-mark">▣</view>
-
-      <view class="home-brand-lockup">
-        <text class="home-brand-title">聚会记录师</text>
-        <text class="home-brand-subtitle">轻松记录每一次聚会的美好时刻</text>
-      </view>
-
-      <view class="home-main-actions">
-        <button class="home-action-primary party-cta party-cta-primary" bindtap="handlePrimaryTap">
-          <text class="home-action-icon">＋</text>
-          <text>创建聚会</text>
-        </button>
-        <view class="home-action-secondary party-cta party-cta-tertiary" bindtap="handleJoinByCodeTap">
-          <text class="home-action-icon">⌗</text>
-          <text>加入口令/扫码</text>
-        </view>
-        <view class="home-action-soft party-cta party-cta-secondary" bindtap="handleContinueRecordTap">
-          <text class="home-action-icon">◴</text>
-          <text>{{continueRecordLabel}}</text>
+<navigation-bar title="聚会记录师" back="{{false}}" customBack="{{false}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<view class="pp-page">
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pp-hero">
+      <image class="pp-hero-image" src="https://cdn.pomer.cn/static/party-pop-clean/home-hero-750x420.png" mode="aspectFill"></image>
+      <view class="pp-brand">
+        <view class="pp-logo">记</view>
+        <view class="pp-list-copy">
+          <text class="pp-kicker">PARTY RECORDER</text>
+          <text class="pp-title">聚会记录师</text>
+          <text class="pp-body">三步开局，拍下第一张照片，把现场变成可分享的回忆。</text>
         </view>
       </view>
-
-      <view wx:if="{{!loggedIn}}" class="home-login-entry" bindtap="handleLoginTextTap">
-        <text class="home-login-title">登录后创建聚会</text>
-        <text class="home-login-desc">用于保存房间、相册和成员记录</text>
+      <view class="pp-action-row" style="margin-top: 18px;">
+        <view class="pp-button pp-button-primary" bindtap="handlePrimaryTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-create.png" mode="aspectFit"></image><text>创建聚会</text></view>
+        <view class="pp-button pp-button-secondary" bindtap="handleJoinByCodeTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-join.png" mode="aspectFit"></image><text>口令加入</text></view>
       </view>
     </view>
 
-    <session-return-bar
-      visible="{{sessionReturn.visible}}"
-      title="{{sessionReturn.title}}"
-      meta="{{sessionReturn.meta}}"
-      status="{{sessionReturn.status}}"
-      bind:open="handleSessionReturnOpen"
-    ></session-return-bar>
+    <session-return-bar wx:if="{{sessionReturn.visible}}" data="{{sessionReturn}}" bind:open="handleSessionReturnOpen"></session-return-bar>
 
-    <view class="home-lite-panel">
-      <view class="home-lite-head">
-        <text class="home-lite-title">最近相册</text>
-        <text class="home-lite-link" bindtap="handleAlbumListTap">全部相册</text>
-      </view>
-      <view class="home-album-strip">
-        <view wx:for="{{home.recentTools}}" wx:key="id" class="home-album-shot" data-id="{{item.id}}" data-name="{{item.name}}" data-route="{{item.route}}" bindtap="handleAlbumTap">
-          <view class="home-album-image home-album-placeholder">
-            <image wx:if="{{item.imageUrl}}" class="home-album-cover" src="{{item.imageUrl}}" mode="scaleToFill"></image>
-            <text class="home-album-mark">{{item.badgeText}}</text>
-          </view>
-          <text class="home-album-label">{{item.name}}</text>
-          <text wx:if="{{item.usedAt}}" class="home-album-meta">{{item.usedAt}}</text>
+    <view wx:if="{{activeSessionCount > 0}}" class="pp-panel pp-panel-lime">
+      <view class="pp-row-between">
+        <view>
+          <text class="pp-section-title">正在进行</text>
+          <text class="pp-body">{{activeSessionCount}} 场聚会可继续记录</text>
         </view>
+        <view class="pp-button pp-button-ghost" bindtap="handleContinueRecordTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-continue.png" mode="aspectFit"></image><text>{{continueRecordLabel}}</text></view>
       </view>
     </view>
 
+    <view wx:if="{{!loggedIn}}" class="pp-panel">
+      <text class="pp-section-title">登录后保存回忆</text>
+      <text class="pp-body">同步你的聚会、相册和分享图。</text>
+      <view class="pp-button pp-button-lime" style="margin-top: 14px;" bindtap="handleLoginTextTap">微信授权登录</view>
+    </view>
+
+    <view class="pp-row-between">
+      <text class="pp-section-title">最近相册</text>
+      <text class="pp-chip" bindtap="handleAlbumListTap">全部相册</text>
+    </view>
+    <view wx:if="{{home.recentTools.length}}" class="pp-list">
+      <view wx:for="{{home.recentTools}}" wx:key="id" class="pp-list-item" data-route="{{item.route}}" data-id="{{item.id}}" bindtap="handleAlbumTap">
+        <image wx:if="{{item.imageUrl}}" class="pp-thumb" style="width: 82px; height: 72px;" src="{{item.imageUrl}}" mode="aspectFill"></image>
+        <image wx:else class="pp-thumb" style="width: 82px; height: 72px;" src="https://cdn.pomer.cn/static/party-pop-clean/home-hero-750x420.png" mode="aspectFill"></image>
+        <view class="pp-list-copy">
+          <text class="pp-list-title">{{item.name}}</text>
+          <text class="pp-caption">{{item.usedAt || '等待第一张照片'}}</text>
+        </view>
+        <text class="pp-chip">{{item.badgeText || '记录'}}</text>
+      </view>
+    </view>
+    <view wx:else class="pp-empty">
+      <image class="pp-empty-sticker" src="https://cdn.pomer.cn/static/party-pop-clean/empty-memory-sticker.png" mode="aspectFit"></image>
+      <text class="pp-section-title">还没有相册</text>
+      <text class="pp-body">创建聚会后，第一张照片会成为相册封面。</text>
+    </view>
   </scroll-view>
 
-  <view class="bottom-nav">
-    <view class="bottom-item active" data-tab="home" bindtap="handleTabTap">
-      <view class="bottom-icon nav-home active"></view>
-      <text class="bottom-label">首页</text>
-    </view>
-    <view class="bottom-item" data-tab="tools" bindtap="handleTabTap">
-      <view class="bottom-icon nav-judge"></view>
-      <text class="bottom-label">工具箱</text>
-    </view>
-    <view class="bottom-item" data-tab="rankings" bindtap="handleTabTap">
-      <view class="bottom-icon nav-rank"></view>
-      <text class="bottom-label">排行榜</text>
-    </view>
-    <view class="bottom-item" data-tab="me" bindtap="handleTabTap">
-      <view class="bottom-icon nav-me"></view>
-      <text class="bottom-label">我的</text>
-    </view>
-  </view>
-
-  <view wx:if="{{authPanelVisible}}" class="auth-panel-mask" bindtap="closeAuthPanel">
-    <form class="auth-panel" catchtap="noop" bindsubmit="handleLoginSubmit">
-      <view class="auth-panel-head">
-        <text class="auth-panel-title">微信授权登录</text>
-        <text class="auth-panel-close" bindtap="closeAuthPanel">关闭</text>
+  <view wx:if="{{authPanelVisible}}" class="pp-auth-mask" bindtap="closeAuthPanel">
+    <form class="pp-auth-panel" catchtap="noop" bindsubmit="handleLoginSubmit">
+      <view class="pp-row-between">
+        <text class="pp-title-sm">微信授权登录</text>
+        <text class="pp-chip" bindtap="closeAuthPanel">关闭</text>
       </view>
-      <view class="auth-avatar-row">
-        <button class="auth-avatar-btn" open-type="chooseAvatar" bindchooseavatar="handleAuthAvatar">
-          <image wx:if="{{authAvatarUrl}}" class="auth-avatar" src="{{authAvatarUrl}}" mode="aspectFill"></image>
-          <view wx:else class="auth-avatar"></view>
+      <view class="pp-auth-avatar-row">
+        <button class="pp-auth-avatar-frame" open-type="chooseAvatar" disabled="{{authSubmitting}}" bindchooseavatar="handleAuthAvatar">
+          <image wx:if="{{authAvatarUrl}}" class="pp-auth-avatar-image" src="{{authAvatarUrl}}" mode="aspectFill"></image>
+          <text wx:else class="pp-auth-avatar-placeholder">头像</text>
         </button>
-        <view class="auth-avatar-copy">
-          <text class="auth-avatar-title">点击头像授权</text>
-          <text class="auth-avatar-desc">用于聚会成员展示，不会使用默认图片占位。</text>
+        <view class="pp-auth-avatar-copy">
+          <text class="pp-list-title">微信头像</text>
+          <text class="pp-caption">用于聚会成员、相册和分享图展示。</text>
         </view>
       </view>
-      <input
-        class="auth-name-input"
-        name="nickname"
-        type="nickname"
-        placeholder="填写微信昵称"
-        value="{{authName}}"
-        bindinput="handleAuthNameInput"
-      />
-      <button class="auth-submit" form-type="submit" loading="{{authSubmitting}}">确认登录</button>
+      <input class="pp-input" name="nickname" type="nickname" placeholder="填写微信昵称" placeholder-class="pp-placeholder" value="{{authName}}" bindinput="handleAuthNameInput" style="margin-top: 14px;" />
+      <button class="pp-button pp-button-primary" form-type="submit" loading="{{authSubmitting}}" style="width: 100%; margin-top: 14px;">确认登录</button>
     </form>
   </view>
+
+<view class="pp-bottom-nav">
+  <view class="pp-bottom-item pp-bottom-item-active" data-tab="home" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-home-active.png" mode="aspectFit"></image>
+    <text>首页</text>
+  </view>
+  <view class="pp-bottom-item " data-tab="tools" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-tools.png" mode="aspectFit"></image>
+    <text>工具箱</text>
+  </view>
+  <view class="pp-bottom-item " data-tab="rankings" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-rank.png" mode="aspectFit"></image>
+    <text>排行榜</text>
+  </view>
+  <view class="pp-bottom-item " data-tab="me" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-me.png" mode="aspectFit"></image>
+    <text>我的</text>
+  </view>
+</view>
+  <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

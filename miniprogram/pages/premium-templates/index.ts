@@ -217,13 +217,13 @@ Page<PremiumTemplatesState, PremiumTemplatesMethods>({
   handleUnlockTap() {
     if (!this.data.membershipEnabled) {
       wx.showToast({
-        title: '权益入口暂未开放',
+        title: '仅展示真实配置',
         icon: 'none',
       })
       return
     }
     wx.navigateTo({
-      url: '/pages/member-center/index',
+      url: '/pages/feature-zones/index?zone=membership',
     })
   },
 })

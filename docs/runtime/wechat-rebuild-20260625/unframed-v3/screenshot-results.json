@@ -1,0 +1,30 @@
+[
+  {
+    "path": "/pages/index/index",
+    "ok": true,
+    "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\unframed-v3\\01-home.png",
+    "consoleCount": 0,
+    "error": ""
+  },
+  {
+    "path": "/pages/live-record/index",
+    "ok": true,
+    "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\unframed-v3\\04-live-record.png",
+    "consoleCount": 30,
+    "error": ""
+  },
+  {
+    "path": "/pages/me/index",
+    "ok": true,
+    "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\unframed-v3\\06-me.png",
+    "consoleCount": 30,
+    "error": ""
+  },
+  {
+    "path": "/pages/share-poster/index",
+    "ok": true,
+    "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\unframed-v3\\11-share-poster.png",
+    "consoleCount": 0,
+    "error": ""
+  }
+]

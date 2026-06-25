@@ -50,7 +50,7 @@ Page<CouponCenterState, CouponCenterMethods>({
           name: membership.membership.activePlanName || '会员权益已开通',
           desc: `有效期至 ${membership.membership.expiresAt || '长期有效'}`,
           tag: '会员',
-          route: '/pages/member-center/index',
+          route: '/pages/feature-zones/index?zone=membership',
         })
       }
 

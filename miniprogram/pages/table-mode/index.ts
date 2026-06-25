@@ -142,7 +142,7 @@ const buildReportEvents = (sessionName: string, rows: ScoreRow[]): Array<{ text:
   const rowsByWeak = [...rows].sort((a, b) => b.weakCount - a.weakCount)
 
   return [
-    { text: `${sessionName} 共 ${rows.length} 位玩家参与。` },
+    { text: `${sessionName} 共 ${rows.length} 位成员参与。` },
     { text: rowsByDebt[0] ? `${rowsByDebt[0].name} 欠酒 ${rowsByDebt[0].debt} 杯，为本局最高。` : '本局暂无欠酒记录。' },
     { text: rowsByDrink[0] ? `${rowsByDrink[0].name} 已喝 ${rowsByDrink[0].drink} 杯。` : '本局暂无饮酒记录。' },
     { text: rowsByCleared[0] ? `${rowsByCleared[0].name} 完成消杯 ${rowsByCleared[0].cleared} 次。` : '本局暂无消杯记录。' },
@@ -152,7 +152,7 @@ const buildReportEvents = (sessionName: string, rows: ScoreRow[]): Array<{ text:
           ? `${rowsByLikes[0].name} 获得 ${rowsByLikes[0].likeCount} 次点赞。`
           : rowsByWeak[0]?.weakCount > 0
             ? `${rowsByWeak[0].name} 被点了 ${rowsByWeak[0].weakCount} 次小拇指。`
-            : '本局还没有玩家互评记录。',
+            : '本局还没有成员互评记录。',
     },
   ]
 }
@@ -163,7 +163,7 @@ Page<TableModeState, TableModeMethods>({
     elapsedText: '00:00:00',
     isJudge: true,
     rows: [],
-    sessionName: '酒桌判官酒局',
+    sessionName: '聚会记录师聚会',
   },
 
   onLoad(query) {
@@ -228,7 +228,7 @@ Page<TableModeState, TableModeMethods>({
   handleClosingMomentTap() {
     const runtime = getSessionRuntime()
     if (!runtime.sessionId) {
-      this.showPreviewToast('未找到当前酒局')
+      this.showPreviewToast('未找到当前聚会')
       return
     }
 
@@ -295,7 +295,7 @@ Page<TableModeState, TableModeMethods>({
     void confirmLeaveSessionPage({
       cancelText: '留在桌面',
       confirmText: '返回记录',
-      content: '返回记录页继续调整本局数据，当前酒局不会结束。',
+      content: '返回记录页继续调整本局数据，当前聚会不会结束。',
       redirectUrl: fallbackUrl,
       title: '返回记录页',
     })
@@ -328,7 +328,7 @@ Page<TableModeState, TableModeMethods>({
 
     try {
       wx.showLoading({
-        title: '生成战报中',
+        title: '生成分享图中',
         mask: true,
       })
 
@@ -413,7 +413,7 @@ Page<TableModeState, TableModeMethods>({
       })
     } catch (error) {
       wx.showToast({
-        title: error instanceof Error ? error.message : '战报生成失败',
+        title: error instanceof Error ? error.message : '分享图生成失败',
         icon: 'none',
       })
     } finally {

@@ -3,7 +3,7 @@
 <view class="invite-friends-page">
   <scroll-view class="invite-friends-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="invite-friends-hero">
-      <text class="invite-friends-title">一起把酒局圈子拉起来</text>
+      <text class="invite-friends-title">一起把聚会圈子拉起来</text>
       <text class="invite-friends-subtitle">邀请越多，积分、模板和商户福利越多。</text>
     </view>
 

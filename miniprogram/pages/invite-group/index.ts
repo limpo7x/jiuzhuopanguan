@@ -48,7 +48,7 @@ interface InviteGroupMethods {
 }
 
 const SHARE_CARD_CANVAS_ID = 'inviteShareCardCanvas'
-const SHARE_CARD_FALLBACK_ASSET = 'https://cdn.pomer.cn/static/party-recorder/pr-cs008ak-native-share-thumb-1000x800.png'
+const SHARE_CARD_FALLBACK_ASSET = 'https://cdn.pomer.cn/static/party-pop-clean/home-hero-750x420.png'
 const internalDisplayPattern = /(PR\s+Seed|PR-BE-DB-LOGIN|IT-MOMENTS|DEBUG|openid|openId|unionId|signature)/i
 
 const cleanDisplayName = (value?: string, fallback = '好友') => {
@@ -71,6 +71,27 @@ const buildJoinStatusText = (joinedCount: number, playerCount: number) => {
     return `${joinedCount} 位好友已加入`
   }
   return '等待好友加入'
+}
+
+const resolveCanvasImagePath = (imageUrl: string) => {
+  const source = String(imageUrl || '').trim()
+  if (!/^https?:\/\//i.test(source)) {
+    return Promise.resolve(source)
+  }
+
+  return new Promise<string>((resolve, reject) => {
+    wx.downloadFile({
+      url: source,
+      success: (result) => {
+        if (result.statusCode >= 200 && result.statusCode < 300 && result.tempFilePath) {
+          resolve(result.tempFilePath)
+          return
+        }
+        reject(new Error(`download invite card image failed: ${result.statusCode}`))
+      },
+      fail: reject,
+    })
+  })
 }
 
 const buildAvatarSlots = (
@@ -109,6 +130,17 @@ const buildAvatarSlots = (
   })
 }
 
+const mergeCurrentProfileAvatar = <T extends InviteSlotPlayer>(players: T[] = [], currentUser?: InviteSlotPlayer | null): T[] => {
+  if (!currentUser?.profileId || !currentUser.avatarUrl) {
+    return players
+  }
+  return players.map((item) =>
+    item.profileId === currentUser.profileId && !normalizeInviteAvatar(item.avatarUrl)
+      ? { ...item, avatarUrl: currentUser.avatarUrl, name: item.name || currentUser.name }
+      : item,
+  ) as T[]
+}
+
 Page<InviteGroupState, InviteGroupMethods>({
   data: {
     avatarSlots: [],
@@ -141,13 +173,25 @@ Page<InviteGroupState, InviteGroupMethods>({
     const profile = await ensureUserAuthorized(`/pages/invite-group/index${redirectQuery ? `?${redirectQuery}` : ''}`)
     if (!profile) return
     this.setData({ currentProfileId: profile.id || '' })
+    setSessionRuntime({
+      currentUser: {
+        avatarUrl: profile.avatarUrl,
+        id: profile.id,
+        name: profile.name,
+      },
+    })
 
     try {
       await this.hydrateLiveSession(sessionId, inviteCode)
       enableSessionLeaveAlert()
     } catch {
       const playerCount = runtime.playerCount || 0
-      const selectedPlayers = runtime.selectedPlayers || []
+      const currentUser = {
+        avatarUrl: profile.avatarUrl,
+        name: profile.name,
+        profileId: profile.id,
+      }
+      const selectedPlayers = mergeCurrentProfileAvatar(runtime.selectedPlayers || [], currentUser)
       this.setData({
         avatarSlots: buildAvatarSlots(selectedPlayers, playerCount, {
           currentProfileId: profile.id || '',
@@ -185,22 +229,43 @@ Page<InviteGroupState, InviteGroupMethods>({
         statusAvatarMap.set(item.name, avatarUrl)
       }
     })
-    const joinedPlayers = (liveSession.joinedPlayers.length ? liveSession.joinedPlayers : liveSession.joinStatusPlayers)
-      .filter((item) => item.profileId || item.avatarUrl || item.name)
-      .map((item) => ({
+    const hostAvatarUrl = normalizeInviteAvatar(liveSession.hostAvatarUrl)
+    if (hostAvatarUrl) {
+      if (liveSession.hostProfileId) {
+        statusAvatarMap.set(liveSession.hostProfileId, hostAvatarUrl)
+      }
+      if (liveSession.hostName) {
+        statusAvatarMap.set(liveSession.hostName, hostAvatarUrl)
+      }
+    }
+    const applyKnownAvatars = <T extends InviteSlotPlayer>(players: T[] = []) =>
+      players.map((item) => ({
         ...item,
-        avatarUrl: normalizeInviteAvatar(item.avatarUrl) || (item.profileId ? statusAvatarMap.get(item.profileId) || '' : '') || statusAvatarMap.get(item.name) || '',
-      }))
-      .slice(0, liveSession.playerCount)
+        avatarUrl: normalizeInviteAvatar(item.avatarUrl) || (item.profileId ? statusAvatarMap.get(item.profileId) || '' : '') || (item.name ? statusAvatarMap.get(item.name) || '' : ''),
+      })) as T[]
     const runtime = getSessionRuntime()
     const currentProfileId = this.data.currentProfileId || runtime.currentUser?.id || ''
+    const currentUser = runtime.currentUser
+      ? {
+          avatarUrl: runtime.currentUser.avatarUrl,
+          name: runtime.currentUser.name,
+          profileId: runtime.currentUser.id,
+        }
+      : null
+    const joinedPlayers = mergeCurrentProfileAvatar(applyKnownAvatars(liveSession.joinedPlayers.length ? liveSession.joinedPlayers : liveSession.joinStatusPlayers)
+      .filter((item) => item.profileId || item.avatarUrl || item.name)
+      .slice(0, liveSession.playerCount), currentUser)
     const isJudge = Boolean(currentProfileId && currentProfileId === liveSession.hostProfileId)
+    const selectedPlayers = mergeCurrentProfileAvatar(
+      applyKnownAvatars(liveSession.joinStatusPlayers.length ? liveSession.joinStatusPlayers : joinedPlayers),
+      currentUser,
+    )
     setSessionRuntime({
       currentUser: runtime.currentUser,
       inviteCode: liveSession.inviteCode,
       isJudge,
       playerCount: liveSession.playerCount,
-      selectedPlayers: liveSession.joinStatusPlayers.length ? liveSession.joinStatusPlayers : joinedPlayers,
+      selectedPlayers,
       sessionId: liveSession.id,
       sessionName: liveSession.sessionName,
       templateName: liveSession.templateName,
@@ -245,7 +310,9 @@ Page<InviteGroupState, InviteGroupMethods>({
     })
   },
 
-  generateShareCardImage() {
+  async generateShareCardImage() {
+    const fallbackAssetPath = await resolveCanvasImagePath(SHARE_CARD_FALLBACK_ASSET).catch(() => '')
+
     return new Promise<void>((resolve) => {
       const ctx = wx.createCanvasContext(SHARE_CARD_CANVAS_ID, this)
       const width = 500
@@ -255,7 +322,11 @@ Page<InviteGroupState, InviteGroupMethods>({
       const statusText = this.data.joinStatusText || buildJoinStatusText(this.data.joinedCount, this.data.playerCount)
 
       try {
-        ctx.drawImage(SHARE_CARD_FALLBACK_ASSET, 0, 0, width, height)
+        ctx.setFillStyle('#00cbff')
+        ctx.fillRect(0, 0, width, height)
+        if (fallbackAssetPath) {
+          ctx.drawImage(fallbackAssetPath, 0, 0, width, height)
+        }
         ctx.setFillStyle('#2b1c16')
         ctx.setFontSize(28)
         ctx.setTextAlign('center')
@@ -421,4 +492,3 @@ Page<InviteGroupState, InviteGroupMethods>({
 })
 
 export {}
-

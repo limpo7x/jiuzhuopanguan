@@ -28,7 +28,7 @@
         </view>
         <view class="judge-primary" bindtap="handleCreateTap">
           <text>开始记录</text>
-          <view class="judge-primary-icon judge-icon-flash"></view>
+          <image class="button-icon" src="/assets/party-recorder-rebuild/icons-v3-imagegen/action-camera.png" mode="aspectFit"></image>
         </view>
       </view>
     </view>
@@ -42,7 +42,7 @@
         bindtap="handleEntryTap"
       >
         <view class="judge-tile-icon">
-          <view class="judge-tile-glyph {{item.iconClass}}"></view>
+          <image class="judge-tile-image" src="{{item.iconUrl}}" mode="aspectFit"></image>
         </view>
         <text class="judge-tile-label">{{item.name}}</text>
       </view>
@@ -101,19 +101,19 @@
 
   <view class="judge-tabbar">
     <view class="judge-tab-item" data-tab="home" bindtap="handleTabTap">
-      <view class="judge-tab-icon judge-nav-home"></view>
+      <image class="bottom-icon" src="/assets/party-recorder-rebuild/icons-v3-imagegen/tab-home.png" mode="aspectFit"></image>
       <text class="judge-tab-label">首页</text>
     </view>
     <view class="judge-tab-item" data-tab="album" bindtap="handleTabTap">
-      <view class="judge-tab-icon judge-nav-tools"></view>
+      <image class="bottom-icon" src="/assets/party-recorder-rebuild/icons-v3-imagegen/tab-tools.png" mode="aspectFit"></image>
       <text class="judge-tab-label">相册</text>
     </view>
     <view class="judge-tab-item judge-tab-active" data-tab="judge" bindtap="handleTabTap">
-      <view class="judge-tab-icon judge-nav-judge judge-nav-active"></view>
+      <image class="bottom-icon" src="/assets/party-recorder-rebuild/icons-v3-imagegen/action-camera.png" mode="aspectFit"></image>
       <text class="judge-tab-label">记录</text>
     </view>
     <view class="judge-tab-item" data-tab="me" bindtap="handleTabTap">
-      <view class="judge-tab-icon judge-nav-me"></view>
+      <image class="bottom-icon" src="/assets/party-recorder-rebuild/icons-v3-imagegen/tab-me.png" mode="aspectFit"></image>
       <text class="judge-tab-label">我的</text>
     </view>
   </view>

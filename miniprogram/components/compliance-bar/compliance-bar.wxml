@@ -1,4 +1,6 @@
-<view class="compliance-bar">
-  <text class="bar-icon">18+</text>
-  <text class="bar-copy">{{copy}}</text>
+<view class="pp-card pp-panel-cyan">
+  <view class="pp-row">
+    <text class="pp-chip pp-chip-active">18+</text>
+    <text class="pp-body">{{copy}}</text>
+  </view>
 </view>

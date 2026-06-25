@@ -1,65 +1,41 @@
-﻿<view class="weui-navigation-bar {{extClass}}">
-  <view class="weui-navigation-bar__inner {{ios ? 'ios' : 'android'}}" style="color: {{color}}; background: {{background}}; {{displayStyle}}; {{safeAreaTop}};">
-
-    <!-- 左侧按钮 -->
-    <view class='weui-navigation-bar__left' style="{{leftWidth}};">
+<view class="pp-nav {{extClass}}">
+  <view class="pp-nav-inner" style="{{displayStyle}} {{safeAreaTop}}">
+    <view class="pp-nav-left" style="{{leftWidth}}">
       <block wx:if="{{back || homeButton}}">
-        <!-- 返回上一?-->
-        <block wx:if="{{back}}">
-          <view class="weui-navigation-bar__buttons weui-navigation-bar__buttons_goback">
-            <view
-              bindtap="back"
-              class="weui-navigation-bar__btn_goback_wrapper"
-              hover-class="weui-active"
-              hover-stay-time="100"
-              aria-role="button"
-              aria-label="返回"
-            >
-              <view class="weui-navigation-bar__button weui-navigation-bar__btn_goback"></view>
-            </view>
-          </view>
-        </block>
-        <!-- 返回首页 -->
-        <block wx:if="{{homeButton}}">
-          <view class="weui-navigation-bar__buttons weui-navigation-bar__buttons_home">
-            <view
-              bindtap="home"
-              class="weui-navigation-bar__btn_home_wrapper"
-              hover-class="weui-active"
-              aria-role="button"
-              aria-label="首页"
-            >
-              <view class="weui-navigation-bar__button weui-navigation-bar__btn_home"></view>
-            </view>
-          </view>
-        </block>
+        <view
+          wx:if="{{back}}"
+          class="pp-nav-button"
+          bindtap="back"
+          aria-role="button"
+          aria-label="返回"
+        >
+          <view class="pp-nav-arrow"></view>
+        </view>
+        <view
+          wx:elif="{{homeButton}}"
+          class="pp-nav-button"
+          bindtap="home"
+          aria-role="button"
+          aria-label="首页"
+        >
+          <view class="pp-nav-home-dot"></view>
+        </view>
       </block>
       <block wx:else>
         <slot name="left"></slot>
       </block>
     </view>
 
-    <!-- 标题 -->
-    <view class='weui-navigation-bar__center'>
-      <view wx:if="{{loading}}" class="weui-navigation-bar__loading" aria-role="alert">
-        <view
-          class="weui-loading"
-          aria-role="img"
-          aria-label="加载中"
-        ></view>
-      </view>
-      <block wx:if="{{title}}">
-        <text>{{title}}</text>
-      </block>
+    <view class="pp-nav-center">
+      <view wx:if="{{loading}}" class="pp-loading-dot" aria-role="alert"></view>
+      <text wx:if="{{title}}">{{title}}</text>
       <block wx:else>
         <slot name="center"></slot>
       </block>
     </view>
-    
-    <!-- 右侧留空 -->
-    <view class='weui-navigation-bar__right' style="{{rightWidth}}">
+
+    <view class="pp-nav-right" style="{{rightWidth}}">
       <slot name="right"></slot>
     </view>
   </view>
 </view>
-

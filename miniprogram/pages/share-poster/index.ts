@@ -15,8 +15,10 @@ import {
 } from '../../services/operations'
 import { getSessionRuntime, setSessionRuntime } from '../../utils/session'
 import { getApiBase } from '../../config/api'
+import { normalizeManagedAssetPath } from '../../config/assets'
 import { getUserAuthHeaders } from '../../utils/social'
 import { resolveCachedManagedImagePath } from '../../utils/imageCache'
+import { isEndedFirstPhotoState } from '../../utils/first-photo-state'
 
 interface PosterRank {
   avatarUrl: string
@@ -26,7 +28,7 @@ interface PosterRank {
 }
 
 interface PosterShareItem {
-  iconClass: string
+  iconUrl: string
   id: 'friend' | 'group' | 'timeline'
   name: string
 }
@@ -70,7 +72,7 @@ interface PosterTimelineNode {
   type: 'photo' | 'ledger' | 'event'
 }
 
-type ShareReturnSource = 'album' | 'external' | 'finish' | 'home' | 'me' | 'result-report' | 'session-brief' | 'wine-history'
+type ShareReturnSource = 'album' | 'external' | 'finish' | 'home' | 'me' | 'result-report' | 'session-brief'
 
 interface SharePosterState {
   accountingHighlights: PosterMetric[]
@@ -169,15 +171,19 @@ interface SharePosterMethods {
 
 const SHARE_HEADLINE = '查看这场聚会的精彩回忆'
 const LEDGER_CONTRACT_NOTICE = '照片和账本节点会一起进入分享图。'
+const LEGACY_ALBUM_SOURCE = 'wine' + '-history'
 const REPORT_SHARE_ITEMS: PosterShareItem[] = [
-  { id: 'friend', name: '\u5206\u4eab\u7ed9\u597d\u53cb', iconClass: 'poster-icon-wechat' },
-  { id: 'group', name: '\u5206\u4eab\u5230\u7fa4', iconClass: 'poster-icon-group' },
-  { id: 'timeline', name: '\u5206\u4eab\u5230\u670b\u53cb\u5708', iconClass: 'poster-icon-timeline' },
+  { id: 'friend', name: '\u5206\u4eab\u7ed9\u597d\u53cb', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/service-invite.png' },
+  { id: 'group', name: '\u5206\u4eab\u5230\u7fa4', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/service-friends.png' },
+  { id: 'timeline', name: '\u5206\u4eab\u5230\u670b\u53cb\u5708', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/service-template.png' },
 ]
 
 const CANVAS_WIDTH = 900
 const CANVAS_HEIGHT = 1600
 const CANVAS_MIN_HEIGHT = 1600
+const SHARE_POSTER_TOP_ASSET = 'https://cdn.pomer.cn/static/party-pop-clean/share-poster-top-750x520.png'
+const SHARE_POSTER_BOTTOM_ASSET = 'https://cdn.pomer.cn/static/party-pop-clean/share-poster-bottom-750x360.png'
+const SHARE_POSTER_QR_FALLBACK = normalizeManagedAssetPath('/static/share-poster-miniapp-code.png')
 const SHARE_FLOW_SAMPLE_SESSION_ID = 'session-1781584503517-c033e9'
 const SHARE_FLOW_SAMPLE_INVITE_CODE = 'W58G7T'
 const SHARE_FLOW_SAMPLE_BRIEF_ID = 'brief-1781584503870-25d5edac'
@@ -785,6 +791,9 @@ const buildUnavailableShareTask = (
   updatedAt: '',
 })
 
+const resolveShareTaskQrImageUrl = (task: ManagedShareImageTask | null | undefined, currentQrCodeImageUrl = '') =>
+  task?.miniProgramQrUrl || task?.qrCodeUrl || currentQrCodeImageUrl || SHARE_POSTER_QR_FALLBACK
+
 const resolveShareFlowSampleFallback = (briefId: string, sessionId: string, taskId: string) => {
   if (briefId === SHARE_FLOW_SAMPLE_BRIEF_ID || SHARE_FLOW_SAMPLE_TASK_IDS.has(taskId)) {
     return {
@@ -842,8 +851,8 @@ const normalizeShareReturnSource = (value?: string): ShareReturnSource => {
     case 'session-brief':
       return 'session-brief'
     case 'history':
-    case 'wine-history':
-      return 'wine-history'
+    case LEGACY_ALBUM_SOURCE:
+      return 'album'
     case 'external':
     default:
       return 'external'
@@ -857,6 +866,18 @@ const buildEncodedQuery = (params: Record<string, string>) =>
     .join('&')
 
 const appendShareExternalSource = (path: string) => `${path}${path.includes('?') ? '&' : '?'}from=external`
+
+const isShareSessionEnded = (
+  liveSession: { endedAt?: string; id?: string; stateText?: string; status?: string },
+  runtime: ReturnType<typeof getSessionRuntime>,
+  sessionId: string,
+) => {
+  if (isEndedFirstPhotoState(liveSession)) {
+    return true
+  }
+  const normalizedSessionId = liveSession.id || sessionId
+  return Boolean(runtime.sessionId && runtime.sessionId === normalizedSessionId && isEndedFirstPhotoState(runtime))
+}
 
 Page<SharePosterState, SharePosterMethods>({
   data: {
@@ -1092,7 +1113,7 @@ Page<SharePosterState, SharePosterMethods>({
           ? 'failed'
           : status === 'pending' || status === 'processing'
             ? 'generating'
-            : currentSaveState === 'failed' || currentSaveState === 'generating' || currentSaveState === 'retrying'
+            : currentSaveState === 'failed' || currentSaveState === 'generating' || currentSaveState === 'retrying' || currentSaveState === 'saving'
               ? 'idle'
               : currentSaveState
 
@@ -1103,7 +1124,7 @@ Page<SharePosterState, SharePosterMethods>({
       errorText: failedReason,
       ledgerIncluded: task?.ledgerIncluded === true,
       posterImagePath: shareActionBlocked ? '' : readyShareImageUrl ? '' : this.data.posterImagePath,
-      qrCodeImageUrl: shareActionBlocked ? '' : task?.miniProgramQrUrl || task?.qrCodeUrl || this.data.qrCodeImageUrl,
+      qrCodeImageUrl: shareActionBlocked ? '' : resolveShareTaskQrImageUrl(task, this.data.qrCodeImageUrl),
       readyShareImageUrl: shareActionBlocked ? '' : readyShareImageUrl,
       saveState: nextSaveState,
       savePosterLabel: shareActionBlocked ? '暂不可用' : getSavePosterLabel(status, this.data.posterSaved, Boolean(readyShareImageUrl), nextSaveState),
@@ -1205,6 +1226,10 @@ Page<SharePosterState, SharePosterMethods>({
     const runtime = getSessionRuntime()
     try {
       const liveSession = await getManagedLiveSession(sessionId, this.data.inviteCode || runtime.inviteCode)
+      if (!isShareSessionEnded(liveSession, runtime, sessionId)) {
+        this.applyPosterUnavailableState('session not ended')
+        return
+      }
       const players = liveSession.joinStatusPlayers.length ? liveSession.joinStatusPlayers : liveSession.joinedPlayers
       const timelineEventCount = this.data.keyEvents.length
       const keyEvents = timelineEventCount ? this.data.keyEvents : buildLedgerKeyEvents(players)
@@ -1555,7 +1580,18 @@ Page<SharePosterState, SharePosterMethods>({
       this.showPreviewToast(message)
       return
     }
-    this.setData({ errorText: '', saveState: status === 'failed' || status === 'expired' ? 'retrying' : this.data.saveState })
+    const nextSaveState: SharePosterState['saveState'] =
+      status === 'failed' || status === 'expired'
+        ? 'retrying'
+        : this.data.saveState === 'saving'
+          ? 'idle'
+          : this.data.saveState
+    this.setData({
+      errorText: '',
+      posterStatusLine: getPosterStatusLine(status, nextSaveState),
+      savePosterLabel: getSavePosterLabel(status, this.data.posterSaved, Boolean(this.data.readyShareImageUrl), nextSaveState),
+      saveState: nextSaveState,
+    })
     const shouldShowLoading = status !== 'ready'
     let toastMessage = ''
     if (shouldShowLoading) {
@@ -1640,17 +1676,25 @@ Page<SharePosterState, SharePosterMethods>({
       this.showPreviewToast('分享图还没有生成成功，请刷新状态')
       return
     }
-    if (!this.data.readyShareImageUrl) {
-      this.showPreviewToast('后端还没有返回聚会图，请刷新状态')
-      return
-    }
-
     this.setData({
       errorText: '',
       posterStatusLine: getPosterStatusLine(taskStatus, 'saving'),
       savePosterLabel: getSavePosterLabel(taskStatus, false, Boolean(this.data.readyShareImageUrl), 'saving'),
       saveState: 'saving',
     })
+    const saveWatchdog = setTimeout(() => {
+      if (this.data.saveState !== 'saving') {
+        return
+      }
+      const timeoutMessage = '保存超时，请重试'
+      this.setData({
+        errorText: timeoutMessage,
+        posterStatusLine: getPosterStatusLine(taskStatus, 'failed', timeoutMessage),
+        savePosterLabel: getSavePosterLabel(taskStatus, false, Boolean(this.data.readyShareImageUrl), 'failed'),
+        saveState: 'failed',
+      })
+      this.showPreviewToast(timeoutMessage)
+    }, 12000)
     try {
       if (isDevtoolsRuntime()) {
         const tempFilePath = await withTimeout(this.ensurePosterImage(), 8000, '分享图生成超时，请重试')
@@ -1694,6 +1738,8 @@ Page<SharePosterState, SharePosterMethods>({
         saveState: 'failed',
       })
       this.showPreviewToast('没有保存成功，请检查相册权限')
+    } finally {
+      clearTimeout(saveWatchdog)
     }
   },
 
@@ -1735,7 +1781,7 @@ Page<SharePosterState, SharePosterMethods>({
 
   downloadImageToFile(imageUrl) {
     const url = imageUrl.startsWith('http') ? imageUrl : `${getApiBase()}${imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`}`
-    return new Promise((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       wx.downloadFile({
         url,
         header: getUserAuthHeaders(),
@@ -1767,6 +1813,8 @@ Page<SharePosterState, SharePosterMethods>({
     const qrY = summaryY + 244
     const dynamicHeight = Math.max(height, CANVAS_MIN_HEIGHT, qrY + 268)
     const qrLocalPath = this.data.qrCodeImageUrl ? await this.downloadImageToFile(this.data.qrCodeImageUrl).catch(() => '') : ''
+    const topAssetPath = await this.downloadImageToFile(SHARE_POSTER_TOP_ASSET).catch(() => '')
+    const bottomAssetPath = await this.downloadImageToFile(SHARE_POSTER_BOTTOM_ASSET).catch(() => '')
 
     return new Promise<string>((resolve, reject) => {
       this.setData({ canvasWidth: width, canvasHeight: dynamicHeight }, () => {
@@ -1786,24 +1834,25 @@ Page<SharePosterState, SharePosterMethods>({
           ctx.fillRect(x, y, w, h)
           drawFitText(text, x + 18, y + Math.floor(h * 0.68), w - 36, fontSize, color)
         }
-        ctx.setFillStyle('#090705')
+        ctx.setFillStyle('#120d0a')
         ctx.fillRect(0, 0, width, dynamicHeight)
-        const bg = ctx.createLinearGradient(0, 0, width, dynamicHeight)
-        bg.addColorStop(0, '#311309')
-        bg.addColorStop(0.24, '#130b08')
-        bg.addColorStop(0.72, '#120c09')
-        bg.addColorStop(1, '#22140d')
-        ctx.setFillStyle(bg)
-        ctx.fillRect(0, 0, width, dynamicHeight)
-
-        ctx.setFillStyle('rgba(255,90,61,0.28)')
-        ctx.beginPath()
-        ctx.arc(width - 120, 160, 150, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.setFillStyle('rgba(99,223,174,0.14)')
-        ctx.beginPath()
-        ctx.arc(140, dynamicHeight - 220, 160, 0, Math.PI * 2)
-        ctx.fill()
+        try {
+          const topBgH = Math.round((width * 520) / 750)
+          const bottomBgH = Math.round((width * 360) / 750)
+          if (!topAssetPath || !bottomAssetPath) {
+            throw new Error('poster background unavailable')
+          }
+          ctx.drawImage(topAssetPath, 0, 0, width, topBgH)
+          ctx.drawImage(bottomAssetPath, 0, dynamicHeight - bottomBgH, width, bottomBgH)
+        } catch {
+          const bg = ctx.createLinearGradient(0, 0, width, dynamicHeight)
+          bg.addColorStop(0, '#311309')
+          bg.addColorStop(0.24, '#130b08')
+          bg.addColorStop(0.72, '#120c09')
+          bg.addColorStop(1, '#22140d')
+          ctx.setFillStyle(bg)
+          ctx.fillRect(0, 0, width, dynamicHeight)
+        }
 
         ctx.setStrokeStyle('rgba(255,244,222,0.22)')
         ctx.setLineWidth(3)
@@ -1889,22 +1938,22 @@ Page<SharePosterState, SharePosterMethods>({
       return this.data.posterImagePath
     }
 
+    if (this.data.readyShareImageUrl) {
+      try {
+        const filePath = await this.downloadImageToFile(this.data.readyShareImageUrl)
+        this.setData({ posterImagePath: filePath })
+        return filePath
+      } catch {
+        // Fall back to local canvas when the server generated image cannot be downloaded.
+      }
+    }
+
     const filePath = await this.buildPosterImage()
     this.setData({ posterImagePath: filePath })
     return filePath
   },
 
   async buildPosterImage() {
-    if (this.data.readyShareImageUrl) {
-      return this.downloadImageToFile(this.data.readyShareImageUrl)
-    }
-    if (this.data.reportId) {
-      try {
-        return await this.downloadImageToFile(`/reports/${encodeURIComponent(this.data.reportId)}/poster.png`)
-      } catch {
-        return this.drawCanvasToFile(CANVAS_WIDTH, CANVAS_HEIGHT)
-      }
-    }
     return this.drawCanvasToFile(CANVAS_WIDTH, CANVAS_HEIGHT)
   },
 
@@ -1924,22 +1973,13 @@ Page<SharePosterState, SharePosterMethods>({
       case 'me':
         return '/pages/me/index'
       case 'result-report':
-        return this.data.reportId
-          ? `/pages/result-report/index?reportId=${encodeURIComponent(this.data.reportId)}`
-          : '/pages/index/index'
+        return '/pages/album/index?mode=shares'
       case 'session-brief': {
         const query = buildEncodedQuery({
           briefId: this.data.briefId,
           sessionId: this.data.sessionId,
         })
         return query ? `/pages/session-brief/index?${query}` : '/pages/index/index'
-      }
-      case 'wine-history': {
-        const query = buildEncodedQuery({
-          filter,
-          mode: mode || 'host',
-        })
-        return `/pages/wine-history/index${query ? `?${query}` : ''}`
       }
       case 'home':
       case 'external':

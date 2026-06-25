@@ -17,7 +17,6 @@ interface CreateSessionState {
 
 interface CreateSessionMethods {
   handleBackTap: () => void
-  handleMoreTemplatesTap: () => void
   handleSessionNameInput: (event: WechatMiniprogram.Input) => void
   handleNextTap: () => Promise<void>
   handlePlayerCountTap: (event: WechatMiniprogram.BaseEvent) => void
@@ -44,7 +43,7 @@ Page<CreateSessionState, CreateSessionMethods>({
       { name: '团建聚会' },
       { name: '周末小聚' },
       { name: '家庭聚会' },
-      { name: '露营相册' },
+      { name: '聚会记录' },
     ],
   },
 
@@ -183,13 +182,6 @@ Page<CreateSessionState, CreateSessionMethods>({
     } finally {
       wx.hideLoading()
     }
-  },
-
-  handleMoreTemplatesTap() {
-    wx.showToast({
-      title: '高级设置暂未开放，当前可直接调整人数',
-      icon: 'none',
-    })
   },
 })
 

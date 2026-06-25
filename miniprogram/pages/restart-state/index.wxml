@@ -12,7 +12,7 @@
   <scroll-view class="restart-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="restart-center">
       <text class="restart-title">换个玩法，继续快乐！</text>
-      <view class="restart-state-image"></view>
+      <view class="session-state-image"></view>
     </view>
 
     <view class="restart-section-head">

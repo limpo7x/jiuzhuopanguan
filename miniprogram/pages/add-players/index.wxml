@@ -1,5 +1,5 @@
 <navigation-bar
-  title="创建酒局"
+  title="创建聚会"
   back="{{true}}"
   color="#24160f"
   background="rgba(255,253,248,0.96)"
@@ -11,11 +11,11 @@
     <view class="players-progress">
       <view class="players-progress-step players-progress-step-done">
         <text class="players-progress-dot">1</text>
-        <text>创建酒局</text>
+        <text>创建聚会</text>
       </view>
       <view class="players-progress-step players-progress-step-done">
         <text class="players-progress-dot">2</text>
-        <text>玩法设置</text>
+        <text>聚会设置</text>
       </view>
       <view class="players-progress-step players-progress-step-active">
         <text class="players-progress-dot">3</text>
@@ -23,7 +23,7 @@
       </view>
     </view>
 
-    <text class="players-heading">预选玩家（{{selectedCount}}/{{inviteLimit}}，判官本人已在局内）</text>
+    <text class="players-heading">预选成员（{{selectedCount}}/{{inviteLimit}}，发起人已在聚会内）</text>
 
     <view class="players-search">
       <view class="players-search-icon players-icon-search"></view>
@@ -69,7 +69,7 @@
     </view>
 
     <view class="players-section-head">
-      <text class="players-section-title">常用玩家</text>
+      <text class="players-section-title">常用成员</text>
       <text class="players-section-link">更多</text>
     </view>
 
@@ -104,7 +104,7 @@
     </view>
 
     <view wx:if="{{!filteredPlayers.length && !createCandidateName}}" class="players-empty">
-      <text class="players-empty-title">还没有可预选的酒友</text>
+      <text class="players-empty-title">还没有可预选的好友</text>
       <text class="players-empty-meta">可以先去分享邀请；好友通过链接或邀请码加入后会进入本局</text>
     </view>
 

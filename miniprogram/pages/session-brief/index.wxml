@@ -1,76 +1,49 @@
-<navigation-bar
-  title="聚会简报"
-  back="{{true}}"
-  customBack="{{true}}"
-  bind:back="handleBackTap"
-  color="#24160f"
-  background="rgba(255,253,248,0.96)"
-  ext-class="brief-nav"
-></navigation-bar>
-
-<view class="brief-page">
-  <scroll-view class="brief-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="brief-hero">
-      <view class="brief-tag-row">
-        <text class="brief-tag">{{rankingStatusText}}</text>
-        <text class="brief-tag brief-tag-soft">{{closingCountText}}</text>
+<navigation-bar title="聚会简报" back="{{true}}" customBack="{{true}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<view class="pp-page">
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pp-hero pp-panel-lime">
+      <text class="pp-kicker">{{subtitle}}</text>
+      <text class="pp-title">{{briefTitle || '聚会简报'}}</text>
+      <text class="pp-body">{{closingCountText}}</text>
+      <view wx:if="{{stats.length}}" class="pp-stat-row" style="margin-top: 14px;">
+        <view wx:for="{{stats}}" wx:key="label" class="pp-stat"><text class="pp-stat-value">{{item.value}}</text><text class="pp-stat-label">{{item.label}}</text></view>
       </view>
-      <text class="brief-title">{{briefTitle}}</text>
-      <text class="brief-subtitle">{{subtitle}}</text>
-      <view class="brief-stat-grid">
-        <view wx:for="{{stats}}" wx:key="label" class="brief-stat">
-          <text class="brief-stat-value">{{item.value}}</text>
-          <text class="brief-stat-label">{{item.label}}</text>
-        </view>
+      <view class="pp-action-row" style="margin-top: 16px;">
+        <view class="pp-button pp-button-secondary" bindtap="handleRefreshTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-refresh.png" mode="aspectFit"></image><text>刷新</text></view>
+        <view class="pp-button pp-button-ghost" bindtap="handleRankingTap">今日回忆榜</view>
       </view>
-      <view class="brief-ranking-action" bindtap="handleRankingTap">查看今日回忆榜</view>
     </view>
-
-    <view wx:if="{{loading}}" class="brief-loading">加载中...</view>
-
-    <block wx:else>
-      <moment-timeline
-        nodes="{{timelineNodes}}"
-        loading="{{false}}"
-        empty-text="{{timelineEmptyText}}"
-        bind:select="handleTimelineSelect"
-      ></moment-timeline>
-      <view wx:if="{{previewableImageCount}}" class="brief-image-preview-probe" bindtap="handlePreviewFirstImageTap">查看大图</view>
-
-      <view class="brief-section">
-        <view class="brief-section-head">
-          <text class="brief-section-title">照片推举</text>
-          <view class="brief-section-action" bindtap="handleRefreshTap">刷新</view>
-        </view>
-
-        <view wx:if="{{nominationItems.length}}" class="brief-nomination-list">
-          <view
-            wx:for="{{nominationItems}}"
-            wx:key="id"
-            class="brief-nomination-card {{item.buttonDisabled ? 'brief-nomination-card-disabled' : ''}}"
-          >
-            <image class="brief-nomination-image" src="{{item.imageUrl}}" mode="aspectFill"></image>
-            <view class="brief-nomination-copy">
-              <view class="brief-nomination-title-row">
-                <text class="brief-nomination-title">{{item.title}}</text>
-                <text wx:if="{{item.timeText}}" class="brief-nomination-time">{{item.timeText}}</text>
-              </view>
-              <text class="brief-nomination-meta">{{item.statusText}}</text>
-              <text class="brief-nomination-caption">{{item.caption}}</text>
+    <view wx:if="{{loading}}" class="pp-loading"><view class="pp-loading-dot"></view><text>加载中</text></view>
+    <view wx:elif="{{errorText}}" class="pp-empty"><text class="pp-section-title">{{errorText}}</text><view class="pp-button pp-button-secondary" bindtap="handleRefreshTap">重试</view></view>
+    <view wx:else class="pp-stack">
+      <view class="pp-panel">
+        <text class="pp-section-title">时间线</text>
+        <view wx:if="{{timelineDisplayItems.length}}" class="pp-timeline" style="margin-top: 14px;">
+          <view wx:for="{{timelineDisplayItems}}" wx:key="id" class="pp-timeline-item" data-id="{{item.id}}" data-node-kind="{{item.nodeKind}}" bindtap="handleTimelineSelect">
+            <view class="pp-row-between">
+              <text class="pp-caption">{{item.timeText}}</text>
+              <text class="pp-chip pp-chip-active">{{item.actionLabel}}</text>
             </view>
-            <view
-              class="brief-nomination-action {{item.buttonDisabled ? 'brief-nomination-action-disabled' : ''}}"
-              data-moment-id="{{item.id}}"
-              catchtap="handleNominatePhotoTap"
-            >{{nominationSubmittingMomentId === item.id ? '处理中' : item.buttonLabel}}</view>
+            <image wx:if="{{item.imageUrl}}" class="pp-cover" style="width: 100%; height: 150px; margin-top: 10px;" src="{{item.imageUrl}}" mode="aspectFill"></image>
+            <text class="pp-list-title">{{item.title}}</text>
+            <text class="pp-body">{{item.detail}}</text>
           </view>
         </view>
-
-        <view wx:else class="brief-share-empty brief-nomination-empty">
-          <text class="brief-share-title">还没有可推举照片</text>
-          <text class="brief-share-meta">{{nominationEmptyText}}</text>
-        </view>
+        <text wx:else class="pp-body">{{timelineEmptyText}}</text>
       </view>
-    </block>
+      <view class="pp-panel">
+        <view class="pp-row-between"><text class="pp-section-title">照片推举</text><text class="pp-chip">{{rankingStatusText}}</text></view>
+        <view wx:if="{{nominationItems.length}}" class="pp-list" style="margin-top: 14px;">
+          <view wx:for="{{nominationItems}}" wx:key="id" class="pp-list-item">
+            <image wx:if="{{item.imageUrl}}" class="pp-thumb" style="width: 72px; height: 72px;" src="{{item.imageUrl}}" mode="aspectFill"></image>
+            <view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">{{item.statusText || item.reason}}</text></view>
+            <text class="pp-chip" data-moment-id="{{item.id}}" bindtap="handleNominatePhotoTap">推举</text>
+          </view>
+        </view>
+        <text wx:else class="pp-body">{{nominationEmptyText}}</text>
+      </view>
+    </view>
   </scroll-view>
+  <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

@@ -180,6 +180,7 @@ const staticAssetMap = {
   '/static/share-miniapp-qr.png': resolveFirstExistingPath(
     path.join(publicStaticDir, 'share-miniapp-qr.png'),
     path.join(assetsDir, 'home', 'share-miniapp-qr.png'),
+    sharePosterMiniappCodePath,
   ),
   '/static/share-poster-miniapp-code.png': resolveFirstExistingPath(
     sharePosterMiniappCodePath,

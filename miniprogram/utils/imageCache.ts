@@ -95,6 +95,10 @@ const isCacheableRemoteImage = (source: string) => {
     return false
   }
 
+  if (/^https:\/\/cdn\.pomer\.cn\/(static|uploads|moments)\//i.test(source)) {
+    return true
+  }
+
   const origin = getApiOrigin()
   if (!origin || !source.startsWith(origin)) {
     return false

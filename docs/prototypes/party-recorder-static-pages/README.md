@@ -15,7 +15,7 @@ npm.cmd run build:static-pages
 覆盖范围：
 
 - app.json 正式页面：21
-- miniprogram/pages 历史或未注册页面：19
-- 页面总数：40
+- miniprogram/pages 历史或未注册页面：26
+- 页面总数：47
 
 说明：该目录是浏览器可打开的静态页面组，用于走查页面结构、文案、交互方法和跳转关系；它不替代微信小程序运行时，不连接 api.pomer.cn，也不会触碰 pomer.cn 官网。

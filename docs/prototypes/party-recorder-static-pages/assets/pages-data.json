@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-24T12:17:25.082Z",
+  "generatedAt": "2026-06-25T08:00:19.185Z",
   "productName": "聚会记录师",
   "routeFileMap": {
     "pages/album/index": "pages/pages-album-index.html",
@@ -24,20 +24,27 @@
     "pages/tools/index": "pages/pages-tools-index.html",
     "pages/waiting-room/index": "pages/pages-waiting-room-index.html",
     "pages/add-players/index": "pages/pages-add-players-index.html",
+    "pages/admin-console/index": "pages/pages-admin-console-index.html",
+    "pages/admin-home-config/index": "pages/pages-admin-home-config-index.html",
+    "pages/admin-points-config/index": "pages/pages-admin-points-config-index.html",
+    "pages/admin-template-config/index": "pages/pages-admin-template-config-index.html",
     "pages/coupon-center/index": "pages/pages-coupon-center-index.html",
     "pages/favorites/index": "pages/pages-favorites-index.html",
     "pages/flow-overview/index": "pages/pages-flow-overview-index.html",
     "pages/invite-friends/index": "pages/pages-invite-friends-index.html",
+    "pages/join-claim/index": "pages/pages-join-claim-index.html",
     "pages/judge-wheel/index": "pages/pages-judge-wheel-index.html",
     "pages/judge/index": "pages/pages-judge-index.html",
     "pages/logs/index": "pages/pages-logs-index.html",
     "pages/member-center/index": "pages/pages-member-center-index.html",
     "pages/merchant-partners/index": "pages/pages-merchant-partners-index.html",
     "pages/premium-templates/index": "pages/pages-premium-templates-index.html",
+    "pages/profile-edit/index": "pages/pages-profile-edit-index.html",
     "pages/question-bank/index": "pages/pages-question-bank-index.html",
     "pages/restart-state/index": "pages/pages-restart-state-index.html",
     "pages/result-report/index": "pages/pages-result-report-index.html",
     "pages/session-rules/index": "pages/pages-session-rules-index.html",
+    "pages/share-helper/index": "pages/pages-share-helper-index.html",
     "pages/table-mode/index": "pages/pages-table-mode-index.html",
     "pages/usage-history/index": "pages/pages-usage-history-index.html",
     "pages/wine-history/index": "pages/pages-wine-history-index.html",
@@ -49,7 +56,6 @@
         "handleBackTap",
         "handleFilterTap",
         "handleItemTap",
-        "handleNominateTap",
         "handleCreateTap",
         "handleBottomTabTap"
       ],
@@ -65,30 +71,27 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 49,
-        "colorCount": 16
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "管",
-        "已生成的聚会分享图作品",
+        "MEMORIES",
+        "按进行中和已结束整理你的聚会记录。",
         "全部",
         "进行中",
         "已结束",
-        "正在整理聚会记录...",
-        "进行中 ·",
-        "继续记录",
-        "待分享",
-        "已结束 ·",
+        "正在整理聚会记录",
         "去创建聚会",
         "首页",
         "工具箱",
         "排行榜",
         "我的"
       ],
-      "title": ""
+      "title": "{{pageTitle}}"
     },
     {
       "actions": [
+        "handleBackTap",
         "handleConfirmTap"
       ],
       "file": "pages/pages-compliance-guide-index.html",
@@ -101,13 +104,13 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 22,
-        "colorCount": 16
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
+        "GUIDE",
         "新手引导",
-        "合规提示",
-        "理性饮酒 快乐为主",
+        "理性聚会，快乐为主，记录真实回忆。",
         "我知道了"
       ],
       "title": "新手引导"
@@ -134,32 +137,22 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 135,
-        "colorCount": 83
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "1 创建",
-        "2 邀请",
-        "3 拍照",
+        "1 创建 / 2 邀请 / 3 拍照",
         "创建聚会",
         "默认生成房间和邀请方式，马上拍第一张照片。",
-        "✦",
-        "✎",
-        "◷",
-        "›",
+        "聚会名称",
         "高级设置",
-        "暂未开放 · 人数可在下方直接调整",
+        "暂未开放，人数可在下方直接调整。",
         "未开通",
         "今晚聚会人数",
         "2 到 12 人，创建后用于邀请名额和账本成员数。",
-        "−",
-        "人",
-        "= 12 ? 'create-stepper-btn-disabled' : ''}}\"",
-        "data-action=\"plus\"",
-        "bindtap=\"handlePlayerCountTap\"",
-        ">＋",
-        "默认仅本聚会成员可见，公开分享需单独授权。",
-        "创建并邀请"
+        "开局时间",
+        "返回首页",
+        "生成邀请卡"
       ],
       "title": "创建聚会"
     },
@@ -180,13 +173,12 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 36,
-        "colorCount": 9
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "功能区",
-        "加载中",
-        "正在读取真实功能配置。",
+        "FEATURE ZONE",
+        "正在读取真实功能配置",
         "暂无可展示内容",
         "该功能区等待接口数据或后台配置完成。"
       ],
@@ -194,6 +186,7 @@
     },
     {
       "actions": [
+        "handleBackTap",
         "handleNewFriendInput",
         "handlePokeTap",
         "handleDeleteFriendTap"
@@ -208,31 +201,36 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 37,
-        "colorCount": 23
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
+        "我的聚友",
         "仅显示你参与过的聚会好友，支持拍一拍和删除。",
+        "友",
         "拍一拍",
-        "删除"
+        "删除",
+        "还没有聚友",
+        "一起参加聚会后会展示在这里。"
       ],
       "title": "我的聚友"
     },
     {
       "actions": [
+        "handleBackTap",
         "handlePrimaryTap",
         "handleJoinByCodeTap",
+        "handleSessionReturnOpen",
         "handleContinueRecordTap",
         "handleLoginTextTap",
-        "handleSessionReturnOpen",
         "handleAlbumListTap",
         "handleAlbumTap",
-        "handleTabTap",
         "closeAuthPanel",
         "noop",
         "handleLoginSubmit",
         "handleAuthAvatar",
-        "handleAuthNameInput"
+        "handleAuthNameInput",
+        "handleTabTap"
       ],
       "file": "pages/pages-index-index.html",
       "hasLess": true,
@@ -247,38 +245,40 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 289,
-        "colorCount": 123
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "⌁",
-        "☆",
-        "▣",
+        "记",
+        "PARTY RECORDER",
         "聚会记录师",
-        "轻松记录每一次聚会的美好时刻",
-        "＋",
+        "三步开局，拍下第一张照片，把现场变成可分享的回忆。",
         "创建聚会",
-        "⌗",
-        "加入口令/扫码",
-        "◴",
-        "登录后创建聚会",
-        "用于保存房间、相册和成员记录",
+        "口令加入",
+        "0}}\" class=\"pp-panel pp-panel-lime\">",
+        "正在进行",
+        "场聚会可继续记录",
+        "登录后保存回忆",
+        "同步你的聚会、相册和分享图。",
+        "微信授权登录",
         "最近相册",
         "全部相册",
+        "还没有相册",
+        "创建聚会后，第一张照片会成为相册封面。",
+        "关闭",
+        "头像",
+        "选择头像",
+        "用于聚会成员展示。",
+        "确认登录",
         "首页",
         "工具箱",
-        "排行榜",
-        "我的",
-        "微信授权登录",
-        "关闭",
-        "点击头像授权",
-        "用于聚会成员展示，不会使用默认图片占位。",
-        "确认登录"
+        "排行榜"
       ],
       "title": "聚会记录师"
     },
     {
       "actions": [
+        "handleBackTap",
         "handleReportTap",
         "handleRestartTap",
         "handleQuickTap"
@@ -296,15 +296,18 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 28,
-        "colorCount": 23
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
+        "STATE",
         "这场聚会已结束",
-        "照片、账本和分享图会保存在相册里",
+        "照片、账本和分享图会保存在相册里。",
         "查看相册",
         "再开一场",
-        "仅展示可分享内容，私密记录不会进入公开页"
+        "隐私说明",
+        "仅展示可分享内容，私密记录不会进入公开页。",
+        "进入"
       ],
       "title": "聚会已结束"
     },
@@ -326,14 +329,16 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 97,
-        "colorCount": 58
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "邀请好友",
-        "房间码",
-        "6 ? 'invite-avatar-slots-two-row' : ''}}\">",
+        "复制口令或直接分享到微信，成员加入后就能进入首拍。",
+        "成员槽位",
+        "/",
         "+",
+        "已加入",
         "踢出",
         "复制口令",
         "刷新状态",
@@ -344,10 +349,11 @@
     },
     {
       "actions": [
+        "handleBackTap",
         "handleAdjustTap",
         "handleConfirmTap",
-        "handleRecordTap",
-        "handleCreateTap"
+        "handleCreateTap",
+        "handleRecordTap"
       ],
       "file": "pages/pages-ledger-index.html",
       "hasLess": true,
@@ -359,19 +365,18 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 34,
-        "colorCount": 26
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "已同步 条账本动态，欠酒和加酒会进入本局记录。",
+        "成员账本",
+        "员",
         "欠酒",
-        "−",
-        "＋",
         "加酒",
-        "进入聚会后，成员账本会显示在这里。",
-        "可编辑",
-        "先调整欠酒和加酒，再点确定修改同步到本局记录。",
-        "创建聚会"
+        "先进入一场聚会",
+        "首拍后，成员账本会显示在这里。",
+        "创建聚会",
+        "回到记录"
       ],
       "title": "聚会账本"
     },
@@ -381,7 +386,6 @@
         "handleRefreshTap",
         "handleSegmentTap",
         "handleTimelineSelect",
-        "handleAddPlayerTap",
         "handleAdjustTap",
         "handleConfirmLedgerTap",
         "handleHighlightMomentTap",
@@ -397,36 +401,38 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 329,
-        "colorCount": 136
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "进行中",
+        "记录、相册、分享和聚会账本在同一场聚会里同步。",
+        "成员",
+        "时长",
+        "刷新记录",
         "记录",
         "相册",
         "账本",
         "分享",
-        "结束聚会后会生成分享图，可在这里或“我的”里查看和保存。",
-        "现场时间线同步中",
-        "照片同步中...",
-        "♥",
-        "＋",
-        "邀请",
+        "现场时间线",
+        "时间线同步中",
+        "本局相册",
+        "照片",
         "聚会账本",
         "欠酒",
-        "−",
-        "杯",
         "加酒",
-        "确认后会同步账本，并写入本局记录时间线。",
+        "分享图",
+        "结束聚会后会生成分享图，可在这里或“我的”里查看和保存。",
         "继续拍照",
         "结束聚会"
       ],
-      "title": ""
+      "title": "{{sessionName}}"
     },
     {
       "actions": [
+        "handleBackTap",
         "handleFeatureTap",
         "handleLoginTextTap",
+        "handleMePanelTap",
         "handleAssetTap",
         "handlePendingAlbumAllTap",
         "handlePendingAlbumTap",
@@ -450,46 +456,43 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 113,
-        "colorCount": 21
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "⚙",
-        "聚会记录师",
-        "记录每一次相聚的温度",
-        "点击登录",
-        "记录师 Lv.3",
-        "我的回忆",
+        "设置",
+        "我",
+        "MY MEMORIES",
+        "概览",
+        "待分享",
+        "分享图",
+        "服务",
         "待分享回忆",
         "查看全部",
         "暂无待分享回忆",
         "分享图合集",
         "还没有生成过分享图",
-        "权",
-        "我的权益",
-        "积",
-        "积分奖励",
-        "藏",
-        "我的收藏",
-        "史",
-        "使用记录",
-        "邀",
-        "邀请奖励",
-        "模",
-        "模板中心",
-        "友"
+        "按真实配置展示",
+        "进入",
+        "微信授权登录",
+        "关闭",
+        "头像",
+        "确认登录",
+        "首页",
+        "工具箱",
+        "排行榜",
+        "我的"
       ],
-      "title": ""
+      "title": "我的"
     },
     {
       "actions": [
         "handleBackTap",
         "handleChooseImage",
         "handleRetryUploadTap",
-        "handleReturnInviteTap",
         "handleCaptionInput",
         "handleCaptionPresetTap",
-        "handleVisibilityTap",
+        "handleNodeTypeTap",
         "handleConsentTap",
         "handleMemberTap",
         "handleSubmitTap"
@@ -506,33 +509,28 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 90,
-        "colorCount": 74
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "照片详情",
-        "▣",
-        "▧",
+        "一句话说明收缩到两行内，授权默认四项全选。",
+        "照片",
+        "选择第一张照片",
+        "从相册选择或重新上传。",
         "从相册选择",
-        "已保留文字、可见范围和授权选择。",
         "重试上传",
-        "返回邀请页",
-        "✓",
-        "默认仅本聚会成员可见",
         "一句话说明",
         "/ 80",
         "可见范围",
-        "选择谁能看见",
-        "授权用途",
-        "默认 4 项全选",
+        "= 0 ? 'pp-chip-active' : ''}}\" data-value=\" \" bindtap=\"handleConsentTap\">",
         "可见成员",
-        "已选 人",
-        "未同步到本聚会成员，返回聚会页刷新后再试。"
+        "返回"
       ],
       "title": "{{title}}"
     },
     {
       "actions": [
+        "handleBackTap",
         "handlePrimaryTap",
         "handleSecondaryTap"
       ],
@@ -549,21 +547,23 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 10,
-        "colorCount": 8
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "查看相册"
+        "PRIVACY",
+        "返回首页"
       ],
-      "title": "状态提示"
+      "title": "{{title}}"
     },
     {
       "actions": [
-        "handleRefreshTap",
+        "handleBackTap",
         "handleFeatureZoneTap",
         "handleCategoryTap",
         "handleImageTap",
         "handleNominateTap",
+        "handleRefreshTap",
         "handleTabTap"
       ],
       "file": "pages/pages-rankings-index.html",
@@ -579,21 +579,18 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 91,
-        "colorCount": 57
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "今日回忆榜",
         "查看积分与奖励",
-        "榜单暂时没刷新出来",
-        "重试",
-        "今天还没有上榜回忆",
-        "拍下第一张照片后，回忆会慢慢排起来。",
+        "榜单刷新中",
         "#",
-        "排名",
-        "无图",
-        "热度",
-        "次推举",
+        "热度 ·",
+        "推举",
+        "拍下第一张照片后，回忆会慢慢排起来。",
+        "重试",
         "首页",
         "工具箱",
         "排行榜",
@@ -604,9 +601,9 @@
     {
       "actions": [
         "handleBackTap",
-        "handleRankingTap",
-        "handlePreviewFirstImageTap",
         "handleRefreshTap",
+        "handleRankingTap",
+        "handleTimelineSelect",
         "handleNominatePhotoTap"
       ],
       "file": "pages/pages-session-brief-index.html",
@@ -622,21 +619,24 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 73,
-        "colorCount": 64
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "查看今日回忆榜",
-        "加载中...",
-        "查看大图",
-        "照片推举",
         "刷新",
-        "还没有可推举照片"
+        "今日回忆榜",
+        "加载中",
+        "重试",
+        "时间线",
+        "照片推举",
+        "推举"
       ],
       "title": "聚会简报"
     },
     {
-      "actions": [],
+      "actions": [
+        "handleBackTap"
+      ],
       "file": "pages/pages-settings-index.html",
       "hasLess": true,
       "hasTs": true,
@@ -647,10 +647,16 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 7,
-        "colorCount": 6
+        "classCount": 0,
+        "colorCount": 0
       },
-      "texts": [],
+      "texts": [
+        "SETTINGS",
+        "设置",
+        "管理资料、隐私、通知和数据。",
+        "暂无可配置项",
+        "后续设置会按真实配置展示。"
+      ],
       "title": "设置"
     },
     {
@@ -678,17 +684,17 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 411,
-        "colorCount": 117
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "相",
-        "聚会记录师",
-        "分享预览 · 照片和账本",
+        "记",
+        "SHARE POSTER",
         "暂无可保存节点，先去记录照片或账本变动。",
         "刷新状态",
         "重新生成",
-        "稍后可在“我的”页面查看分享图",
+        "小程序码",
+        "分享图生成后补齐小程序码。",
         "返回首页"
       ],
       "title": "分享图"
@@ -696,9 +702,9 @@
     {
       "actions": [
         "handleBackTap",
-        "handleTabTap",
         "handleRetryTap",
-        "handleReturnAlbumTap"
+        "handleReturnAlbumTap",
+        "handleTabTap"
       ],
       "file": "pages/pages-share-preview-index.html",
       "hasLess": true,
@@ -712,56 +718,41 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 207,
-        "colorCount": 104
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "邀请预览",
-        "口令加入状态",
+        "邀请好友加入",
+        "输入口令，一起进入这场聚会。",
         "分享页暂时无法展示",
         "重试",
-        "查看相册",
-        "聚会记录师",
-        "邀请好友加入",
-        "输入口令，一起进入这场聚会",
-        "加入口令",
         "这场聚会的回忆",
-        "和朋友一起留下的美好时刻",
-        "公开分享",
-        "可见范围",
-        "仅展示可分享内容",
+        "好友加入后再查看回忆。",
         "隐私保护",
-        "私密内容不会进入分享",
-        "加入提示",
-        "好友加入后再查看回忆",
-        "成员入局进度",
-        "邀请码 ·",
-        "好友加入后会在这里显示状态；没有成员数据时不会展示生硬数字。",
-        "公开分享只展示可分享内容，私密记录不会进入分享页。",
-        "如需反馈，请联系聚会发起人处理。"
+        "仅展示可分享内容，私密内容不会进入公开页。",
+        "查看相册",
+        "加入口令"
       ],
       "title": "邀请预览"
     },
     {
       "actions": [
+        "handleBackTap",
         "handleTextInput",
         "handleJsonInput",
         "handleFormatJson",
         "handleMinifyJson",
         "handleCopyOutput",
         "handleLoanInput",
-        "handleCurrencyAmountInput",
-        "handleCurrencyPickerChange",
-        "handleSwapCurrency",
-        "handleUnitDimensionChange",
-        "handleUnitAmountInput",
-        "handleUnitPickerChange",
         "handleQrInput",
         "handleGenerateShareCode",
         "handleCopyShareCode",
         "handleDownloadQrCode",
         "handleChooseImage",
-        "handleRunCompress"
+        "exportNineGridImages",
+        "exportWatermarkImage",
+        "handleRunCompress",
+        "handleSecondaryTap"
       ],
       "file": "pages/pages-tool-detail-index.html",
       "hasLess": true,
@@ -773,39 +764,35 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 72,
-        "colorCount": 54
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "能力说明",
-        "立即使用",
+        "TOOL",
+        "文本统计",
+        "JSON 工具",
         "格式化",
         "压缩",
         "复制结果",
-        "贷款总额（万元）",
-        "年利率（%）",
-        "年限",
+        "房贷计算",
         "月供",
-        "总利息",
         "总还款",
-        "金额",
-        "⇄",
-        "换算结果",
-        "→",
+        "分享码",
         "生成分享码",
         "复制分享码",
         "保存二维码",
-        "把这串分享码配合口令一起发给朋友即可。",
+        "图片处理",
+        "先选择图片",
         "选择图片",
-        "开始压缩",
-        "保存结果",
-        "压缩质量",
-        "原图大小"
+        "立即处理",
+        "工具说明",
+        "立即使用"
       ],
       "title": "{{toolName}}"
     },
     {
       "actions": [
+        "handleBackTap",
         "handleSearchInput",
         "handleSearchClear",
         "handleFeatureZoneTap",
@@ -823,24 +810,22 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 132,
-        "colorCount": 46
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "清空",
         "模板中心",
-        "主题模板与可用状态",
+        "主题模板与状态",
         "合作优惠",
-        "商户配置与可用状态",
+        "商户配置与状态",
         "使用记录",
-        "新路径工具记录",
-        "热门工具",
+        "工具使用记录",
+        "使用",
         "没有匹配工具",
         "请切换分类，或更换关键词。",
-        "工具分类",
-        ">",
-        "当前没有分类结果。",
-        "当前分类下暂无工具。",
+        "当前分类暂无工具",
+        "如果后台未配置，会显示为空态。",
         "首页",
         "工具箱",
         "排行榜",
@@ -853,8 +838,6 @@
         "handleBackTap",
         "handleRefreshTap",
         "handleInviteTap",
-        "handleOverviewTap",
-        "handleOpeningMomentTap",
         "handleCodeTap",
         "handleStartTap"
       ],
@@ -868,25 +851,19 @@
       "source": "registered",
       "statusLabel": "app.json 正式页",
       "styleStats": {
-        "classCount": 79,
-        "colorCount": 54
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "/",
-        "已加入人数",
-        "↻",
-        "刷新成员",
-        "+",
-        "继续邀请",
+        "已加入",
+        "总人数",
+        "成员",
         "?",
-        "待加入",
-        "聚会信息",
-        "更多",
-        "人数： 人",
-        "邀请码：",
-        "开局签到",
-        "提醒好友",
-        "查看邀请卡"
+        "刷新成员",
+        "继续邀请",
+        "查看邀请卡",
+        "好友可通过口令加入同一场聚会。",
+        "口令"
       ],
       "title": "等待开局"
     },
@@ -910,30 +887,102 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 54,
-        "colorCount": 42
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "1",
-        "创建酒局",
+        "创建聚会",
         "2",
-        "玩法设置",
+        "聚会设置",
         "3",
         "邀请开局",
-        "预选玩家（ / ，判官本人已在局内）",
+        "预选成员（ / ，发起人已在聚会内）",
         "已注册用户",
         "搜索结果",
         "未找到 “ ”",
         "只能邀请已授权登录的真实用户，请让对方先登录或换个昵称搜索",
-        "常用玩家",
+        "常用成员",
         "更多",
         "最近联系人",
-        "还没有可预选的酒友",
+        "还没有可预选的好友",
         "可以先去分享邀请；好友通过链接或邀请码加入后会进入本局",
         "全选",
         "去分享邀请（已预选 / ）"
       ],
-      "title": "创建酒局"
+      "title": "创建聚会"
+    },
+    {
+      "actions": [],
+      "file": "pages/pages-admin-console-index.html",
+      "hasLess": false,
+      "hasTs": false,
+      "hasWxml": false,
+      "route": "pages/admin-console/index",
+      "routes": [],
+      "slug": "pages-admin-console-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 0,
+        "colorCount": 0
+      },
+      "texts": [],
+      "title": "Admin Console"
+    },
+    {
+      "actions": [],
+      "file": "pages/pages-admin-home-config-index.html",
+      "hasLess": false,
+      "hasTs": false,
+      "hasWxml": false,
+      "route": "pages/admin-home-config/index",
+      "routes": [],
+      "slug": "pages-admin-home-config-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 0,
+        "colorCount": 0
+      },
+      "texts": [],
+      "title": "Admin Home Config"
+    },
+    {
+      "actions": [],
+      "file": "pages/pages-admin-points-config-index.html",
+      "hasLess": false,
+      "hasTs": false,
+      "hasWxml": false,
+      "route": "pages/admin-points-config/index",
+      "routes": [],
+      "slug": "pages-admin-points-config-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 0,
+        "colorCount": 0
+      },
+      "texts": [],
+      "title": "Admin Points Config"
+    },
+    {
+      "actions": [],
+      "file": "pages/pages-admin-template-config-index.html",
+      "hasLess": false,
+      "hasTs": false,
+      "hasWxml": false,
+      "route": "pages/admin-template-config/index",
+      "routes": [],
+      "slug": "pages-admin-template-config-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 0,
+        "colorCount": 0
+      },
+      "texts": [],
+      "title": "Admin Template Config"
     },
     {
       "actions": [
@@ -949,8 +998,8 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 8,
-        "colorCount": 10
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "去查看"
@@ -969,8 +1018,8 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 8,
-        "colorCount": 6
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [],
       "title": "我的收藏"
@@ -991,8 +1040,8 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 19,
-        "colorCount": 17
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "理性饮酒，适量饮酒，未成年人禁止饮酒",
@@ -1018,17 +1067,35 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 16,
-        "colorCount": 15
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "一起把酒局圈子拉起来",
+        "一起把聚会圈子拉起来",
         "邀请越多，积分、模板和商户福利越多。",
         "邀请奖励",
         "去发邀请",
         "先看分享海报"
       ],
       "title": "邀请好友"
+    },
+    {
+      "actions": [],
+      "file": "pages/pages-join-claim-index.html",
+      "hasLess": false,
+      "hasTs": false,
+      "hasWxml": false,
+      "route": "pages/join-claim/index",
+      "routes": [],
+      "slug": "pages-join-claim-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 0,
+        "colorCount": 0
+      },
+      "texts": [],
+      "title": "Join Claim"
     },
     {
       "actions": [
@@ -1047,18 +1114,18 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 74,
-        "colorCount": 30
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "判官主控转盘",
+        "聚会记录转盘",
         "转一下，今晚谁来接这杯",
-        "题目直接读取后台已上线题库，确认后写回当前酒局记录，不再走空壳演示。",
+        "题目直接读取后台已上线题库，确认后写回当前聚会记录。",
         "当前欠酒 杯 · 已消 /",
         "确认本轮消 1 杯",
         "本轮消杯说明"
       ],
-      "title": "判官转盘"
+      "title": "聚会转盘"
     },
     {
       "actions": [
@@ -1080,8 +1147,8 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 110,
-        "colorCount": 52
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "聚会记录",
@@ -1131,15 +1198,15 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 19,
-        "colorCount": 18
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "聚会权益暂按后台配置开放",
         "会员、模板和分享素材只展示真实配置，不生成假权益。",
         "会员权益",
         "可选方案",
-        "聚会权益暂未开放，当前不支持开通或领取。"
+        "聚会权益按后台配置展示，当前不支持开通或领取。"
       ],
       "title": "聚会权益"
     },
@@ -1155,8 +1222,8 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 33,
-        "colorCount": 21
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "商户合作",
@@ -1181,17 +1248,35 @@
       "route": "pages/premium-templates/index",
       "routes": [
         "pages/create-session/index",
-        "pages/member-center/index"
+        "pages/feature-zones/index"
       ],
       "slug": "pages-premium-templates-index",
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 21,
-        "colorCount": 22
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [],
       "title": "主题模板"
+    },
+    {
+      "actions": [],
+      "file": "pages/pages-profile-edit-index.html",
+      "hasLess": false,
+      "hasTs": false,
+      "hasWxml": false,
+      "route": "pages/profile-edit/index",
+      "routes": [],
+      "slug": "pages-profile-edit-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 0,
+        "colorCount": 0
+      },
+      "texts": [],
+      "title": "Profile Edit"
     },
     {
       "actions": [
@@ -1208,8 +1293,8 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 11,
-        "colorCount": 13
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "挑一题更合适的",
@@ -1239,8 +1324,8 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 36,
-        "colorCount": 23
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "换个玩法，继续快乐！",
@@ -1275,11 +1360,11 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 73,
-        "colorCount": 43
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
-        "本局战报",
+        "本局分享图",
         "全场焦点",
         "本局精彩事件",
         "·",
@@ -1290,7 +1375,7 @@
         "分享聚会图",
         "理性饮酒，适量玩局，未成年人禁止饮酒。"
       ],
-      "title": "本局战报"
+      "title": "本局分享图"
     },
     {
       "actions": [
@@ -1311,28 +1396,44 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 52,
-        "colorCount": 31
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "1",
-        "创建酒局",
+        "创建聚会",
         "2",
-        "玩法设置",
+        "聚会设置",
         "3",
         "邀请开局",
         "局内规则",
         "欠酒规则",
         "整活任务数量",
         "每轮触发轻整活",
-        "-",
         "个",
-        "+",
         "是否开启惩罚卡",
         "惩罚卡强度",
-        "下一步 添加玩家"
+        "下一步 邀请好友"
       ],
-      "title": "创建酒局"
+      "title": "创建聚会"
+    },
+    {
+      "actions": [],
+      "file": "pages/pages-share-helper-index.html",
+      "hasLess": false,
+      "hasTs": false,
+      "hasWxml": false,
+      "route": "pages/share-helper/index",
+      "routes": [],
+      "slug": "pages-share-helper-index",
+      "source": "discovered",
+      "statusLabel": "历史/未注册页",
+      "styleStats": {
+        "classCount": 0,
+        "colorCount": 0
+      },
+      "texts": [],
+      "title": "Share Helper"
     },
     {
       "actions": [
@@ -1354,14 +1455,13 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 58,
-        "colorCount": 41
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "桌面模式",
-        "↻",
         "刷新最新数据",
-        "玩家",
+        "成员",
         "欠酒",
         "已喝",
         "已消",
@@ -1370,7 +1470,7 @@
         "👍 点赞",
         "😵 小拷打",
         "已开局时长",
-        "桌面模式已放大所有信息，方便酒桌上远一点也能看清。",
+        "桌面模式已放大所有信息，方便聚会现场远一点也能看清。",
         "收尾照",
         "可选上传，不影响结束本局。",
         "上传",
@@ -1393,14 +1493,14 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 9,
-        "colorCount": 8
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "›",
         "暂无使用记录",
         "空状态",
-        "使用工具或查看战报后，这里会展示最近记录。"
+        "使用工具或查看分享图后，这里会展示最近记录。"
       ],
       "title": "使用记录"
     },
@@ -1429,8 +1529,8 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 60,
-        "colorCount": 48
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "我创建的",
@@ -1459,8 +1559,8 @@
       "source": "discovered",
       "statusLabel": "历史/未注册页",
       "styleStats": {
-        "classCount": 37,
-        "colorCount": 26
+        "classCount": 0,
+        "colorCount": 0
       },
       "texts": [
         "可用积分",

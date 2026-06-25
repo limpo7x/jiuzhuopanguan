@@ -151,7 +151,7 @@ Page<AddPlayersState, AddPlayersMethods>({
     }
 
     if (!current.selected && this.data.selectedCount >= this.data.inviteLimit) {
-      this.showToast(`还需邀请 ${this.data.inviteLimit} 位玩家`)
+      this.showToast(`还需邀请 ${this.data.inviteLimit} 位成员`)
       return
     }
 
@@ -228,7 +228,7 @@ Page<AddPlayersState, AddPlayersMethods>({
 
   async handleNextTap() {
     if (this.data.selectedCount > this.data.inviteLimit) {
-      this.showToast(`最多预选 ${this.data.inviteLimit} 位玩家`)
+      this.showToast(`最多预选 ${this.data.inviteLimit} 位成员`)
       return
     }
 
@@ -243,7 +243,7 @@ Page<AddPlayersState, AddPlayersMethods>({
 
     try {
       wx.showLoading({
-        title: '正在生成酒局',
+        title: '正在创建聚会',
         mask: true,
       })
 
@@ -318,7 +318,7 @@ Page<AddPlayersState, AddPlayersMethods>({
       })
     } catch (error) {
       wx.showToast({
-        title: error instanceof Error ? error.message : '酒局生成失败',
+        title: error instanceof Error ? error.message : '聚会创建失败',
         icon: 'none',
       })
     } finally {

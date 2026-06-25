@@ -19,7 +19,8 @@
     "smoke:moments-http": "node scripts/smoke-moments-http-flow.js",
     "smoke:admin-moments": "node scripts/smoke-admin-moments-flow.js",
     "smoke:ugc-risk": "node scripts/smoke-ugc-risk-flow.js",
-    "check:admin-ui": "node scripts/check-admin-ui-contract.js"
+    "check:admin-ui": "node scripts/check-admin-ui-contract.js",
+    "assets:upload-party-pop": "node scripts/upload-party-pop-assets.js --require-oss"
   },
   "dependencies": {
     "ali-oss": "^6.23.0",

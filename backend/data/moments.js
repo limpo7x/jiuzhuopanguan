@@ -22,7 +22,7 @@ const MOMENT_IMAGE_HEIGHT = 1800
 const MOMENT_IMAGE_QUALITY = 84
 const SHARE_IMAGE_WIDTH = 900
 const SHARE_IMAGE_MIN_HEIGHT = 1400
-const DEFAULT_MINI_PROGRAM_QR_URL = '/static/share-miniapp-qr.png'
+const DEFAULT_MINI_PROGRAM_QR_URL = '/static/share-poster-miniapp-code.png'
 
 const IMAGE_MIME_EXTENSION_MAP = {
   'image/jpeg': 'jpg',
@@ -1870,7 +1870,10 @@ const getShareImageTask = ({ taskId, profile }) => {
   if (!task) {
     throw createHttpError('share task not found', 404)
   }
-  assertSessionMember(task.sessionId, profile)
+  const { session } = assertSessionMember(task.sessionId, profile)
+  if (!isSessionEndedForShareImage(session)) {
+    throw createHttpError('session not ended', 409)
+  }
   return decorateShareImageTask(task)
 }
 
@@ -1917,7 +1920,7 @@ const getUserShareImageSummaries = ({ profile }) => {
       const session = getManagedSessionById(task.sessionId)
       return { task, session }
     })
-    .filter(({ session }) => canAccessSessionShareImages(session, profileId))
+    .filter(({ session }) => isSessionEndedForShareImage(session) && canAccessSessionShareImages(session, profileId))
     .map(serializeShareImageSummary)
     .sort((left, right) => {
       const rightTime = cleanText(right.finishedAt || right.updatedAt || right.createdAt)
@@ -2119,7 +2122,7 @@ const getUserSessionMomentSummaries = ({ profile }) => {
       : moments
           .filter((item) => item.uploaderProfileId === profileId && item.completionStatus === 'needs_media')
           .map((item) => item.id)
-    const readyShareImageUrl = cleanText(task?.imageUrl || task?.posterImageUrl || task?.readyShareImageUrl)
+    const readyShareImageUrl = isEndedSession ? cleanText(task?.imageUrl || task?.posterImageUrl || task?.readyShareImageUrl) : ''
     return {
       sessionId,
       reportId: report.reportId || report.id,
@@ -2134,14 +2137,14 @@ const getUserSessionMomentSummaries = ({ profile }) => {
       isActiveForResume: hasFirstPhoto && !isEndedSession,
       updatedAt: stateFields.updatedAt,
       canResume: resumableMomentIds.length > 0,
-      canShare: Boolean(brief?.id && (task?.status === 'ready' ? readyShareImageUrl : brief.shareImageTaskId || task?.id)),
+      canShare: Boolean(isEndedSession && brief?.id && (task?.status === 'ready' ? readyShareImageUrl : brief.shareImageTaskId || task?.id)),
       coverPhotoUrl,
       pendingMediaCount: moments.filter((item) => item.uploaderProfileId === profileId && item.completionStatus === 'needs_media').length,
       canResumeMomentIds: resumableMomentIds,
       briefId: brief?.id || '',
       shareImageTaskId: task?.id || '',
       shareImageStatus: task?.status || '',
-      shareImageUrl: task?.imageUrl || '',
+      shareImageUrl: isEndedSession ? task?.imageUrl || '' : '',
       readyShareImageUrl,
       rankingEntryEnabled: Boolean(brief?.rankingEligible),
     }

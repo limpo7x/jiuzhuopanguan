@@ -1,35 +1,10 @@
-<navigation-bar
-  title="新手引导"
-  back="{{true}}"
-  color="#24160f"
-  background="rgba(255,253,248,0.96)"
-  ext-class="guide-nav"
-></navigation-bar>
-
-<view class="guide-page">
-  <scroll-view class="guide-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="guide-chip-row">
-      <view class="guide-chip">新手引导</view>
-      <view class="guide-chip guide-chip-active">合规提示</view>
-    </view>
-
-    <view class="guide-center">
-      <text class="guide-title">理性饮酒 快乐为主</text>
-    </view>
-
-    <view class="guide-list">
-      <view wx:for="{{items}}" wx:key="title" class="guide-list-item">
-        <view class="guide-task-icon {{item.iconClass}}"></view>
-        <view class="guide-list-copy">
-          <text class="guide-list-title">{{item.title}}</text>
-          <text class="guide-list-meta">{{item.meta}}</text>
-        </view>
-      </view>
-    </view>
-
-    <view class="guide-primary" bindtap="handleConfirmTap">
-      <text>我知道了</text>
-      <view class="guide-primary-icon"></view>
-    </view>
+<navigation-bar title="新手引导" back="{{false}}" customBack="{{false}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<view class="pp-page">
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pp-hero pp-panel-cyan"><text class="pp-kicker">GUIDE</text><text class="pp-title">新手引导</text><text class="pp-body">理性聚会，快乐为主，记录真实回忆。</text></view>
+    <view class="pp-list"><view wx:for="{{items}}" wx:key="title" class="pp-list-item"><image class="pp-icon-lg" src="{{item.iconUrl}}" mode="aspectFit"></image><view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">{{item.desc}}</text></view></view></view>
   </scroll-view>
+  <view class="pp-fixed-actions"><view class="pp-button pp-button-primary" bindtap="handleConfirmTap">我知道了</view></view>
+  <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

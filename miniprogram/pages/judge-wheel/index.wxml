@@ -1,5 +1,5 @@
 <navigation-bar
-  title="判官转盘"
+  title="聚会转盘"
   back="{{true}}"
   customBack="{{true}}"
   bind:back="handleBackTap"
@@ -13,9 +13,9 @@
   <view class="wheel-glow wheel-glow-right"></view>
   <scroll-view class="wheel-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="wheel-hero">
-      <text class="wheel-kicker">判官主控转盘</text>
+      <text class="wheel-kicker">聚会记录转盘</text>
       <text class="wheel-title">转一下，今晚谁来接这杯</text>
-      <text class="wheel-subtitle">题目直接读取后台已上线题库，确认后写回当前酒局记录，不再走空壳演示。</text>
+      <text class="wheel-subtitle">题目直接读取后台已上线题库，确认后写回当前聚会记录。</text>
     </view>
 
     <scroll-view class="wheel-type-row" scroll-x enhanced show-scrollbar="{{false}}">

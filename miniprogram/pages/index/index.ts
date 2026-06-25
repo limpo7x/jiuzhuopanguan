@@ -80,7 +80,7 @@ const TAB_ROUTES: Record<string, string> = {
 
 const normalizeName = (value?: string) => {
   const text = String(value || '').trim()
-  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text) || /^(PR|QA|DEV|TEST)\s+Seed\b/i.test(text) || text === '未登录' ? '' : text
+  return !text || /^微信用户\d*$/.test(text) || /^\u9152\u53cb\d{3,}$/.test(text) || /^(PR|QA|DEV|TEST)\s+Seed\b/i.test(text) || text === '未登录' ? '' : text
 }
 
 const normalizeAvatar = (value?: string) => String(value || '').trim()
@@ -98,7 +98,7 @@ const albumFallbacks: HomePageData['recentTools'] = [
     id: 'album-host',
     name: '我的聚会相册',
     usedAt: '',
-    imageUrl: 'https://cdn.pomer.cn/static/party-recorder/home-album-cover-host.webp',
+    imageUrl: 'https://cdn.pomer.cn/static/party-pop-clean/home-hero-750x420.png',
     badgeText: '相册',
     badgeClass: '',
     route: '/pages/album/index?mode=host',
@@ -107,7 +107,7 @@ const albumFallbacks: HomePageData['recentTools'] = [
     id: 'album-joined',
     name: '参与过的聚会',
     usedAt: '',
-    imageUrl: 'https://cdn.pomer.cn/static/party-recorder/home-album-cover-joined.webp',
+    imageUrl: 'https://cdn.pomer.cn/static/party-pop-clean/home-hero-750x420.png',
     badgeText: '参与',
     badgeClass: '',
     route: '/pages/album/index?mode=joined',
@@ -116,7 +116,7 @@ const albumFallbacks: HomePageData['recentTools'] = [
     id: 'album-share',
     name: '分享图记录',
     usedAt: '',
-    imageUrl: 'https://cdn.pomer.cn/static/party-recorder/home-album-cover-shares.webp',
+    imageUrl: 'https://cdn.pomer.cn/static/party-pop-clean/share-poster-top-750x520.png',
     badgeText: '分享',
     badgeClass: '',
     route: '/pages/album/index?mode=shares',
@@ -628,7 +628,3 @@ Page<HomePageState, HomePageMethods>({
 })
 
 export {}
-
-
-
-

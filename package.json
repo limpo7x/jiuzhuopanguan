@@ -4,7 +4,9 @@
   "description": "",
   "scripts": {
     "build:static-pages": "node scripts/build-static-page-pack.js",
+    "check:party-pop-clean": "node scripts/check-party-pop-clean.cjs",
     "check:encoding": "node scripts/check-encoding.js",
+    "smoke:party-pop-pages": "node scripts/smoke-party-pop-pages.cjs",
     "wechat:auto": "node scripts/wechat-devtools-automator.js",
     "typecheck": "tsc --noEmit --pretty false"
   },

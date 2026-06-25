@@ -73,6 +73,7 @@ interface RemoteLiveSession {
   finishedAt?: string
   firstPhotoUploadedAt?: string
   hasFirstPhoto?: boolean
+  hostAvatarUrl?: string
   hostName?: string
   hostProfileId?: string
   id?: string
@@ -424,6 +425,7 @@ export interface ManagedLiveSession {
   endedAt: string
   firstPhotoUploadedAt: string
   hasFirstPhoto: boolean
+  hostAvatarUrl: string
   hostName: string
   hostProfileId: string
   id: string
@@ -1018,6 +1020,7 @@ const normalizeRemoteLiveSession = (remote: RemoteLiveSession): ManagedLiveSessi
     endedAt: remote.endedAt || remote.finishedAt || '',
     firstPhotoUploadedAt: remote.firstPhotoUploadedAt || '',
     hasFirstPhoto: remote.hasFirstPhoto === true || Boolean(remote.firstPhotoUploadedAt),
+    hostAvatarUrl: normalizeManagedAvatarPath(remote.hostAvatarUrl),
     hostName: remote.hostName || '',
     hostProfileId: remote.hostProfileId || '',
     id: remote.id || '',

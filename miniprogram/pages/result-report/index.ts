@@ -50,7 +50,7 @@ Page<ResultReportState, ResultReportMethods>({
 
     if (!reportId) {
       wx.showToast({
-        title: '未找到战报',
+        title: '未找到分享图',
         icon: 'none',
       })
       return
@@ -58,7 +58,7 @@ Page<ResultReportState, ResultReportMethods>({
 
     try {
       wx.showLoading({
-        title: '加载战报中',
+        title: '加载分享图中',
         mask: true,
       })
 
@@ -94,17 +94,17 @@ Page<ResultReportState, ResultReportMethods>({
       })
     } catch (error) {
       this.setData({
-        events: [{ text: error instanceof Error ? error.message : '战报加载失败，请稍后重试。' }],
+        events: [{ text: error instanceof Error ? error.message : '分享图加载失败，请稍后重试。' }],
         featuredRank: null,
-        metaText: '战报加载失败',
+        metaText: '分享图加载失败',
         reportId: '',
-        reportTitle: '战报暂不可用',
+        reportTitle: '分享图暂不可用',
         secondaryRanks: [],
         sessionId: '',
         sessionName: '',
       })
       wx.showToast({
-        title: error instanceof Error ? error.message : '战报加载失败',
+        title: error instanceof Error ? error.message : '分享图加载失败',
         icon: 'none',
       })
     } finally {
@@ -121,7 +121,7 @@ Page<ResultReportState, ResultReportMethods>({
         source: 'result-report',
       },
     })
-    this.openPage('/pages/restart-state/index')
+    this.openPage('/pages/create-session/index')
   },
 
   handleBackTap() {
@@ -133,7 +133,7 @@ Page<ResultReportState, ResultReportMethods>({
   handleShareTap() {
     if (!this.data.reportId) {
       wx.showToast({
-        title: '战报未加载完成',
+        title: '分享图未加载完成',
         icon: 'none',
       })
       return
@@ -144,7 +144,7 @@ Page<ResultReportState, ResultReportMethods>({
   handleBriefTap() {
     if (!this.data.sessionId) {
       wx.showToast({
-        title: '缺少酒局信息',
+        title: '缺少聚会信息',
         icon: 'none',
       })
       return

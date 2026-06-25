@@ -1,77 +1,51 @@
-<navigation-bar
-  title="邀请好友"
-  back="{{true}}"
-  customBack="{{true}}"
-  bind:back="handleBackTap"
-  color="#fff2dd"
-  background="rgba(18,16,14,0.72)"
-  ext-class="invite-nav"
-></navigation-bar>
-
-<view class="invite-page invite-redesign">
-  <image class="invite-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
-  <scroll-view class="invite-scroll invite-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="invite-hero">
-      <text class="invite-title">邀请好友</text>
+<navigation-bar title="邀请好友" back="{{true}}" customBack="{{true}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<view class="pp-page">
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pp-hero pp-panel-lime">
+      <view class="pp-flow">
+        <view class="pp-flow-step pp-flow-step-done"><text class="pp-flow-index">1</text><text class="pp-flow-label">创建</text></view>
+        <view class="pp-flow-line pp-flow-line-active"></view>
+        <view class="pp-flow-step pp-flow-step-active"><text class="pp-flow-index">2</text><text class="pp-flow-label">邀请</text></view>
+        <view class="pp-flow-line"></view>
+        <view class="pp-flow-step"><text class="pp-flow-index">3</text><text class="pp-flow-label">拍照</text></view>
+      </view>
+      <text class="pp-kicker">{{sessionName || '聚会邀请'}}</text>
+      <text class="pp-title">邀请好友</text>
+      <text class="pp-body">复制口令或直接分享到微信，成员加入后就能进入首拍。</text>
+      <text class="pp-code" style="margin-top: 16px;">{{inviteCode || '------'}}</text>
+      <text class="pp-caption" style="margin-top: 10px;">{{joinStatusText}}</text>
     </view>
 
-    <view class="invite-code-card">
-      <image
-        class="invite-code-card-image"
-        src="https://cdn.pomer.cn/static/party-recorder/pr-cs008aq-invite-paper-mobile-750w-no-checkerboard.png"
-        mode="widthFix"
-      ></image>
-      <view class="invite-code-content">
-        <text class="invite-code-label">房间码</text>
-        <text class="invite-code">{{inviteCode || '生成中'}}</text>
-        <text class="invite-code-expire">{{joinStatusText}}</text>
-
-        <view class="invite-avatar-slots {{avatarSlots.length > 6 ? 'invite-avatar-slots-two-row' : ''}}">
-          <view
-            wx:for="{{avatarSlots}}"
-            wx:key="id"
-            class="invite-avatar-slot-wrap"
-          >
-            <view class="invite-avatar-slot {{item.filled ? 'invite-avatar-slot-filled' : ''}}">
-              <image wx:if="{{item.avatarUrl && !item.avatarBroken}}" class="invite-avatar-image" src="{{item.avatarUrl}}" mode="aspectFill" data-id="{{item.id}}" binderror="handleAvatarError"></image>
-              <text wx:elif="{{item.filled}}" class="invite-avatar-initial">{{item.initial}}</text>
-              <text wx:else class="invite-avatar-empty">+</text>
-            </view>
-            <view
-              wx:if="{{item.kickable}}"
-              class="invite-kick-btn"
-              data-name="{{item.name}}"
-              data-profile-id="{{item.profileId}}"
-              bindtap="handleKickTap"
-            >踢出</view>
-          </view>
+    <view class="pp-panel">
+      <view class="pp-row-between">
+        <text class="pp-section-title">成员槽位</text>
+        <text class="pp-chip">{{joinedCount}} / {{playerCount}}</text>
+      </view>
+      <view class="pp-avatar-row" style="margin-top: 14px;">
+        <view wx:for="{{avatarSlots}}" wx:key="index" class="pp-avatar">
+          <image wx:if="{{item.avatarUrl && !item.avatarBroken}}" class="pp-avatar" src="{{item.avatarUrl}}" mode="aspectFill" data-id="{{item.id}}" binderror="handleAvatarError"></image>
+          <text wx:else>+</text>
+        </view>
+      </view>
+      <view wx:if="{{isJudge}}" class="pp-list" style="margin-top: 14px;">
+        <view wx:for="{{avatarSlots}}" wx:key="index" wx:if="{{item.profileId}}" class="pp-list-item">
+          <view class="pp-avatar"><image wx:if="{{item.avatarUrl && !item.avatarBroken}}" class="pp-avatar" src="{{item.avatarUrl}}" mode="aspectFill" data-id="{{item.id}}" binderror="handleAvatarError"></image><text wx:else>{{item.initial}}</text></view>
+          <view class="pp-list-copy"><text class="pp-list-title">{{item.name}}</text><text class="pp-caption">已加入</text></view>
+          <text class="pp-chip" data-profile-id="{{item.profileId}}" data-name="{{item.name}}" bindtap="handleKickTap">踢出</text>
         </view>
       </view>
     </view>
 
-    <view class="invite-inline-actions">
-      <view class="invite-inline-action" bindtap="handleCopyTap">复制口令</view>
-      <view class="invite-inline-action" bindtap="handleRefreshTap">刷新状态</view>
+    <view class="pp-action-row">
+      <view class="pp-button pp-button-ghost" bindtap="handleCopyTap">复制口令</view>
+      <view class="pp-button pp-button-secondary" bindtap="handleRefreshTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-refresh.png" mode="aspectFit"></image><text>刷新状态</text></view>
     </view>
-
-    <button class="invite-share-button" open-type="share">
-      <view class="invite-share-button-icon invite-icon-wechat"></view>
-      <text>分享给好友</text>
-    </button>
+    <button class="pp-button pp-button-lime" open-type="share" style="width: 100%;">分享给好友</button>
   </scroll-view>
-
-  <canvas
-    canvas-id="inviteShareCardCanvas"
-    class="invite-share-card-canvas"
-    style="width: 500px; height: 400px;"
-  ></canvas>
-
-  <view class="invite-bottom-bar">
-    <view class="invite-primary invite-primary-full party-cta party-cta-primary" bindtap="handleNextTap">
-      <text>拍第一张</text>
-    </view>
-    <view class="invite-secondary-full party-cta party-cta-tertiary" bindtap="handleCopyTap">
-      <text>复制口令</text>
-    </view>
+  <view class="pp-fixed-actions">
+    <view class="pp-button pp-button-primary" bindtap="handleNextTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-camera.png" mode="aspectFit"></image><text>拍第一张</text></view>
   </view>
+  <canvas canvas-id="inviteShareCardCanvas" class="pp-share-card-canvas" style="width: 500px; height: 400px;"></canvas>
+  <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

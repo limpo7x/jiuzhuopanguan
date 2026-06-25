@@ -1,0 +1,37 @@
+[
+  {
+    "path": "/pages/ledger/index",
+    "ok": true,
+    "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\background-fix\\ledger-bg.png",
+    "consoleCount": 0,
+    "error": ""
+  },
+  {
+    "path": "/pages/moment-editor/index",
+    "ok": true,
+    "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\background-fix\\moment-editor-bg.png",
+    "consoleCount": 0,
+    "error": ""
+  },
+  {
+    "path": "/pages/session-brief/index",
+    "ok": true,
+    "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\background-fix\\session-brief-bg.png",
+    "consoleCount": 0,
+    "error": ""
+  },
+  {
+    "path": "/pages/share-preview/index",
+    "ok": true,
+    "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\background-fix\\share-preview-bg.png",
+    "consoleCount": 0,
+    "error": ""
+  },
+  {
+    "path": "/pages/share-poster/index",
+    "ok": true,
+    "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\background-fix\\share-poster-bg.png",
+    "consoleCount": 0,
+    "error": ""
+  }
+]

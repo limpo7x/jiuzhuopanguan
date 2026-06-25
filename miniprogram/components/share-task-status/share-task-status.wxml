@@ -1,25 +1,17 @@
-<view class="share-task-status {{compact ? 'share-task-status-compact' : ''}} share-task-status-{{statusClass}}">
-  <view class="share-task-status-main">
-    <view class="share-task-status-icon"></view>
-    <view class="share-task-status-copy">
-      <view class="share-task-status-head">
-        <text class="share-task-status-title">{{statusText}}</text>
-        <text wx:if="{{displayRetryCount}}" class="share-task-status-count">重试 {{displayRetryCount}} 次</text>
+<view class="pp-card">
+  <view class="pp-row">
+    <image class="pp-icon-lg" src="{{statusClass === 'ready' ? 'https://cdn.pomer.cn/static/party-pop-clean/icons/success-check.png' : statusClass === 'failed' || statusClass === 'expired' ? 'https://cdn.pomer.cn/static/party-pop-clean/icons/warning-state.png' : 'https://cdn.pomer.cn/static/party-pop-clean/icons/action-refresh.png'}}" mode="aspectFit"></image>
+    <view class="pp-list-copy">
+      <view class="pp-row-between">
+        <text class="pp-item-title">{{statusText}}</text>
+        <text wx:if="{{displayRetryCount}}" class="pp-chip">重试 {{displayRetryCount}} 次</text>
       </view>
-      <text class="share-task-status-desc">{{displayFailedReason || statusDesc}}</text>
+      <text class="pp-item-meta">{{displayFailedReason || statusDesc}}</text>
     </view>
   </view>
 
-  <view class="share-task-status-actions">
-    <view
-      wx:if="{{canPreview}}"
-      class="share-task-status-action"
-      bindtap="handlePreviewTap"
-    >预览</view>
-    <view
-      wx:if="{{canRetry}}"
-      class="share-task-status-action {{disabled ? 'share-task-status-action-disabled' : ''}}"
-      bindtap="handleRetryTap"
-    >重试</view>
+  <view class="pp-action-row">
+    <view wx:if="{{canPreview}}" class="pp-button pp-button-secondary" bindtap="handlePreviewTap">预览</view>
+    <view wx:if="{{canRetry}}" class="pp-button pp-button-primary {{disabled ? 'pp-button-disabled' : ''}}" bindtap="handleRetryTap">重试</view>
   </view>
 </view>

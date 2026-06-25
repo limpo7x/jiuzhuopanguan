@@ -1,0 +1,24 @@
+<view wx:if="{{state && state.visible}}" class="pp-dialog-mask" catchtouchmove="noop" bindtap="handleCancel">
+  <view class="pp-dialog" catchtap="noop">
+    <view class="pp-brand">
+      <view class="pp-logo pp-logo-small">记</view>
+      <view class="pp-list-copy">
+        <text class="pp-title-sm">{{state.title || '提示'}}</text>
+        <text class="pp-body">{{state.content || ''}}</text>
+      </view>
+    </view>
+    <view class="pp-dialog-actions">
+      <view wx:if="{{state.showCancel}}" class="pp-button pp-button-ghost" bindtap="handleCancel">{{state.cancelText || '取消'}}</view>
+      <view class="pp-button pp-button-primary" bindtap="handleConfirm">{{state.confirmText || '确定'}}</view>
+    </view>
+  </view>
+</view>
+<view wx:if="{{loading && loading.visible}}" class="pp-loading-mask" catchtouchmove="noop">
+  <view class="pp-loading-card">
+    <view class="pp-loading-dot"></view>
+    <text class="pp-loading-title">{{loading.title || '加载中'}}</text>
+  </view>
+</view>
+<view wx:if="{{toast && toast.visible}}" class="pp-toast-layer">
+  <view class="pp-toast pp-toast-{{toast.icon || 'none'}}">{{toast.title}}</view>
+</view>

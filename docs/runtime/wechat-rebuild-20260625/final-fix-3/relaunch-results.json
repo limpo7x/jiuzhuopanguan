@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "name": "me",
+      "url": "/pages/me/index",
+      "ok": true,
+      "consoleErrors": [],
+      "path": "pages/me/index",
+      "consoleCount": 8,
+      "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\final-fix-3\\me.png"
+    },
+    {
+      "name": "moment-editor",
+      "url": "/pages/moment-editor/index?sessionId=session-demo",
+      "ok": true,
+      "consoleErrors": [],
+      "path": "pages/moment-editor/index",
+      "consoleCount": 0,
+      "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\final-fix-3\\moment-editor.png"
+    }
+  ]
+}

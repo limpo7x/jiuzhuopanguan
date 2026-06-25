@@ -256,7 +256,7 @@ async function probeV2Auto(options, connectError) {
     protocol.webSocketCandidates.push(probe);
     if (probe.ok && probe.event === 'tool-reply') {
       try {
-        return await automator.connect({ wsEndpoint: endpoint });
+        return await connectWithTimeout({ wsEndpoint: endpoint }, options.timeout);
       } catch (error) {
         protocol.mappedWebSocketError = error.message;
       }
@@ -284,10 +284,24 @@ async function launchDevTools(options) {
   ).unref();
 }
 
+function connectWithTimeout(config, timeout) {
+  let timer;
+  return Promise.race([
+    automator.connect(config),
+    new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        reject(new Error(`Timed out connecting to WeChat DevTools automation after ${timeout}ms`));
+      }, timeout);
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
 async function connectOrLaunch(options) {
   const endpoint = `ws://127.0.0.1:${options.port}`;
   try {
-    return await automator.connect({ wsEndpoint: endpoint });
+    return await connectWithTimeout({ wsEndpoint: endpoint }, options.timeout);
   } catch (connectError) {
     if (!options.launch) {
       if (options.probeV2) {
@@ -307,7 +321,7 @@ async function connectOrLaunch(options) {
     try {
       await launchDevTools(options);
       await new Promise((resolve) => setTimeout(resolve, 5000));
-      return await automator.connect({ wsEndpoint: endpoint });
+      return await connectWithTimeout({ wsEndpoint: endpoint }, options.timeout);
     } catch (launchError) {
       if (!options.probeV2) {
         const error = createProtocolError(

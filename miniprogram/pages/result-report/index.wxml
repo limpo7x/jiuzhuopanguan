@@ -1,5 +1,5 @@
 <navigation-bar
-  title="本局战报"
+  title="本局分享图"
   back="{{true}}"
   customBack="{{true}}"
   bind:back="handleBackTap"
@@ -12,7 +12,7 @@
   <scroll-view class="report-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="report-poster-card">
       <view class="report-poster-copy">
-        <view class="report-tag">本局战报</view>
+        <view class="report-tag">本局分享图</view>
         <text class="report-title">{{reportTitle}}</text>
         <text class="report-meta">{{metaText}}</text>
 

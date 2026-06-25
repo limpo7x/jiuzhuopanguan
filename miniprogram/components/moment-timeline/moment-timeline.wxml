@@ -1,15 +1,15 @@
-<view class="moment-timeline">
-  <view class="moment-timeline-head">
-    <text class="moment-timeline-title">记录/相册</text>
-    <text class="moment-timeline-count">{{nodes.length}} 条</text>
+<view class="pp-panel">
+  <view class="pp-row-between">
+    <text class="pp-section-title">记录/相册</text>
+    <text class="pp-chip">{{nodes.length}} 条</text>
   </view>
 
-  <view wx:if="{{loading}}" class="moment-timeline-empty">
-    <image class="moment-timeline-empty-sticker" src="https://cdn.pomer.cn/static/party-recorder/party-recorder-uploading-sticker.png" mode="aspectFit"></image>
-    <text>同步中...</text>
+  <view wx:if="{{loading}}" class="pp-empty">
+    <image class="pp-empty-sticker" src="https://cdn.pomer.cn/static/party-pop-clean/photo-upload-sticker.png" mode="aspectFit"></image>
+    <text class="pp-body">同步中...</text>
   </view>
 
-  <block wx:elif="{{nodes.length}}">
+  <view wx:elif="{{nodes.length}}" class="pp-timeline">
     <moment-card
       wx:for="{{nodes}}"
       wx:key="id"
@@ -17,10 +17,10 @@
       compact="{{true}}"
       bind:select="handleSelect"
     ></moment-card>
-  </block>
+  </view>
 
-  <view wx:else class="moment-timeline-empty">
-    <image class="moment-timeline-empty-sticker" src="https://cdn.pomer.cn/static/party-recorder/party-recorder-empty-album-sticker.png" mode="aspectFit"></image>
-    <text>{{emptyText}}</text>
+  <view wx:else class="pp-empty">
+    <image class="pp-empty-sticker" src="https://cdn.pomer.cn/static/party-pop-clean/empty-memory-sticker.png" mode="aspectFit"></image>
+    <text class="pp-body">{{emptyText}}</text>
   </view>
 </view>

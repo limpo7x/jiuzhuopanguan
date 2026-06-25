@@ -17,7 +17,7 @@ interface StatItem {
 }
 
 interface FeatureItem {
-  iconClass: string
+  iconUrl: string
   id: string
   name: string
 }
@@ -67,6 +67,7 @@ interface ChooseAvatarDetail {
 }
 
 interface MePageState {
+  activeMePanel: 'overview' | 'pending' | 'shares' | 'services'
   assetStats: StatItem[]
   authAvatarUrl: string
   authAvatarChoosing: boolean
@@ -101,6 +102,7 @@ interface MomentSummaryEventDetail {
 
 interface MePageMethods {
   closeAuthPanel: () => void
+  handleMePanelTap: (event: WechatMiniprogram.BaseEvent) => void
   handleAssetTap: (event: WechatMiniprogram.BaseEvent) => void
   handleAuthAvatar: (event: WechatMiniprogram.CustomEvent<ChooseAvatarDetail>) => Promise<void>
   handleAuthAvatarTap: () => void
@@ -163,15 +165,15 @@ const DEFAULT_WINE_STATS: StatItem[] = [
 ]
 
 const DEFAULT_FEATURES: FeatureItem[] = [
-  { id: 'ledger', name: '聚会账本', iconClass: 'me-icon-history' },
-  { id: 'tools', name: '工具箱', iconClass: 'me-icon-store' },
-  { id: 'friends', name: '好友管理', iconClass: 'me-icon-user' },
-  { id: 'settings', name: '资料设置', iconClass: 'me-icon-shield' },
+  { id: 'ledger', name: '聚会账本', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/service-points.png' },
+  { id: 'tools', name: '工具箱', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/tab-tools.png' },
+  { id: 'friends', name: '好友管理', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/service-friends.png' },
+  { id: 'settings', name: '资料设置', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/settings.png' },
 ]
 
 const normalizeName = (value?: string) => {
   const text = String(value || '').trim()
-  return !text || /^微信用户\d*$/.test(text) || /^酒友\d{3,}$/.test(text) || /^(PR|QA|DEV|TEST)\s+Seed\b/i.test(text) || text === '未登录' ? '' : text
+  return !text || /^微信用户\d*$/.test(text) || /^\u9152\u53cb\d{3,}$/.test(text) || /^(PR|QA|DEV|TEST)\s+Seed\b/i.test(text) || text === '未登录' ? '' : text
 }
 
 const normalizeAvatar = (value?: string) => String(value || '').trim()
@@ -327,6 +329,7 @@ const buildHeaderActionStyle = () => {
 
 Page<MePageState, MePageMethods>({
   data: {
+    activeMePanel: 'overview',
     assetStats: DEFAULT_ASSET_STATS,
     authAvatarUrl: '',
     authAvatarChoosing: false,
@@ -438,6 +441,13 @@ Page<MePageState, MePageMethods>({
         { value: String(endedSummaries.length), label: '已结束' },
       ],
     })
+  },
+
+  handleMePanelTap(event) {
+    const { panel } = event.currentTarget.dataset as { panel?: string }
+    if (panel === 'overview' || panel === 'pending' || panel === 'shares' || panel === 'services') {
+      this.setData({ activeMePanel: panel })
+    }
   },
 
   async handleAuthAvatar(event) {

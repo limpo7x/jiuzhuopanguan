@@ -1,4 +1,4 @@
-﻿import {
+import {
   getToolCategoryCards,
   resolveToolId,
   TOOL_CATEGORIES,
@@ -223,4 +223,3 @@ Page<ToolsPageState, ToolsPageMethods>({
 })
 
 export {}
-

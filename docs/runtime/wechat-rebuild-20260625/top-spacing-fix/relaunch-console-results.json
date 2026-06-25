@@ -1,0 +1,156 @@
+{
+  "ok": true,
+  "checkedAt": "2026-06-25T13:44:05",
+  "pages": 21,
+  "failed": 0,
+  "consoleIssuePages": 0,
+  "results": [
+    {
+      "path": "/pages/index/index",
+      "ok": true,
+      "current": "pages/index/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/create-session/index",
+      "ok": true,
+      "current": "pages/create-session/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/invite-group/index",
+      "ok": true,
+      "current": "pages/invite-group/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/live-record/index",
+      "ok": true,
+      "current": "pages/live-record/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/album/index",
+      "ok": true,
+      "current": "pages/album/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/me/index",
+      "ok": true,
+      "current": "pages/me/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/tools/index",
+      "ok": true,
+      "current": "pages/tools/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/rankings/index",
+      "ok": true,
+      "current": "pages/rankings/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/feature-zones/index",
+      "ok": true,
+      "current": "pages/feature-zones/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/share-preview/index",
+      "ok": true,
+      "current": "pages/share-preview/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/share-poster/index",
+      "ok": true,
+      "current": "pages/share-poster/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/session-brief/index",
+      "ok": true,
+      "current": "pages/session-brief/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/moment-editor/index",
+      "ok": true,
+      "current": "pages/moment-editor/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/ledger/index",
+      "ok": true,
+      "current": "pages/ledger/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/tool-detail/index",
+      "ok": true,
+      "current": "pages/tool-detail/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/compliance-guide/index",
+      "ok": true,
+      "current": "pages/compliance-guide/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/invalid-state/index",
+      "ok": true,
+      "current": "pages/invalid-state/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/privacy-state/index",
+      "ok": true,
+      "current": "pages/privacy-state/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/settings/index",
+      "ok": true,
+      "current": "pages/settings/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/friend-hub/index",
+      "ok": true,
+      "current": "pages/friend-hub/index",
+      "consoleIssues": 0,
+      "error": ""
+    },
+    {
+      "path": "/pages/waiting-room/index",
+      "ok": true,
+      "current": "pages/waiting-room/index",
+      "consoleIssues": 0,
+      "error": ""
+    }
+  ]
+}

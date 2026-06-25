@@ -1,227 +1,88 @@
-<navigation-bar
-  title=""
-  back="{{true}}"
-  customBack="{{true}}"
-  bind:back="handleBackTap"
-  color="#fff5da"
-  background="rgba(16, 8, 6, 0)"
-  ext-class="live-nav"
-></navigation-bar>
-
-<view class="live-page live-redesign live-record008as-page">
-  <image class="live-record008as-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
-  <scroll-view class="live-scroll live-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="live-record008as-hero">
-      <image class="live-record008as-hero-bg" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-hero-bg-750x420.jpg" mode="aspectFill"></image>
-      <view class="live-record008as-hero-shade"></view>
-      <view class="live-record008as-hero-top">
-        <view class="live-record008as-tools">
-          <view class="live-record008as-tool-btn" bindtap="handleRefreshTap">
-            <image class="live-record008as-tool-bg" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-circle-tool-btn.png" mode="aspectFit"></image>
-            <image class="live-record008as-tool-icon" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-icon-gear.png" mode="aspectFit"></image>
+<navigation-bar title="" back="{{true}}" customBack="{{true}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<view class="pp-page">
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pp-hero live-record-hero">
+      <view class="live-refresh-icon" bindtap="handleRefreshTap">
+        <image class="live-refresh-icon-img" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-refresh.png" mode="aspectFit"></image>
+      </view>
+      <text class="pp-kicker">{{desktopModeLabel || '进行中'}}</text>
+      <text class="pp-title">{{sessionName}}</text>
+      <text class="pp-body">记录、相册、分享和聚会账本在同一场聚会里同步。</text>
+      <view class="pp-stat-row" style="margin-top: 16px;">
+        <view class="pp-stat"><text class="pp-stat-value">{{memberCountText}}</text><text class="pp-stat-label">成员</text></view>
+        <view class="pp-stat"><text class="pp-stat-value">{{elapsedText}}</text><text class="pp-stat-label">时长</text></view>
+      </view>
+      <scroll-view wx:if="{{players.length}}" class="live-avatar-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="live-avatar-row">
+          <view wx:for="{{players}}" wx:key="profileId" class="live-avatar-item">
+            <view class="pp-avatar live-avatar"><image wx:if="{{item.avatarUrl}}" class="pp-avatar live-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image><text wx:else>{{item.initial}}</text></view>
+            <text class="live-avatar-name">{{item.name}}</text>
           </view>
         </view>
-      </view>
-      <view class="live-record008as-title-wrap">
-        <text class="live-record008as-title-text">{{sessionName}}</text>
-        <image class="live-record008as-title-underline" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-title-underline-scribble.png" mode="widthFix"></image>
-        <image class="live-record008as-title-star" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-title-star-sticker.png" mode="aspectFit"></image>
-      </view>
-      <view class="live-record008as-meta-row">
-        <view class="live-record008as-meta">
-          <image src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-icon-people.png" mode="aspectFit"></image>
-          <text>{{memberCountText}}</text>
-        </view>
-        <view class="live-record008as-meta">
-          <image src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-icon-clock.png" mode="aspectFit"></image>
-          <text>{{startTimeText}}</text>
-        </view>
-        <text class="live-record008as-elapsed">{{elapsedText}}</text>
-      </view>
-      <view class="live-record008as-status">
-        <text>进行中</text>
-      </view>
+      </scroll-view>
     </view>
 
-    <view class="live-segment-tabs">
-      <view class="live-segment-tab {{activeSegment === 'record' ? 'live-segment-tab-active' : ''}}" data-tab="record" bindtap="handleSegmentTap">
-        <text>记录</text>
-        <image wx:if="{{activeSegment === 'record'}}" class="live-record008as-tab-active" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
-      </view>
-      <view class="live-segment-tab {{activeSegment === 'album' ? 'live-segment-tab-active' : ''}}" data-tab="album" bindtap="handleSegmentTap">
-        <text>相册</text>
-        <image wx:if="{{activeSegment === 'album'}}" class="live-record008as-tab-active" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
-      </view>
-      <view class="live-segment-tab {{activeSegment === 'ledger' ? 'live-segment-tab-active' : ''}}" data-tab="ledger" bindtap="handleSegmentTap">
-        <text>账本</text>
-        <image wx:if="{{activeSegment === 'ledger'}}" class="live-record008as-tab-active" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-tab-active-underline.png" mode="widthFix"></image>
-      </view>
-      <view class="live-segment-tab live-segment-tab-disabled" data-tab="share" bindtap="handleSegmentTap">
-        <text>分享</text>
-      </view>
+    <view class="pp-tabs">
+      <view class="pp-tab {{activeSegment === 'record' ? 'pp-tab-active' : ''}}" data-tab="record" bindtap="handleSegmentTap">记录</view>
+      <view class="pp-tab {{activeSegment === 'album' ? 'pp-tab-active' : ''}}" data-tab="album" bindtap="handleSegmentTap">相册</view>
+      <view class="pp-tab {{activeSegment === 'ledger' ? 'pp-tab-active' : ''}}" data-tab="ledger" bindtap="handleSegmentTap">账本</view>
+      <view class="pp-tab {{activeSegment === 'share' ? 'pp-tab-active' : ''}}" data-tab="share" bindtap="handleSegmentTap">分享</view>
     </view>
-    <view class="live-share-hint">结束聚会后会生成分享图，可在这里或“我的”里查看和保存。</view>
 
-    <view wx:if="{{activeSegment === 'record'}}" class="live-record-timeline-stage">
-      <view wx:if="{{timelineLoading}}" class="live-photo-empty live-record-timeline-empty">
-        <image class="live-record008as-state-image" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-state-loading-spinner.png" mode="aspectFit"></image>
-        <text>现场时间线同步中</text>
-      </view>
-      <view wx:elif="{{recordTimelineDisplayItems.length}}" class="live-record-timeline-list">
-        <image class="live-record-timeline-rail" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-timeline-rail.png" mode="scaleToFill"></image>
-        <view
-          wx:for="{{recordTimelineDisplayItems}}"
-          wx:key="id"
-          class="live-record-timeline-item live-record-timeline-item-{{item.type}} live-record-timeline-item-{{item.displayKind}}"
-          data-id="{{item.id}}"
-          data-node-kind="{{item.nodeKind}}"
-          bindtap="handleTimelineSelect"
-        >
-          <view class="live-record-timeline-marker">
-            <image class="live-record-timeline-icon" src="{{item.iconAsset}}" mode="aspectFit"></image>
-          </view>
-          <view class="live-record-timeline-body">
-            <view wx:if="{{item.displayKind === 'photoGroup'}}" class="live-record-photo-compact-group">
-              <view wx:for="{{item.compactPhotos}}" wx:for-item="photo" wx:key="id" class="live-record-photo-compact-thumb">
-                <image wx:if="{{photo.imageUrl && !photo.imageBroken}}" class="live-record-photo-compact-image" src="{{photo.imageUrl}}" mode="aspectFill" data-id="{{photo.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
-                <image wx:else class="live-record-photo-compact-failed" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-state-photo-failed.png" mode="aspectFit"></image>
-              </view>
-              <text wx:if="{{item.compactPhotoCountText}}" class="live-record-photo-compact-count">{{item.compactPhotoCountText}}</text>
-              <text class="live-record-photo-compact-copy">{{item.title}}</text>
-            </view>
-            <block wx:else>
-              <view class="live-record-photo-card" wx:if="{{item.type === 'photo'}}">
-                <image class="live-record-photo-frame" src="https://cdn.pomer.cn/static/party-recorder/clean-slate/pr-cs002-photo-polaroid-frame.svg" mode="scaleToFill"></image>
-                <image class="live-record008as-tape" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-tape-purple.png" mode="aspectFit"></image>
-                <image class="live-record008as-sticker live-record008as-sticker-coin" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-sticker-smile-coin.png" mode="aspectFit"></image>
-                <image class="live-record008as-sticker live-record008as-sticker-star" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-sticker-star-outline.png" mode="aspectFit"></image>
-                <image wx:if="{{item.imageUrl && !item.imageBroken}}" class="live-record-photo-image" src="{{item.imageUrl}}" mode="aspectFill" data-id="{{item.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
-                <image wx:else class="live-record008as-photo-failed" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-state-photo-failed.png" mode="aspectFit"></image>
-              </view>
-              <view class="live-record-ledger-chip" wx:else>
-                <image class="live-record-ledger-chip-bg" src="{{item.chipAsset}}" mode="scaleToFill"></image>
-                <text wx:if="{{item.chipTextVisible}}" class="live-record-ledger-chip-text">{{item.chipText}}</text>
-              </view>
-              <view class="live-record-timeline-copy">
-                <text class="live-record-timeline-time">{{item.timeText}}</text>
-                <text class="live-record-timeline-item-title">{{item.title}}</text>
-                <text class="live-record-timeline-detail">{{item.detail}}</text>
-                <view class="live-record-timeline-actor">
-                  <image wx:if="{{item.actorAvatarUrl}}" class="live-record-timeline-avatar" src="{{item.actorAvatarUrl}}" mode="aspectFill"></image>
-                  <view wx:else class="live-record-timeline-avatar live-record-timeline-avatar-empty">{{item.actorInitial}}</view>
-                  <text>{{item.actorName}}</text>
-                </view>
-              </view>
-            </block>
-          </view>
+    <view wx:if="{{activeSegment === 'record'}}" class="pp-panel">
+      <text class="pp-section-title">现场时间线</text>
+      <view wx:if="{{timelineLoading}}" class="pp-loading" style="margin-top: 14px;"><view class="pp-loading-dot"></view><text>时间线同步中</text></view>
+      <view wx:elif="{{recordTimelineDisplayItems.length}}" class="pp-timeline live-record-timeline" style="margin-top: 14px;">
+        <view wx:for="{{recordTimelineDisplayItems}}" wx:key="id" class="pp-timeline-item" data-id="{{item.id}}" data-node-kind="{{item.nodeKind}}" bindtap="handleTimelineSelect">
+          <view class="live-timeline-head"><text class="pp-caption">{{item.timeText}}</text><text class="live-action-tag live-action-tag-{{item.type}}">{{item.actionLabel}}</text></view>
+          <text class="pp-list-title">{{item.title}}</text>
+          <image wx:if="{{item.imageUrl && !item.imageBroken}}" class="pp-cover" style="width: 100%; height: 148px; margin-top: 10px;" src="{{item.imageUrl}}" mode="aspectFill" data-id="{{item.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
+          <text class="pp-body">{{item.detail}}</text>
         </view>
       </view>
-      <view wx:else class="live-photo-empty live-record-timeline-empty">
-        <image class="live-record008as-state-image" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-state-empty.png" mode="aspectFit"></image>
-        <text>{{timelineEmptyText}}</text>
+      <view wx:else class="pp-empty">
+        <image class="pp-empty-sticker" src="https://cdn.pomer.cn/static/party-pop-clean/empty-memory-sticker.png" mode="aspectFit"></image>
+        <text class="pp-body">{{timelineEmptyText}}</text>
       </view>
-      <view wx:if="{{hiddenTimelineNotice}}" class="live-timeline-notice">{{hiddenTimelineNotice}}</view>
-      <view class="live-record008as-comment-deco">
-        <image src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-shell-comment-deco.png" mode="widthFix"></image>
-        <image src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-handdrawn-marker.png" mode="widthFix"></image>
-      </view>
+      <text wx:if="{{hiddenTimelineNotice}}" class="pp-caption">{{hiddenTimelineNotice}}</text>
     </view>
 
-    <view wx:if="{{activeSegment === 'album'}}" class="live-photo-wall">
-      <view wx:if="{{timelineLoading}}" class="live-photo-empty">
-        <image class="live-photo-empty-sticker" src="https://cdn.pomer.cn/static/party-recorder/party-recorder-uploading-sticker.png" mode="aspectFit"></image>
-        <text>照片同步中...</text>
-      </view>
-      <view wx:elif="{{photoNodes.length}}" class="live-photo-grid">
-        <view
-          wx:for="{{photoNodes}}"
-          wx:key="id"
-          class="live-photo-tile"
-          data-id="{{item.id}}"
-          data-node-kind="{{item.nodeKind}}"
-          bindtap="handleTimelineSelect"
-        >
-          <image wx:if="{{item.imageUrl && !item.imageBroken}}" class="live-photo-image" src="{{item.imageUrl}}" mode="aspectFill" data-id="{{item.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
-          <view wx:else class="live-photo-image live-photo-fallback">
-            <text>{{item.timelineTitle || '聚会照片'}}</text>
-          </view>
-          <view class="live-photo-heart">♥</view>
+    <view wx:if="{{activeSegment === 'album'}}" class="pp-panel">
+      <text class="pp-section-title">本局相册</text>
+      <view wx:if="{{photoNodes.length}}" class="pp-photo-grid" style="margin-top: 14px;">
+        <view wx:for="{{photoNodes}}" wx:key="id" class="pp-photo-tile" data-id="{{item.id}}" data-node-kind="{{item.nodeKind}}" bindtap="handleTimelineSelect">
+          <image wx:if="{{item.imageUrl && !item.imageBroken}}" src="{{item.imageUrl}}" mode="aspectFill" data-id="{{item.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
+          <view wx:else class="pp-photo-fallback">照片</view>
         </view>
       </view>
-      <view wx:else class="live-photo-empty">
-        <image class="live-photo-empty-sticker" src="https://cdn.pomer.cn/static/party-recorder/party-recorder-empty-album-sticker.png" mode="aspectFit"></image>
-        <text>{{timelineEmptyText}}</text>
-      </view>
-      <view wx:if="{{hiddenTimelineNotice}}" class="live-timeline-notice">{{hiddenTimelineNotice}}</view>
+      <view wx:else class="pp-empty"><image class="pp-empty-sticker" src="https://cdn.pomer.cn/static/party-pop-clean/photo-upload-sticker.png" mode="aspectFit"></image><text class="pp-body">{{timelineEmptyText}}</text></view>
     </view>
 
-    <view wx:if="{{activeSegment === 'ledger'}}" class="live-member-strip">
-      <view wx:for="{{players}}" wx:key="index" class="live-avatar-card">
-        <image wx:if="{{item.avatarUrl}}" class="live-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
-        <view wx:else class="live-avatar"></view>
-        <text class="live-avatar-name">{{item.name}}</text>
-      </view>
-      <view wx:if="{{isJudge && players.length < playerCount}}" class="live-avatar-card" bindtap="handleAddPlayerTap">
-        <view class="live-avatar live-avatar-add">＋</view>
-        <text class="live-avatar-name">邀请</text>
-      </view>
-    </view>
-
-    <view wx:if="{{activeSegment === 'ledger'}}" class="live-compat-panel live-ledger-panel">
-      <view class="live-compat-head">
-        <text class="live-block-title">聚会账本</text>
-        <text class="live-compat-meta">{{isJudge ? '发起人可调整' : '仅查看'}}</text>
-      </view>
-      <view wx:for="{{records}}" wx:key="index" class="live-record-item">
-        <view class="live-record-user">
-          <image wx:if="{{item.avatarUrl}}" class="live-record-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image>
-          <view wx:else class="live-record-avatar"></view>
-          <text class="live-record-title">{{item.name}}</text>
-        </view>
-        <view class="live-record-stats">
-          <view class="live-record-stat-card">
-            <text class="live-record-stat-label">欠酒</text>
-            <view class="live-record-adjuster">
-              <view wx:if="{{isJudge}}" class="live-adjust-btn live-adjust-btn-minus" data-id="{{item.id}}" data-field="debtCount" data-delta="-1" bindtap="handleAdjustTap">−</view>
-              <view class="live-record-score-box">
-                <text class="live-record-score">{{item.debtCount}}</text>
-                <text class="live-record-score-unit">杯</text>
-              </view>
-              <view wx:if="{{isJudge}}" class="live-adjust-btn live-adjust-btn-active" data-id="{{item.id}}" data-field="debtCount" data-delta="1" bindtap="handleAdjustTap">＋</view>
-            </view>
-          </view>
-          <view class="live-record-stat-card">
-            <text class="live-record-stat-label">加酒</text>
-            <view class="live-record-adjuster">
-              <view wx:if="{{isJudge}}" class="live-adjust-btn live-adjust-btn-minus" data-id="{{item.id}}" data-field="drinkCount" data-delta="-1" bindtap="handleAdjustTap">−</view>
-              <view class="live-record-score-box">
-                <text class="live-record-score live-record-score-warm">{{item.drinkCount}}</text>
-                <text class="live-record-score-unit">杯</text>
-              </view>
-              <view wx:if="{{isJudge}}" class="live-adjust-btn live-adjust-btn-active" data-id="{{item.id}}" data-field="drinkCount" data-delta="1" bindtap="handleAdjustTap">＋</view>
+    <view wx:if="{{activeSegment === 'ledger'}}" class="pp-stack">
+      <view class="pp-panel">
+        <view class="pp-row-between"><text class="pp-section-title">聚会账本</text><text class="pp-chip">{{isJudge ? '可编辑' : '只读'}}</text></view>
+        <view class="pp-list" style="margin-top: 14px;">
+          <view wx:for="{{records}}" wx:key="id" class="pp-list-item live-ledger-row">
+            <view class="pp-brand live-ledger-player"><view class="pp-avatar live-ledger-avatar"><image wx:if="{{item.avatarUrl}}" class="pp-avatar live-ledger-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image><text wx:else>{{item.name}}</text></view><text class="pp-list-title live-ledger-name">{{item.name}}</text></view>
+            <view class="live-ledger-controls">
+              <view class="live-ledger-metric"><text class="live-ledger-label">欠酒</text><view class="pp-stepper live-ledger-stepper"><view wx:if="{{isJudge}}" class="pp-stepper-btn live-ledger-stepper-btn" data-id="{{item.id}}" data-field="debtCount" data-delta="-1" bindtap="handleAdjustTap"><image class="pp-icon live-ledger-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/step-minus.png" mode="aspectFit"></image></view><text class="pp-stepper-value live-ledger-value">{{item.debtCount}}</text><view wx:if="{{isJudge}}" class="pp-stepper-btn live-ledger-stepper-btn" data-id="{{item.id}}" data-field="debtCount" data-delta="1" bindtap="handleAdjustTap"><image class="pp-icon live-ledger-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/step-plus.png" mode="aspectFit"></image></view></view></view>
+              <view class="live-ledger-metric"><text class="live-ledger-label">加酒</text><view class="pp-stepper live-ledger-stepper"><view wx:if="{{isJudge}}" class="pp-stepper-btn live-ledger-stepper-btn" data-id="{{item.id}}" data-field="drinkCount" data-delta="-1" bindtap="handleAdjustTap"><image class="pp-icon live-ledger-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/step-minus.png" mode="aspectFit"></image></view><text class="pp-stepper-value live-ledger-value">{{item.drinkCount}}</text><view wx:if="{{isJudge}}" class="pp-stepper-btn live-ledger-stepper-btn" data-id="{{item.id}}" data-field="drinkCount" data-delta="1" bindtap="handleAdjustTap"><image class="pp-icon live-ledger-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/step-plus.png" mode="aspectFit"></image></view></view></view>
             </view>
           </view>
         </view>
+        <view wx:if="{{isJudge && records.length}}" class="pp-button pp-button-lime {{ledgerDirty ? '' : 'pp-button-disabled'}}" style="width: 100%; margin-top: 14px;" bindtap="handleConfirmLedgerTap">{{ledgerSubmitting ? '提交中' : '确定修改'}}</view>
       </view>
-      <view wx:if="{{isJudge && records.length}}" class="live-ledger-confirm">
-        <view class="live-ledger-confirm-copy">
-          <text>{{ledgerDirty ? '有未确认修改' : '账本暂无新修改'}}</text>
-          <text>确认后会同步账本，并写入本局记录时间线。</text>
-        </view>
-        <view class="live-ledger-confirm-submit {{ledgerDirty ? 'live-ledger-confirm-submit-active' : ''}} {{ledgerSubmitting ? 'live-ledger-confirm-submit-loading' : ''}}" bindtap="handleConfirmLedgerTap">
-          {{ledgerSubmitting ? '提交中' : '确定修改'}}
-        </view>
-      </view>
+    </view>
+
+    <view wx:if="{{activeSegment === 'share'}}" class="pp-panel pp-panel-yellow">
+      <text class="pp-section-title">分享图</text>
+      <text class="pp-body">结束聚会后会生成分享图，可在这里或“我的”里查看和保存。</text>
     </view>
   </scroll-view>
-
-  <view wx:if="{{activeSegment === 'record' || activeSegment === 'album'}}" class="live-record008as-cta-row">
-    <view class="live-record008as-cta live-record008as-photo-cta" bindtap="handleHighlightMomentTap">
-      <image class="live-record008as-cta-icon" src="https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-icon-camera-cta.png" mode="aspectFit"></image>
-      <text>继续拍照</text>
-    </view>
-    <view class="live-record008as-cta live-record008as-end-cta" bindtap="handleFinishTap">
-      <text>结束聚会</text>
-    </view>
+  <view wx:if="{{activeSegment === 'record' || activeSegment === 'album'}}" class="pp-fixed-actions">
+    <view class="pp-button pp-button-secondary {{quickPhotoSaving ? 'pp-button-disabled' : ''}}" bindtap="handleHighlightMomentTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-camera.png" mode="aspectFit"></image><text>{{quickPhotoSaving ? '保存中' : '继续拍照'}}</text></view>
+    <view class="pp-button pp-button-primary" bindtap="handleFinishTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-end.png" mode="aspectFit"></image><text>结束聚会</text></view>
   </view>
+  <pp-dialog state="{{__ppDialog}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

@@ -44,6 +44,7 @@ interface VisibleMemberOption extends SessionParticipant {
 }
 
 interface MomentEditorState {
+  activeEditorPanel: 'photo' | 'caption' | 'privacy'
   authorizationOptions: MomentConsentItem[]
   caption: string
   captionPresets: CaptionPreset[]
@@ -73,6 +74,7 @@ interface MomentEditorState {
 interface MomentEditorMethods {
   buildPayload: () => ManagedMomentPayload
   handleBackTap: () => void
+  handleEditorPanelTap: (event: WechatMiniprogram.BaseEvent) => void
   handleCaptionInput: (event: WechatMiniprogram.Input) => void
   handleCaptionPresetTap: (event: WechatMiniprogram.BaseEvent) => void
   handleChooseImage: () => void
@@ -202,6 +204,7 @@ const buildDataUrl = (filePath: string, data: string) => {
 
 Page<MomentEditorState, MomentEditorMethods>({
   data: {
+    activeEditorPanel: 'photo',
     authorizationOptions: CONSENT_ITEMS,
     caption: '',
     captionPresets: CAPTION_PRESETS,
@@ -378,6 +381,13 @@ Page<MomentEditorState, MomentEditorMethods>({
     this.setData({
       caption: String(event.detail.value || '').slice(0, 80),
     })
+  },
+
+  handleEditorPanelTap(event) {
+    const { panel } = event.currentTarget.dataset as { panel?: string }
+    if (panel === 'photo' || panel === 'caption' || panel === 'privacy') {
+      this.setData({ activeEditorPanel: panel })
+    }
   },
 
   handleCaptionPresetTap(event) {

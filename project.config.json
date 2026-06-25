@@ -45,7 +45,32 @@
   },
   "libVersion": "2.32.3",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "miniprogram/assets/party-recorder-rebuild"
+      },
+      {
+        "type": "folder",
+        "value": "miniprogram/assets/party-recorder-v2"
+      },
+      {
+        "type": "folder",
+        "value": "miniprogram/assets/party-pop-clean"
+      },
+      {
+        "type": "folder",
+        "value": "assets/party-recorder-rebuild"
+      },
+      {
+        "type": "folder",
+        "value": "assets/party-recorder-v2"
+      },
+      {
+        "type": "folder",
+        "value": "assets/party-pop-clean"
+      }
+    ],
     "include": []
   },
   "appid": "wxe67ede146a5a91db"

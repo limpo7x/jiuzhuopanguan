@@ -1,112 +1,45 @@
-<navigation-bar
-  title="今日回忆榜"
-  back="{{false}}"
-  color="#fff2dd"
-  background="rgba(18,16,14,0.72)"
-  ext-class="rankings-nav"
-></navigation-bar>
-
-<view class="rankings-page">
-  <image class="rankings-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
-  <scroll-view class="rankings-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="rankings-hero">
-      <view class="rankings-hero-top">
-        <text class="rankings-date">{{dateText}}</text>
-        <view class="rankings-refresh" bindtap="handleRefreshTap">{{loading ? '刷新中' : '刷新'}}</view>
-      </view>
-      <text class="rankings-title">今日回忆榜</text>
-      <text class="rankings-subtitle">{{subtitle}}</text>
-      <view class="rankings-zone-link" data-zone="points" bindtap="handleFeatureZoneTap">查看积分与奖励</view>
+<navigation-bar title="今日回忆榜" back="{{false}}" customBack="{{false}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<view class="pp-page">
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pp-hero pp-panel-lime">
+      <text class="pp-kicker">{{dateText}}</text>
+      <text class="pp-title">今日回忆榜</text>
+      <text class="pp-body">{{subtitle}}</text>
+      <view class="pp-button pp-button-secondary" style="margin-top: 14px;" bindtap="handleFeatureZoneTap">查看积分与奖励</view>
     </view>
-
-    <scroll-view class="rankings-tabs" scroll-x enhanced show-scrollbar="{{false}}">
-      <view class="rankings-tabs-inner">
-        <view
-          wx:for="{{categories}}"
-          wx:key="value"
-          class="rankings-tab {{activeCategory === item.value ? 'rankings-tab-active' : ''}}"
-          data-category="{{item.value}}"
-          bindtap="handleCategoryTap"
-        >{{item.label}}</view>
-      </view>
+    <scroll-view class="pp-rank-category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="pp-chip-row"><view wx:for="{{categories}}" wx:key="value" class="pp-chip {{activeCategory === item.value ? 'pp-chip-active' : ''}}" data-category="{{item.value}}" bindtap="handleCategoryTap">{{item.label}}</view></view>
     </scroll-view>
-
-    <view wx:if="{{loading}}" class="rankings-loading">
-      <view wx:for="{{skeletonRows}}" wx:key="*this" class="rankings-skeleton-row">
-        <view class="rankings-skeleton-rank"></view>
-        <view class="rankings-skeleton-image"></view>
-        <view class="rankings-skeleton-copy">
-          <view></view>
-          <view></view>
-        </view>
+    <view wx:if="{{loading}}" class="pp-loading"><view class="pp-loading-dot"></view><text>榜单刷新中</text></view>
+    <view wx:elif="{{items.length}}" class="pp-list">
+      <view wx:for="{{items}}" wx:key="id" class="pp-list-item" data-image-url="{{item.imageUrl}}" bindtap="handleImageTap">
+        <text class="pp-logo pp-logo-small">#{{item.rank}}</text>
+        <image wx:if="{{item.imageUrl}}" class="pp-thumb" style="width: 78px; height: 78px;" src="{{item.imageUrl}}" mode="aspectFill"></image>
+        <view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">热度 {{item.heatText}} · {{item.nominationText}}</text></view>
+        <text class="pp-chip" data-id="{{item.id}}" data-moment-id="{{item.momentId}}" bindtap="handleNominateTap">推举</text>
       </view>
     </view>
-
-    <view wx:elif="{{errorText}}" class="rankings-empty rankings-error">
-      <text class="rankings-empty-title">榜单暂时没刷新出来</text>
-      <text class="rankings-empty-meta">{{errorText}}</text>
-      <view class="rankings-empty-action" bindtap="handleRefreshTap">重试</view>
-    </view>
-
-    <view wx:elif="{{items.length === 0}}" class="rankings-empty">
-      <text class="rankings-empty-title">今天还没有上榜回忆</text>
-      <text class="rankings-empty-meta">拍下第一张照片后，回忆会慢慢排起来。</text>
-    </view>
-
-    <view wx:else class="rankings-list">
-      <view wx:for="{{items}}" wx:key="rank" class="ranking-card">
-        <view class="ranking-rank">
-          <text class="ranking-rank-value">#{{item.rank}}</text>
-          <text class="ranking-rank-label">排名</text>
-        </view>
-
-        <image
-          wx:if="{{item.moment.imageUrl}}"
-          class="ranking-image"
-          src="{{item.moment.imageUrl}}"
-          mode="aspectFill"
-          data-image-url="{{item.moment.imageUrl}}"
-          bindtap="handleImageTap"
-        ></image>
-
-        <view wx:else class="ranking-image ranking-image-empty">
-          <text>无图</text>
-        </view>
-
-        <view class="ranking-main">
-          <text class="ranking-title">{{item.moment.timelineTitle || item.moment.caption || '精彩瞬间'}}</text>
-          <text class="ranking-caption">{{item.moment.caption || item.moment.uploaderName}}</text>
-          <view class="ranking-meta-row">
-            <text class="ranking-meta">{{item.pointsTotal}} 热度</text>
-            <text class="ranking-meta">{{item.nominationCount}} 次推举</text>
-          </view>
-        </view>
-
-        <view
-          class="ranking-action {{nominatingMomentId === item.moment.id ? 'ranking-action-disabled' : ''}}"
-          data-moment-id="{{item.moment.id}}"
-          bindtap="handleNominateTap"
-        >{{nominatingMomentId === item.moment.id ? '处理中' : '推荐这张'}}</view>
-      </view>
-    </view>
+    <view wx:else class="pp-empty"><image class="pp-empty-sticker" src="https://cdn.pomer.cn/static/party-pop-clean/empty-memory-sticker.png" mode="aspectFit"></image><text class="pp-section-title">{{emptyText || '今天还没有上榜回忆'}}</text><text class="pp-body">拍下第一张照片后，回忆会慢慢排起来。</text><view class="pp-button pp-button-secondary" bindtap="handleRefreshTap">重试</view></view>
   </scroll-view>
 
-  <view class="bottom-nav">
-    <view class="bottom-item" data-tab="home" bindtap="handleTabTap">
-      <view class="bottom-icon nav-home"></view>
-      <text class="bottom-label">首页</text>
-    </view>
-    <view class="bottom-item" data-tab="tools" bindtap="handleTabTap">
-      <view class="bottom-icon nav-judge"></view>
-      <text class="bottom-label">工具箱</text>
-    </view>
-    <view class="bottom-item active" data-tab="rankings" bindtap="handleTabTap">
-      <view class="bottom-icon nav-rank active"></view>
-      <text class="bottom-label">排行榜</text>
-    </view>
-    <view class="bottom-item" data-tab="me" bindtap="handleTabTap">
-      <view class="bottom-icon nav-me"></view>
-      <text class="bottom-label">我的</text>
-    </view>
+<view class="pp-bottom-nav">
+  <view class="pp-bottom-item " data-tab="home" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-home.png" mode="aspectFit"></image>
+    <text>首页</text>
   </view>
+  <view class="pp-bottom-item " data-tab="tools" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-tools.png" mode="aspectFit"></image>
+    <text>工具箱</text>
+  </view>
+  <view class="pp-bottom-item pp-bottom-item-active" data-tab="rankings" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-rank-active.png" mode="aspectFit"></image>
+    <text>排行榜</text>
+  </view>
+  <view class="pp-bottom-item " data-tab="me" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-me.png" mode="aspectFit"></image>
+    <text>我的</text>
+  </view>
+</view>
+  <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

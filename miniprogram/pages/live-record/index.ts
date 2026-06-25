@@ -11,18 +11,23 @@ import {
 } from '../../utils/session'
 import {
   createManagedSessionEvent,
+  cleanupManagedMomentUpload,
+  createManagedMoment,
   finishManagedSession,
   getManagedLiveSession,
   getManagedSessionTimeline,
   updateManagedSession,
+  uploadManagedMomentImage,
   type ManagedTimelineNode,
 } from '../../services/operations'
+import { normalizeManagedAssetPath } from '../../config/assets'
 import { confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized, getCurrentDisplayProfile } from '../../utils/social'
 import { resolveCachedManagedImagePath } from '../../utils/imageCache'
 
 interface LivePlayer {
   avatarUrl: string
+  initial: string
   name: string
   profileId?: string
 }
@@ -78,6 +83,7 @@ interface LiveRecordTimelineItem {
   scoreText: string
   timeText: string
   title: string
+  actionLabel: string
   type: 'debt' | 'drink' | 'photo'
 }
 
@@ -116,6 +122,7 @@ interface LiveRecordState {
   memberCountText: string
   playerCount: number
   players: LivePlayer[]
+  quickPhotoSaving: boolean
   baselineRecords: LiveRecordItem[]
   records: LiveRecordItem[]
   sessionId: string
@@ -142,7 +149,7 @@ interface LiveRecordMethods {
   handleBackTap: () => Promise<void>
   handleConfirmLedgerTap: () => Promise<void>
   handleFinishTap: () => Promise<void>
-  handleHighlightMomentTap: () => void
+  handleHighlightMomentTap: () => Promise<void>
   handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handlePhotoImageLoad: (event: WechatMiniprogram.BaseEvent) => void
   handleLedgerTap: () => Promise<void>
@@ -155,6 +162,7 @@ interface LiveRecordMethods {
   handleSegmentTap: (event: WechatMiniprogram.BaseEvent) => void
   handleWheelTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   createLedgerEventsForDiff: (previousRecords: LiveRecordItem[], nextRecords: LiveRecordItem[]) => Promise<boolean>
+  createQuickPhotoMoment: (filePath: string) => Promise<void>
   persistRecordsToManagedSession: (records: LiveRecordItem[]) => Promise<boolean>
   showPreviewToast: (message: string) => void
   syncRecordsToRuntime: (records: LiveRecordItem[]) => void
@@ -164,7 +172,7 @@ const JUDGE_WHEEL_RESULT_KEY = 'judge-wheel-result'
 const MAX_CLEAR_PER_PLAYER = 3
 const SAMPLE_008AS_SESSION_ID = 'session-1781787045680-8e406c'
 const SAMPLE_008AS_SESSION_NAME = '周末聚会记录'
-const SAMPLE_008AS_TITLE_ASSET = 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008at-title-sample-zhoumojuhuijilu.png'
+const SAMPLE_008AS_TITLE_ASSET = ''
 let liveTimer = 0
 
 const internalDisplayPattern = /(PR\s+Seed|PR-BE-DB-LOGIN|IT-MOMENTS|DEBUG|openid|openId|unionId|signature)/i
@@ -177,7 +185,37 @@ const cleanDisplayName = (value?: string, fallback = '成员') => {
   return text
 }
 
+const cleanSessionName = (value?: string, fallback = '聚会记录') =>
+  cleanDisplayName(value, fallback).replace(/露营相册/g, '聚会记录') || fallback
+
 const getInitial = (name: string) => cleanDisplayName(name, '友').slice(0, 1) || '友'
+
+const buildMomentFileName = (filePath: string) => {
+  const ext = /\.jpe?g$/i.test(filePath) ? 'jpg' : /\.webp$/i.test(filePath) ? 'webp' : 'png'
+  return `live-photo-${Date.now()}.${ext}`
+}
+
+const buildImageDataUrl = (filePath: string, data: string) => {
+  const mime = /\.jpe?g$/i.test(filePath) ? 'image/jpeg' : /\.webp$/i.test(filePath) ? 'image/webp' : 'image/png'
+  return `data:${mime};base64,${data}`
+}
+
+const readLocalImageAsDataUrl = (filePath: string): Promise<string> =>
+  new Promise((resolve, reject) => {
+    wx.getFileSystemManager().readFile({
+      filePath,
+      encoding: 'base64',
+      success: (result) => {
+        const data = String(result.data || '')
+        if (!data) {
+          reject(new Error('图片读取失败'))
+          return
+        }
+        resolve(buildImageDataUrl(filePath, data))
+      },
+      fail: reject,
+    })
+  })
 
 const formatTimelineTime = (value?: string) => {
   const time = value ? new Date(value) : null
@@ -238,6 +276,7 @@ const buildPlayers = (runtime = getSessionRuntime()): LivePlayer[] =>
     .slice(0, runtime.playerCount)
     .map((item, index) => ({
       avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
+      initial: getInitial(cleanDisplayName(item.name, `成员 ${index + 1}`)),
       name: cleanDisplayName(item.name, `成员 ${index + 1}`),
       profileId: item.profileId,
     }))
@@ -274,7 +313,7 @@ const buildSessionEvents = (
 ): LiveEvent[] => {
   const wheelEvents = wheelPlayers
     .flatMap((player) => {
-      const name = player.name || '未知玩家'
+      const name = player.name || '未知成员'
       return (player.wheelHistory || [])
         .filter((item) => !!item?.text)
         .map((item) => ({
@@ -298,7 +337,7 @@ const buildSessionEvents = (
 
 const buildInitialEvents = (sessionName: string, players: LivePlayer[]): LiveEvent[] => {
   if (!players.length) {
-    return [{ text: `${sessionName} 已创建，等待玩家加入。` }]
+    return [{ text: `${sessionName} 已创建，等待成员加入。` }]
   }
 
   return [{ text: `${sessionName} 当前已有 ${players.length} 位成员加入，等待发起人开始记录。` }]
@@ -338,10 +377,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         const delta = Number(node.scoreDelta) || 0
         const score = Math.abs(delta) || 1
         const signText = delta < 0 ? '-' : '+'
-        const chipAsset =
-          node.eventType === 'drink_debt'
-            ? (score === 1 ? 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-neon-debt-plus1.png' : 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-neon-plate-debt-base.png')
-            : (score === 1 ? 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008au-neon-drink-plus1.png' : score === 2 ? 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-neon-drink-plus2.png' : 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-neon-plate-drink-base.png')
+        const chipAsset = ''
         ledgerTimelineItems.push({
           detail: buildEventDetail(node),
           id: node.id,
@@ -351,6 +387,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
           typeText: node.eventType === 'drink_debt' ? '欠酒' : '加酒',
         })
         recordTimelineItems.push({
+          actionLabel: node.eventType === 'drink_debt' ? '欠酒' : '加酒',
           actorAvatarUrl: mergeRuntimeAvatar(node.targetProfileId, node.targetAvatarUrl || target?.avatarUrl || ''),
           actorInitial: getInitial(targetName),
           actorName: targetName,
@@ -363,10 +400,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
             node.eventType === 'drink_debt'
               ? (delta < 0 ? `${targetName} 消酒 ${score} 杯` : `${operatorName} 给 ${targetName} 记了 ${score} 杯欠酒`)
               : (delta < 0 ? `${operatorName} 为 ${targetName} 减少加酒 ${score} 杯` : `${operatorName} 为 ${targetName} 加了 ${score} 杯酒`),
-          iconAsset:
-            node.eventType === 'drink_debt'
-              ? 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-node-debt.png'
-              : 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-node-drink.png',
+          iconAsset: '',
           id: node.id,
           imageUrl: '',
           nodeKind: 'event',
@@ -388,6 +422,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         timelineTitle: node.timelineTitle || node.caption || '聚会照片',
       })
       recordTimelineItems.push({
+        actionLabel: '拍照',
         actorAvatarUrl: mergeRuntimeAvatar(node.uploaderProfileId, node.uploaderAvatarUrl || ''),
         actorInitial: getInitial(cleanDisplayName(node.uploaderName, '成员')),
         actorName: cleanDisplayName(node.uploaderName, '成员'),
@@ -397,7 +432,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         chipTextVisible: false,
         createdAt: node.createdAt || node.updatedAt || '',
         detail: node.caption || '照片已进入相册和分享记录',
-        iconAsset: 'https://cdn.pomer.cn/static/party-recorder/live-record/pr-cs008ar-node-camera.png',
+        iconAsset: '',
         id: node.id,
         imageUrl: node.imageUrl,
         nodeKind: 'moment',
@@ -603,6 +638,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     ledgerSubmitting: false,
     memberCountText: '成员待加入',
     records: [],
+    quickPhotoSaving: false,
     baselineRecords: [],
     sessionId: '',
     sessionName: '',
@@ -639,7 +675,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     const runtime = getSessionRuntime()
     const sessionId = query?.sessionId ? decodeURIComponent(query.sessionId) : runtime.sessionId || ''
     const role = query?.role ? decodeURIComponent(query.role) : ''
-    const sessionName = query?.sessionName ? decodeURIComponent(query.sessionName) : runtime.sessionName
+    const sessionName = cleanSessionName(query?.sessionName ? decodeURIComponent(query.sessionName) : runtime.sessionName)
 
     if (sessionId) {
       try {
@@ -685,6 +721,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       .slice(0, liveSession.playerCount)
       .map((item, index) => ({
         avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
+        initial: getInitial(cleanDisplayName(item.name, `成员 ${index + 1}`)),
         name: cleanDisplayName(item.name, `成员 ${index + 1}`),
         profileId: item.profileId,
       }))
@@ -704,6 +741,8 @@ Page<LiveRecordState, LiveRecordMethods>({
       hasSessionFirstPhoto(runtime),
     )
 
+    const sessionName = cleanSessionName(liveSession.sessionName)
+
     setSessionRuntime({
       inviteCode: liveSession.inviteCode,
       isJudge: inferredIsJudge,
@@ -716,7 +755,7 @@ Page<LiveRecordState, LiveRecordMethods>({
         status: item.status,
       })),
       sessionId: liveSession.id,
-      sessionName: liveSession.sessionName,
+      sessionName,
       startedAt: sessionStartTime,
       templateImageUrl: liveSession.templateImageUrl || runtime.templateImageUrl || '',
       templateName: liveSession.templateName,
@@ -731,11 +770,11 @@ Page<LiveRecordState, LiveRecordMethods>({
       ledgerSubmitting: false,
       records,
       sessionId: liveSession.id,
-      sessionName: liveSession.sessionName,
+      sessionName,
       memberCountText: buildMemberCountText(players.length, liveSession.playerCount),
       startTimeText: formatStartTimeText(sessionStartTime),
-      titleImageSrc: resolveTitleImageSrc(liveSession.sessionName, liveSession.id),
-      events: buildSessionEvents(liveSession.sessionName, players, liveSession.joinStatusPlayers),
+      titleImageSrc: resolveTitleImageSrc(sessionName, liveSession.id),
+      events: buildSessionEvents(sessionName, players, liveSession.joinStatusPlayers),
     })
 
     await this.loadTimeline()
@@ -763,6 +802,7 @@ Page<LiveRecordState, LiveRecordMethods>({
         .slice(0, liveSession.playerCount)
         .map((item, index) => ({
           avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
+          initial: getInitial(cleanDisplayName(item.name, `成员 ${index + 1}`)),
           name: cleanDisplayName(item.name, `成员 ${index + 1}`),
           profileId: item.profileId,
         }))
@@ -778,6 +818,8 @@ Page<LiveRecordState, LiveRecordMethods>({
         profileId: item.profileId,
       }))
 
+      const sessionName = cleanSessionName(liveSession.sessionName)
+
       setSessionRuntime({
         isJudge: this.data.isJudge,
         playerCount: liveSession.playerCount,
@@ -789,7 +831,7 @@ Page<LiveRecordState, LiveRecordMethods>({
           status: item.status,
         })),
         sessionId: liveSession.id,
-        sessionName: liveSession.sessionName,
+        sessionName,
       })
 
       this.syncRecordsToRuntime(records)
@@ -801,11 +843,11 @@ Page<LiveRecordState, LiveRecordMethods>({
         ledgerSubmitting: false,
         records,
         sessionId: liveSession.id,
-        sessionName: liveSession.sessionName,
+        sessionName,
         memberCountText: buildMemberCountText(players.length, liveSession.playerCount),
         startTimeText: formatStartTimeText(getSessionRuntime().startedAt),
-        titleImageSrc: resolveTitleImageSrc(liveSession.sessionName, liveSession.id),
-        events: buildSessionEvents(liveSession.sessionName, players, liveSession.joinStatusPlayers),
+        titleImageSrc: resolveTitleImageSrc(sessionName, liveSession.id),
+        events: buildSessionEvents(sessionName, players, liveSession.joinStatusPlayers),
       })
 
       await this.loadTimeline()
@@ -1109,14 +1151,87 @@ Page<LiveRecordState, LiveRecordMethods>({
     this.openPage(`/pages/invite-group/index${sessionId}`)
   },
 
-  handleHighlightMomentTap() {
+  async handleHighlightMomentTap() {
     const sessionId = this.data.sessionId || getSessionRuntime().sessionId || ''
     if (!sessionId) {
       this.showPreviewToast('未找到当前聚会信息')
       return
     }
+    if (this.data.quickPhotoSaving) {
+      return
+    }
 
-    this.openPage(`/pages/moment-editor/index?sessionId=${encodeURIComponent(sessionId)}&nodeType=highlight`)
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (result) => {
+        const filePath = result.tempFiles[0]?.tempFilePath || ''
+        if (filePath) {
+          void this.createQuickPhotoMoment(filePath)
+        }
+      },
+      fail: () => undefined,
+    })
+  },
+
+  async createQuickPhotoMoment(filePath) {
+    const sessionId = this.data.sessionId || getSessionRuntime().sessionId || ''
+    if (!sessionId) {
+      this.showPreviewToast('未找到当前聚会信息')
+      return
+    }
+    if (this.data.quickPhotoSaving) {
+      return
+    }
+
+    let uploadedAssetId = ''
+    this.setData({ quickPhotoSaving: true })
+    wx.showLoading({
+      title: '保存照片',
+      mask: true,
+    })
+
+    try {
+      const dataUrl = await readLocalImageAsDataUrl(filePath)
+      const upload = await uploadManagedMomentImage({
+        dataUrl,
+        fileName: buildMomentFileName(filePath),
+        sessionId,
+      })
+      uploadedAssetId = upload.id || ''
+      const created = await createManagedMoment(sessionId, {
+        caption: '',
+        clientDraftId: `live-photo-${sessionId}-${Date.now()}`,
+        imageUrl: normalizeManagedAssetPath(upload.url) || upload.url,
+        nodeType: hasSessionFirstPhoto(getSessionRuntime()) ? 'highlight' : 'opening',
+        uploadAssetId: uploadedAssetId,
+        usageConsent: {
+          brief: true,
+          ranking: true,
+          session: true,
+          share: true,
+        },
+        visibility: 'session',
+        visibleProfileIds: [],
+      })
+      uploadedAssetId = ''
+      if (created.imageUrl) {
+        markSessionFirstPhotoUploaded(created.createdAt || created.updatedAt || new Date().toISOString())
+      }
+      this.setData({ activeSegment: 'record' })
+      await this.loadTimeline()
+      this.showPreviewToast('照片已插入当前记录')
+    } catch (error) {
+      if (uploadedAssetId) {
+        await cleanupManagedMomentUpload(uploadedAssetId).catch(() => undefined)
+      }
+      this.showPreviewToast(error instanceof Error ? error.message : '照片保存失败')
+    } finally {
+      wx.hideLoading()
+      this.setData({ quickPhotoSaving: false })
+    }
   },
 
   handlePhotoImageLoad(event) {

@@ -1,21 +1,17 @@
-<view wx:if="{{displayItems.length}}" class="session-moment-summary {{compact ? 'session-moment-summary-compact' : ''}}">
-  <view
-    wx:for="{{displayItems}}"
-    wx:key="key"
-    class="session-moment-summary-card"
-  >
-    <view class="session-moment-summary-head">
-      <view class="session-moment-summary-copy">
-        <text class="session-moment-summary-title">{{item.primaryTitle}}</text>
-        <text class="session-moment-summary-meta">{{item.secondaryMeta}}</text>
+<view wx:if="{{displayItems.length}}" class="pp-stack">
+  <view wx:for="{{displayItems}}" wx:key="key" class="pp-card">
+    <view class="pp-row-between">
+      <view class="pp-list-copy">
+        <text class="pp-item-title">{{item.primaryTitle}}</text>
+        <text class="pp-item-meta">{{item.secondaryMeta}}</text>
       </view>
-      <view wx:if="{{item.rankingEntryEnabled}}" class="session-moment-summary-badge">可推举</view>
+      <text wx:if="{{item.rankingEntryEnabled}}" class="pp-chip pp-chip-active">可推举</text>
     </view>
 
-    <view class="session-moment-summary-metrics">
-      <view class="session-moment-summary-metric">
-        <text class="session-moment-summary-value">{{item.canResumeMomentIds.length}}</text>
-        <text class="session-moment-summary-label">可继续</text>
+    <view class="pp-stat-row">
+      <view class="pp-stat">
+        <text class="pp-stat-value">{{item.canResumeMomentIds.length}}</text>
+        <text class="pp-stat-label">可继续</text>
       </view>
     </view>
 
@@ -27,23 +23,14 @@
       bind:retry="handleRetryTap"
     ></share-task-status>
 
-    <view class="session-moment-summary-actions">
-      <view
-        class="session-moment-summary-action session-moment-summary-action-primary"
-        data-index="{{index}}"
-        bindtap="handleBriefTap"
-      >看简报</view>
-      <view
-        wx:if="{{item.canResume}}"
-        class="session-moment-summary-action"
-        data-index="{{index}}"
-        bindtap="handleResumeTap"
-      >继续记录</view>
+    <view class="pp-action-row">
+      <view class="pp-button pp-button-primary" data-index="{{index}}" bindtap="handleBriefTap">看简报</view>
+      <view wx:if="{{item.canResume}}" class="pp-button pp-button-secondary" data-index="{{index}}" bindtap="handleResumeTap">继续记录</view>
     </view>
   </view>
 </view>
 
-<view wx:elif="{{emptyText}}" class="session-moment-summary-empty">
-  <image class="session-moment-summary-empty-sticker" src="https://cdn.pomer.cn/static/party-recorder/party-recorder-empty-album-sticker.png" mode="aspectFit"></image>
-  <text>{{emptyText}}</text>
+<view wx:elif="{{emptyText}}" class="pp-empty">
+  <image class="pp-empty-sticker" src="https://cdn.pomer.cn/static/party-pop-clean/empty-memory-sticker.png" mode="aspectFit"></image>
+  <text class="pp-body">{{emptyText}}</text>
 </view>

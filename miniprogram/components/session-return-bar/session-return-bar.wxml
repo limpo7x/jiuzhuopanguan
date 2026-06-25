@@ -1,8 +1,10 @@
-<view wx:if="{{visible}}" class="session-return-bar" bindtap="handleTap">
-  <view class="session-return-icon"></view>
-  <view class="session-return-copy">
-    <text class="session-return-title">{{title || '当前聚会'}}</text>
-    <text class="session-return-meta">{{meta || '回到记录页继续拍照'}}</text>
+<view wx:if="{{visible}}" class="pp-card pp-panel-accent" bindtap="handleTap">
+  <view class="pp-row">
+    <image class="pp-icon-lg" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-continue.png" mode="aspectFit"></image>
+    <view class="pp-list-copy">
+      <text class="pp-item-title">{{title || '当前聚会'}}</text>
+      <text class="pp-item-meta">{{meta || '回到记录页继续拍照'}}</text>
+    </view>
+    <text class="pp-chip">{{status || '进行中'}}</text>
   </view>
-  <view class="session-return-status">{{status || '进行中'}}</view>
 </view>

@@ -4,7 +4,7 @@ interface InvalidStat {
 }
 
 interface InvalidQuickItem {
-  iconClass: string
+  iconUrl: string
   name: string
   route: string
   toneClass: string
@@ -29,9 +29,9 @@ Page<InvalidStateState, InvalidStateMethods>({
       { value: '2小时18分', label: '游戏时长' },
     ],
     quickItems: [
-      { name: '邀请好友', iconClass: 'invalid-icon-user', route: '/pages/invite-group/index', toneClass: 'invalid-tile-green' },
-      { name: '查看相册', iconClass: 'invalid-icon-magic', route: '/pages/album/index', toneClass: 'invalid-tile-blue' },
-      { name: '聚会账本', iconClass: 'invalid-icon-crown', route: '/pages/ledger/index', toneClass: '' },
+      { name: '邀请好友', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/action-join.png', route: '/pages/invite-group/index', toneClass: 'invalid-tile-green' },
+      { name: '查看相册', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/action-album.png', route: '/pages/album/index', toneClass: 'invalid-tile-blue' },
+      { name: '聚会账本', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/service-points.png', route: '/pages/ledger/index', toneClass: '' },
     ],
   },
 

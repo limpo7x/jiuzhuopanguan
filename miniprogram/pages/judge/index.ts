@@ -10,6 +10,7 @@ import {
 
 interface JudgeEntry {
   iconClass: string
+  iconUrl: string
   id: string
   name: string
   toneClass: string
@@ -56,10 +57,10 @@ interface JudgePageMethods {
 }
 
 const TAB_ROUTES: Record<string, string> = {
-  album: '/pages/wine-history/index?mode=album',
+  album: '/pages/album/index',
   home: '/pages/index/index',
   tools: '/pages/tools/index',
-  judge: '/pages/judge/index',
+  judge: '/pages/live-record/index',
   me: '/pages/me/index',
 }
 
@@ -70,10 +71,10 @@ Page<JudgePageState, JudgePageMethods>({
     heroTitle: '记录这一刻',
     pokeCards: [],
     quickEntries: [
-      { id: 'photo', name: '拍照记录', iconClass: 'judge-icon-list', toneClass: '' },
-      { id: 'ledger', name: '聚会账本', iconClass: 'judge-icon-ledger', toneClass: 'judge-tile-ledger' },
-      { id: 'history', name: '历史相册', iconClass: 'judge-icon-history', toneClass: 'judge-tile-blue' },
-      { id: 'merchant', name: '分享记录', iconClass: 'judge-icon-store', toneClass: 'judge-tile-green' },
+      { id: 'photo', name: '拍照记录', iconClass: 'judge-icon-list', iconUrl: '/assets/party-recorder-rebuild/icons-v3-imagegen/action-camera.png', toneClass: '' },
+      { id: 'ledger', name: '聚会账本', iconClass: 'judge-icon-ledger', iconUrl: '/assets/party-recorder-rebuild/icons-v3-imagegen/service-points.png', toneClass: 'judge-tile-ledger' },
+      { id: 'history', name: '历史相册', iconClass: 'judge-icon-history', iconUrl: '/assets/party-recorder-rebuild/icons-v3-imagegen/action-album.png', toneClass: 'judge-tile-blue' },
+      { id: 'merchant', name: '分享记录', iconClass: 'judge-icon-store', iconUrl: '/assets/party-recorder-rebuild/icons-v3-imagegen/service-template.png', toneClass: 'judge-tile-green' },
     ],
     sessionReturn: EMPTY_SESSION_RETURN,
     sessionMeta: '还没有进行中的聚会时，可先创建并邀请好友。',
@@ -185,15 +186,15 @@ Page<JudgePageState, JudgePageMethods>({
         this.openPage('/pages/create-session/index')
         return
       }
-      this.openPage('/pages/table-mode/index')
+      this.openPage('/pages/ledger/index')
       return
     }
 
     const routes: Record<string, string> = {
       记录说明: '/pages/compliance-guide/index',
-      历史相册: '/pages/wine-history/index',
-      主题模板: '/pages/premium-templates/index',
-      分享记录: '/pages/wine-history/index?mode=unshared',
+      历史相册: '/pages/album/index?mode=host',
+      主题模板: '/pages/feature-zones/index?zone=templates',
+      分享记录: '/pages/album/index?mode=shares',
     }
     const target = routes[name]
 

@@ -1,0 +1,32 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "name": "live",
+      "url": "/pages/live-record/index?sessionId=session-demo&sessionName=demo",
+      "ok": true,
+      "consoleErrors": [],
+      "path": "pages/live-record/index",
+      "consoleCount": 3,
+      "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\final-fix-2\\live.png"
+    },
+    {
+      "name": "me",
+      "url": "/pages/me/index",
+      "ok": true,
+      "consoleErrors": [],
+      "path": "pages/me/index",
+      "consoleCount": 6,
+      "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\final-fix-2\\me.png"
+    },
+    {
+      "name": "moment-editor",
+      "url": "/pages/moment-editor/index?sessionId=session-demo",
+      "ok": true,
+      "consoleErrors": [],
+      "path": "pages/moment-editor/index",
+      "consoleCount": 0,
+      "screenshot": "F:\\codexlist\\jiuzhuopanguan\\docs\\runtime\\wechat-rebuild-20260625\\final-fix-2\\moment-editor.png"
+    }
+  ]
+}

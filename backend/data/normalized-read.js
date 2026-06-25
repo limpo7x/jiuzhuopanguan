@@ -1,6 +1,6 @@
 const { ensureMysqlPool, isMySQLEnabled } = require('./store-accessor')
 
-const DEFAULT_MINI_PROGRAM_QR_URL = '/static/share-miniapp-qr.png'
+const DEFAULT_MINI_PROGRAM_QR_URL = '/static/share-poster-miniapp-code.png'
 
 const cleanText = (value = '') => String(value || '').trim()
 
@@ -84,7 +84,9 @@ const calculateRate = (count, total) => {
   return `${value.toFixed(1).replace(/\.0$/, '')}%`
 }
 
-const isEndedSession = (session = {}) => String(session?.state || session?.status || '').includes('结束')
+const isEndedSession = (session = {}) =>
+  Boolean(cleanText(session?.endedAt || session?.ended_at)) ||
+  String(session?.state || session?.status || '').includes('结束')
 
 const pickLiveSession = (sessions = []) =>
   sessions.find((item) => String(item.state || item.status || '').includes('等待')) ||
@@ -102,15 +104,23 @@ const getFirstPhotoStateFromNormalized = ({ firstMoment = null, isEnded = false 
   }
 }
 
-const formatLiveSessionFromNormalized = ({ firstMoment = null, members = [], session = {} } = {}) => {
+const buildProfileAvatarMap = (profiles = []) =>
+  new Map(
+    profiles
+      .map((item) => [cleanText(item.id), cleanText(item.avatar_url || item.avatarUrl)])
+      .filter((item) => item[0]),
+  )
+
+const formatLiveSessionFromNormalized = ({ firstMoment = null, members = [], profiles = [], session = {} } = {}) => {
   const playerCount = Math.max(0, Number(session?.player_count) || 0)
+  const profileAvatarMap = buildProfileAvatarMap(profiles)
   const memberPlayers = members.map((item) => {
     const profileId = cleanText(item.profile_id)
     const meta = parseJson(item.meta_json, {})
     const rawMeta = cleanText(item.meta_json)
     const metaText = typeof meta === 'string' ? cleanText(meta) : cleanText(meta?.meta || (rawMeta && !/^[\[{"]/.test(rawMeta) ? rawMeta : ''))
     return {
-      avatarUrl: '',
+      avatarUrl: cleanText(item.avatar_url || profileAvatarMap.get(profileId)),
       clearedCount: Math.max(0, Number(item.cleared_count) || 0),
       debtCount: Math.max(0, Number(item.debt_count) || 0),
       drinkCount: Math.max(0, Number(item.drink_count) || 0),
@@ -132,11 +142,12 @@ const formatLiveSessionFromNormalized = ({ firstMoment = null, members = [], ses
   })
   const joinedPlayers = memberPlayers.filter((item) => item.status === '已加入')
   const hostProfileId = cleanText(session?.host_profile_id)
+  const hostMember = memberPlayers.find((item) => item.profileId === hostProfileId) || joinedPlayers.find((item) => item.profileId === hostProfileId)
   const firstPhotoState = getFirstPhotoStateFromNormalized({ firstMoment, isEnded: isEndedSession(session) })
   return {
     firstPhotoUploadedAt: firstPhotoState.firstPhotoUploadedAt,
     hasFirstPhoto: firstPhotoState.hasFirstPhoto,
-    hostAvatarUrl: '',
+    hostAvatarUrl: cleanText(hostMember?.avatarUrl || profileAvatarMap.get(hostProfileId)),
     hostName: cleanText((members.find((item) => Number(item.is_host) === 1) || {}).name),
     hostProfileId,
     id: cleanText(session?.id),
@@ -179,6 +190,7 @@ const getLiveSessionConfigFromNormalized = async (sessionId = '', inviteCode = '
   const pool = await ensureMysqlPool()
   const [sessions] = await pool.query('SELECT * FROM `wine_sessions` ORDER BY `created_at` DESC, `id` DESC')
   const [members] = await pool.query('SELECT * FROM `wine_session_members`')
+  const [profiles] = await pool.query('SELECT `id`, `avatar_url` FROM `users`')
   const normalizedSessionId = cleanText(sessionId)
   const normalizedInviteCode = cleanText(inviteCode).toUpperCase()
   const session = normalizedSessionId
@@ -195,6 +207,7 @@ const getLiveSessionConfigFromNormalized = async (sessionId = '', inviteCode = '
   const liveSession = formatLiveSessionFromNormalized({
     firstMoment: firstMoments[0] || null,
     members: members.filter((item) => cleanText(item.session_id) === cleanText(session?.id)),
+    profiles,
     session: session || {},
   })
   const shareSummary = session?.id
@@ -392,7 +405,7 @@ const listUserSessionMomentSummariesFromNormalized = async ({ profile } = {}) =>
       : sessionMoments
           .filter((item) => cleanText(item.uploader_profile_id) === profileId && cleanText(item.completion_status) === 'needs_media')
           .map((item) => cleanText(item.id))
-    const readyShareImageUrl = cleanText(task?.image_url)
+    const readyShareImageUrl = isEndedSession ? cleanText(task?.image_url) : ''
     return {
       sessionId,
       reportId: report.reportId || report.id,
@@ -407,14 +420,14 @@ const listUserSessionMomentSummariesFromNormalized = async ({ profile } = {}) =>
       isActiveForResume: firstPhotoState.isActiveForResume,
       updatedAt: stateFields.updatedAt,
       canResume: resumableMomentIds.length > 0,
-      canShare: Boolean(brief?.id && (task?.status === 'ready' ? readyShareImageUrl : brief.share_image_task_id || task?.id)),
+      canShare: Boolean(isEndedSession && brief?.id && (task?.status === 'ready' ? readyShareImageUrl : brief.share_image_task_id || task?.id)),
       coverPhotoUrl,
       pendingMediaCount: sessionMoments.filter((item) => cleanText(item.uploader_profile_id) === profileId && cleanText(item.completion_status) === 'needs_media').length,
       canResumeMomentIds: resumableMomentIds,
       briefId: cleanText(brief?.id),
       shareImageTaskId: cleanText(task?.id),
       shareImageStatus: cleanText(task?.status),
-      shareImageUrl: cleanText(task?.image_url),
+      shareImageUrl: isEndedSession ? cleanText(task?.image_url) : '',
       readyShareImageUrl,
       rankingEntryEnabled: Number(brief?.ranking_eligible) === 1,
     }
@@ -444,7 +457,7 @@ const listUserShareImageSummariesFromNormalized = async ({ profile } = {}) => {
   }
   const pool = await ensureMysqlPool()
   const [tasks] = await pool.query("SELECT * FROM `share_image_tasks` WHERE `status` = 'ready' AND `image_url` IS NOT NULL AND `image_url` <> ''")
-  const [sessions] = await pool.query('SELECT `id`, `host_profile_id`, `name` FROM `wine_sessions`')
+  const [sessions] = await pool.query('SELECT `id`, `host_profile_id`, `name`, `state`, `status`, `ended_at` FROM `wine_sessions`')
   const [members] = await pool.query('SELECT `session_id`, `profile_id` FROM `wine_session_members`')
   const sessionById = new Map(sessions.map((item) => [cleanText(item.id), item]))
   const membersBySessionId = new Map()
@@ -461,7 +474,9 @@ const listUserShareImageSummariesFromNormalized = async ({ profile } = {}) => {
       session: sessionById.get(cleanText(task.session_id)),
       task,
     }))
-    .filter(({ session, task }) => canAccessSessionFromNormalized(session, membersBySessionId.get(cleanText(task.session_id)) || [], profileId))
+    .filter(({ session, task }) =>
+      isEndedSession(session) && canAccessSessionFromNormalized(session, membersBySessionId.get(cleanText(task.session_id)) || [], profileId),
+    )
     .map(({ session, task }) => {
       const imageUrl = cleanText(task.image_url)
       return {

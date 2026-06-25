@@ -184,6 +184,7 @@ export const getUserAuthHeaders = (): WechatMiniprogram.IAnyObject => {
 }
 
 const cacheUserToken = (token: string) => {
+  userAuthSessionPromise = null
   if (token) {
     wx.setStorageSync(USER_TOKEN_KEY, token)
   } else {

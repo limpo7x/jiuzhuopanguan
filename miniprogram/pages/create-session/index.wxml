@@ -1,92 +1,55 @@
-<navigation-bar
-  title="创建聚会"
-  back="{{true}}"
-  customBack="{{true}}"
-  bind:back="handleBackTap"
-  color="#fff2dd"
-  background="rgba(18,16,14,0.72)"
-  ext-class="create-nav"
-></navigation-bar>
-
-<view class="create-page create-redesign">
-  <image class="create-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
-  <scroll-view class="create-scroll create-redesign-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="create-step-line">
-      <view class="create-step-pill create-step-pill-active">1 创建</view>
-      <view class="create-step-pill">2 邀请</view>
-      <view class="create-step-pill">3 拍照</view>
+<navigation-bar title="创建聚会" back="{{true}}" customBack="{{true}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<view class="pp-page">
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pp-hero pp-panel-cyan">
+      <view class="pp-flow">
+        <view class="pp-flow-step pp-flow-step-active"><text class="pp-flow-index">1</text><text class="pp-flow-label">创建</text></view>
+        <view class="pp-flow-line pp-flow-line-active"></view>
+        <view class="pp-flow-step"><text class="pp-flow-index">2</text><text class="pp-flow-label">邀请</text></view>
+        <view class="pp-flow-line"></view>
+        <view class="pp-flow-step"><text class="pp-flow-index">3</text><text class="pp-flow-label">拍照</text></view>
+      </view>
+      <text class="pp-title">创建聚会</text>
+      <text class="pp-body">默认生成房间和邀请方式，马上拍第一张照片。</text>
     </view>
 
-    <view class="create-hero">
-      <text class="create-title">创建聚会</text>
-      <text class="create-subtitle">默认生成房间和邀请方式，马上拍第一张照片。</text>
-      <view class="create-confetti">✦</view>
+    <view class="pp-panel">
+      <text class="pp-section-title">聚会名称</text>
+      <input class="pp-input" placeholder="例如 周末小聚" placeholder-class="pp-placeholder" value="{{sessionName}}" bindinput="handleSessionNameInput" style="margin-top: 12px;" />
+      <scroll-view class="create-name-preset-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="pp-chip-row create-name-preset-row">
+          <view wx:for="{{sessionNamePresets}}" wx:key="name" class="pp-chip {{item.active ? 'pp-chip-active' : ''}}" data-name="{{item.name}}" bindtap="handlePresetTap">{{item.name}}</view>
+        </view>
+      </scroll-view>
     </view>
 
-    <view class="create-form">
-      <view class="create-input-row">
-        <text class="create-input-icon">✎</text>
-        <input
-          class="create-input"
-          value="{{sessionName}}"
-          placeholder="今晚的聚会"
-          placeholder-class="create-input-placeholder"
-          bindinput="handleSessionNameInput"
-        />
+    <view class="pp-list-item">
+      <image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/field-name.png" mode="aspectFit"></image>
+      <view class="pp-list-copy">
+        <text class="pp-list-title">开局时间</text>
+        <text class="pp-caption">生成邀请卡时会同步记录。</text>
       </view>
-
-      <view class="create-name-preset-row">
-        <view
-          wx:for="{{sessionNamePresets}}"
-          wx:key="name"
-          class="create-name-preset-chip {{item.active ? 'create-name-preset-chip-active' : ''}}"
-          data-name="{{item.name}}"
-          bindtap="handlePresetTap"
-        >{{item.name}}</view>
-      </view>
-
-      <view class="create-input-row">
-        <text class="create-input-icon">◷</text>
-        <text class="create-input-static">{{currentTimeText}}</text>
-        <text class="create-input-arrow">›</text>
-      </view>
+      <text class="pp-chip">{{currentTimeText}}</text>
     </view>
 
-    <view class="create-advanced-row" bindtap="handleMoreTemplatesTap">
-      <text>高级设置</text>
-      <text>暂未开放 · 人数可在下方直接调整</text>
-      <text class="create-advanced-arrow">未开通</text>
-    </view>
-
-    <view class="create-player-count-panel">
-      <view class="create-player-count-copy">
-        <text class="create-player-count-title">今晚聚会人数</text>
-        <text class="create-player-count-desc">2 到 12 人，创建后用于邀请名额和账本成员数。</text>
+    <view class="pp-panel">
+      <view class="pp-row-between">
+        <view>
+          <text class="pp-section-title">今晚聚会人数</text>
+          <text class="pp-body">2 到 12 人，创建后用于邀请名额和账本成员数。</text>
+        </view>
+        <view class="pp-stepper">
+          <view class="pp-stepper-btn {{playerCount === 2 ? 'pp-disabled' : ''}}" data-action="minus" bindtap="handlePlayerCountTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/step-minus.png" mode="aspectFit"></image></view>
+          <text class="pp-stepper-value">{{playerCount}}</text>
+          <view class="pp-stepper-btn {{playerCount === 12 ? 'pp-disabled' : ''}}" data-action="plus" bindtap="handlePlayerCountTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/step-plus.png" mode="aspectFit"></image></view>
+        </view>
       </view>
-      <view class="create-stepper create-player-count-stepper">
-        <view
-          class="create-stepper-btn create-player-count-minus {{playerCount <= 2 ? 'create-stepper-btn-disabled' : ''}}"
-          data-action="minus"
-          bindtap="handlePlayerCountTap"
-        >−</view>
-        <text class="create-stepper-value create-player-count-value">{{playerCount}} 人</text>
-        <view
-          class="create-stepper-btn create-player-count-plus {{playerCount >= 12 ? 'create-stepper-btn-disabled' : ''}}"
-          data-action="plus"
-          bindtap="handlePlayerCountTap"
-        >＋</view>
-      </view>
-    </view>
-
-    <view class="create-notice">
-      <view class="create-notice-icon create-icon-shield"></view>
-      <text>默认仅本聚会成员可见，公开分享需单独授权。</text>
     </view>
   </scroll-view>
-
-  <view class="create-bottom-bar">
-    <view class="create-primary party-cta party-cta-primary" bindtap="handleNextTap">
-      <text>创建并邀请</text>
-    </view>
+  <view class="pp-fixed-actions">
+    <view class="pp-button pp-button-ghost" bindtap="handleBackTap">返回首页</view>
+    <view class="pp-button pp-button-primary" bindtap="handleNextTap">生成邀请卡</view>
   </view>
+  <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

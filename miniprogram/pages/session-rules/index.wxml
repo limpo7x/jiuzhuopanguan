@@ -1,5 +1,5 @@
 <navigation-bar
-  title="创建酒局"
+  title="创建聚会"
   back="{{true}}"
   color="#24160f"
   background="rgba(255,253,248,0.96)"
@@ -11,11 +11,11 @@
     <view class="rules-progress">
       <view class="rules-progress-step rules-progress-step-done">
         <text class="rules-progress-dot">1</text>
-        <text>创建酒局</text>
+        <text>创建聚会</text>
       </view>
       <view class="rules-progress-step rules-progress-step-active">
         <text class="rules-progress-dot">2</text>
-        <text>玩法设置</text>
+        <text>聚会设置</text>
       </view>
       <view class="rules-progress-step">
         <text class="rules-progress-dot">3</text>
@@ -24,7 +24,7 @@
     </view>
 
     <view class="rules-card rules-form-card">
-      <text class="rules-block-title">玩法设置</text>
+      <text class="rules-block-title">聚会设置</text>
 
       <view class="rules-field">
         <text class="rules-label">局内规则</text>
@@ -46,9 +46,13 @@
           <text class="rules-item-meta">每轮触发轻整活</text>
         </view>
         <view class="rules-stepper">
-          <view class="rules-stepper-btn" data-action="minus" bindtap="handleTaskCountTap">-</view>
+          <view class="rules-stepper-btn" data-action="minus" bindtap="handleTaskCountTap">
+            <image class="stepper-icon" src="/assets/party-recorder-rebuild/icons-v3-imagegen/step-minus.png" mode="aspectFit"></image>
+          </view>
           <text class="rules-stepper-value">{{taskCount}}个</text>
-          <view class="rules-stepper-btn" data-action="plus" bindtap="handleTaskCountTap">+</view>
+          <view class="rules-stepper-btn" data-action="plus" bindtap="handleTaskCountTap">
+            <image class="stepper-icon" src="/assets/party-recorder-rebuild/icons-v3-imagegen/step-plus.png" mode="aspectFit"></image>
+          </view>
         </view>
       </view>
 
@@ -66,8 +70,8 @@
     </view>
 
     <view class="rules-primary" bindtap="handleNextTap">
-      <text>下一步 添加玩家</text>
-      <view class="rules-primary-icon rules-icon-user"></view>
+      <text>下一步 邀请好友</text>
+      <image class="button-icon" src="/assets/party-recorder-rebuild/icons-v3-imagegen/action-join.png" mode="aspectFit"></image>
     </view>
   </scroll-view>
 </view>

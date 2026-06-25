@@ -1,85 +1,21 @@
-<navigation-bar
-  title="{{title}}"
-  back="{{true}}"
-  customBack="{{true}}"
-  bind:back="handleBackTap"
-  color="#fff2dd"
-  background="rgba(18,16,14,0.88)"
-  ext-class="feature-zone-nav"
-></navigation-bar>
-
-<view class="feature-zone-page">
-  <image class="feature-zone-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
-  <scroll-view class="feature-zone-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="feature-zone-hero">
-      <text class="feature-zone-kicker">功能区</text>
-      <text class="feature-zone-title">{{title}}</text>
-      <text class="feature-zone-subtitle">{{subtitle}}</text>
+<navigation-bar title="{{title}}" back="{{true}}" customBack="{{true}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<view class="pp-page">
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pp-hero pp-panel-yellow">
+      <text class="pp-kicker">FEATURE ZONE</text>
+      <text class="pp-title">{{title || '功能区'}}</text>
+      <text class="pp-body">{{subtitle || '按后台真实配置展示，不足时说明原因。'}}</text>
     </view>
-
-    <view wx:if="{{loading}}" class="feature-zone-state">
-      <text class="feature-zone-state-title">加载中</text>
-      <text class="feature-zone-state-meta">正在读取真实功能配置。</text>
-    </view>
-
-    <view wx:elif="{{errorText}}" class="feature-zone-state feature-zone-state-warn">
-      <text class="feature-zone-state-title">{{loginRequired ? '需要登录' : '暂不可用'}}</text>
-      <text class="feature-zone-state-meta">{{errorText}}</text>
-    </view>
-
-    <block wx:else>
-      <view wx:if="{{summaryCards.length}}" class="feature-zone-summary">
-        <view
-          wx:for="{{summaryCards}}"
-          wx:key="title"
-          class="feature-zone-summary-card {{item.disabled ? 'feature-zone-card-disabled' : ''}}"
-        >
-          <text class="feature-zone-card-tag">{{item.tag}}</text>
-          <text class="feature-zone-card-title">{{item.title}}</text>
-          <text class="feature-zone-card-meta">{{item.meta}}</text>
-        </view>
+    <view wx:if="{{loading}}" class="pp-loading"><view class="pp-loading-dot"></view><text>正在读取真实功能配置</text></view>
+    <view wx:elif="{{entries.length}}" class="pp-list">
+      <view wx:for="{{entries}}" wx:key="id" class="pp-list-item" data-id="{{item.id}}" data-route="{{item.route}}" data-title="{{item.title}}" bindtap="handleEntryTap">
+        <view class="pp-avatar"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/service-template.png" mode="aspectFit"></image></view>
+        <view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">{{item.desc || item.meta || item.reason}}</text></view>
+        <text class="pp-chip {{item.disabled ? '' : 'pp-chip-active'}}">{{item.disabled ? '不可用' : '进入'}}</text>
       </view>
-
-      <view class="feature-zone-list">
-        <block wx:for="{{entries}}" wx:key="title">
-          <view
-            wx:if="{{item.disabled}}"
-            class="feature-zone-row feature-zone-row-disabled"
-          >
-            <view class="feature-zone-row-copy">
-              <text class="feature-zone-row-tag">{{item.tag}}</text>
-              <text class="feature-zone-row-title">{{item.title}}</text>
-              <text class="feature-zone-row-meta">{{item.meta}}</text>
-            </view>
-            <text class="feature-zone-row-action">{{item.actionLabel}}</text>
-          </view>
-          <view
-            wx:else
-            class="feature-zone-row"
-            data-disabled="{{item.disabled}}"
-            data-route="{{item.route}}"
-            data-title="{{item.title}}"
-            bindtap="handleEntryTap"
-          >
-            <view class="feature-zone-row-copy">
-              <text class="feature-zone-row-tag">{{item.tag}}</text>
-              <text class="feature-zone-row-title">{{item.title}}</text>
-              <text class="feature-zone-row-meta">{{item.meta}}</text>
-            </view>
-            <text class="feature-zone-row-action">{{item.actionLabel}}</text>
-          </view>
-        </block>
-      </view>
-
-      <view wx:if="{{!entries.length && !summaryCards.length}}" class="feature-zone-state">
-        <text class="feature-zone-state-title">暂无可展示内容</text>
-        <text class="feature-zone-state-meta">该功能区等待接口数据或后台配置完成。</text>
-      </view>
-    </block>
-
-    <view class="feature-zone-action feature-zone-action-disabled">
-      <text>{{primaryLabel}}</text>
-      <text class="feature-zone-action-meta">{{actionHint}}</text>
     </view>
+    <view wx:else class="pp-empty"><text class="pp-section-title">暂无可展示内容</text><text class="pp-body">该功能区等待接口数据或后台配置完成。</text></view>
   </scroll-view>
+  <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

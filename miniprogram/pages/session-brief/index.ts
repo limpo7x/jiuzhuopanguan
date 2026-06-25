@@ -37,6 +37,16 @@ interface BriefNominationItem {
   title: string
 }
 
+interface BriefTimelineItem {
+  actionLabel: string
+  detail: string
+  id: string
+  imageUrl: string
+  nodeKind: string
+  timeText: string
+  title: string
+}
+
 interface SessionBriefState {
   accountingHighlights: Array<Record<string, unknown>>
   briefId: string
@@ -61,6 +71,7 @@ interface SessionBriefState {
   stats: BriefStat[]
   subtitle: string
   timelineEmptyText: string
+  timelineDisplayItems: BriefTimelineItem[]
   timelineNodes: ManagedTimelineNode[]
 }
 
@@ -130,7 +141,7 @@ const formatBriefTime = (value?: string) => {
 
 const buildNominationTitle = (node: Extract<ManagedTimelineNode, { nodeKind: 'moment' }>) => {
   const text = String(node.timelineTitle || node.caption || '').trim()
-  if (text) return text.replace(/酒局/g, '聚会')
+  if (text) return text.replace(/\u9152\u5c40/g, '聚会')
   if (node.nodeType === 'opening') return '开场照片'
   if (node.nodeType === 'closing') return '收尾照片'
   return '聚会照片'
@@ -156,6 +167,57 @@ const buildNominationItems = (nodes: ManagedTimelineNode[]): BriefNominationItem
       title: buildNominationTitle(node),
     }
   })
+
+const buildBriefEventDetail = (node: Extract<ManagedTimelineNode, { nodeKind: 'event' }>) => {
+  const operator = String(node.operatorName || '').trim() || '成员'
+  const target = String(node.targetName || '').trim() || '成员'
+  const score = Math.abs(Number(node.scoreDelta) || 0) || 1
+  if (node.eventType === 'drink_debt') {
+    return Number(node.scoreDelta) < 0 ? `${target} 消酒 ${score} 杯` : `${operator} 给 ${target} 记了 ${score} 杯欠酒`
+  }
+  if (node.eventType === 'drink_add') {
+    return Number(node.scoreDelta) < 0 ? `${operator} 为 ${target} 减少加酒 ${score} 杯` : `${operator} 为 ${target} 加了 ${score} 杯酒`
+  }
+  return String(node.caption || '').trim() || `${operator} 记录了 ${target}`
+}
+
+const getBriefTimelineActionLabel = (node: ManagedTimelineNode) => {
+  if (node.nodeKind === 'event') {
+    if (node.eventType === 'drink_debt') return Number(node.scoreDelta) < 0 ? '消酒' : '欠酒'
+    if (node.eventType === 'drink_add') return Number(node.scoreDelta) < 0 ? '减酒' : '加酒'
+    return '事件'
+  }
+  if (node.nodeType === 'opening') return '开场'
+  if (node.nodeType === 'closing') return '收尾'
+  return '拍照'
+}
+
+const buildBriefTimelineTitle = (node: ManagedTimelineNode) => {
+  if (node.nodeKind === 'event') {
+    if (node.eventType === 'drink_debt') return Number(node.scoreDelta) < 0 ? '消酒变动' : '欠酒变动'
+    if (node.eventType === 'drink_add') return Number(node.scoreDelta) < 0 ? '减少加酒' : '加酒变动'
+    return '现场事件'
+  }
+  return String(node.timelineTitle || node.caption || '').trim() || buildNominationTitle(node)
+}
+
+const buildBriefTimelineDetail = (node: ManagedTimelineNode) => {
+  if (node.nodeKind === 'event') {
+    return buildBriefEventDetail(node)
+  }
+  return String(node.caption || '').trim() || `${String(node.uploaderName || '').trim() || '成员'} 上传了照片`
+}
+
+const buildBriefTimelineItems = (nodes: ManagedTimelineNode[]): BriefTimelineItem[] =>
+  nodes.map((node) => ({
+    actionLabel: getBriefTimelineActionLabel(node),
+    detail: buildBriefTimelineDetail(node),
+    id: node.id,
+    imageUrl: node.nodeKind === 'moment' ? node.imageUrl || '' : '',
+    nodeKind: node.nodeKind,
+    timeText: formatBriefTime(node.createdAt || node.updatedAt) || '时间未记录',
+    title: buildBriefTimelineTitle(node),
+  }))
 
 const applyEligibilityToNominationItem = (
   item: BriefNominationItem,
@@ -224,10 +286,10 @@ const resolvePreviewImageSet = async (
 
 const normalizeBriefTitle = (value?: string) => {
   const text = String(value || '').trim()
-  if (!text || /酒局|时间线简报|酒桌|判官/.test(text)) {
+  if (!text || /\u9152\u5c40|\u65f6\u95f4\u7ebf\u7b80\u62a5|\u9152\u684c|\u5224\u5b98/.test(text)) {
     return '聚会简报'
   }
-  return text.replace(/时间线/g, '照片').replace(/酒局/g, '聚会')
+  return text.replace(/时间线/g, '照片').replace(/\u9152\u5c40/g, '聚会')
 }
 
 Page<SessionBriefState, SessionBriefMethods>({
@@ -255,6 +317,7 @@ Page<SessionBriefState, SessionBriefMethods>({
     stats: [],
     subtitle: '按聚会时间整理开场、过程和收尾。',
     timelineEmptyText: '这场聚会还没有可展示的照片记录',
+    timelineDisplayItems: [],
     timelineNodes: [],
   },
 
@@ -313,6 +376,7 @@ Page<SessionBriefState, SessionBriefMethods>({
         loading: false,
         nominationItems: [],
         timelineEmptyText: toastMessage,
+        timelineDisplayItems: [],
         timelineNodes: [],
       })
     } finally {
@@ -361,6 +425,7 @@ Page<SessionBriefState, SessionBriefMethods>({
     })
 
     const nominationItems = buildNominationItems(brief.timeline.nodes)
+    const timelineDisplayItems = buildBriefTimelineItems(brief.timeline.nodes)
     this.setData({
       briefId: brief.id,
       briefTitle: normalizeBriefTitle(brief.title),
@@ -383,6 +448,7 @@ Page<SessionBriefState, SessionBriefMethods>({
       stats: buildStats(brief),
       subtitle: '已按当前聚会记录生成简报',
       timelineEmptyText: '这场聚会还没有可展示的照片记录',
+      timelineDisplayItems,
       timelineNodes: brief.timeline.nodes,
     })
   },
@@ -510,7 +576,9 @@ Page<SessionBriefState, SessionBriefMethods>({
   },
 
   async handleTimelineSelect(event) {
-    const nodeId = event.detail?.id || ''
+    const detail = (event as WechatMiniprogram.CustomEvent<{ id?: string }>).detail || {}
+    const dataset = (event as WechatMiniprogram.BaseEvent).currentTarget?.dataset as { id?: string } | undefined
+    const nodeId = detail.id || dataset?.id || ''
     const imageNodes = this.data.timelineNodes.filter(isMomentNodeWithImage)
     const current = imageNodes.find((item) => item.id === nodeId)
     if (!current?.imageUrl || !imageNodes.length) {

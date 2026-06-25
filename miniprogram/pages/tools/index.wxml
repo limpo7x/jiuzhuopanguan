@@ -1,165 +1,56 @@
-<navigation-bar
-  title="工具箱"
-  back="{{false}}"
-  color="#fff2dd"
-  background="rgba(18,16,14,0.72)"
-  ext-class="tools-nav"
-></navigation-bar>
-
-<view class="tools-page">
-  <image class="tools-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
-  <scroll-view class="tools-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="tools-search">
-      <view class="tools-search-icon tools-icon-search"></view>
-      <input
-        class="tools-search-input"
-        type="text"
-        value="{{searchKeyword}}"
-        placeholder="搜索工具"
-        placeholder-class="tools-search-placeholder"
-        confirm-type="search"
-        bindinput="handleSearchInput"
-      />
-      <view
-        wx:if="{{searchKeyword}}"
-        class="tools-search-clear"
-        bindtap="handleSearchClear"
-      >清空</view>
-      <view wx:else class="tools-search-focus tools-icon-focus"></view>
+<navigation-bar title="工具箱" back="{{false}}" customBack="{{false}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<view class="pp-page">
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pp-hero pp-panel-cyan">
+      <image wx:if="{{heroImageUrl}}" class="pp-hero-image" src="{{heroImageUrl}}" mode="aspectFill"></image>
+      <image wx:else class="pp-hero-image" src="https://cdn.pomer.cn/static/party-pop-clean/home-hero-750x420.png" mode="aspectFill"></image>
+      <text class="pp-title">{{heroTitle || '工具箱'}}</text>
+      <text class="pp-body">{{heroSubtitle || '实用工具按真实配置展示，不可用入口会说明原因。'}}</text>
     </view>
-
-    <view class="tools-hero">
-      <image wx:if="{{heroImageUrl}}" class="tools-hero-image" src="{{heroImageUrl}}" mode="aspectFill"></image>
-      <view class="tools-hero-mask"></view>
-      <view class="tools-hero-content">
-        <text class="tools-hero-title">{{heroTitle}}</text>
-        <text class="tools-hero-subtitle">{{heroSubtitle}}</text>
+    <view class="pp-row">
+      <input class="pp-input" placeholder="搜索工具" placeholder-class="pp-placeholder" value="{{searchKeyword}}" bindinput="handleSearchInput" />
+      <view wx:if="{{searchKeyword}}" class="pp-button pp-button-ghost" bindtap="handleSearchClear">清空</view>
+    </view>
+    <view class="pp-grid-2">
+      <view class="pp-card pp-panel-lime" data-zone="templates" bindtap="handleFeatureZoneTap"><text class="pp-section-title">模板中心</text><text class="pp-body">主题模板与状态</text></view>
+      <view class="pp-card pp-panel-yellow" data-zone="merchants" bindtap="handleFeatureZoneTap"><text class="pp-section-title">合作优惠</text><text class="pp-body">商户配置与状态</text></view>
+      <view class="pp-card pp-panel-cyan" data-zone="usage" bindtap="handleFeatureZoneTap"><text class="pp-section-title">使用记录</text><text class="pp-body">工具使用记录</text></view>
+    </view>
+    <scroll-view scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="pp-chip-row">
+        <view wx:for="{{categories}}" wx:key="id" class="pp-chip {{item.active ? 'pp-chip-active' : ''}}" data-id="{{item.id}}" bindtap="handleCategoryTap">{{item.name}}</view>
+      </view>
+    </scroll-view>
+    <view class="pp-list">
+      <view wx:for="{{activeCategory === 'all' ? popularTools : filteredTools}}" wx:key="id" class="pp-list-item" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="handleToolTap">
+        <image wx:if="{{item.imageUrl}}" class="pp-thumb" style="width: 70px; height: 70px;" src="{{item.imageUrl}}" mode="aspectFill"></image>
+        <view wx:else class="pp-avatar"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-tools.png" mode="aspectFit"></image></view>
+        <view class="pp-list-copy"><text class="pp-list-title">{{item.name}}</text><text class="pp-caption">{{item.meta}}</text></view>
+        <text class="pp-chip">使用</text>
       </view>
     </view>
-
-    <view class="tools-feature-zones">
-      <view class="tools-feature-card" data-zone="templates" bindtap="handleFeatureZoneTap">
-        <text class="tools-feature-title">模板中心</text>
-        <text class="tools-feature-meta">主题模板与可用状态</text>
-      </view>
-      <view class="tools-feature-card" data-zone="merchants" bindtap="handleFeatureZoneTap">
-        <text class="tools-feature-title">合作优惠</text>
-        <text class="tools-feature-meta">商户配置与可用状态</text>
-      </view>
-      <view class="tools-feature-card" data-zone="usage" bindtap="handleFeatureZoneTap">
-        <text class="tools-feature-title">使用记录</text>
-        <text class="tools-feature-meta">新路径工具记录</text>
-      </view>
-    </view>
-
-    <view class="tools-chip-row">
-      <view
-        wx:for="{{categories}}"
-        wx:key="id"
-        class="tools-chip {{item.active ? 'tools-chip-active' : ''}}"
-        data-id="{{item.id}}"
-        bindtap="handleCategoryTap"
-      >{{item.name}}</view>
-    </view>
-
-    <block wx:if="{{activeCategory === 'all'}}">
-      <view class="tools-section-head">
-        <text class="tools-section-title">热门工具</text>
-      </view>
-
-      <view class="tools-grid">
-        <view
-          wx:for="{{popularTools}}"
-          wx:key="id"
-          class="tools-tile {{item.toneClass}}"
-          data-id="{{item.id}}"
-          data-name="{{item.name}}"
-          bindtap="handleToolTap"
-        >
-          <view class="tools-tile-icon">
-            <image wx:if="{{item.imageUrl}}" class="tools-tile-image" lazy-load="true" src="{{item.imageUrl}}" mode="aspectFill"></image>
-          </view>
-          <text class="tools-tile-label">{{item.name}}</text>
-        </view>
-      </view>
-      <view wx:if="{{!popularTools.length}}" class="tools-empty">
-        <text class="tools-empty-title">没有匹配工具</text>
-        <text class="tools-empty-meta">请切换分类，或更换关键词。</text>
-      </view>
-
-      <view class="tools-section-head">
-        <text class="tools-section-title">工具分类</text>
-      </view>
-
-      <view class="tools-list">
-        <view
-          wx:for="{{categoryCards}}"
-          wx:key="id"
-          class="tools-list-item"
-          data-id="{{item.id}}"
-          bindtap="handleCategoryTap"
-        >
-          <view class="tools-list-thumb">
-            <image wx:if="{{item.imageUrl}}" lazy-load="true" src="{{item.imageUrl}}" mode="aspectFill"></image>
-          </view>
-          <view class="tools-list-copy">
-            <text class="tools-list-title">{{item.name}}</text>
-            <text class="tools-list-meta">{{item.meta}}</text>
-          </view>
-          <text class="tools-list-arrow">></text>
-        </view>
-      </view>
-      <view wx:if="{{!categoryCards.length}}" class="tools-empty tools-empty-soft">
-        <text class="tools-empty-meta">当前没有分类结果。</text>
-      </view>
-    </block>
-
-    <block wx:else>
-      <view class="tools-section-head">
-        <text class="tools-section-title">{{activeCategoryName}}</text>
-      </view>
-
-      <view class="tools-list">
-        <view
-          wx:for="{{filteredTools}}"
-          wx:key="id"
-          class="tools-list-item"
-          data-id="{{item.id}}"
-          data-name="{{item.name}}"
-          bindtap="handleToolTap"
-        >
-          <view class="tools-list-thumb">
-            <image wx:if="{{item.imageUrl}}" lazy-load="true" src="{{item.imageUrl}}" mode="aspectFill"></image>
-          </view>
-          <view class="tools-list-copy">
-            <text class="tools-list-title">{{item.name}}</text>
-            <text class="tools-list-meta">{{item.meta}}</text>
-          </view>
-          <text class="tools-list-arrow">></text>
-        </view>
-      </view>
-      <view wx:if="{{!filteredTools.length}}" class="tools-empty tools-empty-soft">
-        <text class="tools-empty-meta">当前分类下暂无工具。</text>
-      </view>
-    </block>
+    <view wx:if="{{activeCategory === 'all' && !popularTools.length}}" class="pp-empty"><text class="pp-section-title">没有匹配工具</text><text class="pp-body">请切换分类，或更换关键词。</text></view>
+    <view wx:if="{{activeCategory !== 'all' && !filteredTools.length}}" class="pp-empty"><text class="pp-section-title">当前分类暂无工具</text><text class="pp-body">如果后台未配置，会显示为空态。</text></view>
   </scroll-view>
 
-  <view class="bottom-nav">
-    <view class="bottom-item" data-tab="home" bindtap="handleTabTap">
-      <view class="bottom-icon nav-home"></view>
-      <text class="bottom-label">首页</text>
-    </view>
-    <view class="bottom-item active" data-tab="tools" bindtap="handleTabTap">
-      <view class="bottom-icon nav-judge active"></view>
-      <text class="bottom-label">工具箱</text>
-    </view>
-    <view class="bottom-item" data-tab="rankings" bindtap="handleTabTap">
-      <view class="bottom-icon nav-rank"></view>
-      <text class="bottom-label">排行榜</text>
-    </view>
-    <view class="bottom-item" data-tab="me" bindtap="handleTabTap">
-      <view class="bottom-icon nav-me"></view>
-      <text class="bottom-label">我的</text>
-    </view>
+<view class="pp-bottom-nav">
+  <view class="pp-bottom-item " data-tab="home" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-home.png" mode="aspectFit"></image>
+    <text>首页</text>
   </view>
+  <view class="pp-bottom-item pp-bottom-item-active" data-tab="tools" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-tools-active.png" mode="aspectFit"></image>
+    <text>工具箱</text>
+  </view>
+  <view class="pp-bottom-item " data-tab="rankings" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-rank.png" mode="aspectFit"></image>
+    <text>排行榜</text>
+  </view>
+  <view class="pp-bottom-item " data-tab="me" bindtap="handleTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-me.png" mode="aspectFit"></image>
+    <text>我的</text>
+  </view>
+</view>
+  <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

@@ -1,162 +1,51 @@
-<navigation-bar
-  title=""
-  back="{{true}}"
-  customBack="{{true}}"
-  bind:back="handleBackTap"
-  color="#f3cc7b"
-  background="rgba(18,16,14,0.96)"
-  ext-class="album-nav"
-></navigation-bar>
-
-<view wx:if="{{isShareMode}}" class="album-manage-link" style="{{headerActionStyle}}">管</view>
-
-<view class="album-page {{isShareMode ? 'album-share-page' : 'album-memory-page'}}">
-  <image class="album-stage-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-stage-bg-390x844.svg" mode="aspectFill"></image>
-  <scroll-view class="album-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="album-header">
-      <view wx:if="{{!isShareMode}}" class="album-paper-title">
-        <image class="album-title-paper" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-title-paper-label.svg" mode="aspectFill"></image>
-        <text>{{pageTitle}}</text>
-      </view>
-      <view wx:else class="album-share-title-wrap">
-        <text class="album-share-hero-title">{{pageTitle}}</text>
-        <text class="album-share-hero-subtitle">已生成的聚会分享图作品</text>
+<navigation-bar title="{{pageTitle}}" back="{{true}}" customBack="{{true}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<view class="pp-page">
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pp-hero">
+      <text class="pp-kicker">MEMORIES</text>
+      <text class="pp-title">{{pageTitle || '我的相册'}}</text>
+      <text class="pp-body">按进行中和已结束整理你的聚会记录。</text>
+      <view class="pp-stat-row" style="margin-top: 16px;">
+        <view class="pp-stat"><text class="pp-stat-value">{{totalCount}}</text><text class="pp-stat-label">全部</text></view>
+        <view class="pp-stat"><text class="pp-stat-value">{{ongoingCount}}</text><text class="pp-stat-label">进行中</text></view>
+        <view class="pp-stat"><text class="pp-stat-value">{{endedCount}}</text><text class="pp-stat-label">已结束</text></view>
       </view>
     </view>
-
-    <view wx:if="{{!isShareMode}}" class="album-filter-bar">
-      <image class="album-filter-bg" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-segmented-bg.svg" mode="aspectFill"></image>
-      <view class="album-filter {{activeRecordFilter === 'all' ? 'album-filter-active' : ''}}" data-filter="all" bindtap="handleFilterTap">
-        <image wx:if="{{activeRecordFilter === 'all'}}" class="album-filter-pill" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
-        <text>全部</text>
-      </view>
-      <view class="album-filter {{activeRecordFilter === 'ongoing' ? 'album-filter-active' : ''}}" data-filter="ongoing" bindtap="handleFilterTap">
-        <image wx:if="{{activeRecordFilter === 'ongoing'}}" class="album-filter-pill" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
-        <text>进行中</text>
-      </view>
-      <view class="album-filter {{activeRecordFilter === 'ended' ? 'album-filter-active' : ''}}" data-filter="ended" bindtap="handleFilterTap">
-        <image wx:if="{{activeRecordFilter === 'ended'}}" class="album-filter-pill" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-segmented-active-pill.svg" mode="aspectFill"></image>
-        <text>已结束</text>
+    <view class="pp-tabs">
+      <view class="pp-tab {{activeRecordFilter === 'all' ? 'pp-tab-active' : ''}}" data-filter="all" bindtap="handleFilterTap">全部</view>
+      <view class="pp-tab {{activeRecordFilter === 'ongoing' ? 'pp-tab-active' : ''}}" data-filter="ongoing" bindtap="handleFilterTap">进行中</view>
+      <view class="pp-tab {{activeRecordFilter === 'ended' ? 'pp-tab-active' : ''}}" data-filter="ended" bindtap="handleFilterTap">已结束</view>
+    </view>
+    <view wx:if="{{loading}}" class="pp-loading"><view class="pp-loading-dot"></view><text>正在整理聚会记录</text></view>
+    <view wx:elif="{{items.length}}" class="pp-list">
+      <view wx:for="{{items}}" wx:key="id" class="pp-list-item" data-session-id="{{item.sessionId}}" data-brief-id="{{item.briefId}}" data-state-type="{{item.stateType}}" data-share-image-url="{{item.shareImageUrl}}" data-route="{{item.route}}" bindtap="handleItemTap">
+        <image wx:if="{{item.coverUrl}}" class="pp-thumb" style="width: 92px; height: 82px;" src="{{item.coverUrl}}" mode="aspectFill" bindload="handleCoverLoad" binderror="handleCoverError"></image>
+        <image wx:else class="pp-thumb" style="width: 92px; height: 82px;" src="https://cdn.pomer.cn/static/party-pop-clean/home-hero-750x420.png" mode="aspectFill"></image>
+        <view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">{{item.meta}}</text></view>
+        <text class="pp-chip">{{item.statusText}}</text>
       </view>
     </view>
-
-    <view wx:if="{{loading}}" class="album-open-empty">正在整理聚会记录...</view>
-
-    <view wx:elif="{{items.length && isShareMode}}" class="album-share-grid">
-      <view
-        wx:for="{{items}}"
-        wx:key="shareImageUrl"
-        class="album-share-item"
-        data-share-image-url="{{item.shareImageUrl}}"
-        data-session-id="{{item.sessionId}}"
-        bindtap="handleItemTap"
-      >
-        <view class="album-share-art">
-          <image class="album-share-frame" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cj-share-thumb-frame.svg" mode="aspectFill"></image>
-          <image class="album-share-image" src="{{item.shareImageUrl}}" mode="aspectFill"></image>
-        </view>
-        <view class="album-share-copy">
-          <text class="album-share-title">{{item.title}}</text>
-          <text class="album-share-meta">{{item.meta}}</text>
-        </view>
-      </view>
-    </view>
-
-    <view wx:elif="{{items.length}}" class="album-memory-list">
-      <view wx:if="{{activeRecordFilter !== 'ended' && ongoingItems.length}}" class="album-group-title">
-        <text>进行中 · {{ongoingCount}}</text>
-        <image src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-section-divider-spark.svg" mode="widthFix"></image>
-      </view>
-      <block wx:if="{{activeRecordFilter !== 'ended'}}">
-        <view
-          wx:for="{{ongoingItems}}"
-          wx:key="sessionId"
-          class="album-memory-row"
-          data-brief-id="{{item.briefId}}"
-          data-session-id="{{item.sessionId}}"
-          data-share-image-url="{{item.shareImageUrl}}"
-          data-state-type="{{item.stateType}}"
-          bindtap="handleItemTap"
-        >
-          <image class="album-memory-shell" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-memory-list-card-shell.svg" mode="aspectFill"></image>
-          <view class="album-cover-wrap">
-            <image wx:if="{{item.coverUrl && !item.coverBroken}}" class="album-cover-image" src="{{item.coverUrl}}" mode="aspectFill" data-brief-id="{{item.briefId}}" data-session-id="{{item.sessionId}}" bindload="handleCoverLoad" binderror="handleCoverError"></image>
-            <image wx:else class="album-cover-image" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cj-memory-default-cover.svg" mode="aspectFill"></image>
-          </view>
-          <view class="album-memory-copy">
-            <text class="album-memory-status">{{item.statusText}}</text>
-            <text class="album-memory-title">{{item.title}}</text>
-            <text class="album-memory-meta">{{item.meta}}</text>
-            <view class="album-memory-action-strip">
-              <image src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-memory-list-action-strip.svg" mode="aspectFill"></image>
-              <text>继续记录</text>
-              <text>待分享</text>
-            </view>
-          </view>
-        </view>
-      </block>
-
-      <view wx:if="{{activeRecordFilter !== 'ongoing' && endedItems.length}}" class="album-group-title album-group-title-ended">
-        <text>已结束 · {{endedCount}}</text>
-        <image src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-section-divider-spark.svg" mode="widthFix"></image>
-      </view>
-      <block wx:if="{{activeRecordFilter !== 'ongoing'}}">
-        <view
-          wx:for="{{endedItems}}"
-          wx:key="sessionId"
-          class="album-memory-row album-memory-row-ended"
-          data-brief-id="{{item.briefId}}"
-          data-session-id="{{item.sessionId}}"
-          data-share-image-url="{{item.shareImageUrl}}"
-          data-state-type="{{item.stateType}}"
-          bindtap="handleItemTap"
-        >
-          <image class="album-memory-shell" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-memory-list-card-shell.svg" mode="aspectFill"></image>
-          <view class="album-cover-wrap">
-            <image wx:if="{{item.coverUrl && !item.coverBroken}}" class="album-cover-image" src="{{item.coverUrl}}" mode="aspectFill" data-brief-id="{{item.briefId}}" data-session-id="{{item.sessionId}}" bindload="handleCoverLoad" binderror="handleCoverError"></image>
-            <image wx:else class="album-cover-image" src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cj-memory-default-cover.svg" mode="aspectFill"></image>
-          </view>
-          <view class="album-memory-copy">
-            <text class="album-memory-status">{{item.statusText}}</text>
-            <text class="album-memory-title">{{item.title}}</text>
-            <text class="album-memory-meta">{{item.meta}}</text>
-            <view
-              class="album-memory-action-strip album-memory-action-strip-single album-memory-nomination-action {{item.nominationDisabled ? 'album-memory-nomination-action-disabled' : ''}} {{item.nominationState === 'done' ? 'album-memory-nomination-action-done' : ''}}"
-              data-brief-id="{{item.briefId}}"
-              data-session-id="{{item.sessionId}}"
-              data-nomination-state="{{item.nominationState}}"
-              data-nomination-reason="{{item.nominationReason}}"
-              catchtap="handleNominateTap"
-            >
-              <image src="https://cdn.pomer.cn/static/party-recorder/pr-cs008cn-memory-list-action-strip.svg" mode="aspectFill"></image>
-              <text>{{item.nominationLabel}}</text>
-            </view>
-          </view>
-        </view>
-      </block>
-    </view>
-
-    <view wx:else class="album-open-empty">
-      <text>{{emptyText}}</text>
-      <view class="album-empty-action" bindtap="handleCreateTap">去创建聚会</view>
-    </view>
+    <view wx:else class="pp-empty"><image class="pp-empty-sticker" src="https://cdn.pomer.cn/static/party-pop-clean/empty-memory-sticker.png" mode="aspectFit"></image><text class="pp-section-title">{{emptyText}}</text><view class="pp-button pp-button-primary" bindtap="handleCreateTap">去创建聚会</view></view>
   </scroll-view>
-  <view class="bottom-nav album-bottom-nav">
-    <view class="bottom-item" data-tab="home" bindtap="handleBottomTabTap">
-      <view class="bottom-icon nav-home"></view>
-      <text class="bottom-label">首页</text>
-    </view>
-    <view class="bottom-item" data-tab="tools" bindtap="handleBottomTabTap">
-      <view class="bottom-icon nav-judge"></view>
-      <text class="bottom-label">工具箱</text>
-    </view>
-    <view class="bottom-item" data-tab="rankings" bindtap="handleBottomTabTap">
-      <view class="bottom-icon nav-rank"></view>
-      <text class="bottom-label">排行榜</text>
-    </view>
-    <view class="bottom-item active" data-tab="me" bindtap="handleBottomTabTap">
-      <view class="bottom-icon nav-me active"></view>
-      <text class="bottom-label">我的</text>
-    </view>
+
+<view class="pp-bottom-nav">
+  <view class="pp-bottom-item " data-tab="home" bindtap="handleBottomTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-home.png" mode="aspectFit"></image>
+    <text>首页</text>
   </view>
+  <view class="pp-bottom-item " data-tab="tools" bindtap="handleBottomTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-tools.png" mode="aspectFit"></image>
+    <text>工具箱</text>
+  </view>
+  <view class="pp-bottom-item " data-tab="rankings" bindtap="handleBottomTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-rank.png" mode="aspectFit"></image>
+    <text>排行榜</text>
+  </view>
+  <view class="pp-bottom-item pp-bottom-item-active" data-tab="me" bindtap="handleBottomTabTap">
+    <image class="pp-bottom-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/tab-me-active.png" mode="aspectFit"></image>
+    <text>我的</text>
+  </view>
+</view>
+  <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

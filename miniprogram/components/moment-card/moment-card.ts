@@ -11,7 +11,7 @@ type MomentCardNode = {
 
 const NODE_TYPE_TEXT: Record<string, string> = {
   closing: '收尾',
-  drinking: '欠酒',
+  drinking: '账本',
   highlight: '精彩',
   opening: '开场',
   private: '私密',

@@ -25,9 +25,9 @@ interface RestartStateMethods {
 Page<RestartStateState, RestartStateMethods>({
   data: {
     templates: [
-      { name: '经典惩罚局' },
-      { name: '整活大挑战', active: true },
-      { name: '友情互损局' },
+      { name: '经典聚会局' },
+      { name: '欢乐整活局', active: true },
+      { name: '好友回忆局' },
     ],
     shareItems: [
       { id: 'friend', name: '分享给好友', iconClass: 'restart-icon-wechat' },
@@ -37,7 +37,7 @@ Page<RestartStateState, RestartStateMethods>({
 
   onShareAppMessage() {
     return {
-      title: '再开一局，继续酒桌判官',
+      title: '再开一场，继续用聚会记录师',
       path: '/pages/create-session/index',
     }
   },

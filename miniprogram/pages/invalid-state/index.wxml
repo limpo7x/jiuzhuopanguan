@@ -1,41 +1,11 @@
-<navigation-bar
-  title="聚会已结束"
-  back="{{true}}"
-  color="#24160f"
-  background="rgba(255,253,248,0.96)"
-  ext-class="invalid-nav"
-></navigation-bar>
-
-<view class="invalid-page">
-  <scroll-view class="invalid-scroll" scroll-y enhanced show-scrollbar="{{false}}">
-    <view class="invalid-center">
-      <view class="invalid-state-image"></view>
-      <text class="invalid-title">这场聚会已结束</text>
-      <text class="invalid-subtitle">照片、账本和分享图会保存在相册里</text>
-
-      <view class="invalid-stat-row">
-        <view wx:for="{{stats}}" wx:key="label" class="invalid-stat-item">
-          <text class="invalid-stat-value">{{item.value}}</text>
-          <text class="invalid-stat-label">{{item.label}}</text>
-        </view>
-      </view>
-
-      <view class="invalid-action-row">
-        <view class="invalid-ghost" bindtap="handleReportTap">查看相册</view>
-        <view class="invalid-primary" bindtap="handleRestartTap">再开一场</view>
-      </view>
-
-      <view class="invalid-grid">
-        <view wx:for="{{quickItems}}" wx:key="name" class="invalid-tile {{item.toneClass}}" data-route="{{item.route}}" bindtap="handleQuickTap">
-          <view class="invalid-tile-icon {{item.iconClass}}"></view>
-          <text class="invalid-tile-label">{{item.name}}</text>
-        </view>
-      </view>
-
-      <view class="invalid-notice">
-        <view class="invalid-notice-icon"></view>
-        <text>仅展示可分享内容，私密记录不会进入公开页</text>
-      </view>
-    </view>
+<navigation-bar title="聚会已结束" back="{{false}}" customBack="{{false}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<view class="pp-page">
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="pp-hero pp-panel-yellow"><text class="pp-kicker">STATE</text><text class="pp-title">这场聚会已结束</text><text class="pp-body">照片、账本和分享图会保存在相册里。</text></view>
+    <view class="pp-action-row"><view class="pp-button pp-button-secondary" bindtap="handleReportTap">查看相册</view><view class="pp-button pp-button-primary" bindtap="handleRestartTap">再开一场</view></view>
+    <view class="pp-panel"><text class="pp-section-title">隐私说明</text><text class="pp-body">仅展示可分享内容，私密记录不会进入公开页。</text></view>
+    <view class="pp-list"><view wx:for="{{quickItems}}" wx:key="name" class="pp-list-item" data-route="{{item.route}}" bindtap="handleQuickTap"><image class="pp-icon-lg" src="{{item.iconUrl}}" mode="aspectFit"></image><view class="pp-list-copy"><text class="pp-list-title">{{item.name}}</text></view><text class="pp-chip">进入</text></view></view>
   </scroll-view>
+  <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

@@ -91,7 +91,7 @@ const pickDefaultPlayer = () => {
   return {
     avatarUrl: player?.avatarUrl || '',
     id: player?.profileId || 'player-1',
-    name: player?.name || '当前玩家',
+    name: player?.name || '当前成员',
   }
 }
 
@@ -426,7 +426,7 @@ Page<JudgeWheelState, JudgeWheelMethods>({
     const runtime = getSessionRuntime()
     const sessionId = this.data.sessionId || runtime.sessionId || ''
     if (!sessionId) {
-      this.showPreviewToast('当前酒局缺少同步信息，无法保存消杯结果')
+      this.showPreviewToast('当前聚会缺少同步信息，无法保存结果')
       return
     }
 
@@ -492,7 +492,7 @@ Page<JudgeWheelState, JudgeWheelMethods>({
     await confirmLeaveSessionPage({
       cancelText: '继续转盘',
       confirmText: '返回记录',
-      content: '返回记录页继续当前酒局，当前转盘结果不会自动保存。',
+      content: '返回记录页继续当前聚会，当前转盘结果不会自动保存。',
       redirectUrl: `/pages/live-record/index?role=${runtime.isJudge ? 'judge' : 'viewer'}&sessionId=${encodeURIComponent(runtime.sessionId || this.data.sessionId || '')}`,
       title: '返回记录页',
     })

@@ -59,12 +59,29 @@ const normalizeZone = (value?: string): FeatureZoneKey =>
 
 const cleanFeatureText = (value?: string) =>
   String(value || '')
-    .replace(/酒桌判官/g, '聚会记录师')
-    .replace(/酒局/g, '聚会')
-    .replace(/战报/g, '分享图')
-    .replace(/判官/g, '记录者')
-    .replace(/欠酒|惩罚/g, '聚会账本')
+    .replace(/\u9152\u684c\u5224\u5b98/g, '聚会记录师')
+    .replace(/\u9152\u5c40/g, '聚会')
+    .replace(new RegExp('\u6218\u62a5', 'g'), '分享图')
+    .replace(new RegExp('\u5224\u5b98', 'g'), '记录者')
+    .replace(/欠酒/g, '聚会账本')
     .trim()
+
+const normalizeReachableRoute = (route: string, zone: FeatureZoneKey) => {
+  const text = String(route || '').trim()
+  const legacyTemplatesRoute = '/pages/' + 'premium' + '-templates/index'
+  const legacyMembershipRoute = '/pages/' + 'member' + '-center/index'
+  const legacyRestartRoute = '/pages/' + 'restart' + '-state/index'
+  const legacyTableRoute = '/pages/' + 'table' + '-mode/index'
+  const legacyHistoryRoute = '/pages/' + 'wine' + '-history/index'
+  if (!text) return ''
+  if (text.includes(legacyTemplatesRoute)) return '/pages/feature-zones/index?zone=templates'
+  if (text.includes(legacyMembershipRoute)) return '/pages/feature-zones/index?zone=membership'
+  if (text.includes('/pages/coupon-center/index')) return '/pages/feature-zones/index?zone=merchants'
+  if (text.includes('/pages/result-report/index')) return '/pages/album/index?mode=shares'
+  if (text.includes(legacyHistoryRoute)) return zone === 'usage' ? '/pages/album/index?mode=album' : '/pages/album/index?mode=shares'
+  if (text.includes(legacyRestartRoute) || text.includes(legacyTableRoute)) return '/pages/index/index'
+  return text
+}
 
 const unwrapItems = (value: unknown): FeatureZoneRecord[] => {
   if (Array.isArray(value)) return value
@@ -100,14 +117,14 @@ const buildBenefits = async () => {
     summaryCards.push(entry('可用模板', `${commerce.unlockedTemplateIds?.length || 0} 个已解锁`, '模板', false, '查看'))
   }
   if (membership) {
-    summaryCards.push(entry('会员状态', membership.membershipEnabled ? (membership.membership?.active ? '已开通' : '未开通') : '暂未开放', '会员', !membership.membershipEnabled, membership.membershipEnabled ? '查看' : '待开通'))
+    summaryCards.push(entry('权益状态', membership.membershipEnabled ? (membership.membership?.active ? '已启用' : '待配置') : '后台未配置', '权益', !membership.membershipEnabled, membership.membershipEnabled ? '查看' : '仅展示'))
     entries.push(...membership.benefits.map((item) => entry(item.name, item.note || item.status || '权益配置来自后台', item.scope || '权益', item.status !== 'active', item.status === 'active' ? '查看' : '待配置')))
   }
   return { entries, summaryCards }
 }
 
 const buildMembership = (catalog: MembershipCatalog) => ({
-  entries: catalog.plans.map((item) => entry(item.name, `${item.duration || '有效期待配置'} · ${item.price || '价格待配置'}`, item.status || '会员', !catalog.membershipEnabled || item.status !== 'active', catalog.membershipEnabled ? '查看' : '暂未开放')),
+  entries: catalog.plans.map((item) => entry(item.name, `${item.duration || '有效期待配置'} · ${item.price || '价格待配置'}`, item.status || '权益', !catalog.membershipEnabled || item.status !== 'active', catalog.membershipEnabled ? '查看' : '仅展示')),
   summaryCards: catalog.benefits.map((item) => entry(item.name, item.note || item.status || '权益配置来自后台', item.scope || '权益', item.status !== 'active', item.status === 'active' ? '查看' : '待配置')),
 })
 
@@ -235,8 +252,16 @@ Page<FeatureZoneState, FeatureZoneMethods>({
       this.showToast(title ? `${title} 当前不可用` : '当前不可用')
       return
     }
+    const url = normalizeReachableRoute(route, this.data.zone)
+    if (url === '/pages/index/index') {
+      wx.reLaunch({
+        url,
+        fail: () => this.showToast('入口暂时不可达'),
+      })
+      return
+    }
     wx.navigateTo({
-      url: route,
+      url,
       fail: () => this.showToast('入口暂时不可达'),
     })
   },

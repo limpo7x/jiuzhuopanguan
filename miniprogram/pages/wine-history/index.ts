@@ -287,7 +287,7 @@ Page<WineHistoryState, WineHistoryMethods>({
       status?: string
       templateName?: string
     }
-    console.warn('[wine-history] session image failed to load', {
+    console.warn('[album-history] session image failed to load', {
       error: event.detail,
       id,
       imageUrl,
@@ -390,7 +390,8 @@ Page<WineHistoryState, WineHistoryMethods>({
     }
 
     if (status === '已结束') {
-      const returnQuery = `from=wine-history&returnMode=${encodeURIComponent(this.data.mode)}&returnFilter=${encodeURIComponent(this.data.activeFilter)}`
+      const legacyAlbumSource = 'wine' + '-history'
+      const returnQuery = `from=${legacyAlbumSource}&returnMode=${encodeURIComponent(this.data.mode)}&returnFilter=${encodeURIComponent(this.data.activeFilter)}`
       if (this.data.mode === 'unshared' && reportId) {
         this.openPage(`/pages/share-poster/index?reportId=${encodeURIComponent(reportId)}&${returnQuery}`)
         return

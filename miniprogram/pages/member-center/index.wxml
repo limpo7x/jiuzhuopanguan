@@ -27,6 +27,6 @@
   </scroll-view>
 
   <view wx:else class="member-disabled">
-    <view class="member-disabled-text">聚会权益暂未开放，当前不支持开通或领取。</view>
+    <view class="member-disabled-text">聚会权益按后台配置展示，当前不支持开通或领取。</view>
   </view>
 </view>

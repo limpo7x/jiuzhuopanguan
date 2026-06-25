@@ -1,706 +1,83 @@
-page {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: #fff8ee;
-}
+@import "../../styles/party-pop-clean.less";
 
-.invite-nav {
-  border-bottom: 1px solid rgba(234, 223, 206, 0.55);
-}
-
-.invite-page {
-  flex: 1;
-  min-height: 0;
-  background: linear-gradient(180deg, #fffdf8 0%, #fff8ee 100%);
-  color: #24160f;
-}
-
-.invite-scroll {
-  height: 100%;
-  padding: 12px 14px 18px;
+/* Keep the creation flow visible even when the shared LESS import is cached by DevTools. */
+.pp-flow {
   box-sizing: border-box;
-}
-
-.invite-progress {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.invite-progress-step {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #8f7f6d;
-  font-size: 10px;
-  line-height: 1.2;
-  font-weight: 800;
-}
-
-.invite-progress-dot {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #f0e5d7;
-  color: #7d6a58;
-  font-size: 10px;
-}
-
-.invite-progress-step-done,
-.invite-progress-step-active {
-  color: #1d1712;
-}
-
-.invite-progress-step-done .invite-progress-dot,
-.invite-progress-step-active .invite-progress-dot {
-  background: #222;
-  color: #fff;
-}
-
-.invite-center {
-  display: flex;
-  min-height: 138px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  text-align: center;
-}
-
-.invite-goblet-icon {
-  width: 42px;
-  height: 42px;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-}
-
-.invite-title {
-  font-size: 22px;
-  line-height: 1.2;
-  font-weight: 950;
-}
-
-.invite-subtitle {
-  color: #8f7f6d;
-  font-size: 12px;
-  line-height: 1.2;
-}
-
-.invite-card {
-  border: 1px solid #eadfce;
-  border-radius: 10px;
-  background: #fffdf8;
-}
-
-.invite-form-card {
-  display: grid;
-  gap: 12px;
-  padding: 12px;
-}
-
-.invite-copy-card {
-  margin-top: 10px;
-}
-
-.invite-label {
-  color: #5e4939;
-  font-size: 12px;
-  line-height: 1.2;
-  font-weight: 900;
-}
-
-.invite-primary,
-.invite-ghost {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 40px;
-  border-radius: 999px;
-  font-size: 14px;
-  line-height: 1;
-  font-weight: 900;
-}
-
-.invite-primary {
-  background: linear-gradient(135deg, #ff5b3d, #ff7645);
-  color: #fff;
-  box-shadow: 0 9px 18px rgba(255, 91, 61, 0.24);
-}
-
-.invite-primary-full {
-  width: 100%;
-  margin-top: 12px;
-}
-
-.invite-primary-icon,
-.invite-share-icon {
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-}
-
-.invite-primary-icon {
-  width: 12px;
-  height: 12px;
-}
-
-.invite-row-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.invite-code {
-  font-size: 20px;
-  line-height: 1;
-  font-weight: 950;
-}
-
-.invite-tag {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 25px;
-  padding: 0 7px;
-  border-radius: 999px;
-  background: #fff1df;
-  color: #ff5b3d;
-  font-size: 11px;
-  line-height: 1;
-  font-weight: 800;
-}
-
-.invite-share-grid {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0;
-  margin-top: 10px;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.invite-share-item {
-  display: flex;
-  flex: 0 0 30%;
-  width: 30%;
-  min-width: 0;
-  min-height: 54px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  margin: 0;
-  padding: 6px 3px;
-  border: 1px solid #eadfce;
-  border-radius: 12px;
-  background: #fffdf8;
-  color: #665447;
-  font-size: 10px;
-  line-height: 1.1;
-  font-weight: 800;
-  text-align: center;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-button.invite-share-item {
-  min-height: 54px;
-  margin: 0;
-  padding: 6px 3px;
-  line-height: normal;
-}
-
-button.invite-share-item::after {
-  border: 0;
-}
-
-.invite-share-icon {
-  width: 18px;
-  height: 18px;
-}
-
-.invite-share-label {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  line-height: 1.1;
-  text-overflow: clip;
-  white-space: nowrap;
-  word-break: keep-all;
-}
-
-.invite-ghost {
-  margin-top: 10px;
-  border: 1px solid #eadfce;
-  background: #fffdf8;
-  color: #24160f;
-}
-
-.invite-icon-goblet {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 40 40'%3E%3Cpath d='M12 6H28L25 18C24.3 20.8 22 23 19 23H21C18 23 15.7 20.8 15 18L12 6ZM17 24H23V31H17V24ZM13 31H27V34H13V31Z' fill='%23ff8f42'/%3E%3C/svg%3E");
-}
-
-.invite-icon-wechat {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M9.5 4C5.4 4 2 6.8 2 10.3C2 12.2 3 13.8 4.8 14.9L4 18L7.2 16.3C7.9 16.5 8.7 16.6 9.5 16.6C13.6 16.6 17 13.8 17 10.3C17 6.8 13.6 4 9.5 4ZM7 9.5C6.5 9.5 6.2 9.2 6.2 8.8C6.2 8.3 6.5 8 7 8C7.4 8 7.8 8.3 7.8 8.8C7.8 9.2 7.4 9.5 7 9.5ZM12 9.5C11.5 9.5 11.2 9.2 11.2 8.8C11.2 8.3 11.5 8 12 8C12.4 8 12.8 8.3 12.8 8.8C12.8 9.2 12.4 9.5 12 9.5ZM16.5 9.6C19.5 9.6 22 11.7 22 14.3C22 15.8 21.2 17.1 19.8 18L20.4 20.6L17.8 19.3C17.4 19.4 17 19.5 16.5 19.5C13.5 19.5 11 17.4 11 14.8C11 12.2 13.5 9.6 16.5 9.6ZM15 13.9C14.6 13.9 14.3 13.6 14.3 13.2C14.3 12.8 14.6 12.5 15 12.5C15.4 12.5 15.7 12.8 15.7 13.2C15.7 13.6 15.4 13.9 15 13.9ZM18.2 13.9C17.8 13.9 17.5 13.6 17.5 13.2C17.5 12.8 17.8 12.5 18.2 12.5C18.6 12.5 18.9 12.8 18.9 13.2C18.9 13.6 18.6 13.9 18.2 13.9Z' fill='%2342b883'/%3E%3C/svg%3E");
-}
-
-.invite-icon-download {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M11 4H13V13.2L16.3 9.9L17.7 11.3L12 17L6.3 11.3L7.7 9.9L11 13.2V4ZM5 19H19V21H5V19Z' fill='%2342b883'/%3E%3C/svg%3E");
-}
-
-.invite-icon-group {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M16 11C17.7 11 19 9.7 19 8C19 6.3 17.7 5 16 5C14.3 5 13 6.3 13 8C13 9.7 14.3 11 16 11ZM8 11C9.7 11 11 9.7 11 8C11 6.3 9.7 5 8 5C6.3 5 5 6.3 5 8C5 9.7 6.3 11 8 11ZM8 13C5.8 13 1.5 14.1 1.5 16.3V19H14.5V16.3C14.5 14.1 10.2 13 8 13ZM16 13C15.7 13 15.3 13 14.9 13.1C16 13.9 16.5 15 16.5 16.3V19H22.5V16.3C22.5 14.1 18.2 13 16 13Z' fill='%2342b883'/%3E%3C/svg%3E");
-}
-
-.invite-icon-more {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Ccircle cx='5' cy='12' r='2' fill='%2342b883'/%3E%3Ccircle cx='12' cy='12' r='2' fill='%2342b883'/%3E%3Ccircle cx='19' cy='12' r='2' fill='%2342b883'/%3E%3C/svg%3E");
-}
-
-.invite-icon-arrow {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Cpath d='M7 4.5L13 10L7 15.5' fill='none' stroke='%23ffffff' stroke-width='2.1' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-
-/* 2026-06 flow CTA fixed bottom */
-.invite-scroll {
-  padding-bottom: calc(112px + env(safe-area-inset-bottom));
-}
-
-.invite-primary-full {
-  position: fixed;
-  right: 18px;
-  bottom: calc(18px + env(safe-area-inset-bottom));
-  left: 18px;
-  z-index: 30;
-  width: auto;
-  min-height: 58px;
-  margin-top: 0;
-  border: 1px solid rgba(255, 255, 255, 0.52);
-  font-size: 17px;
-  box-shadow: 0 16px 34px rgba(255, 91, 61, 0.34);
-}
-
-/* PR-FE-ASSET-INTEGRATE-001: invite CTA state from PR-UX-ASSET-001-B */
-.invite-primary.party-cta,
-.invite-secondary-full.party-cta {
-  min-height: 52px;
-  padding: 0 24px;
-  border-radius: 14px;
-  line-height: 52px;
-  font-size: 18px;
-}
-
-.invite-primary-full.party-cta {
-  min-height: 52px;
-  line-height: 52px;
-}
-
-.invite-secondary-full {
-  display: flex;
-  min-height: 52px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 12px 0 18px;
-}
-
-.invite-privacy-note {
-  display: grid;
-  gap: 5px;
-  margin-top: 10px;
-  padding: 12px 14px;
-  border: 1px solid rgba(78, 128, 98, 0.16);
-  border-radius: 14px;
-  background: rgba(255, 253, 248, 0.9);
-  box-sizing: border-box;
-}
-
-.invite-privacy-title {
-  color: #24160f;
-  font-size: 13px;
-  line-height: 1.25;
-  font-weight: 950;
-}
-
-.invite-privacy-copy {
-  color: #7b6049;
-  font-size: 12px;
-  line-height: 1.4;
-  font-weight: 700;
-}
-
-/* PR-FE-REDESIGN-FULL-001: invite / QR clean shell */
-.invite-redesign {
-  background: linear-gradient(180deg, #fffdf9 0%, #fff8ef 100%);
-}
-
-.invite-redesign-scroll {
-  padding: 20px 24px calc(136px + env(safe-area-inset-bottom));
-  box-sizing: border-box;
-}
-
-.invite-step-line {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-bottom: 32px;
-}
-
-.invite-step-pill {
-  display: flex;
-  min-height: 28px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #f1f5f8;
-  color: #7a8794;
-  font-size: 11px;
-  line-height: 1;
-  font-weight: 900;
-}
-
-.invite-step-pill-active {
-  background: #e8f2ff;
-  color: #2f80d8;
-}
-
-.invite-hero {
-  display: grid;
-  gap: 10px;
-  margin-bottom: 28px;
-  text-align: center;
-}
-
-.invite-title {
-  color: #101820;
-  font-size: 30px;
-  line-height: 1.12;
-  font-weight: 950;
-}
-
-.invite-subtitle {
-  color: #65717f;
-  font-size: 14px;
-  line-height: 1.45;
-  font-weight: 700;
-}
-
-.invite-code-card {
-  position: relative;
-  display: block;
-  width: 100%;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.invite-code-card-image {
-  position: relative;
-  z-index: 0;
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.invite-code-content {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: grid;
-  width: 100%;
-  padding: 24px 22px 22px;
-  justify-items: center;
-  gap: 12px;
-  box-sizing: border-box;
-}
-
-.invite-code-label {
-  color: #65717f;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.invite-code {
-  color: #4d8edc;
-  font-size: 42px;
-  line-height: 1;
-  font-weight: 950;
-  letter-spacing: 2px;
-}
-
-.invite-code-expire {
-  color: #65717f;
-  font-size: 12px;
-  line-height: 1.35;
-  font-weight: 700;
-}
-
-.invite-avatar-slots {
-  display: flex;
-  max-width: 100%;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.invite-avatar-slots-two-row {
-  width: 292px;
-}
-
-.invite-avatar-slot-wrap {
-  display: flex;
-  min-width: 42px;
-  align-items: center;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.invite-avatar-slot {
-  display: flex;
-  width: 38px;
-  height: 38px;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: 1px dashed #d5dee7;
-  border-radius: 50%;
-  background: rgba(249, 251, 252, 0.88);
-  color: #9aa6b2;
-  font-size: 16px;
-  font-weight: 950;
-  box-sizing: border-box;
-}
-
-.invite-avatar-slot-filled {
-  border-style: solid;
-  border-color: rgba(77, 142, 220, 0.3);
-  background: #eef6ff;
-  color: #2f80d8;
-}
-
-.invite-avatar-image {
-  width: 100%;
-  height: 100%;
-}
-
-.invite-avatar-initial,
-.invite-avatar-empty {
-  line-height: 1;
-}
-
-.invite-kick-btn {
-  min-height: 18px;
-  padding: 0 7px;
-  border: 1px solid rgba(255, 91, 61, 0.28);
-  border-radius: 999px;
-  background: rgba(255, 91, 61, 0.13);
-  color: #ff5b3d;
-  font-size: 10px;
-  line-height: 18px;
-  font-weight: 950;
-}
-
-.invite-share-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.invite-share-item,
-button.invite-share-item {
-  width: auto;
-  min-height: 72px;
-  flex: none;
-  padding: 8px 4px;
-  border: 0;
-  border-radius: 16px;
-  background: transparent;
-  box-shadow: none;
-}
-
-.invite-share-icon {
-  width: 34px;
-  height: 34px;
-}
-
-.invite-share-label {
-  margin-top: 6px;
-  color: #435263;
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.invite-inline-actions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.invite-inline-action {
-  display: flex;
-  min-height: 38px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #e8ecef;
-  border-radius: 12px;
-  background: #fff;
-  color: #2f80d8;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.invite-redesign .invite-privacy-note {
-  margin-top: 18px;
-  border-color: transparent;
-  background: #eef9f2;
-}
-
-.invite-bottom-bar {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 80;
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-  gap: 10px;
-  padding: 12px 24px calc(18px + env(safe-area-inset-bottom));
-  background: linear-gradient(180deg, rgba(255, 253, 249, 0), rgba(255, 253, 249, 0.92) 32%, #fffdf9 100%);
-  box-sizing: border-box;
-}
-
-button.invite-inline-action {
-  margin: 0;
-  padding: 0;
-  line-height: normal;
-}
-
-button.invite-inline-action::after {
-  border: 0;
-}
-
-.invite-share-button {
   display: flex;
   width: 100%;
-  min-height: 54px;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 12px 0 0;
-  padding: 0 18px;
-  border: 0;
-  border-radius: 16px;
-  background: #07c160;
-  color: #fff;
-  font-size: 16px;
-  line-height: 54px;
-  font-weight: 950;
-  box-shadow: 0 14px 28px rgba(7, 193, 96, 0.24);
-  box-sizing: border-box;
+  gap: 7px;
+  margin-bottom: 18px;
+  padding: 8px;
+  border: 3px solid #111317;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 4px 4px 0 #111317;
 }
 
-.invite-share-button::after {
-  border: 0;
-}
-
-.invite-share-button-icon {
-  width: 24px;
-  height: 24px;
+.pp-flow-step {
+  display: flex;
+  min-width: 50px;
   flex: 0 0 auto;
-  filter: brightness(0) invert(1);
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: rgba(17, 19, 23, .62);
 }
 
-.invite-share-card-canvas {
-  position: fixed;
-  left: -1200px;
-  top: -1200px;
-  z-index: -1;
-  opacity: 0.01;
-  pointer-events: none;
-}
-
-.invite-bottom-bar .party-cta {
-  min-height: 52px;
-  margin: 0;
-  padding: 0 14px;
-  border-radius: 14px;
-  font-size: 16px;
-  line-height: 52px;
-}
-
-.invite-secondary-full.party-cta {
+.pp-flow-index {
   display: flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #111317;
+  border-radius: 999px;
+  background: #fffaf0;
+  color: #111317;
+  font-size: 14px;
+  font-weight: 950;
+  line-height: 1;
+  box-shadow: 2px 2px 0 #111317;
 }
 
-/* 008CU: invite keeps the approved paper asset on the shared dark stage. */
-page {
-  background: #12100e;
+.pp-flow-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-.invite-nav {
-  border-bottom: 0;
+.pp-flow-line {
+  height: 6px;
+  min-width: 18px;
+  flex: 1;
+  border: 3px solid #111317;
+  border-radius: 999px;
+  background: #fffaf0;
+  box-shadow: 2px 2px 0 #111317;
 }
 
-.invite-redesign {
-  position: relative;
-  background: #12100e;
-  color: #fff2dd;
+.pp-flow-step-active {
+  color: #111317;
 }
 
-.invite-stage-bg {
+.pp-flow-step-active .pp-flow-index {
+  background: #ff504d;
+  color: #ffffff;
+}
+
+.pp-flow-step-done .pp-flow-index,
+.pp-flow-line-active {
+  background: #d3ff2d;
+}
+
+.pp-share-card-canvas {
   position: fixed;
-  inset: 0;
-  z-index: 0;
-  width: 100vw;
-  height: 100vh;
+  left: -9999px;
+  top: -9999px;
+  width: 500px;
+  height: 400px;
   pointer-events: none;
-}
-
-.invite-redesign-scroll {
-  position: relative;
-  z-index: 1;
-  width: 342px;
-  max-width: 100%;
-  margin: 0 auto;
-  padding: 20px 0 calc(112px + env(safe-area-inset-bottom));
-}
-
-.invite-title {
-  color: #fff2dd;
-}
-
-.invite-code-card {
-  border-radius: 20px;
-  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.22));
-}
-
-.invite-inline-action {
-  border-color: rgba(255, 238, 204, 0.16);
-  background: rgba(35, 27, 23, 0.78);
-  color: #f4c768;
-}
-
-.invite-share-button {
-  box-shadow: none;
-}
-
-.invite-bottom-bar {
-  background: linear-gradient(180deg, rgba(18, 16, 14, 0), rgba(18, 16, 14, 0.9) 34%, #12100e 100%);
-}
-
-.invite-secondary-full.party-cta {
-  border-color: rgba(244, 199, 104, 0.42);
-  background: rgba(35, 27, 23, 0.82);
-  color: #f4c768;
 }

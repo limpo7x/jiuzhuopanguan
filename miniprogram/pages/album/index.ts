@@ -64,7 +64,7 @@ interface AlbumPageMethods {
 
 const internalAlbumTitlePattern = /^(IT|PR|QA|DEV|TEST)[-_ ][A-Z0-9_-]+(?:\s+(opening|highlight|drinking|private|closing))?$/i
 const internalSeedPattern = /(IT-MOMENTS|PR-BE-DB-LOGIN-SEED|PR[-_ ]Seed|QA[-_ ]Seed|DEV[-_ ]Seed|TEST[-_ ]Seed)/i
-const legacyCoverPattern = /(jiuzhuopanguan|wine|judge|panguan|share[-_]?poster|share[-_]?preview|status-bg|title-image|result-report|table-mode|judge-wheel)/i
+const legacyCoverPattern = /(jiuzhuopanguan|wine|judge|panguan|share[-_]?poster|share[-_]?preview|status-bg|title-image|result-report|judge-wheel)/i
 
 const modeTitleMap: Record<string, string> = {
   album: '聚会记录',
@@ -177,7 +177,7 @@ const formatAlbumTime = (value?: string) => {
 
 const buildStatusText = (item: ManagedSessionMomentSummary) => {
   if (!isEndedSessionSummary(item) && !hasFirstPhotoSummary(item)) return '待首拍'
-  if (hasGeneratedShareImage(item)) return '分享图已生成'
+  if (hasEndedGeneratedShareImage(item)) return '分享图已生成'
   if (isEndedSessionSummary(item)) return '已结束'
   if (item.shareImageStatus === 'failed') return '分享图待重试'
   const stateText = String(item.stateText || item.status || item.state || '').trim()
@@ -189,13 +189,15 @@ const buildMeta = (item: ManagedSessionMomentSummary, timeText = '') => {
   if (timeText) parts.push(timeText)
   const sessionName = normalizeAlbumMetaText(item.sessionName)
   if (sessionName) parts.push(sessionName)
-  if (hasGeneratedShareImage(item)) parts.push('可查看分享图')
+  if (hasEndedGeneratedShareImage(item)) parts.push('可查看分享图')
   return parts.join(' · ') || '聚会记录'
 }
 
 const isEndedSessionSummary = (item: ManagedSessionMomentSummary) => isEndedFirstPhotoState(item)
 
 const hasGeneratedShareImage = (item: ManagedSessionMomentSummary) => Boolean(item.readyShareImageUrl || item.shareImageUrl)
+
+const hasEndedGeneratedShareImage = (item: ManagedSessionMomentSummary) => isEndedSessionSummary(item) && hasGeneratedShareImage(item)
 
 const hasFirstPhotoSummary = (item: ManagedSessionMomentSummary) => hasFirstPhotoEvidence(item)
 
@@ -274,7 +276,7 @@ const filterSummariesByMode = (items: ManagedSessionMomentSummary[], mode: strin
     case 'ended':
       return items.filter(isEndedSessionSummary)
     case 'shares':
-      return items.filter(hasGeneratedShareImage)
+      return items.filter(hasEndedGeneratedShareImage)
     case 'unshared':
       return items.filter(isPendingShareMemory)
     case 'album':
@@ -312,7 +314,7 @@ const mapAlbumItem = async (item: ManagedSessionMomentSummary, index: number): P
       firstPhotoUrl = ''
     }
   }
-  const shareImageUrl = item.readyShareImageUrl || item.shareImageUrl || ''
+  const shareImageUrl = isEndedSessionSummary(item) ? item.readyShareImageUrl || item.shareImageUrl || '' : ''
   firstPhotoUrl = firstPhotoUrl || item.coverPhotoUrl || ''
   const coverUrl = shouldQuarantineRecordCover(firstPhotoUrl) ? '' : firstPhotoUrl
   const stateType = isEndedSessionSummary(item) ? 'ended' : hasFirstPhotoSummary(item) ? 'ongoing' : 'pendingFirstPhoto'
