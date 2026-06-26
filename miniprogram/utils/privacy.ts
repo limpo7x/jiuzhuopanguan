@@ -1,3 +1,5 @@
+import { recordDiagnostic } from './diagnostics'
+
 interface PrivacySetting {
   needAuthorization: boolean
   privacyContractName: string
@@ -61,20 +63,28 @@ export const getMiniProgramPrivacySetting = (): Promise<PrivacySetting> =>
   })
 
 export const requestMiniProgramPrivacyAuthorization = async (): Promise<PrivacySetting> => {
-  const setting = await getMiniProgramPrivacySetting()
-  if (!setting.needAuthorization) {
-    return setting
-  }
-
   const privacyApi = getPrivacyApi()
   if (typeof privacyApi.requirePrivacyAuthorize !== 'function') {
     throw new Error('当前微信版本不支持隐私授权，请升级微信后重试')
   }
 
+  recordDiagnostic('privacy.authorize.start')
+  const setting = await getMiniProgramPrivacySetting()
+  recordDiagnostic('privacy.setting.loaded', {
+    needAuthorization: setting.needAuthorization,
+  })
   return new Promise((resolve, reject) => {
     privacyApi.requirePrivacyAuthorize?.({
-      fail: (error) => reject(normalizePrivacyError(error)),
-      success: () => resolve(setting),
+      fail: (error) => {
+        recordDiagnostic('privacy.authorize.fail', {
+          errMsg: String(error?.errMsg || ''),
+        })
+        reject(normalizePrivacyError(error))
+      },
+      success: () => {
+        recordDiagnostic('privacy.authorize.success')
+        resolve(setting)
+      },
     })
   })
 }

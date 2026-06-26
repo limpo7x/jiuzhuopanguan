@@ -1,4 +1,5 @@
 import { getApiBase } from '../config/api'
+import { recordDiagnostic } from './diagnostics'
 import { LONG_REQUEST_TIMEOUT_MS, normalizeWxRequestError } from './network'
 
 export interface SocialProfile {
@@ -260,15 +261,23 @@ const request = <T>(
 
 const requestLoginCode = () =>
   new Promise<string>((resolve, reject) => {
+    recordDiagnostic('wechat.login.start')
     wx.login({
       success: (result) => {
         if (result.code) {
+          recordDiagnostic('wechat.login.success')
           resolve(result.code)
           return
         }
+        recordDiagnostic('wechat.login.empty-code')
         reject(new Error('wx.login failed'))
       },
-      fail: reject,
+      fail: (error) => {
+        recordDiagnostic('wechat.login.fail', {
+          errMsg: String(error?.errMsg || ''),
+        })
+        reject(normalizeWxRequestError(error, 'wx.login'))
+      },
     })
   })
 
@@ -483,6 +492,10 @@ const buildCachedWechatLoginProfile = (profile?: Partial<SocialProfile>): UserLo
 }
 
 const finalizeWechatLogin = async (payload: UserLoginPayload): Promise<SocialProfile> => {
+  recordDiagnostic('auth.finalize.start', {
+    hasAvatar: Boolean(payload.profile?.avatarUrl),
+    hasName: Boolean(payload.profile?.name),
+  })
   const uploadedAvatarUrl = await uploadWechatAvatarIfNeeded(payload.profile?.avatarUrl || '')
   const loginPayload = {
     ...payload,
@@ -492,7 +505,11 @@ const finalizeWechatLogin = async (payload: UserLoginPayload): Promise<SocialPro
       name: sanitizeSocialName(payload.profile?.name),
     },
   }
+  recordDiagnostic('auth.backend.login.start')
   const result = await request<{ profile: SocialProfile; token: string }>('/user/auth/login', 'POST', loginPayload as WechatMiniprogram.IAnyObject)
+  recordDiagnostic('auth.backend.login.success', {
+    profileId: result.profile?.id || '',
+  })
   cacheUserToken(result.token)
   const mergedProfile = normalizeProfile({
     ...result.profile,

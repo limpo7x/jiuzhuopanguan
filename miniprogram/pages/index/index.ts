@@ -7,6 +7,7 @@ import {
   recordManagedToolUsage,
   type ManagedSessionMomentSummary,
 } from '../../services/operations'
+import { recordDiagnostic } from '../../utils/diagnostics'
 import { hasFirstPhotoEvidence, isActiveForResumeByFirstPhoto } from '../../utils/first-photo-state'
 import { showFirstLoginBonusModal } from '../../utils/firstLoginBonus'
 import { requestMiniProgramPrivacyAuthorization } from '../../utils/privacy'
@@ -384,6 +385,9 @@ Page<HomePageState, HomePageMethods>({
   },
 
   async handleAuthAvatar(event) {
+    recordDiagnostic('home.auth.avatar.selected', {
+      hasAvatar: Boolean(event.detail?.avatarUrl),
+    })
     const avatarUrl = await persistAvatar(event.detail?.avatarUrl || '')
     this.setData({ authAvatarUrl: avatarUrl })
   },
@@ -401,6 +405,10 @@ Page<HomePageState, HomePageMethods>({
       return
     }
     this.setData({ authSubmitting: true })
+    recordDiagnostic('home.auth.submit', {
+      hasAvatar: Boolean(avatarUrl),
+      hasName: Boolean(name),
+    })
     try {
       const profile = await loginWithWechatProfile({ avatarUrl, name, identityTag: '', signature: '' })
       const redirectUrl = this.data.authRedirectUrl
@@ -436,7 +444,9 @@ Page<HomePageState, HomePageMethods>({
   async openAuthPanel(redirectUrl = '') {
     try {
       this.setData({ authRedirectUrl: redirectUrl })
+      recordDiagnostic('home.auth.open.start', { redirectUrl })
       await requestMiniProgramPrivacyAuthorization()
+      recordDiagnostic('home.auth.open.authorized', { redirectUrl })
       this.setData({
         authPanelVisible: true,
         authRedirectUrl: redirectUrl,

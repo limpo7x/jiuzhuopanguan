@@ -7,6 +7,7 @@ import {
   type ManagedShareImageSummary,
   type ManagedSessionMomentSummary,
 } from '../../services/operations'
+import { recordDiagnostic } from '../../utils/diagnostics'
 import { hasFirstPhotoEvidence, isActiveForResumeByFirstPhoto, isEndedFirstPhotoState } from '../../utils/first-photo-state'
 import { showFirstLoginBonusModal } from '../../utils/firstLoginBonus'
 import { requestMiniProgramPrivacyAuthorization } from '../../utils/privacy'
@@ -415,6 +416,9 @@ Page<MePageState, MePageMethods>({
   },
 
   async handleAuthAvatar(event) {
+    recordDiagnostic('me.auth.avatar.selected', {
+      hasAvatar: Boolean(event.detail?.avatarUrl),
+    })
     this.setData({
       authAvatarChoosing: false,
       authAvatarUrl: await persistAvatar(event.detail?.avatarUrl || ''),
@@ -440,7 +444,9 @@ Page<MePageState, MePageMethods>({
 
   async openAuthPanel() {
     try {
+      recordDiagnostic('me.auth.open.start')
       await requestMiniProgramPrivacyAuthorization()
+      recordDiagnostic('me.auth.open.authorized')
       this.setData({
         authPanelVisible: true,
       })
@@ -470,6 +476,10 @@ Page<MePageState, MePageMethods>({
       return
     }
     this.setData({ authSubmitting: true })
+    recordDiagnostic('me.auth.submit', {
+      hasAvatar: Boolean(avatarUrl),
+      hasName: Boolean(name),
+    })
     try {
       const profile = await loginWithWechatProfile({ avatarUrl, name, identityTag: '', signature: '' })
       this.setData({
