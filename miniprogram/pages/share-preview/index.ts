@@ -49,9 +49,12 @@ interface SharePreviewState {
   photoHighlightsNotice: string
   playerCount: number
   posterImagePath: string
+  previewBody: string
+  previewTitle: string
   settlementSummary: Record<string, unknown>
   sessionId: string
   shareId: string
+  shareArchiveMode: boolean
   sessionName: string
   shareContentFilter: Record<string, unknown>
   shareSummary: string
@@ -74,8 +77,10 @@ interface SharePreviewMethods {
   handleBackTap: () => void
   handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handlePhotoImageLoad: (event: WechatMiniprogram.BaseEvent) => void
+  handleCopyInviteCodeTap: () => void
   handleRetryTap: () => Promise<void>
   handleReturnAlbumTap: () => void
+  handleReturnHomeTap: () => void
   loadInviteSession: (query?: Record<string, string | undefined>) => Promise<void>
   loadBriefContract: (briefId: string) => Promise<Partial<SharePreviewState> | null>
   loadSessionBriefContract: (sessionId: string) => Promise<Partial<SharePreviewState> | null>
@@ -173,6 +178,20 @@ const buildInviteStatusText = (joinedCount: number, playerCount: number) => {
   return `${joinedCount}/${playerCount} 位好友已加入`
 }
 
+const isEndedShareSession = (item?: { endedAt?: string; stateText?: string; status?: string }) =>
+  Boolean(item?.endedAt) || /已结束|结束|已完成|ended|finished|closed|complete|completed|done/i.test(`${item?.stateText || ''} ${item?.status || ''}`)
+
+const buildPreviewHeader = (archiveMode: boolean) =>
+  archiveMode
+    ? {
+        previewBody: '聚会已经结束，这里只展示可分享的回忆内容。',
+        previewTitle: '聚会分享预览',
+      }
+    : {
+        previewBody: '输入口令，一起进入这场聚会。',
+        previewTitle: '邀请好友加入',
+      }
+
 const toSafeSharePreviewErrorText = (message: string) => {
   const raw = String(message || '').trim()
   const lower = raw.toLowerCase()
@@ -183,7 +202,7 @@ const toSafeSharePreviewErrorText = (message: string) => {
     lower.includes('401') ||
     lower.includes('403')
   ) {
-    return '当前账号暂不能查看这张分享页，请使用邀请入口加入聚会'
+    return '当前账号暂不能查看这张分享页'
   }
   if (lower.includes('network') || lower.includes('timeout') || lower.includes('failed to fetch')) {
     return '网络开小差了，请稍后重试'
@@ -231,9 +250,12 @@ Page<SharePreviewState, SharePreviewMethods>({
     photoHighlightsNotice: '暂无可展示照片，先去记录一张聚会照片。',
     playerCount: 0,
     posterImagePath: '',
+    previewBody: '输入口令，一起进入这场聚会。',
+    previewTitle: '邀请好友加入',
     settlementSummary: {},
     sessionId: '',
     shareId: '',
+    shareArchiveMode: false,
     sessionName: '',
     shareContentFilter: {},
     shareSummary: '邀请好友加入后，可以一起查看这场聚会的回忆。',
@@ -260,12 +282,15 @@ Page<SharePreviewState, SharePreviewMethods>({
     const reportId = typeof query?.reportId === 'string' ? decodeURIComponent(query.reportId) : ''
     const hasShareReturnMarker = !!briefId || !!shareId || !!taskId || !!shareTaskId || !!reportId
     const shareReturnMode = query?.mode === 'return' || query?.view === 'return' || hasShareReturnMarker
+    const initialArchiveMode = shareReturnMode || Boolean(briefId)
 
     this.setData({
       briefId,
       inviteCode,
+      ...buildPreviewHeader(initialArchiveMode),
       sessionId,
       shareId,
+      shareArchiveMode: initialArchiveMode,
       shareReturnMode,
       previewLoadFailed: false,
       errorText: '',
@@ -295,16 +320,19 @@ Page<SharePreviewState, SharePreviewMethods>({
       }
 
       if (!liveSession && briefPreview) {
+        const archiveMode = true
         this.setData({
           ...briefPreview,
           briefId,
           inviteCode,
-          inviteStatusText: inviteCode ? '邀请已准备好' : '仅展示可分享内容',
+          inviteStatusText: '仅展示可分享内容',
           joinedCount: 0,
           ledgerCount: Array.isArray(briefPreview.accountingHighlights) ? briefPreview.accountingHighlights.length : 0,
           photoHighlightsNotice: buildPhotoHighlightsNotice(Array.isArray(briefPreview.photoHighlights) ? briefPreview.photoHighlights.length : 0),
           playerCount: 0,
+          ...buildPreviewHeader(archiveMode),
           previewLoadFailed: false,
+          shareArchiveMode: archiveMode,
           sessionId: effectiveSessionId,
           shareSummary: Array.isArray(briefPreview.photoHighlights) && (briefPreview.photoHighlights.length || (briefPreview.accountingHighlights as SharePreviewMetric[] | undefined)?.length || (briefPreview.keyEvents as SharePreviewKeyEvent[] | undefined)?.length)
             ? '这场聚会的照片和账本高光已准备好分享。'
@@ -356,6 +384,7 @@ Page<SharePreviewState, SharePreviewMethods>({
       const nextKeyEvents = briefPreview?.keyEvents?.length ? briefPreview.keyEvents as SharePreviewKeyEvent[] : keyEvents
       const nextPhotoHighlights = Array.isArray(briefPreview?.photoHighlights) ? briefPreview.photoHighlights as SharePreviewPhoto[] : []
       const nextPhotoNotice = buildPhotoHighlightsNotice(nextPhotoHighlights.length)
+      const archiveMode = shareReturnMode || Boolean(briefPreview) || isEndedShareSession(liveSession)
 
       setSessionRuntime({
         inviteCode: liveSession.inviteCode,
@@ -377,7 +406,7 @@ Page<SharePreviewState, SharePreviewMethods>({
         briefId,
         filteredNodeIds: Array.isArray(briefPreview?.filteredNodeIds) ? briefPreview.filteredNodeIds as string[] : [],
         inviteCode: liveSession.inviteCode,
-        inviteStatusText: buildInviteStatusText(liveSession.joinedCount, playerCount),
+        inviteStatusText: archiveMode ? '仅展示可分享内容' : buildInviteStatusText(liveSession.joinedCount, playerCount),
         joinedCount: liveSession.joinedCount,
         joinStatusPlayers,
         keyEvents: nextKeyEvents,
@@ -389,9 +418,11 @@ Page<SharePreviewState, SharePreviewMethods>({
         photoHighlightsNotice: nextPhotoNotice,
         playerCount,
         posterImagePath: '',
+        ...buildPreviewHeader(archiveMode),
         previewLoadFailed: false,
         settlementSummary: briefPreview?.settlementSummary as Record<string, unknown> || this.data.settlementSummary,
         shareContentFilter: briefPreview?.shareContentFilter as Record<string, unknown> || this.data.shareContentFilter,
+        shareArchiveMode: archiveMode,
         sessionId: liveSession.id || effectiveSessionId,
         sessionName: liveSession.sessionName || '',
         shareSummary: nextPhotoHighlights.length || nextAccountingHighlights.length || nextKeyEvents.length
@@ -407,12 +438,13 @@ Page<SharePreviewState, SharePreviewMethods>({
 
   applyPreviewUnavailableState(message, patch = {}) {
     const safeMessage = toSafeSharePreviewErrorText(message)
+    const archiveMode = Boolean(patch.shareArchiveMode ?? this.data.shareArchiveMode ?? patch.briefId ?? this.data.briefId)
     this.setData({
       accountingHighlights: [],
       avatars: [],
       errorText: safeMessage,
       filteredNodeIds: [],
-      inviteStatusText: patch.inviteCode || this.data.inviteCode ? '邀请已准备好' : '等待好友加入',
+      inviteStatusText: archiveMode ? '仅展示可分享内容' : patch.inviteCode || this.data.inviteCode ? '邀请已准备好' : '等待好友加入',
       joinedCount: 0,
       joinStatusPlayers: [],
       keyEvents: [],
@@ -422,7 +454,9 @@ Page<SharePreviewState, SharePreviewMethods>({
       photoHighlightsNotice: '暂无可展示照片，先去记录一张聚会照片。',
       playerCount: 0,
       previewLoadFailed: true,
+      ...buildPreviewHeader(archiveMode),
       sessionName: '',
+      shareArchiveMode: archiveMode,
       shareSummary: '这场聚会的可分享照片和账本高光会在这里汇总。',
       visibleNodeIds: [],
       ...patch,
@@ -487,6 +521,22 @@ Page<SharePreviewState, SharePreviewMethods>({
     this.setData(updateSharePreviewPhotoState(id, { imageBroken }, this.data.photoHighlights))
   },
 
+  handleCopyInviteCodeTap() {
+    if (!this.data.inviteCode) {
+      this.showPreviewToast('暂无可复制口令')
+      return
+    }
+    wx.setClipboardData({
+      data: this.data.inviteCode,
+      success: () => {
+        this.showPreviewToast('口令已复制')
+      },
+      fail: () => {
+        this.showPreviewToast('口令复制失败')
+      },
+    })
+  },
+
   async handlePhotoImageError(event) {
     const { id } = event.currentTarget.dataset as { id?: string }
     if (!id) {
@@ -514,6 +564,15 @@ Page<SharePreviewState, SharePreviewMethods>({
       url: '/pages/album/index?mode=joined',
       fail: () => {
         this.showPreviewToast('相册暂时打不开，请稍后重试')
+      },
+    })
+  },
+
+  handleReturnHomeTap() {
+    wx.reLaunch({
+      url: '/pages/index/index',
+      fail: () => {
+        this.showPreviewToast('暂时无法返回首页')
       },
     })
   },

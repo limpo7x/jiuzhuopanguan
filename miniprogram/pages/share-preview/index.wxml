@@ -1,12 +1,12 @@
-<navigation-bar title="邀请预览" back="{{true}}" customBack="{{true}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<navigation-bar title="{{shareArchiveMode ? '分享预览' : '邀请预览'}}" back="{{true}}" customBack="{{true}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
 <view class="pp-page">
   <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
   <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="pp-hero pp-panel-cyan">
       <text class="pp-kicker">{{sessionName || '聚会记录师'}}</text>
-      <text class="pp-title">邀请好友加入</text>
-      <text class="pp-body">输入口令，一起进入这场聚会。</text>
-      <text class="pp-code" style="margin-top: 16px;">{{inviteCode || '------'}}</text>
+      <text class="pp-title">{{previewTitle}}</text>
+      <text class="pp-body">{{previewBody}}</text>
+      <text wx:if="{{!shareArchiveMode}}" class="pp-code" style="margin-top: 16px;">{{inviteCode || '------'}}</text>
       <text class="pp-caption" style="margin-top: 10px;">{{inviteStatusText}}</text>
     </view>
     <view wx:if="{{errorText}}" class="pp-empty"><text class="pp-section-title">分享页暂时无法展示</text><text class="pp-body">{{errorText}}</text><view class="pp-button pp-button-secondary" bindtap="handleRetryTap">重试</view></view>
@@ -24,6 +24,7 @@
       </view>
     </view>
   </scroll-view>
-  <view class="pp-fixed-actions"><view class="pp-button pp-button-ghost" bindtap="handleReturnAlbumTap">查看相册</view><view class="pp-button pp-button-primary" bindtap="handleTabTap" data-tab="invite">加入口令</view></view>
+  <view wx:if="{{shareArchiveMode}}" class="pp-fixed-actions"><view class="pp-button pp-button-ghost" bindtap="handleReturnHomeTap">返回首页</view><view class="pp-button pp-button-primary" bindtap="handleReturnAlbumTap">查看相册</view></view>
+  <view wx:else class="pp-fixed-actions"><view class="pp-button pp-button-ghost" bindtap="handleReturnAlbumTap">查看相册</view><view class="pp-button pp-button-primary" bindtap="handleCopyInviteCodeTap">复制口令</view></view>
   <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>
