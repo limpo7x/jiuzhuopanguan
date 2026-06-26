@@ -25,6 +25,6 @@
     </view>
   </scroll-view>
   <view wx:if="{{shareArchiveMode}}" class="pp-fixed-actions"><view class="pp-button pp-button-ghost" bindtap="handleReturnHomeTap">返回首页</view><view class="pp-button pp-button-primary" bindtap="handleReturnAlbumTap">查看相册</view></view>
-  <view wx:else class="pp-fixed-actions"><view class="pp-button pp-button-ghost" bindtap="handleReturnAlbumTap">查看相册</view><view class="pp-button pp-button-primary" bindtap="handleCopyInviteCodeTap">复制口令</view></view>
+  <view wx:else class="pp-fixed-actions"><view class="pp-button pp-button-ghost" bindtap="handleCopyInviteCodeTap">复制口令</view><view class="pp-button pp-button-primary" bindtap="handleJoinSessionTap">{{joinActionLabel}}</view></view>
   <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

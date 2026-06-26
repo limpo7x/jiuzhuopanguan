@@ -2,11 +2,14 @@ import {
   createOrRefreshManagedSessionBrief,
   getManagedLiveSession,
   getManagedSessionBrief,
+  joinManagedSession,
   type ManagedSessionBrief,
   type ManagedTimelineNode,
 } from '../../services/operations'
+import { hasFirstPhotoEvidence, isActiveForResumeByFirstPhoto } from '../../utils/first-photo-state'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import { resolveCachedManagedImagePath } from '../../utils/imageCache'
+import { ensureUserAuthorized } from '../../utils/social'
 
 interface SharePreviewMetric {
   id: string
@@ -37,8 +40,10 @@ interface SharePreviewState {
   canvasWidth: number
   errorText: string
   filteredNodeIds: string[]
+  canJoinSession: boolean
   inviteCode: string
   inviteStatusText: string
+  joinActionLabel: string
   joinedCount: number
   joinStatusPlayers: Array<{ avatarUrl: string; name: string; status: string }>
   keyEvents: SharePreviewKeyEvent[]
@@ -78,6 +83,7 @@ interface SharePreviewMethods {
   handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handlePhotoImageLoad: (event: WechatMiniprogram.BaseEvent) => void
   handleCopyInviteCodeTap: () => void
+  handleJoinSessionTap: () => Promise<void>
   handleRetryTap: () => Promise<void>
   handleReturnAlbumTap: () => void
   handleReturnHomeTap: () => void
@@ -181,16 +187,32 @@ const buildInviteStatusText = (joinedCount: number, playerCount: number) => {
 const isEndedShareSession = (item?: { endedAt?: string; stateText?: string; status?: string }) =>
   Boolean(item?.endedAt) || /已结束|结束|已完成|ended|finished|closed|complete|completed|done/i.test(`${item?.stateText || ''} ${item?.status || ''}`)
 
-const buildPreviewHeader = (archiveMode: boolean) =>
-  archiveMode
-    ? {
-        previewBody: '聚会已经结束，这里只展示可分享的回忆内容。',
-        previewTitle: '聚会分享预览',
-      }
-    : {
-        previewBody: '输入口令，一起进入这场聚会。',
-        previewTitle: '邀请好友加入',
-      }
+const buildPreviewHeader = (archiveMode: boolean, hasStarted = false) => {
+  if (archiveMode) {
+    return {
+      previewBody: '聚会已经结束，这里只展示可分享的回忆内容。',
+      previewTitle: '聚会分享预览',
+    }
+  }
+  if (hasStarted) {
+    return {
+      previewBody: '加入后直接进入现场记录，照片和账本会同步。',
+      previewTitle: '聚会正在进行',
+    }
+  }
+  return {
+    previewBody: '加入成员槽位，等待房主拍下第一张照片。',
+    previewTitle: '邀请好友加入',
+  }
+}
+
+const normalizeInviteCode = (value?: string) => String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12)
+
+const isSessionFullJoinError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || '')
+  const statusCode = Number((error as { statusCode?: number })?.statusCode) || 0
+  return statusCode === 409 || /session[_\s-]*full|party[_\s-]*full|SESSION_FULL/i.test(message)
+}
 
 const toSafeSharePreviewErrorText = (message: string) => {
   const raw = String(message || '').trim()
@@ -238,8 +260,10 @@ Page<SharePreviewState, SharePreviewMethods>({
     canvasWidth: 720,
     errorText: '',
     filteredNodeIds: [],
+    canJoinSession: false,
     inviteCode: '',
     inviteStatusText: '等待好友加入',
+    joinActionLabel: '加入待命',
     joinedCount: 0,
     joinStatusPlayers: [],
     keyEvents: [],
@@ -314,7 +338,10 @@ Page<SharePreviewState, SharePreviewMethods>({
           liveSession = await getManagedLiveSession(effectiveSessionId, inviteCode)
         }
       } catch (error) {
-        if (!briefPreview) {
+        if (inviteCode && effectiveSessionId) {
+          liveSession = await getManagedLiveSession(undefined, inviteCode).catch(() => null)
+        }
+        if (!liveSession && !briefPreview) {
           throw error
         }
       }
@@ -324,8 +351,10 @@ Page<SharePreviewState, SharePreviewMethods>({
         this.setData({
           ...briefPreview,
           briefId,
+          canJoinSession: false,
           inviteCode,
           inviteStatusText: '仅展示可分享内容',
+          joinActionLabel: '查看回忆',
           joinedCount: 0,
           ledgerCount: Array.isArray(briefPreview.accountingHighlights) ? briefPreview.accountingHighlights.length : 0,
           photoHighlightsNotice: buildPhotoHighlightsNotice(Array.isArray(briefPreview.photoHighlights) ? briefPreview.photoHighlights.length : 0),
@@ -384,7 +413,8 @@ Page<SharePreviewState, SharePreviewMethods>({
       const nextKeyEvents = briefPreview?.keyEvents?.length ? briefPreview.keyEvents as SharePreviewKeyEvent[] : keyEvents
       const nextPhotoHighlights = Array.isArray(briefPreview?.photoHighlights) ? briefPreview.photoHighlights as SharePreviewPhoto[] : []
       const nextPhotoNotice = buildPhotoHighlightsNotice(nextPhotoHighlights.length)
-      const archiveMode = shareReturnMode || Boolean(briefPreview) || isEndedShareSession(liveSession)
+      const liveStarted = hasFirstPhotoEvidence(liveSession)
+      const archiveMode = shareReturnMode || isEndedShareSession(liveSession)
 
       setSessionRuntime({
         inviteCode: liveSession.inviteCode,
@@ -404,9 +434,11 @@ Page<SharePreviewState, SharePreviewMethods>({
         accountingHighlights: nextAccountingHighlights,
         avatars,
         briefId,
+        canJoinSession: !archiveMode && Boolean(liveSession.inviteCode || inviteCode),
         filteredNodeIds: Array.isArray(briefPreview?.filteredNodeIds) ? briefPreview.filteredNodeIds as string[] : [],
         inviteCode: liveSession.inviteCode,
-        inviteStatusText: archiveMode ? '仅展示可分享内容' : buildInviteStatusText(liveSession.joinedCount, playerCount),
+        inviteStatusText: archiveMode ? '仅展示可分享内容' : liveStarted ? '聚会正在进行，可进入现场' : buildInviteStatusText(liveSession.joinedCount, playerCount),
+        joinActionLabel: liveStarted ? '进入现场' : '加入待命',
         joinedCount: liveSession.joinedCount,
         joinStatusPlayers,
         keyEvents: nextKeyEvents,
@@ -418,7 +450,7 @@ Page<SharePreviewState, SharePreviewMethods>({
         photoHighlightsNotice: nextPhotoNotice,
         playerCount,
         posterImagePath: '',
-        ...buildPreviewHeader(archiveMode),
+        ...buildPreviewHeader(archiveMode, liveStarted),
         previewLoadFailed: false,
         settlementSummary: briefPreview?.settlementSummary as Record<string, unknown> || this.data.settlementSummary,
         shareContentFilter: briefPreview?.shareContentFilter as Record<string, unknown> || this.data.shareContentFilter,
@@ -442,9 +474,11 @@ Page<SharePreviewState, SharePreviewMethods>({
     this.setData({
       accountingHighlights: [],
       avatars: [],
+      canJoinSession: false,
       errorText: safeMessage,
       filteredNodeIds: [],
       inviteStatusText: archiveMode ? '仅展示可分享内容' : patch.inviteCode || this.data.inviteCode ? '邀请已准备好' : '等待好友加入',
+      joinActionLabel: '加入待命',
       joinedCount: 0,
       joinStatusPlayers: [],
       keyEvents: [],
@@ -535,6 +569,88 @@ Page<SharePreviewState, SharePreviewMethods>({
         this.showPreviewToast('口令复制失败')
       },
     })
+  },
+
+  async handleJoinSessionTap() {
+    if (this.data.shareArchiveMode) {
+      this.showPreviewToast('聚会已结束，可在相册查看回忆')
+      return
+    }
+
+    const inviteCode = normalizeInviteCode(this.data.inviteCode)
+    if (!inviteCode) {
+      this.showPreviewToast('暂无可用口令')
+      return
+    }
+
+    const redirect = `/pages/share-preview/index?inviteCode=${encodeURIComponent(inviteCode)}${this.data.sessionId ? `&sessionId=${encodeURIComponent(this.data.sessionId)}` : ''}`
+    const profile = await ensureUserAuthorized(redirect)
+    if (!profile) {
+      return
+    }
+
+    wx.showLoading({
+      title: '加入中',
+      mask: true,
+    })
+
+    try {
+      const liveSession = await joinManagedSession(inviteCode)
+      const isJudge = Boolean(liveSession.hostProfileId && liveSession.hostProfileId === profile.id)
+      const canEnterLive = isActiveForResumeByFirstPhoto(liveSession)
+      setSessionRuntime({
+        currentUser: {
+          avatarUrl: profile.avatarUrl,
+          id: profile.id,
+          name: profile.name,
+        },
+        endedAt: liveSession.endedAt,
+        firstPhotoUploadedAt: liveSession.firstPhotoUploadedAt || '',
+        inviteCode: liveSession.inviteCode,
+        isJudge,
+        playerCount: liveSession.playerCount,
+        playerStats: [],
+        selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
+          avatarUrl: item.avatarUrl,
+          name: item.name,
+          profileId: item.profileId,
+          status: item.status,
+        })),
+        sessionId: liveSession.id,
+        sessionName: liveSession.sessionName,
+        startedAt: 0,
+        state: canEnterLive ? '进行中' : '待首拍',
+        status: canEnterLive ? '进行中' : '待首拍',
+        templateImageUrl: liveSession.templateImageUrl,
+        templateName: liveSession.templateName,
+      })
+
+      const role = isJudge ? 'judge' : 'viewer'
+      const targetUrl = canEnterLive
+        ? `/pages/live-record/index?role=${role}&sessionId=${encodeURIComponent(liveSession.id)}&sessionName=${encodeURIComponent(liveSession.sessionName || '聚会记录')}`
+        : `/pages/waiting-room/index?role=${role}&sessionId=${encodeURIComponent(liveSession.id)}&inviteCode=${encodeURIComponent(liveSession.inviteCode || inviteCode)}&sessionName=${encodeURIComponent(liveSession.sessionName || '聚会记录')}`
+      wx.redirectTo({
+        url: targetUrl,
+        fail: () => {
+          wx.reLaunch({ url: targetUrl })
+        },
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'join failed'
+      const sessionFull = isSessionFullJoinError(error)
+      const notPlayer = message.includes('not session player')
+      wx.showModal({
+        title: sessionFull ? '聚会已满' : notPlayer ? '暂不能加入' : '加入失败',
+        content: sessionFull
+          ? '这场聚会人数已满，暂时不能继续加入。请联系发起人调整人数或创建新的聚会。'
+          : notPlayer
+            ? '当前口令对应的聚会名单中没有你的账号，请联系发起人确认是否已添加你。'
+            : '当前无法加入聚会，请检查分享链接或口令是否有效。',
+        showCancel: false,
+      })
+    } finally {
+      wx.hideLoading()
+    }
   },
 
   async handlePhotoImageError(event) {
