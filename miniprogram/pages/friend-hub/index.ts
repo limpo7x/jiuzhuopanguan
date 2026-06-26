@@ -21,17 +21,31 @@ interface FriendPokeCard {
   statusLabel: string
 }
 
+type FriendCategory = 'played' | 'unplayed'
+
+interface FriendHubCard extends WineFriend {
+  coPlayCount: number
+  coPlayCountText: string
+  canPokeAgain: boolean
+  pokeLockedReason: string
+}
+
 interface FriendHubState {
+  activeFriendCategory: FriendCategory
   currentProfile: SocialProfile
   newFriendMatches: SearchUserResult[]
   newFriendName: string
+  playedFriends: FriendHubCard[]
   pokeCards: FriendPokeCard[]
-  wineFriends: WineFriend[]
+  unplayedFriends: FriendHubCard[]
+  visibleFriends: FriendHubCard[]
+  wineFriends: FriendHubCard[]
 }
 
 interface FriendHubMethods {
   handleBackTap: () => void
   handleDeleteFriendTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
+  handleFriendCategoryTap: (event: WechatMiniprogram.BaseEvent) => void
   handleNewFriendInput: (event: WechatMiniprogram.Input) => Promise<void>
   handlePokeActionTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handlePokeTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
@@ -40,6 +54,41 @@ interface FriendHubMethods {
 }
 
 const readDatasetId = (event: WechatMiniprogram.BaseEvent) => String((event.currentTarget.dataset as { id?: string }).id || '').trim()
+const readDatasetCategory = (event: WechatMiniprogram.BaseEvent): FriendCategory =>
+  (event.currentTarget.dataset as { category?: FriendCategory }).category === 'unplayed' ? 'unplayed' : 'played'
+
+const normalizeHubFriend = (friend: WineFriend): FriendHubCard => {
+  const coPlayCount = Math.max(0, Number(friend.coPlayCount) || 0)
+  const canPokeAgain = friend.canPokeAgain !== false
+  return {
+    ...friend,
+    canPokeAgain,
+    coPlayCount,
+    coPlayCountText: coPlayCount > 0 ? `合拍次数 ${coPlayCount}` : '',
+    pokeLockedReason: canPokeAgain ? '' : friend.pokeLockedReason || '完成新一场共同聚会后再合拍',
+  }
+}
+
+const filterFriends = (friends: FriendHubCard[], keyword: string) => {
+  const trimmed = keyword.trim().toLowerCase()
+  if (!trimmed) {
+    return friends
+  }
+  return friends.filter((item) => [item.name, item.meta].join(' ').toLowerCase().includes(trimmed))
+}
+
+const buildFriendState = (friends: WineFriend[], activeFriendCategory: FriendCategory, keyword: string) => {
+  const wineFriends = friends.map(normalizeHubFriend)
+  const playedFriends = wineFriends.filter((item) => item.coPlayCount > 0)
+  const unplayedFriends = wineFriends.filter((item) => item.coPlayCount <= 0)
+  const baseFriends = activeFriendCategory === 'played' ? playedFriends : unplayedFriends
+  return {
+    playedFriends,
+    unplayedFriends,
+    visibleFriends: filterFriends(baseFriends, keyword),
+    wineFriends,
+  }
+}
 
 const buildPokeCards = (currentProfile: SocialProfile, pokeThreads: PokeThread[]): FriendPokeCard[] =>
   pokeThreads.map((item) => {
@@ -81,6 +130,7 @@ const buildPokeCards = (currentProfile: SocialProfile, pokeThreads: PokeThread[]
 
 Page<FriendHubState, FriendHubMethods>({
   data: {
+    activeFriendCategory: 'played',
     currentProfile: {
       avatarUrl: '',
       id: '',
@@ -90,7 +140,10 @@ Page<FriendHubState, FriendHubMethods>({
     },
     newFriendMatches: [],
     newFriendName: '',
+    playedFriends: [],
     pokeCards: [],
+    unplayedFriends: [],
+    visibleFriends: [],
     wineFriends: [],
   },
 
@@ -105,19 +158,31 @@ Page<FriendHubState, FriendHubMethods>({
   async loadSocialData() {
     const social = await bootstrapSocial()
     const currentProfile = resolveDisplayProfile(social.currentProfile)
+    const friendState = buildFriendState(social.wineFriends, this.data.activeFriendCategory, this.data.newFriendName)
     this.setData({
       currentProfile,
+      ...friendState,
       pokeCards: buildPokeCards(currentProfile, social.pokeThreads),
-      wineFriends: social.wineFriends,
     })
   },
 
   async handleNewFriendInput(event) {
     const value = event.detail.value || ''
     const newFriendMatches = value.trim() ? await searchRegisteredUsers(value) : []
+    const friendState = buildFriendState(this.data.wineFriends, this.data.activeFriendCategory, value)
     this.setData({
+      ...friendState,
       newFriendMatches,
       newFriendName: value,
+    })
+  },
+
+  handleFriendCategoryTap(event) {
+    const activeFriendCategory = readDatasetCategory(event)
+    const friendState = buildFriendState(this.data.wineFriends, activeFriendCategory, this.data.newFriendName)
+    this.setData({
+      activeFriendCategory,
+      ...friendState,
     })
   },
 
@@ -125,6 +190,11 @@ Page<FriendHubState, FriendHubMethods>({
     const id = readDatasetId(event)
     if (!id) {
       this.showToast('没有找到这位聚友')
+      return
+    }
+    const targetFriend = this.data.wineFriends.find((item) => item.id === id)
+    if (targetFriend && targetFriend.canPokeAgain === false) {
+      this.showToast(targetFriend.pokeLockedReason || '完成新一场共同聚会后再合拍')
       return
     }
     try {
@@ -135,8 +205,9 @@ Page<FriendHubState, FriendHubMethods>({
       }
       this.showToast(result.status === 'matched' ? '你们已经拍到一起' : '已拍一拍对方')
       await this.loadSocialData()
-    } catch {
-      this.showToast('拍一拍失败，请稍后重试')
+    } catch (error) {
+      const message = String((error as Error)?.message || '')
+      this.showToast(message.includes('共同聚会') || message.includes('新一场') ? message : '拍一拍失败，请稍后重试')
     }
   },
 

@@ -12,9 +12,30 @@
   align-items: flex-start;
 }
 
+.friend-hub-tabs {
+  margin-top: -2px;
+}
+
+.friend-hub-list {
+  gap: 12px;
+}
+
+.friend-hub-card {
+  position: relative;
+  align-items: flex-start;
+  min-height: 92px;
+  padding-bottom: 40px;
+}
+
+.friend-hub-card .pp-list-copy {
+  min-width: 0;
+  padding-right: 6px;
+}
+
 .friend-hub-actions {
   display: flex;
   flex: 0 0 auto;
+  align-items: center;
   gap: 8px;
 }
 
@@ -22,6 +43,59 @@
   min-width: 58px;
   padding: 0 12px;
   white-space: nowrap;
+}
+
+.friend-hub-poke-btn {
+  min-width: 88px;
+  padding: 0 10px 0 8px;
+  gap: 4px;
+}
+
+.friend-hub-clink-icon {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+
+.friend-hub-chip-disabled {
+  opacity: 0.48;
+}
+
+.friend-hub-delete-btn {
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--pp-ink);
+  border-radius: 999px;
+  background: var(--pp-cream);
+  box-shadow: 2px 3px 0 var(--pp-ink);
+  color: var(--pp-ink);
+  font-size: 24px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.friend-hub-delete-btn:active {
+  transform: translateY(2px);
+  box-shadow: 1px 1px 0 var(--pp-ink);
+}
+
+.friend-hub-count {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+  padding: 3px 9px;
+  border: 2px solid var(--pp-ink);
+  border-radius: 999px;
+  background: var(--pp-lime);
+  color: var(--pp-ink);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
 }
 
 .friend-hub-status {

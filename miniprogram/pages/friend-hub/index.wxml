@@ -4,6 +4,10 @@
   <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="pp-hero pp-panel-cyan"><text class="pp-title">我的聚友</text><text class="pp-body">仅显示你参与过的聚会好友，支持拍一拍和删除。</text></view>
     <input class="pp-input" placeholder="输入好友昵称" placeholder-class="pp-placeholder" value="{{newFriendName}}" bindinput="handleNewFriendInput" />
+    <view class="pp-tabs friend-hub-tabs">
+      <view class="pp-tab {{activeFriendCategory === 'played' ? 'pp-tab-active' : ''}}" data-category="played" bindtap="handleFriendCategoryTap">已合拍 {{playedFriends.length}}</view>
+      <view class="pp-tab {{activeFriendCategory === 'unplayed' ? 'pp-tab-active' : ''}}" data-category="unplayed" bindtap="handleFriendCategoryTap">未合拍 {{unplayedFriends.length}}</view>
+    </view>
     <view wx:if="{{pokeCards.length}}" class="pp-panel friend-hub-pokes">
       <view class="pp-row-between friend-hub-section-head">
         <text class="pp-section-title">互动提醒</text>
@@ -27,17 +31,21 @@
         </view>
       </view>
     </view>
-    <view class="pp-list">
-      <view wx:for="{{wineFriends}}" wx:key="profileId" class="pp-list-item">
+    <view wx:if="{{visibleFriends.length}}" class="pp-list friend-hub-list">
+      <view wx:for="{{visibleFriends}}" wx:key="profileId" class="pp-list-item friend-hub-card">
         <view class="pp-avatar"><image wx:if="{{item.avatarUrl}}" class="pp-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image><text wx:else>友</text></view>
         <view class="pp-list-copy"><text class="pp-list-title">{{item.name}}</text><text class="pp-caption">{{item.meta || '一起记录过聚会'}}</text></view>
         <view class="friend-hub-actions">
-          <view class="pp-chip friend-hub-chip" data-id="{{item.id}}" catchtap="handlePokeTap">拍一拍</view>
-          <view class="pp-chip friend-hub-chip" data-id="{{item.id}}" catchtap="handleDeleteFriendTap">删除</view>
+          <view class="pp-chip friend-hub-chip friend-hub-poke-btn {{item.canPokeAgain ? '' : 'friend-hub-chip-disabled'}}" data-id="{{item.id}}" catchtap="handlePokeTap">
+            <image class="friend-hub-clink-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-clink.png" mode="aspectFit"></image>
+            <text>拍一拍</text>
+          </view>
+          <view class="friend-hub-delete-btn" data-id="{{item.id}}" catchtap="handleDeleteFriendTap">×</view>
         </view>
+        <text wx:if="{{item.coPlayCountText}}" class="friend-hub-count">{{item.coPlayCountText}}</text>
       </view>
     </view>
-    <view wx:if="{{!wineFriends.length}}" class="pp-empty"><text class="pp-section-title">还没有聚友</text><text class="pp-body">一起参加聚会后会展示在这里。</text></view>
+    <view wx:if="{{!visibleFriends.length}}" class="pp-empty"><text class="pp-section-title">{{wineFriends.length ? '这个分类暂无聚友' : '还没有聚友'}}</text><text class="pp-body">{{wineFriends.length ? '切换分类或调整昵称搜索。' : '一起参加聚会后会展示在这里。'}}</text></view>
   </scroll-view>
   <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

@@ -1,8 +1,10 @@
 const crypto = require('crypto')
+const fs = require('fs')
 const path = require('path')
 const { createStoreAccessor } = require('./store-accessor')
 
 const storePath = path.join(__dirname, 'social-store.json')
+const adminStorePath = path.join(__dirname, 'admin-store.json')
 const USER_SESSION_TTL = 1000 * 60 * 60 * 24 * 30
 
 const now = () => Date.now()
@@ -11,6 +13,7 @@ const randomToken = () => crypto.randomBytes(24).toString('hex')
 const randomId = (prefix) => `${prefix}-${now()}-${Math.random().toString(16).slice(2, 8)}`
 const maskPhone = (phone = '') => (phone.length === 11 ? `${phone.slice(0, 3)}****${phone.slice(-4)}` : phone)
 const cleanText = (value = '') => String(value || '').trim()
+const createHttpError = (message, statusCode = 400) => Object.assign(new Error(message), { statusCode })
 const cleanAvatar = (value = '') => {
   const text = cleanText(value)
   if (!text) return ''
@@ -117,6 +120,128 @@ const getProfileById = (store, profileId) => store.profiles.find((item) => item.
 const getProfileByPhone = (store, phone) => store.profiles.find((item) => item.phone && item.phone === phone)
 const getProfileByOpenId = (store, openId) => store.profiles.find((item) => item.wechatOpenId && item.wechatOpenId === openId)
 
+const readAdminStoreForSocialStats = () => {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(adminStorePath, 'utf8'))
+    return {
+      liveSessions: Array.isArray(parsed?.liveSessions) ? parsed.liveSessions : [],
+    }
+  } catch {
+    return { liveSessions: [] }
+  }
+}
+
+const toTimestamp = (value) => {
+  const numeric = Number(value)
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return numeric
+  }
+  const parsed = Date.parse(cleanText(value))
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const isEndedSessionState = (value = '') => {
+  const text = cleanText(value).toLowerCase()
+  return Boolean(text && (/结束/.test(text) || /ended|finished|closed|completed/.test(text)))
+}
+
+const isEndedLiveSession = (session = {}) =>
+  Boolean(cleanText(session.endedAt)) || isEndedSessionState(session.state) || isEndedSessionState(session.status)
+
+const isActiveSessionMember = (session = {}, member = {}) => {
+  const profileId = cleanText(member.profileId)
+  if (!profileId) {
+    return false
+  }
+  const kickedProfileIds = new Set((Array.isArray(session.kickedProfileIds) ? session.kickedProfileIds : []).map(cleanText).filter(Boolean))
+  if (kickedProfileIds.has(profileId)) {
+    return false
+  }
+  const status = cleanText(member.status).toLowerCase()
+  return !/踢|移出|移除|退出|kicked|removed|left/.test(status)
+}
+
+const getSessionParticipantIds = (session = {}) => {
+  const ids = new Set()
+  const members = Array.isArray(session.members) ? session.members : []
+  members.forEach((member) => {
+    if (isActiveSessionMember(session, member)) {
+      ids.add(cleanText(member.profileId))
+    }
+  })
+  const hostProfileId = cleanText(session.hostProfileId)
+  if (hostProfileId && !ids.has(hostProfileId)) {
+    const kickedProfileIds = new Set((Array.isArray(session.kickedProfileIds) ? session.kickedProfileIds : []).map(cleanText).filter(Boolean))
+    if (!kickedProfileIds.has(hostProfileId)) {
+      ids.add(hostProfileId)
+    }
+  }
+  return ids
+}
+
+const buildCoPlayStatsForOwner = (ownerId) => {
+  const normalizedOwnerId = cleanText(ownerId)
+  const stats = new Map()
+  if (!normalizedOwnerId) {
+    return stats
+  }
+
+  readAdminStoreForSocialStats().liveSessions.forEach((session) => {
+    if (!isEndedLiveSession(session)) {
+      return
+    }
+    const participantIds = getSessionParticipantIds(session)
+    if (!participantIds.has(normalizedOwnerId)) {
+      return
+    }
+
+    const sessionAt = toTimestamp(session.endedAt) || toTimestamp(session.updatedAt) || toTimestamp(session.createdAt) || now()
+    participantIds.forEach((profileId) => {
+      if (!profileId || profileId === normalizedOwnerId) {
+        return
+      }
+      const existed = stats.get(profileId) || { count: 0, latestAt: 0 }
+      stats.set(profileId, {
+        count: existed.count + 1,
+        latestAt: Math.max(existed.latestAt, sessionAt),
+      })
+    })
+  })
+
+  return stats
+}
+
+const getLatestPairPokeAt = (store, leftId, rightId) => {
+  const pairId = [cleanText(leftId), cleanText(rightId)].sort().join('__')
+  if (!leftId || !rightId) {
+    return 0
+  }
+  return Math.max(
+    0,
+    ...store.pokes
+      .filter((item) => item.id === pairId || (new Set([item.senderId, item.receiverId]).has(cleanText(leftId)) && new Set([item.senderId, item.receiverId]).has(cleanText(rightId))))
+      .map((item) => Number(item.updatedAt || item.createdAt) || 0),
+  )
+}
+
+const canSendPokeForPair = ({ coPlayCount, latestCoPlayedAt, latestPokeAt }) =>
+  coPlayCount <= 0 || latestPokeAt <= 0 || latestCoPlayedAt > latestPokeAt
+
+const getFriendPairState = (store, friendship, pairStats) => {
+  const stats = pairStats?.get(friendship.friendId) || { count: 0, latestAt: 0 }
+  const coPlayCount = Math.max(0, Number(stats.count) || 0)
+  const latestCoPlayedAt = Number(stats.latestAt) || 0
+  const latestPokeAt = getLatestPairPokeAt(store, friendship.ownerId, friendship.friendId)
+  const canPokeAgain = canSendPokeForPair({ coPlayCount, latestCoPlayedAt, latestPokeAt })
+  return {
+    canPokeAgain,
+    coPlayCount,
+    latestCoPlayedAt: latestCoPlayedAt ? new Date(latestCoPlayedAt).toISOString() : '',
+    latestPokeAt,
+    pokeLockedReason: canPokeAgain ? '' : '完成新一场共同聚会后再合拍',
+  }
+}
+
 const upsertProfile = (store, profile) => {
   const existed = getProfileById(store, profile.id)
   const normalized = normalizeProfile(profile, existed || {})
@@ -199,28 +324,34 @@ const getMiniUserSession = (token) => {
   return profile ? { token: session.token, profile: { ...profile, phoneMasked: maskPhone(profile.phone) } } : null
 }
 
-const serializeFriend = (store, friendship) => {
+const serializeFriend = (store, friendship, pairStats) => {
   const profile = getProfileById(store, friendship.friendId)
   if (!profile || !isRegisteredProfile(profile)) {
     return null
   }
+  const pairState = getFriendPairState(store, friendship, pairStats)
   return {
     id: friendship.id,
     profileId: friendship.friendId,
     ownerId: friendship.ownerId,
     avatarUrl: cleanAvatar(profile?.avatarUrl),
+    canPokeAgain: pairState.canPokeAgain,
+    coPlayCount: pairState.coPlayCount,
+    latestCoPlayedAt: pairState.latestCoPlayedAt,
     name: friendship.alias || profile?.name || '',
     meta: friendship.meta || '',
+    pokeLockedReason: pairState.pokeLockedReason,
     updatedAt: friendship.updatedAt,
   }
 }
 
 const listFriends = (profileId) => {
   const store = readStore()
+  const pairStats = buildCoPlayStatsForOwner(profileId)
   return store.friendships
     .filter((item) => item.ownerId === profileId)
     .sort((a, b) => b.updatedAt - a.updatedAt)
-    .map((item) => serializeFriend(store, item))
+    .map((item) => serializeFriend(store, item, pairStats))
     .filter(Boolean)
 }
 
@@ -244,7 +375,7 @@ const addFriend = ({ ownerId, friendName, friendProfileId, meta = '' }) => {
     const nextFriendship = { ...existed, alias: cleanText(friendName) || existed.alias, meta: cleanText(meta) || existed.meta, updatedAt }
     store.friendships = store.friendships.map((item) => (item.id === existed.id ? nextFriendship : item))
     writeStore(store)
-    return serializeFriend(store, nextFriendship)
+    return serializeFriend(store, nextFriendship, buildCoPlayStatsForOwner(normalizedOwnerId))
   }
 
   const friendship = {
@@ -257,7 +388,7 @@ const addFriend = ({ ownerId, friendName, friendProfileId, meta = '' }) => {
   }
   store.friendships.unshift(friendship)
   writeStore(store)
-  return serializeFriend(store, friendship)
+  return serializeFriend(store, friendship, buildCoPlayStatsForOwner(normalizedOwnerId))
 }
 
 const updateFriend = ({ ownerId, friendshipId, patch = {} }) => {
@@ -269,7 +400,7 @@ const updateFriend = ({ ownerId, friendshipId, patch = {} }) => {
   const next = { ...target, alias: cleanText(patch.name || target.alias), meta: cleanText(patch.meta || target.meta), updatedAt: now() }
   store.friendships = store.friendships.map((item) => (item.id === friendshipId ? next : item))
   writeStore(store)
-  return serializeFriend(store, next)
+  return serializeFriend(store, next, buildCoPlayStatsForOwner(ownerId))
 }
 
 const removeFriend = ({ ownerId, friendshipId }) => {
@@ -298,7 +429,15 @@ const syncSessionContacts = ({ ownerId, participants = [] }) => touchFriends({ o
 const listProfiles = () => readStore().profiles.map((item) => ({ ...item, avatarUrl: cleanAvatar(item.avatarUrl) }))
 const listFriendships = () => {
   const store = readStore()
-  return store.friendships.map((item) => serializeFriend(store, item)).filter(Boolean)
+  const statsByOwner = new Map()
+  return store.friendships
+    .map((item) => {
+      if (!statsByOwner.has(item.ownerId)) {
+        statsByOwner.set(item.ownerId, buildCoPlayStatsForOwner(item.ownerId))
+      }
+      return serializeFriend(store, item, statsByOwner.get(item.ownerId))
+    })
+    .filter(Boolean)
 }
 
 const searchProfiles = ({ ownerId, keyword = '' }) => {
@@ -359,6 +498,10 @@ const sendPoke = ({ ownerId, friendshipId }) => {
   }
   const senderId = ownerId
   const receiverId = friendship.friendId
+  const pairState = getFriendPairState(store, friendship, buildCoPlayStatsForOwner(senderId))
+  if (!pairState.canPokeAgain) {
+    throw createHttpError(pairState.pokeLockedReason || '完成新一场共同聚会后再合拍', 409)
+  }
   const id = [senderId, receiverId].sort().join('__')
   const existed = store.pokes.find((item) => item.id === id)
   const thread = existed

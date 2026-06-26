@@ -15,9 +15,13 @@ export interface SocialProfile {
 
 export interface WineFriend {
   avatarUrl: string
+  canPokeAgain?: boolean
+  coPlayCount?: number
   id: string
+  latestCoPlayedAt?: string
   meta: string
   name: string
+  pokeLockedReason?: string
   profileId: string
   updatedAt: number
 }
@@ -150,8 +154,12 @@ const normalizeFriend = (friend?: Partial<WineFriend> | null): WineFriend => ({
   id: String(friend?.id || `local-friend-${randomId()}`).trim(),
   profileId: String(friend?.profileId || `local-profile-${randomId()}`).trim(),
   avatarUrl: normalizeSocialAvatarUrl(friend?.avatarUrl),
+  canPokeAgain: friend?.canPokeAgain !== false,
+  coPlayCount: Math.max(0, Number(friend?.coPlayCount) || 0),
+  latestCoPlayedAt: String(friend?.latestCoPlayedAt || '').trim(),
   name: sanitizeSocialName(friend?.name) || String(friend?.name || '').trim(),
   meta: String(friend?.meta || '').trim(),
+  pokeLockedReason: String(friend?.pokeLockedReason || '').trim(),
   updatedAt: Number(friend?.updatedAt) || Date.now(),
 })
 
