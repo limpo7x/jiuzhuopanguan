@@ -12,12 +12,10 @@
         </view>
       </view>
     </view>
-    <view class="pp-panel">
-      <view class="pp-list-item" bindtap="handleFriendHubTap">
-        <image class="pp-icon-lg" src="https://cdn.pomer.cn/static/party-pop-clean/icons/service-friends.png" mode="aspectFit"></image>
-        <view class="pp-list-copy"><text class="pp-list-title">合拍聚友</text><text class="pp-caption">查看一起参加过聚会的朋友，支持拍一拍和删除。</text></view>
-        <text class="pp-chip">进入</text>
-      </view>
+    <view class="pp-list-item" bindtap="handleFriendHubTap">
+      <image class="pp-icon-lg" src="https://cdn.pomer.cn/static/party-pop-clean/icons/service-friends.png" mode="aspectFit"></image>
+      <view class="pp-list-copy"><text class="pp-list-title">合拍聚友</text><text class="pp-caption">查看一起参加过聚会的朋友，支持拍一拍和删除。</text></view>
+      <text class="pp-chip">进入</text>
     </view>
     <view class="pp-tabs"><view class="pp-tab {{activeMePanel === 'overview' ? 'pp-tab-active' : ''}}" data-panel="overview" bindtap="handleMePanelTap">概览</view><view class="pp-tab {{activeMePanel === 'pending' ? 'pp-tab-active' : ''}}" data-panel="pending" bindtap="handleMePanelTap">待分享</view><view class="pp-tab {{activeMePanel === 'shares' ? 'pp-tab-active' : ''}}" data-panel="shares" bindtap="handleMePanelTap">分享图</view></view>
     <view wx:if="{{activeMePanel === 'overview'}}" class="pp-stat-row"><view wx:for="{{assetStats}}" wx:key="label" class="pp-stat" data-label="{{item.label}}" bindtap="handleAssetTap"><text class="pp-stat-value">{{item.value}}</text><text class="pp-stat-label">{{item.label}}</text></view></view>
