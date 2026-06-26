@@ -58,21 +58,6 @@
     </view>
   </scroll-view>
 
-  <view wx:if="{{privacyPanelVisible}}" class="pp-auth-mask" bindtap="closePrivacyPanel">
-    <view class="pp-auth-panel pp-privacy-panel" catchtap="noop">
-      <view class="pp-row-between">
-        <text class="pp-title-sm">隐私保护提示</text>
-        <text class="pp-chip" bindtap="handlePrivacyReject">关闭</text>
-      </view>
-      <text class="pp-body pp-privacy-copy">登录会使用你的微信头像和昵称，用于聚会成员、相册和分享图展示。</text>
-      <text class="pp-privacy-link" bindtap="handlePrivacyContractTap">{{privacyContractName}}</text>
-      <view class="pp-dialog-actions">
-        <view class="pp-button pp-button-ghost" bindtap="handlePrivacyReject">暂不同意</view>
-        <button id="agree-privacy" class="pp-button pp-button-primary pp-reset-button" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="handlePrivacyAgree">同意并继续</button>
-      </view>
-    </view>
-  </view>
-
   <view wx:if="{{authPanelVisible}}" class="pp-auth-mask" bindtap="closeAuthPanel">
     <form class="pp-auth-panel" catchtap="noop" bindsubmit="handleLoginSubmit">
       <view class="pp-row-between">

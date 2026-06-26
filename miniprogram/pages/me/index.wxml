@@ -22,18 +22,6 @@
     <view wx:if="{{activeMePanel === 'pending'}}" class="pp-panel"><view class="pp-row-between"><text class="pp-section-title">待分享回忆</text><text class="pp-chip" bindtap="handlePendingAlbumAllTap">查看全部 {{pendingAlbumTotal}}</text></view><view wx:if="{{visiblePendingAlbums.length}}" class="pp-list" style="margin-top: 14px;"><view wx:for="{{visiblePendingAlbums}}" wx:key="sessionId" class="pp-list-item" data-session-id="{{item.sessionId}}" bindtap="handlePendingAlbumTap"><image wx:if="{{item.coverUrl}}" class="pp-thumb" style="width: 78px; height: 78px;" src="{{item.coverUrl}}" mode="aspectFill"></image><image wx:else class="pp-thumb" style="width: 78px; height: 78px;" src="https://cdn.pomer.cn/static/party-pop-clean/home-hero-750x420.png" mode="aspectFill"></image><view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">{{item.meta}}</text></view></view></view><text wx:else class="pp-body">暂无待分享回忆</text></view>
     <view wx:if="{{activeMePanel === 'shares'}}" class="pp-panel"><view class="pp-row-between"><text class="pp-section-title">分享图合集</text><text class="pp-chip" bindtap="handleShareGalleryAllTap">查看全部 {{shareGalleryTotal}}</text></view><view wx:if="{{visibleShareImages.length}}" class="pp-list" style="margin-top: 14px;"><view wx:for="{{visibleShareImages}}" wx:key="imageUrl" class="pp-list-item" data-image-url="{{item.imageUrl}}" bindtap="handleShareGalleryTap"><image class="pp-thumb" style="width: 78px; height: 92px;" src="{{item.imageUrl}}" mode="aspectFill"></image><view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">{{item.meta}}</text></view></view></view><text wx:else class="pp-body">还没有生成过分享图</text></view>
   </scroll-view>
-  <view wx:if="{{privacyPanelVisible && !loggedIn}}" class="pp-auth-mask" bindtap="closePrivacyPanel">
-    <view class="pp-auth-panel pp-privacy-panel" catchtap="noop">
-      <view class="pp-row-between"><text class="pp-title-sm">隐私保护提示</text><text class="pp-chip" bindtap="handlePrivacyReject">关闭</text></view>
-      <text class="pp-body pp-privacy-copy">登录会使用你的微信头像和昵称，用于聚会成员、相册和分享图展示。</text>
-      <text class="pp-privacy-link" bindtap="handlePrivacyContractTap">{{privacyContractName}}</text>
-      <view class="pp-dialog-actions">
-        <view class="pp-button pp-button-ghost" bindtap="handlePrivacyReject">暂不同意</view>
-        <button id="agree-privacy-me" class="pp-button pp-button-primary pp-reset-button" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="handlePrivacyAgree">同意并继续</button>
-      </view>
-    </view>
-  </view>
-
   <view wx:if="{{authPanelVisible && !loggedIn}}" class="pp-auth-mask" bindtap="closeAuthPanel">
     <form class="pp-auth-panel" catchtap="noop" bindsubmit="handleLoginSubmit">
       <view class="pp-row-between"><text class="pp-title-sm">微信授权登录</text><text class="pp-chip" bindtap="closeAuthPanel">关闭</text></view>

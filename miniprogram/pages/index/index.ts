@@ -9,12 +9,6 @@ import {
 } from '../../services/operations'
 import { hasFirstPhotoEvidence, isActiveForResumeByFirstPhoto } from '../../utils/first-photo-state'
 import { showFirstLoginBonusModal } from '../../utils/firstLoginBonus'
-import {
-  openMiniProgramPrivacyContract,
-  requestMiniProgramPrivacyAuthorization,
-  resolveMiniProgramPrivacyAuthorization,
-  setPrivacyAuthorizationHandler,
-} from '../../utils/privacy'
 import { setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import { buildSessionReturnFromHistory, EMPTY_SESSION_RETURN, openSessionReturn, type SessionReturnBarData } from '../../utils/session-return'
 import { ensureUserAuthorized, getCurrentDisplayProfile, getUserAuthSession, getUserSessionToken, loginWithWechatProfile } from '../../utils/social'
@@ -33,8 +27,6 @@ interface HomePageState {
   lastLoadedAt: number
   loading: boolean
   loggedIn: boolean
-  privacyContractName: string
-  privacyPanelVisible: boolean
   sessionReturn: SessionReturnBarData
   signingIn: boolean
   userAvatarUrl: string
@@ -52,13 +44,9 @@ interface ChooseAvatarDetail {
 interface HomePageMethods {
   announcePreview: (message: string) => void
   closeAuthPanel: () => void
-  closePrivacyPanel: () => void
   handleAuthAvatar: (event: WechatMiniprogram.CustomEvent<ChooseAvatarDetail>) => Promise<void>
   handleAuthNameInput: (event: WechatMiniprogram.CustomEvent<NicknameInputDetail>) => void
   handleCheckIn: () => void
-  handlePrivacyAgree: () => void
-  handlePrivacyContractTap: () => void
-  handlePrivacyReject: () => void
   handleLoginSubmit: (event: WechatMiniprogram.CustomEvent<{ value?: Record<string, string> }>) => Promise<void>
   handleLoginTextTap: () => void
   handleAlbumListTap: () => void
@@ -73,7 +61,6 @@ interface HomePageMethods {
   handleToolTap: (event: WechatMiniprogram.BaseEvent) => void
   loadHomePage: () => Promise<void>
   noop: () => void
-  openAuthPanel: (redirectUrl?: string) => Promise<void>
   openPage: (url: string) => void
   refreshSessionReturn: (items?: ManagedSessionMomentSummary[]) => void
   syncAuthState: () => Promise<void>
@@ -279,8 +266,6 @@ Page<HomePageState, HomePageMethods>({
     lastLoadedAt: 0,
     loading: false,
     loggedIn: false,
-    privacyContractName: '用户隐私保护指引',
-    privacyPanelVisible: false,
     sessionReturn: EMPTY_SESSION_RETURN,
     signingIn: false,
     userAvatarUrl: '',
@@ -300,21 +285,11 @@ Page<HomePageState, HomePageMethods>({
   },
 
   onShow() {
-    setPrivacyAuthorizationHandler((setting) => {
-      this.setData({
-        privacyContractName: setting.privacyContractName,
-        privacyPanelVisible: true,
-      })
-    })
     this.refreshSessionReturn([])
     void this.syncAuthState()
     if (!this.data.loading && Date.now() - this.data.lastLoadedAt > 45000) {
       void this.loadHomePage()
     }
-  },
-
-  onUnload() {
-    setPrivacyAuthorizationHandler(null)
   },
 
   refreshSessionReturn(items = [] as ManagedSessionMomentSummary[]) {
@@ -456,48 +431,12 @@ Page<HomePageState, HomePageMethods>({
     wx.showToast({ title: message, icon: 'none' })
   },
 
-  async openAuthPanel(redirectUrl = '') {
-    try {
-      this.setData({ authRedirectUrl: redirectUrl })
-      await requestMiniProgramPrivacyAuthorization()
-      this.setData({
-        authPanelVisible: true,
-        authRedirectUrl: redirectUrl,
-        privacyPanelVisible: false,
-      })
-    } catch (error) {
-      this.setData({ privacyPanelVisible: false })
-      wx.showToast({ title: error instanceof Error ? error.message : '请先同意隐私保护指引', icon: 'none' })
-    }
-  },
-
   handleLoginTextTap() {
-    void this.openAuthPanel('')
+    this.setData({ authPanelVisible: true, authRedirectUrl: '' })
   },
 
   closeAuthPanel() {
     this.setData({ authPanelVisible: false, authRedirectUrl: '' })
-  },
-
-  closePrivacyPanel() {
-    resolveMiniProgramPrivacyAuthorization(false)
-    this.setData({ privacyPanelVisible: false })
-  },
-
-  handlePrivacyAgree() {
-    resolveMiniProgramPrivacyAuthorization(true)
-    this.setData({ privacyPanelVisible: false })
-  },
-
-  handlePrivacyContractTap() {
-    void openMiniProgramPrivacyContract().catch((error) => {
-      wx.showToast({ title: error instanceof Error ? error.message : '无法打开隐私保护指引', icon: 'none' })
-    })
-  },
-
-  handlePrivacyReject() {
-    resolveMiniProgramPrivacyAuthorization(false)
-    this.setData({ privacyPanelVisible: false })
   },
 
   noop() {
@@ -507,7 +446,7 @@ Page<HomePageState, HomePageMethods>({
   async handlePrimaryTap() {
     const session = await getUserAuthSession().catch(() => ({ loggedIn: false, profile: null }))
     if (!session.loggedIn || !session.profile?.id) {
-      void this.openAuthPanel('/pages/create-session/index')
+      this.setData({ authPanelVisible: true, authRedirectUrl: '/pages/create-session/index' })
       return
     }
     wx.navigateTo({ url: '/pages/create-session/index' })
