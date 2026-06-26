@@ -99,6 +99,23 @@ const LEGACY_DEMO_PROFILE_IDS = new Set(['user-1001', 'user-1002', 'user-1003', 
 let backendDownUntil = 0
 let userAuthSessionPromise: Promise<UserAuthSession> | null = null
 
+const isAuthRequestPath = (path: string) => /^\/user\/auth(?:\/|$)/.test(path) || path === '/user/avatar/upload'
+const resolveRequestTimeout = (path: string) => {
+  if (path === '/user/auth/login') return 15000
+  if (isAuthRequestPath(path)) return 10000
+  return 5000
+}
+
+const normalizeRequestFailure = (error: unknown, path: string) => {
+  const errMsg = String((error as WechatMiniprogram.GeneralCallbackResult)?.errMsg || '')
+  const message = errMsg.includes('timeout')
+    ? path === '/user/auth/login'
+      ? '微信登录响应超时，请检查网络后重试'
+      : '请求超时，请稍后重试'
+    : errMsg || '网络请求失败，请稍后重试'
+  return new Error(message)
+}
+
 const normalizeSocialAvatarUrl = (value?: string) => {
   const text = String(value || '').trim()
   if (
@@ -218,7 +235,7 @@ const request = <T>(
       method,
       data,
       header: getUserAuthHeaders(),
-      timeout: 3000,
+      timeout: resolveRequestTimeout(path),
       success: (response) => {
         const payload = response.data as ApiResponse<T>
         if (response.statusCode >= 200 && response.statusCode < 300 && payload.code === 0) {
@@ -232,8 +249,10 @@ const request = <T>(
         reject(error)
       },
       fail: (error) => {
-        backendDownUntil = Date.now() + BACKEND_RETRY_INTERVAL
-        reject(error)
+        if (!isAuthRequestPath(path)) {
+          backendDownUntil = Date.now() + BACKEND_RETRY_INTERVAL
+        }
+        reject(normalizeRequestFailure(error, path))
       },
     })
   })

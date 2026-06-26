@@ -141,6 +141,7 @@ const wechatConfig = {
   appId: process.env.WECHAT_APP_ID || '',
   appSecret: process.env.WECHAT_APP_SECRET || '',
 }
+const wechatApiTimeoutMs = Number(process.env.WECHAT_API_TIMEOUT_MS || 8000)
 const wechatAccessTokenCache = {
   token: '',
   expiresAt: 0,
@@ -646,6 +647,9 @@ const httpsJsonRequest = (requestUrl, options = {}, payload) =>
       })
     })
     req.on('error', reject)
+    req.setTimeout(wechatApiTimeoutMs, () => {
+      req.destroy(Object.assign(new Error('wechat api timeout'), { statusCode: 504 }))
+    })
     if (payload) {
       req.write(payload)
     }
@@ -1049,25 +1053,41 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'POST' && pathname === '/api/v1/user/auth/login') {
-      const payload = await readJsonBody(request)
-      const wechatSession = await getWechatSessionByCode(String(payload.loginCode || '').trim())
-      const phoneCode = String(payload.phoneCode || '').trim()
-      const phoneInfo = phoneCode ? await getWechatPhoneNumber(phoneCode) : null
-      const session = bindWechatUser({
-        phone: phoneInfo?.phoneNumber || '',
-        wechatOpenId: wechatSession.openid,
-        wechatUnionId: wechatSession.unionid || '',
-        profile: {
-          name: payload.profile?.name || payload.profile?.nickName || '',
-          avatarUrl: payload.profile?.avatarUrl || '',
-          signature: payload.profile?.signature || '',
-          identityTag: payload.profile?.identityTag || '',
-        },
-      })
-      if (Number(session.profile?.loginCount) === 1) {
-        grantFirstLoginBonus(session.profile.id)
+      const startedAt = Date.now()
+      try {
+        const payload = await readJsonBody(request)
+        const wechatSession = await getWechatSessionByCode(String(payload.loginCode || '').trim())
+        const phoneCode = String(payload.phoneCode || '').trim()
+        const phoneInfo = phoneCode ? await getWechatPhoneNumber(phoneCode) : null
+        const session = bindWechatUser({
+          phone: phoneInfo?.phoneNumber || '',
+          wechatOpenId: wechatSession.openid,
+          wechatUnionId: wechatSession.unionid || '',
+          profile: {
+            name: payload.profile?.name || payload.profile?.nickName || '',
+            avatarUrl: payload.profile?.avatarUrl || '',
+            signature: payload.profile?.signature || '',
+            identityTag: payload.profile?.identityTag || '',
+          },
+        })
+        if (Number(session.profile?.loginCount) === 1) {
+          grantFirstLoginBonus(session.profile.id)
+        }
+        console.info('user auth login ok', {
+          appIdTail: wechatConfig.appId ? wechatConfig.appId.slice(-6) : '',
+          durationMs: Date.now() - startedAt,
+          profileId: session.profile?.id || '',
+        })
+        sendOk(response, session)
+      } catch (error) {
+        console.error('user auth login failed', {
+          appIdTail: wechatConfig.appId ? wechatConfig.appId.slice(-6) : '',
+          durationMs: Date.now() - startedAt,
+          message: error instanceof Error ? error.message : String(error),
+          statusCode: error && typeof error === 'object' ? error.statusCode : undefined,
+        })
+        throw error
       }
-      sendOk(response, session)
       return
     }
 
