@@ -31,33 +31,35 @@
 }
 
 .live-avatar-scroll {
-  width: 100%;
+  width: calc(100% + 68px);
   margin-top: 14px;
-  overflow: hidden;
+  margin-right: -68px;
 }
 
 .live-avatar-row {
   display: flex;
-  width: max-content;
-  min-width: max-content;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: 10px;
-  padding: 0 20px 8px 0;
+  gap: 8px 6px;
+  padding: 0 0 8px;
 }
 
 .live-avatar-item {
-  width: 58px;
-  flex: 0 0 58px;
+  width: calc((100% - 30px) / 6);
+  flex: 0 0 calc((100% - 30px) / 6);
+  min-width: 0;
   text-align: center;
 }
 
 .live-avatar {
-  width: 46px;
-  height: 46px;
-  flex-basis: 46px;
+  width: 40px;
+  height: 40px;
+  flex-basis: 40px;
   margin: 0 auto;
-  border-radius: 16px;
-  font-size: 16px;
+  border-radius: 14px;
+  font-size: 15px;
   box-shadow: 0 3px 0 #111317;
 }
 
@@ -67,7 +69,7 @@
   margin-top: 6px;
   overflow: hidden;
   color: rgba(17, 19, 23, .68);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 850;
   line-height: 1.15;
   text-overflow: ellipsis;

@@ -13,14 +13,14 @@
         <view class="pp-stat"><text class="pp-stat-value">{{memberCountText}}</text><text class="pp-stat-label">成员</text></view>
         <view class="pp-stat"><text class="pp-stat-value">{{elapsedText}}</text><text class="pp-stat-label">时长</text></view>
       </view>
-      <scroll-view wx:if="{{players.length}}" class="live-avatar-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view wx:if="{{players.length}}" class="live-avatar-scroll">
         <view class="live-avatar-row">
           <view wx:for="{{players}}" wx:key="profileId" class="live-avatar-item">
             <view class="pp-avatar live-avatar"><image wx:if="{{item.avatarUrl}}" class="pp-avatar live-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image><text wx:else>{{item.initial}}</text></view>
             <text class="live-avatar-name">{{item.name}}</text>
           </view>
         </view>
-      </scroll-view>
+      </view>
     </view>
 
     <view class="pp-tabs">

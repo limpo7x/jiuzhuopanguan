@@ -182,14 +182,22 @@ const buildBriefEventDetail = (node: Extract<ManagedTimelineNode, { nodeKind: 'e
   return String(node.caption || '').trim() || `${operator} 记录了 ${target}`
 }
 
+const isBriefLedgerEventNode = (node: ManagedTimelineNode): node is Extract<ManagedTimelineNode, { nodeKind: 'event' }> =>
+  node.nodeKind === 'event' && (node.eventType === 'drink_debt' || node.eventType === 'drink_add')
+
+const isBriefTimelineDisplayNode = (node: ManagedTimelineNode) => {
+  if (node.nodeKind === 'moment') {
+    return !node.isTimelinePlaceholder && !!node.imageUrl
+  }
+  return isBriefLedgerEventNode(node)
+}
+
 const getBriefTimelineActionLabel = (node: ManagedTimelineNode) => {
   if (node.nodeKind === 'event') {
-    if (node.eventType === 'drink_debt') return Number(node.scoreDelta) < 0 ? '消酒' : '欠酒'
-    if (node.eventType === 'drink_add') return Number(node.scoreDelta) < 0 ? '减酒' : '加酒'
-    return '事件'
+    if (node.eventType === 'drink_debt') return '欠酒'
+    if (node.eventType === 'drink_add') return '加酒'
+    return '互动'
   }
-  if (node.nodeType === 'opening') return '开场'
-  if (node.nodeType === 'closing') return '收尾'
   return '拍照'
 }
 
@@ -197,7 +205,7 @@ const buildBriefTimelineTitle = (node: ManagedTimelineNode) => {
   if (node.nodeKind === 'event') {
     if (node.eventType === 'drink_debt') return Number(node.scoreDelta) < 0 ? '消酒变动' : '欠酒变动'
     if (node.eventType === 'drink_add') return Number(node.scoreDelta) < 0 ? '减少加酒' : '加酒变动'
-    return '现场事件'
+    return String(node.caption || '').trim() || '互动记录'
   }
   return String(node.timelineTitle || node.caption || '').trim() || buildNominationTitle(node)
 }
@@ -210,7 +218,7 @@ const buildBriefTimelineDetail = (node: ManagedTimelineNode) => {
 }
 
 const buildBriefTimelineItems = (nodes: ManagedTimelineNode[]): BriefTimelineItem[] =>
-  nodes.map((node) => ({
+  nodes.filter(isBriefTimelineDisplayNode).map((node) => ({
     actionLabel: getBriefTimelineActionLabel(node),
     detail: buildBriefTimelineDetail(node),
     id: node.id,

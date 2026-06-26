@@ -46,5 +46,13 @@
       </view>
     </view>
   </scroll-view>
+  <view class="pp-fixed-actions session-brief-fixed-actions">
+    <view wx:if="{{errorText}}" class="pp-button pp-button-secondary" bindtap="handleRefreshTap">重试</view>
+    <view wx:elif="{{loading}}" class="pp-button pp-button-secondary pp-button-disabled">加载中</view>
+    <block wx:else>
+      <view class="pp-button pp-button-primary" bindtap="handleSharePosterTap">生成分享图</view>
+      <view class="pp-button pp-button-secondary" bindtap="handleRankingTap">今日回忆榜</view>
+    </block>
+  </view>
   <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

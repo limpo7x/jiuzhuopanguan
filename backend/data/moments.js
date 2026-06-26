@@ -24,6 +24,8 @@ const SHARE_IMAGE_WIDTH = 900
 const SHARE_IMAGE_MIN_HEIGHT = 1400
 const DEFAULT_MINI_PROGRAM_QR_URL = '/static/share-poster-miniapp-code.png'
 const FULL_TIMELINE_RENDERER_VERSION = 'live-page-v2'
+const POSTER_PARTICIPANT_MAX = 12
+const POSTER_PARTICIPANT_COLUMNS = 6
 
 const IMAGE_MIME_EXTENSION_MAP = {
   'image/jpeg': 'jpg',
@@ -1260,17 +1262,22 @@ const renderPosterParticipants = (participants = [], avatarDataUris = []) => {
     return ''
   }
   const count = participants.length
-  const visibleCount = Math.min(count, 8)
+  const visibleCount = Math.min(count, POSTER_PARTICIPANT_MAX)
   const rowWidth = 324
-  const itemWidth = visibleCount <= 1 ? rowWidth : rowWidth / (visibleCount - 1)
   const avatarSize = 42
   const startX = 94
-  const y = 284
+  const startY = 292
+  const rowGap = 72
   return participants
     .slice(0, visibleCount)
     .map((item, index) => {
-      const cx = visibleCount <= 1 ? startX + avatarSize / 2 : startX + index * itemWidth
+      const col = index % POSTER_PARTICIPANT_COLUMNS
+      const row = Math.floor(index / POSTER_PARTICIPANT_COLUMNS)
+      const rowItemCount = Math.min(POSTER_PARTICIPANT_COLUMNS, visibleCount - row * POSTER_PARTICIPANT_COLUMNS)
+      const itemWidth = rowItemCount <= 1 ? 0 : (rowWidth - avatarSize) / (rowItemCount - 1)
+      const cx = rowItemCount <= 1 ? startX + rowWidth / 2 : startX + avatarSize / 2 + col * itemWidth
       const x = cx - avatarSize / 2
+      const y = startY + row * rowGap
       const avatarDataUri = avatarDataUris[index] || ''
       const clipId = `participantAvatar${index}`
       return `
@@ -1476,8 +1483,10 @@ const buildFullTimelineShareImageSvg = async ({ brief, task, nodes, ledgerSnapsh
   const settlementSummary = ledgerSnapshot?.settlementSummary || {}
   const ledgerCount = Number(ledgerSummary.ledgerCount) || 0
   const photoCount = imageDataUris.filter(Boolean).length
+  const visibleParticipantCount = Math.min(participants.length, POSTER_PARTICIPANT_MAX)
+  const participantRowCount = visibleParticipantCount > POSTER_PARTICIPANT_COLUMNS ? 2 : visibleParticipantCount > 0 ? 1 : 0
   const heroY = 44
-  const heroHeight = participants.length ? 470 : 376
+  const heroHeight = participantRowCount > 1 ? 650 : participantRowCount === 1 ? 560 : 376
   const heroBottom = heroY + heroHeight
   const tabY = heroBottom + 48
   const timelinePanelY = tabY + 128
@@ -1522,13 +1531,14 @@ const buildFullTimelineShareImageSvg = async ({ brief, task, nodes, ledgerSnapsh
   const timelinePanelHeight = currentY - timelinePanelY + 40
   const summaryY = timelinePanelY + timelinePanelHeight + 48
   const qrY = summaryY + 214
-  const footerY = qrY + 244
+  const footerY = qrY + 296
   const height = Math.max(SHARE_IMAGE_MIN_HEIGHT, footerY + 70)
-  const avatars = participants.slice(0, 10).map((item, index) => {
-    const col = index % 5
-    const row = Math.floor(index / 5)
-    const x = 108 + col * 138
-    const y = 356 + row * 78
+  const avatarStartY = heroY + 402
+  const avatars = participants.slice(0, POSTER_PARTICIPANT_MAX).map((item, index) => {
+    const col = index % POSTER_PARTICIPANT_COLUMNS
+    const row = Math.floor(index / POSTER_PARTICIPANT_COLUMNS)
+    const x = 92 + col * 120
+    const y = avatarStartY + row * 90
     const avatarDataUri = participantAvatarDataUris[index] || ''
     return `
       <rect x="${x}" y="${y}" width="58" height="58" rx="18" fill="#d3ff2d" stroke="#111317" stroke-width="5"/>
@@ -1611,9 +1621,11 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
   const participants = buildPosterParticipants(session)
   const participantAvatarDataUris = await Promise.all(participants.map((item) => resolvePosterAvatarDataUri(item.avatarUrl)))
   const participantRows = renderPosterParticipants(participants, participantAvatarDataUris)
+  const posterParticipantRowCount =
+    Math.min(participants.length, POSTER_PARTICIPANT_MAX) > POSTER_PARTICIPANT_COLUMNS ? 2 : participants.length ? 1 : 0
   const topDebtorAvatarDataUri = topDebtor ? await resolvePosterAvatarDataUri(topDebtor.avatarUrl) : ''
   const topDebtorCard = renderPosterTopDebtor(topDebtor, topDebtorAvatarDataUri)
-  const timelineTop = 370
+  const timelineTop = posterParticipantRowCount > 1 ? 458 : 390
   const timelineItems = nodes
     .filter((item) => item.nodeKind === 'event' || item.nodeKind === 'moment')
     .sort((a, b) => {
@@ -1651,7 +1663,7 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
   const timelineBottom = timelineTop + 56 + timelineCount * 126
   const summaryY = timelineBottom + 42
   const qrY = summaryY + 202
-  const footerY = qrY + 180
+  const footerY = qrY + 296
   const height = Math.max(SHARE_IMAGE_MIN_HEIGHT, footerY + 84)
   const midColor = '#120c09'
   return `

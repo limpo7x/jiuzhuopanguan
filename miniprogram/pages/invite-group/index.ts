@@ -317,7 +317,9 @@ Page<InviteGroupState, InviteGroupMethods>({
       const ctx = wx.createCanvasContext(SHARE_CARD_CANVAS_ID, this)
       const width = 500
       const height = 400
-      const slots = this.data.avatarSlots.slice(0, Math.min(8, Math.max(1, this.data.playerCount || this.data.avatarSlots.length || 4)))
+      const slotColumns = 6
+      const maxSlots = 12
+      const slots = this.data.avatarSlots.slice(0, Math.min(maxSlots, Math.max(1, this.data.playerCount || this.data.avatarSlots.length || 4)))
       const title = cleanDisplayName(this.data.sessionName, '聚会邀请')
       const statusText = this.data.joinStatusText || buildJoinStatusText(this.data.joinedCount, this.data.playerCount)
 
@@ -344,17 +346,19 @@ Page<InviteGroupState, InviteGroupMethods>({
         ctx.setFontSize(18)
         ctx.fillText(statusText, width / 2, 252)
 
-        const slotSize = 34
-        const gap = 10
-        const totalWidth = slots.length * slotSize + Math.max(0, slots.length - 1) * gap
-        let startX = Math.max(56, (width - totalWidth) / 2)
-        if (startX + totalWidth > 410) {
-          startX = 410 - totalWidth
-        }
-        const y = 292
+        const slotSize = 30
+        const gap = 8
+        const rowGap = 42
+        const startY = 286
 
         slots.forEach((slot, index) => {
-          const x = startX + index * (slotSize + gap)
+          const col = index % slotColumns
+          const row = Math.floor(index / slotColumns)
+          const rowItemCount = Math.min(slotColumns, slots.length - row * slotColumns)
+          const currentRowWidth = rowItemCount * slotSize + Math.max(0, rowItemCount - 1) * gap
+          const rowStartX = (width - currentRowWidth) / 2
+          const x = rowStartX + col * (slotSize + gap)
+          const y = startY + row * rowGap
           ctx.beginPath()
           ctx.arc(x + slotSize / 2, y + slotSize / 2, slotSize / 2, 0, Math.PI * 2)
           ctx.setFillStyle(slot.filled ? '#e7f1ff' : '#f7f0e6')
