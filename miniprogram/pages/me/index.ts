@@ -16,12 +16,6 @@ interface StatItem {
   value: string
 }
 
-interface FeatureItem {
-  iconUrl: string
-  id: string
-  name: string
-}
-
 interface PendingAlbumItem {
   briefId: string
   actionLabel: string
@@ -67,7 +61,7 @@ interface ChooseAvatarDetail {
 }
 
 interface MePageState {
-  activeMePanel: 'overview' | 'pending' | 'shares' | 'services'
+  activeMePanel: 'overview' | 'pending' | 'shares'
   assetStats: StatItem[]
   authAvatarUrl: string
   authAvatarChoosing: boolean
@@ -76,7 +70,6 @@ interface MePageState {
   authSubmitting: boolean
   currentProfile: SocialProfile
   membershipEnabled: boolean
-  features: FeatureItem[]
   loggedIn: boolean
   momentSummaries: ManagedSessionMomentSummary[]
   sessionMomentClassificationDebug: SessionMomentClassificationDebug[]
@@ -106,7 +99,7 @@ interface MePageMethods {
   handleAuthAvatar: (event: WechatMiniprogram.CustomEvent<ChooseAvatarDetail>) => Promise<void>
   handleAuthAvatarTap: () => void
   handleAuthNameInput: (event: WechatMiniprogram.CustomEvent<NicknameInputDetail>) => void
-  handleFeatureTap: (event: WechatMiniprogram.BaseEvent) => void
+  handleFriendHubTap: () => void
   handleLoginSubmit: (event: WechatMiniprogram.CustomEvent<{ value?: Record<string, string> }>) => Promise<void>
   handleLoginTextTap: () => void
   handleMomentBriefTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => void
@@ -160,13 +153,6 @@ const DEFAULT_WINE_STATS: StatItem[] = [
   { value: '0', label: '我创建的' },
   { value: '0', label: '我参与的' },
   { value: '0', label: '已结束' },
-]
-
-const DEFAULT_FEATURES: FeatureItem[] = [
-  { id: 'ledger', name: '聚会账本', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/service-points.png' },
-  { id: 'tools', name: '工具箱', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/tab-tools.png' },
-  { id: 'friends', name: '好友管理', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/service-friends.png' },
-  { id: 'settings', name: '资料设置', iconUrl: 'https://cdn.pomer.cn/static/party-pop-clean/icons/settings.png' },
 ]
 
 const normalizeName = (value?: string) => {
@@ -318,7 +304,6 @@ Page<MePageState, MePageMethods>({
     authSubmitting: false,
     currentProfile: DEFAULT_PROFILE,
     membershipEnabled: true,
-    features: DEFAULT_FEATURES,
     loggedIn: false,
     momentSummaries: [],
     sessionMomentClassificationDebug: [],
@@ -422,7 +407,7 @@ Page<MePageState, MePageMethods>({
 
   handleMePanelTap(event) {
     const { panel } = event.currentTarget.dataset as { panel?: string }
-    if (panel === 'overview' || panel === 'pending' || panel === 'shares' || panel === 'services') {
+    if (panel === 'overview' || panel === 'pending' || panel === 'shares') {
       this.setData({ activeMePanel: panel })
     }
   },
@@ -593,28 +578,8 @@ Page<MePageState, MePageMethods>({
     this.showPreviewToast('分享图还未生成')
   },
 
-  handleFeatureTap(event) {
-    const { name } = event.currentTarget.dataset as { name: string }
-    const routes: Record<string, string> = {
-      聚会账本: '/pages/ledger/index',
-      工具箱: '/pages/tools/index',
-      好友管理: '/pages/friend-hub/index',
-      我的权益: '/pages/feature-zones/index?zone=benefits',
-      会员权益: '/pages/feature-zones/index?zone=membership',
-      积分与奖励: '/pages/feature-zones/index?zone=points',
-      合作优惠: '/pages/feature-zones/index?zone=merchants',
-      我的收藏: '/pages/feature-zones/index?zone=favorites',
-      使用记录: '/pages/feature-zones/index?zone=usage',
-      邀请奖励: '/pages/feature-zones/index?zone=invite',
-      模板中心: '/pages/feature-zones/index?zone=templates',
-      资料设置: '/pages/settings/index',
-    }
-    const target = routes[name]
-    if (target) {
-      this.openPage(target)
-      return
-    }
-    this.showPreviewToast(`${name} 当前不可用`)
+  handleFriendHubTap() {
+    this.openPage('/pages/friend-hub/index')
   },
 
   handleTabTap(event) {
