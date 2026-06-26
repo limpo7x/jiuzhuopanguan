@@ -9,6 +9,12 @@ import {
 } from '../../services/operations'
 import { hasFirstPhotoEvidence, isActiveForResumeByFirstPhoto, isEndedFirstPhotoState } from '../../utils/first-photo-state'
 import { showFirstLoginBonusModal } from '../../utils/firstLoginBonus'
+import {
+  openMiniProgramPrivacyContract,
+  requestMiniProgramPrivacyAuthorization,
+  resolveMiniProgramPrivacyAuthorization,
+  setPrivacyAuthorizationHandler,
+} from '../../utils/privacy'
 import { getCurrentDisplayProfile, getUserAuthSession, loginWithWechatProfile, type SocialProfile } from '../../utils/social'
 
 interface StatItem {
@@ -79,6 +85,8 @@ interface MePageState {
     total: number
   }
   pendingAlbumTotal: number
+  privacyContractName: string
+  privacyPanelVisible: boolean
   shareGalleryTotal: number
   visibleShareImages: ShareGalleryItem[]
   visiblePendingAlbums: PendingAlbumItem[]
@@ -94,6 +102,7 @@ interface MomentSummaryEventDetail {
 
 interface MePageMethods {
   closeAuthPanel: () => void
+  closePrivacyPanel: () => void
   handleMePanelTap: (event: WechatMiniprogram.BaseEvent) => void
   handleAssetTap: (event: WechatMiniprogram.BaseEvent) => void
   handleAuthAvatar: (event: WechatMiniprogram.CustomEvent<ChooseAvatarDetail>) => Promise<void>
@@ -102,6 +111,9 @@ interface MePageMethods {
   handleFriendHubTap: () => void
   handleLoginSubmit: (event: WechatMiniprogram.CustomEvent<{ value?: Record<string, string> }>) => Promise<void>
   handleLoginTextTap: () => void
+  handlePrivacyAgree: () => void
+  handlePrivacyContractTap: () => void
+  handlePrivacyReject: () => void
   handleMomentBriefTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => void
   handleMomentPreviewTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => void
   handleMomentResumeTap: (event: WechatMiniprogram.CustomEvent<MomentSummaryEventDetail>) => void
@@ -114,6 +126,7 @@ interface MePageMethods {
   handleWineStatTap: (event: WechatMiniprogram.BaseEvent) => void
   loadSocialData: () => Promise<void>
   noop: () => void
+  openAuthPanel: () => Promise<void>
   openPage: (url: string) => void
   showPreviewToast: (message: string) => void
 }
@@ -313,6 +326,8 @@ Page<MePageState, MePageMethods>({
       total: 0,
     },
     pendingAlbumTotal: 0,
+    privacyContractName: '用户隐私保护指引',
+    privacyPanelVisible: false,
     shareGalleryTotal: 0,
     visibleShareImages: [],
     visiblePendingAlbums: [],
@@ -324,7 +339,17 @@ Page<MePageState, MePageMethods>({
   },
 
   async onShow() {
+    setPrivacyAuthorizationHandler((setting) => {
+      this.setData({
+        privacyContractName: setting.privacyContractName,
+        privacyPanelVisible: true,
+      })
+    })
     await this.loadSocialData()
+  },
+
+  onUnload() {
+    setPrivacyAuthorizationHandler(null)
   },
 
   async loadSocialData() {
@@ -436,12 +461,46 @@ Page<MePageState, MePageMethods>({
     this.setData({ authName: normalizeName(event.detail?.value || '') })
   },
 
+  async openAuthPanel() {
+    try {
+      await requestMiniProgramPrivacyAuthorization()
+      this.setData({
+        authPanelVisible: true,
+        privacyPanelVisible: false,
+      })
+    } catch (error) {
+      this.setData({ privacyPanelVisible: false })
+      wx.showToast({ title: error instanceof Error ? error.message : '请先同意隐私保护指引', icon: 'none' })
+    }
+  },
+
   handleLoginTextTap() {
-    this.setData({ authPanelVisible: true })
+    void this.openAuthPanel()
   },
 
   closeAuthPanel() {
     this.setData({ authPanelVisible: false })
+  },
+
+  closePrivacyPanel() {
+    resolveMiniProgramPrivacyAuthorization(false)
+    this.setData({ privacyPanelVisible: false })
+  },
+
+  handlePrivacyAgree() {
+    resolveMiniProgramPrivacyAuthorization(true)
+    this.setData({ privacyPanelVisible: false })
+  },
+
+  handlePrivacyContractTap() {
+    void openMiniProgramPrivacyContract().catch((error) => {
+      wx.showToast({ title: error instanceof Error ? error.message : '无法打开隐私保护指引', icon: 'none' })
+    })
+  },
+
+  handlePrivacyReject() {
+    resolveMiniProgramPrivacyAuthorization(false)
+    this.setData({ privacyPanelVisible: false })
   },
 
   noop() {
