@@ -1,6 +1,6 @@
 <navigation-bar title="等待开局" back="{{true}}" customBack="{{true}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
 <view class="pp-page">
-  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/app-bg-party-pop-390x844.png" mode="aspectFill"></image>
   <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="pp-hero pp-panel-cyan">
       <text class="pp-kicker">{{sessionName || '聚会房间'}}</text>

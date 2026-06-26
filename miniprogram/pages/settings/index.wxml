@@ -1,6 +1,6 @@
 <navigation-bar title="设置" back="{{true}}" customBack="{{true}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
 <view class="pp-page">
-  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/app-bg-party-pop-390x844.png" mode="aspectFill"></image>
   <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="pp-hero pp-panel-lime"><text class="pp-kicker">SETTINGS</text><text class="pp-title">设置</text><text class="pp-body">管理资料、隐私、通知和数据。</text></view>
     <view wx:if="{{items.length}}" class="pp-list"><view wx:for="{{items}}" wx:key="title" class="pp-list-item"><view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">{{item.desc}}</text></view><text class="pp-chip">{{item.status || '设置'}}</text></view></view>

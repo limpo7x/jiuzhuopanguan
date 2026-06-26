@@ -1,6 +1,6 @@
 <navigation-bar title="{{title}}" back="{{false}}" customBack="{{false}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
 <view class="pp-page">
-  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/stage-bg-390x844.png" mode="aspectFill"></image>
+  <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/app-bg-party-pop-390x844.png" mode="aspectFill"></image>
   <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="pp-hero pp-panel-lime"><text class="pp-kicker">PRIVACY</text><text class="pp-title">{{title || '状态提示'}}</text><text class="pp-body">{{detail}}</text></view>
     <view class="pp-action-row"><view class="pp-button pp-button-primary" bindtap="handlePrimaryTap">{{actionText || '查看相册'}}</view><view class="pp-button pp-button-ghost" bindtap="handleSecondaryTap">返回首页</view></view>
