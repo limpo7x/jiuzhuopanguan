@@ -90,6 +90,10 @@ const isSessionFullJoinError = (error: unknown) => {
   const statusCode = Number((error as { statusCode?: number })?.statusCode) || 0
   return statusCode === 409 || /session[_\s-]*full|party[_\s-]*full|SESSION_FULL/i.test(message)
 }
+const isSessionEndedJoinError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || '')
+  return /session[_\s-]*ended|party[_\s-]*ended|SESSION_ENDED|已结束|结束/i.test(message)
+}
 const internalAlbumTitlePattern = /^(IT|PR|QA|DEV|TEST)[-_ ][A-Z0-9_-]+(?:\s+(opening|highlight|drinking|private|closing))?$/i
 const internalVisibleTextPattern = /(IT-MOMENTS|PR-BE-DB-LOGIN|PR[_-]?BE|QA[_-]?SEED|DEV[_-]?SEED|TEST[_-]?SEED|DEBUG|[a-z]+-[0-9a-f]{8,}|session-[0-9a-z-]+|brief-[0-9a-z-]+|share-task-[0-9a-z-]+)/i
 const internalProfilePattern = /^(PR|QA|DEV|TEST)\s+Seed\s+/i
@@ -542,9 +546,12 @@ Page<HomePageState, HomePageMethods>({
       const message = error instanceof Error ? error.message : 'join failed'
       const notPlayer = message.includes('not session player')
       const sessionFull = isSessionFullJoinError(error)
+      const sessionEnded = isSessionEndedJoinError(error)
       wx.showModal({
-        title: sessionFull ? '聚会已满' : notPlayer ? '暂不能加入' : '加入失败',
-        content: sessionFull
+        title: sessionEnded ? '聚会已结束' : sessionFull ? '聚会已满' : notPlayer ? '暂不能加入' : '加入失败',
+        content: sessionEnded
+          ? '这场聚会已经结束，不能再加入。可从相册查看已生成的聚会回忆。'
+          : sessionFull
           ? '这场聚会人数已满，暂时不能继续加入。请联系发起人调整人数或创建新的聚会。'
           : notPlayer
             ? '当前口令对应的聚会名单中没有你的账号，请联系发起人确认是否已添加你。'

@@ -38,6 +38,10 @@ const iso = (value = Date.now()) => new Date(value).toISOString()
 const SESSION_STATE_LIVE = '进行中'
 const SESSION_STATE_ENDED = '已结束'
 const isEndedSessionState = (value = '') => String(value || '').trim().includes('结束')
+const isManagedSessionEnded = (session = {}) =>
+  Boolean(String(session.endedAt || '').trim()) ||
+  isEndedSessionState(session.state) ||
+  isEndedSessionState(session.status)
 const createAdminHttpError = (message, statusCode = 400) => {
   const error = new Error(message)
   error.statusCode = statusCode
@@ -1834,6 +1838,11 @@ const joinManagedSession = async ({ inviteCode, profile }) => {
   if (!target) {
     const error = new Error('session not found')
     error.code = 'SESSION_NOT_FOUND'
+    throw error
+  }
+  if (isManagedSessionEnded(target)) {
+    const error = new Error('session ended')
+    error.code = 'SESSION_ENDED'
     throw error
   }
 

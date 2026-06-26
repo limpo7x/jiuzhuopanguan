@@ -1756,6 +1756,10 @@ const server = http.createServer((request, response) => {
           sendError(response, 409, 'session full')
           return
         }
+        if (error?.code === 'SESSION_ENDED') {
+          sendError(response, 409, 'session ended')
+          return
+        }
         throw error
       }
       return
@@ -1785,6 +1789,10 @@ const server = http.createServer((request, response) => {
         }
         if (error?.code === 'SESSION_FULL') {
           sendError(response, 409, 'party full')
+          return
+        }
+        if (error?.code === 'SESSION_ENDED') {
+          sendError(response, 409, 'party ended')
           return
         }
         throw error

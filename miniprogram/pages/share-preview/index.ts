@@ -214,6 +214,11 @@ const isSessionFullJoinError = (error: unknown) => {
   return statusCode === 409 || /session[_\s-]*full|party[_\s-]*full|SESSION_FULL/i.test(message)
 }
 
+const isSessionEndedJoinError = (error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error || '')
+  return /session[_\s-]*ended|party[_\s-]*ended|SESSION_ENDED|已结束|结束/i.test(message)
+}
+
 const toSafeSharePreviewErrorText = (message: string) => {
   const raw = String(message || '').trim()
   const lower = raw.toLowerCase()
@@ -638,10 +643,13 @@ Page<SharePreviewState, SharePreviewMethods>({
     } catch (error) {
       const message = error instanceof Error ? error.message : 'join failed'
       const sessionFull = isSessionFullJoinError(error)
+      const sessionEnded = isSessionEndedJoinError(error)
       const notPlayer = message.includes('not session player')
       wx.showModal({
-        title: sessionFull ? '聚会已满' : notPlayer ? '暂不能加入' : '加入失败',
-        content: sessionFull
+        title: sessionEnded ? '聚会已结束' : sessionFull ? '聚会已满' : notPlayer ? '暂不能加入' : '加入失败',
+        content: sessionEnded
+          ? '这场聚会已经结束，不能再加入。可在相册查看聚会回忆。'
+          : sessionFull
           ? '这场聚会人数已满，暂时不能继续加入。请联系发起人调整人数或创建新的聚会。'
           : notPlayer
             ? '当前口令对应的聚会名单中没有你的账号，请联系发起人确认是否已添加你。'
