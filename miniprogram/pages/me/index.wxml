@@ -12,7 +12,7 @@
         </view>
       </view>
     </view>
-    <view class="pp-list-item" bindtap="handleFriendHubTap">
+    <view class="pp-list-item me-friend-card" bindtap="handleFriendHubTap">
       <image class="pp-icon-lg" src="https://cdn.pomer.cn/static/party-pop-clean/icons/service-friends.png" mode="aspectFit"></image>
       <view class="pp-list-copy"><text class="pp-list-title">合拍聚友</text><text class="pp-caption">查看一起参加过聚会的朋友，支持拍一拍和删除。</text></view>
       <text class="pp-chip">进入</text>
