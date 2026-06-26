@@ -2,6 +2,7 @@ import { type HomePageData } from '../mock/home'
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath } from '../config/assets'
 import { resolveCachedManagedImagePathQuick } from '../utils/imageCache'
+import { DEFAULT_REQUEST_TIMEOUT_MS, normalizeWxRequestError } from '../utils/network'
 import { getUserAuthHeaders } from '../utils/social'
 import { getManagedToolsCatalog, isToolVisibleInPlacement, type ManagedToolCatalog } from './operations'
 
@@ -41,7 +42,7 @@ const request = <T>(path: string): Promise<T> =>
     wx.request({
       url: `${getApiBase()}${path}`,
       header: getUserAuthHeaders(),
-      timeout: 5000,
+      timeout: DEFAULT_REQUEST_TIMEOUT_MS,
       success: (response) => {
         const payload = response.data as ApiResponse<T>
         if (response.statusCode >= 200 && response.statusCode < 300 && payload.code === 0) {
@@ -50,7 +51,7 @@ const request = <T>(path: string): Promise<T> =>
         }
         reject(new Error(payload.message || 'request failed'))
       },
-      fail: reject,
+      fail: (error) => reject(normalizeWxRequestError(error, path)),
     })
   })
 

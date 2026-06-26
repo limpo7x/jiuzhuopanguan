@@ -1,4 +1,5 @@
 import { getApiBase } from '../config/api'
+import { LONG_REQUEST_TIMEOUT_MS, normalizeWxRequestError } from './network'
 
 export interface SocialProfile {
   avatarUrl: string
@@ -303,7 +304,7 @@ const uploadAvatarDataUrl = (dataUrl: string): Promise<string> =>
         fileName: `wechat-avatar-${Date.now()}.png`,
       },
       header: getUserAuthHeaders(),
-      timeout: 5000,
+      timeout: LONG_REQUEST_TIMEOUT_MS,
       success: (response) => {
         const payload = response.data as ApiResponse<{ url: string }>
         if (response.statusCode >= 200 && response.statusCode < 300 && payload.code === 0 && payload.data?.url) {
@@ -313,7 +314,7 @@ const uploadAvatarDataUrl = (dataUrl: string): Promise<string> =>
         }
         reject(new Error(payload?.message || 'avatar upload failed'))
       },
-      fail: reject,
+      fail: (error) => reject(normalizeWxRequestError(error, '/user/avatar/upload')),
     })
   })
 

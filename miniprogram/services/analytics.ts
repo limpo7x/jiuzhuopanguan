@@ -1,4 +1,5 @@
 import { getApiBase } from '../config/api'
+import { BACKGROUND_REQUEST_TIMEOUT_MS, normalizeWxRequestError } from '../utils/network'
 import { getUserAuthHeaders } from '../utils/social'
 
 interface ApiResponse<T> {
@@ -25,7 +26,7 @@ export const trackAnalyticsEvent = (payload: AnalyticsPayload) => {
     method: 'POST',
     data: payload as WechatMiniprogram.IAnyObject,
     header: getUserAuthHeaders(),
-    timeout: 3000,
+    timeout: BACKGROUND_REQUEST_TIMEOUT_MS,
     success: () => undefined,
     fail: () => undefined,
   })
@@ -38,7 +39,7 @@ export const trackAnalyticsEventAsync = (payload: AnalyticsPayload) =>
       method: 'POST',
       data: payload as WechatMiniprogram.IAnyObject,
       header: getUserAuthHeaders(),
-      timeout: 3000,
+      timeout: BACKGROUND_REQUEST_TIMEOUT_MS,
       success: (response) => {
         const data = response.data as ApiResponse<{ tracked: boolean }>
         if (response.statusCode >= 200 && response.statusCode < 300 && data.code === 0) {
@@ -47,6 +48,6 @@ export const trackAnalyticsEventAsync = (payload: AnalyticsPayload) =>
         }
         reject(new Error(data.message || 'track failed'))
       },
-      fail: reject,
+      fail: (error) => reject(normalizeWxRequestError(error, '/analytics/events')),
     })
   })

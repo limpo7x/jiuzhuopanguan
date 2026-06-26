@@ -1,6 +1,7 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath } from '../config/assets'
 import { resolveCachedManagedImagePath } from '../utils/imageCache'
+import { DEFAULT_REQUEST_TIMEOUT_MS, normalizeWxRequestError } from '../utils/network'
 import { clearUserSessionToken, getUserAuthHeaders } from '../utils/social'
 
 interface ApiResponse<T> {
@@ -164,7 +165,7 @@ const request = <T>(path: string, method: 'GET' | 'PUT' | 'POST' = 'GET', data?:
       method,
       data: data as WechatMiniprogram.IAnyObject | undefined,
       header: getUserAuthHeaders(),
-      timeout: 5000,
+      timeout: DEFAULT_REQUEST_TIMEOUT_MS,
       success: (response) => {
         const payload = response.data as ApiResponse<T>
 
@@ -181,7 +182,7 @@ const request = <T>(path: string, method: 'GET' | 'PUT' | 'POST' = 'GET', data?:
 
         reject(new ContentRequestError(payload?.message || 'request failed', response.statusCode))
       },
-      fail: reject,
+      fail: (error) => reject(normalizeWxRequestError(error, path)),
     })
   })
 

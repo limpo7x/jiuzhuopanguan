@@ -1,6 +1,7 @@
 import { getApiBase } from '../config/api'
 import { normalizeManagedAssetPath, normalizeManagedAvatarPath } from '../config/assets'
 import { resolveCachedManagedImagePath, resolveCachedManagedImagePathQuick } from '../utils/imageCache'
+import { DEFAULT_REQUEST_TIMEOUT_MS, normalizeWxRequestError } from '../utils/network'
 import { getUserAuthHeaders, getUserAuthSession } from '../utils/social'
 import {
   getToolCategoryCards,
@@ -855,7 +856,7 @@ const requestJson = <T>(
       header: getUserAuthHeaders(),
       method,
       data,
-      timeout: 5000,
+      timeout: DEFAULT_REQUEST_TIMEOUT_MS,
       success: (response) => {
         const payload = response.data as ApiResponse<T>
         if (response.statusCode >= 200 && response.statusCode < 300 && payload.code === 0) {
@@ -879,7 +880,7 @@ const requestJson = <T>(
         }
         reject(error)
       },
-      fail: reject,
+      fail: (error) => reject(normalizeWxRequestError(error, path)),
     })
   })
 

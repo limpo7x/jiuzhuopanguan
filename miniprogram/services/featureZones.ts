@@ -1,4 +1,5 @@
 import { getApiBase } from '../config/api'
+import { DEFAULT_REQUEST_TIMEOUT_MS, normalizeWxRequestError } from '../utils/network'
 import { clearUserSessionToken, getUserAuthHeaders } from '../utils/social'
 
 interface ApiResponse<T> {
@@ -36,7 +37,7 @@ const requestFeature = <T>(path: string) =>
       url: `${getApiBase()}${path}`,
       method: 'GET',
       header: getUserAuthHeaders(),
-      timeout: 5000,
+      timeout: DEFAULT_REQUEST_TIMEOUT_MS,
       success: (response) => {
         const payload = response.data as ApiResponse<T>
         if (response.statusCode >= 200 && response.statusCode < 300 && (payload.code === 0 || payload.code === undefined)) {
@@ -52,7 +53,7 @@ const requestFeature = <T>(path: string) =>
 
         reject(new Error(payload?.message || `请求失败 ${response.statusCode}`))
       },
-      fail: reject,
+      fail: (error) => reject(normalizeWxRequestError(error, path)),
     })
   })
 
