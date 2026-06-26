@@ -19,10 +19,13 @@ import {
   getManagedLiveSession,
   getManagedSessionTimeline,
   updateManagedSession,
+  type ManagedLiveSession,
   uploadManagedMomentImage,
   type ManagedTimelineNode,
 } from '../../services/operations'
 import { normalizeManagedAssetPath } from '../../config/assets'
+import { hasFirstPhotoEvidence } from '../../utils/first-photo-state'
+import { handleSessionRemoved, isSessionRemovedError } from '../../utils/session-access'
 import { confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized, getCurrentDisplayProfile } from '../../utils/social'
 import { resolveCachedManagedImagePath } from '../../utils/imageCache'
@@ -156,7 +159,7 @@ interface LiveRecordState {
 
 interface LiveRecordMethods {
   applyWheelResult: () => void
-  hydrateManagedSession: (sessionId: string, role?: string) => Promise<void>
+  hydrateManagedSession: (sessionId: string, role?: string) => Promise<boolean>
   handleRefreshTap: () => Promise<void>
   handleAddPlayerTap: () => void
   handleAdjustTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
@@ -185,6 +188,9 @@ interface LiveRecordMethods {
   queueEndedShareImageTask: () => Promise<string>
   showPreviewToast: (message: string) => void
   syncRecordsToRuntime: (records: LiveRecordItem[]) => void
+  startAccessCheck: () => void
+  stopAccessCheck: () => void
+  verifySessionAccess: () => Promise<void>
 }
 
 const JUDGE_WHEEL_RESULT_KEY = 'judge-wheel-result'
@@ -194,6 +200,7 @@ const SAMPLE_008AS_SESSION_ID = 'session-1781787045680-8e406c'
 const SAMPLE_008AS_SESSION_NAME = '周末聚会记录'
 const SAMPLE_008AS_TITLE_ASSET = ''
 let liveTimer = 0
+let liveAccessCheckTimer = 0
 
 const internalDisplayPattern = /(PR\s+Seed|PR-BE-DB-LOGIN|IT-MOMENTS|DEBUG|openid|openId|unionId|signature)/i
 
@@ -298,6 +305,21 @@ const resolveSessionStartTime = (
   const source = liveSession.startedAt || liveSession.createdAt || liveSession.updatedAt || ''
   const timestamp = source ? new Date(source).getTime() : 0
   return Number.isFinite(timestamp) ? timestamp : 0
+}
+
+const redirectViewerToWaitingRoom = (liveSession: ManagedLiveSession, sessionName: string, inviteCode = '') => {
+  disableSessionLeaveAlert()
+  wx.showToast({
+    title: '等房主拍下第一张照片后再进入本局',
+    icon: 'none',
+  })
+  const url = `/pages/waiting-room/index?role=viewer&sessionId=${encodeURIComponent(liveSession.id)}&inviteCode=${encodeURIComponent(liveSession.inviteCode || inviteCode)}&sessionName=${encodeURIComponent(sessionName)}`
+  wx.redirectTo({
+    url,
+    fail: () => {
+      wx.reLaunch({ url })
+    },
+  })
 }
 
 const mergeRuntimeAvatar = (profileId?: string, avatarUrl = '', runtime = getSessionRuntime()) => {
@@ -727,10 +749,18 @@ Page<LiveRecordState, LiveRecordMethods>({
 
     if (sessionId) {
       try {
-        await this.hydrateManagedSession(sessionId, role)
+        const hydrated = await this.hydrateManagedSession(sessionId, role)
+        if (!hydrated) {
+          return
+        }
         this.handleTimerTick()
+        this.startAccessCheck()
         return
       } catch (error) {
+        if (isSessionRemovedError(error)) {
+          await handleSessionRemoved()
+          return
+        }
         wx.showToast({
           title: error instanceof Error ? error.message : '聚会加载失败',
           icon: 'none',
@@ -765,6 +795,36 @@ Page<LiveRecordState, LiveRecordMethods>({
     const liveSession = await getManagedLiveSession(sessionId, runtime.inviteCode)
     void role
     const inferredIsJudge = Boolean(liveSession.hostProfileId && runtime.currentUser?.id && liveSession.hostProfileId === runtime.currentUser.id)
+    const hasFirstPhoto = hasFirstPhotoEvidence(liveSession)
+    const sessionName = cleanSessionName(liveSession.sessionName)
+    const sessionEnded = Boolean(liveSession.endedAt) || isEndedState(liveSession.stateText || liveSession.status)
+
+    if (!inferredIsJudge && !sessionEnded && !hasFirstPhoto) {
+      setSessionRuntime({
+        endedAt: '',
+        firstPhotoUploadedAt: '',
+        inviteCode: liveSession.inviteCode || runtime.inviteCode || '',
+        isJudge: false,
+        playerCount: liveSession.playerCount,
+        playerStats: [],
+        selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
+          avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
+          name: cleanDisplayName(item.name, '成员'),
+          profileId: item.profileId,
+          status: item.status,
+        })),
+        sessionId: liveSession.id,
+        sessionName,
+        startedAt: 0,
+        state: '待首拍',
+        status: '待首拍',
+        templateImageUrl: liveSession.templateImageUrl || runtime.templateImageUrl || '',
+        templateName: liveSession.templateName,
+      })
+      redirectViewerToWaitingRoom(liveSession, sessionName, runtime.inviteCode)
+      return false
+    }
+
     const players = liveSession.joinStatusPlayers
       .slice(0, liveSession.playerCount)
       .map((item, index) => ({
@@ -786,14 +846,12 @@ Page<LiveRecordState, LiveRecordMethods>({
     const sessionStartTime = resolveSessionStartTime(
       runtime.startedAt,
       liveSession as typeof liveSession & { createdAt?: string; startedAt?: string; updatedAt?: string },
-      hasSessionFirstPhoto(runtime),
+      hasFirstPhoto,
     )
-
-    const sessionName = cleanSessionName(liveSession.sessionName)
-    const sessionEnded = Boolean(liveSession.endedAt) || isEndedState(liveSession.stateText || liveSession.status)
 
     setSessionRuntime({
       endedAt: liveSession.endedAt || (sessionEnded ? new Date().toISOString() : ''),
+      firstPhotoUploadedAt: liveSession.firstPhotoUploadedAt || (hasFirstPhoto ? runtime.firstPhotoUploadedAt || '' : ''),
       inviteCode: liveSession.inviteCode,
       isJudge: inferredIsJudge,
       playerCount: liveSession.playerCount,
@@ -835,6 +893,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     })
 
     await this.loadTimeline()
+    return true
   },
 
   async handleRefreshTap() {
@@ -911,6 +970,11 @@ Page<LiveRecordState, LiveRecordMethods>({
 
       this.showPreviewToast('\u5237\u65b0\u6210\u529f')
     } catch (error) {
+      if (isSessionRemovedError(error)) {
+        this.stopAccessCheck()
+        await handleSessionRemoved()
+        return
+      }
       this.showPreviewToast(error instanceof Error ? error.message : '聚会记录保存失败')
     } finally {
       wx.hideLoading()
@@ -928,6 +992,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     if (this.data.sessionId) {
       void this.loadTimeline()
     }
+    this.startAccessCheck()
 
     if (liveTimer) {
       clearInterval(liveTimer)
@@ -943,6 +1008,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       clearInterval(liveTimer)
       liveTimer = 0
     }
+    this.stopAccessCheck()
   },
 
   onUnload() {
@@ -950,7 +1016,68 @@ Page<LiveRecordState, LiveRecordMethods>({
       clearInterval(liveTimer)
       liveTimer = 0
     }
+    this.stopAccessCheck()
     disableSessionLeaveAlert()
+  },
+
+  startAccessCheck() {
+    this.stopAccessCheck()
+    if (this.data.isJudge || !this.data.sessionId) {
+      return
+    }
+
+    liveAccessCheckTimer = setInterval(() => {
+      void this.verifySessionAccess().catch(() => undefined)
+    }, 5000) as unknown as number
+  },
+
+  stopAccessCheck() {
+    if (liveAccessCheckTimer) {
+      clearInterval(liveAccessCheckTimer)
+      liveAccessCheckTimer = 0
+    }
+  },
+
+  async verifySessionAccess() {
+    const runtime = getSessionRuntime()
+    const sessionId = this.data.sessionId || runtime.sessionId || ''
+    if (this.data.isJudge || !sessionId) {
+      return
+    }
+
+    try {
+      const liveSession = await getManagedLiveSession(sessionId, runtime.inviteCode)
+      const sessionEnded = Boolean(liveSession.endedAt) || isEndedState(liveSession.stateText || liveSession.status)
+      if (!sessionEnded && !hasFirstPhotoEvidence(liveSession)) {
+        this.stopAccessCheck()
+        setSessionRuntime({
+          endedAt: '',
+          firstPhotoUploadedAt: '',
+          inviteCode: liveSession.inviteCode || runtime.inviteCode || '',
+          isJudge: false,
+          playerCount: liveSession.playerCount,
+          selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
+            avatarUrl: mergeRuntimeAvatar(item.profileId, item.avatarUrl),
+            name: cleanDisplayName(item.name, '成员'),
+            profileId: item.profileId,
+            status: item.status,
+          })),
+          sessionId: liveSession.id,
+          sessionName: cleanSessionName(liveSession.sessionName),
+          startedAt: 0,
+          state: '待首拍',
+          status: '待首拍',
+          templateImageUrl: liveSession.templateImageUrl || runtime.templateImageUrl || '',
+          templateName: liveSession.templateName,
+        })
+        redirectViewerToWaitingRoom(liveSession, cleanSessionName(liveSession.sessionName), runtime.inviteCode)
+      }
+    } catch (error) {
+      if (isSessionRemovedError(error)) {
+        this.stopAccessCheck()
+        await handleSessionRemoved()
+      }
+    }
   },
 
   handleTimerTick() {
@@ -1003,6 +1130,11 @@ Page<LiveRecordState, LiveRecordMethods>({
         ...timelineViewState,
       })
     } catch (error) {
+      if (isSessionRemovedError(error)) {
+        this.stopAccessCheck()
+        await handleSessionRemoved()
+        return
+      }
       this.setData({
         timelineEmptyText: error instanceof Error ? error.message : '精彩瞬间暂未同步',
         timelineLoading: false,

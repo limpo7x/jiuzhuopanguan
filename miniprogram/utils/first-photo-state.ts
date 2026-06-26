@@ -19,10 +19,9 @@ export const isEndedFirstPhotoState = (item: FirstPhotoStateLike) => {
 export const hasFirstPhotoEvidence = (item: FirstPhotoStateLike) =>
   item.hasFirstPhoto === true
   || Boolean(String(item.firstPhotoUploadedAt || '').trim())
-  || Boolean(item.coverPhotoUrl || item.readyShareImageUrl || item.shareImageUrl)
+  || Boolean(item.coverPhotoUrl)
 
 export const isActiveForResumeByFirstPhoto = (item: FirstPhotoStateLike) => {
   if (isEndedFirstPhotoState(item)) return false
-  if (item.isActiveForResume === true) return true
   return hasFirstPhotoEvidence(item)
 }

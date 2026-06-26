@@ -1,5 +1,6 @@
 import { getManagedLiveSession, updateManagedSession } from '../../services/operations'
 import { hasFirstPhotoEvidence, isActiveForResumeByFirstPhoto } from '../../utils/first-photo-state'
+import { handleSessionRemoved, isSessionRemovedError } from '../../utils/session-access'
 import { getSessionRuntime, setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import { confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized } from '../../utils/social'
@@ -128,6 +129,11 @@ Page<WaitingRoomState, WaitingRoomMethods>({
       await this.refreshSession()
     } catch (error) {
       this.setData({ loading: false })
+      if (isSessionRemovedError(error)) {
+        this.stopAutoRefresh()
+        await handleSessionRemoved()
+        return
+      }
       wx.showToast({
         title: error instanceof Error ? error.message : '聚会加载失败',
         icon: 'none',
@@ -148,6 +154,11 @@ Page<WaitingRoomState, WaitingRoomMethods>({
       this.startAutoRefresh()
     } catch (error) {
       this.setData({ loading: false })
+      if (isSessionRemovedError(error)) {
+        this.stopAutoRefresh()
+        await handleSessionRemoved()
+        return
+      }
       wx.showToast({
         title: error instanceof Error ? error.message : '聚会加载失败',
         icon: 'none',
@@ -167,8 +178,11 @@ Page<WaitingRoomState, WaitingRoomMethods>({
   startAutoRefresh() {
     this.stopAutoRefresh()
     waitingRoomRefreshTimer = setInterval(() => {
-      void this.refreshSession().catch(() => {
-        // Keep polling silent; manual refresh still surfaces errors.
+      void this.refreshSession().catch((error) => {
+        if (isSessionRemovedError(error)) {
+          this.stopAutoRefresh()
+          void handleSessionRemoved()
+        }
       })
     }, 3000)
   },
@@ -208,7 +222,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
 
     setSessionRuntime({
       endedAt: liveSession.endedAt,
-      firstPhotoUploadedAt: liveSession.firstPhotoUploadedAt || runtime.firstPhotoUploadedAt || '',
+      firstPhotoUploadedAt: liveSession.firstPhotoUploadedAt || '',
       inviteCode: liveSession.inviteCode,
       playerCount: liveSession.playerCount,
       selectedPlayers: mergeRuntimeAvatars(liveSession.joinStatusPlayers, runtime).map<SessionParticipant>((item) => ({
@@ -219,6 +233,8 @@ Page<WaitingRoomState, WaitingRoomMethods>({
       })),
       sessionId: liveSession.id,
       sessionName: liveSession.sessionName,
+      state: hasFirstPhoto ? '进行中' : '待首拍',
+      status: hasFirstPhoto ? '进行中' : '待首拍',
       templateImageUrl: liveSession.templateImageUrl || runtime.templateImageUrl || '',
       templateName: liveSession.templateName,
     })
@@ -285,6 +301,11 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     try {
       await this.refreshSession(true)
     } catch (error) {
+      if (isSessionRemovedError(error)) {
+        this.stopAutoRefresh()
+        await handleSessionRemoved()
+        return
+      }
       wx.showToast({
         title: error instanceof Error ? error.message : '刷新失败',
         icon: 'none',
@@ -351,6 +372,11 @@ Page<WaitingRoomState, WaitingRoomMethods>({
         },
       })
     } catch (error) {
+      if (isSessionRemovedError(error)) {
+        this.stopAutoRefresh()
+        await handleSessionRemoved()
+        return
+      }
       wx.showToast({
         title: error instanceof Error ? error.message : '开局失败',
         icon: 'none',

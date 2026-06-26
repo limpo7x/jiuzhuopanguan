@@ -509,8 +509,11 @@ Page<HomePageState, HomePageMethods>({
     try {
       wx.showLoading({ title: '加入中', mask: true })
       const liveSession = await joinManagedSession(normalizedCode)
+      const canEnterLive = isActiveForResumeByFirstPhoto(liveSession)
       setSessionRuntime({
         currentUser: { id: profile.id, name: profile.name, avatarUrl: profile.avatarUrl },
+        endedAt: liveSession.endedAt,
+        firstPhotoUploadedAt: liveSession.firstPhotoUploadedAt || '',
         inviteCode: liveSession.inviteCode,
         isJudge: false,
         playerCount: liveSession.playerCount,
@@ -524,12 +527,16 @@ Page<HomePageState, HomePageMethods>({
         sessionId: liveSession.id,
         sessionName: liveSession.sessionName,
         startedAt: 0,
+        state: canEnterLive ? '进行中' : '待首拍',
+        status: canEnterLive ? '进行中' : '待首拍',
+        templateImageUrl: liveSession.templateImageUrl,
         templateName: liveSession.templateName,
       })
       const joined = liveSession.joinStatusPlayers.some((item) => item.profileId === profile.id && (!item.status || item.status === '已加入'))
-      const targetUrl = joined
+      const waitingUrl = `/pages/waiting-room/index?role=viewer&sessionId=${encodeURIComponent(liveSession.id)}&inviteCode=${encodeURIComponent(liveSession.inviteCode || normalizedCode)}&sessionName=${encodeURIComponent(liveSession.sessionName || '聚会记录')}`
+      const targetUrl = joined && canEnterLive
         ? `/pages/live-record/index?role=viewer&sessionId=${encodeURIComponent(liveSession.id)}&sessionName=${encodeURIComponent(liveSession.sessionName || '聚会记录')}`
-        : '/pages/waiting-room/index?role=viewer&sessionId=' + encodeURIComponent(liveSession.id)
+        : waitingUrl
       wx.redirectTo({ url: targetUrl })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'join failed'

@@ -9,7 +9,9 @@ import {
   type ManagedMomentPayload,
 } from '../../services/operations'
 import { normalizeManagedAssetPath } from '../../config/assets'
-import { getSessionRuntime, hasSessionFirstPhoto, markSessionFirstPhotoUploaded, type SessionParticipant } from '../../utils/session'
+import { hasFirstPhotoEvidence } from '../../utils/first-photo-state'
+import { handleSessionRemoved, isSessionRemovedError } from '../../utils/session-access'
+import { getSessionRuntime, hasSessionFirstPhoto, markSessionFirstPhotoUploaded, setSessionRuntime, type SessionParticipant } from '../../utils/session'
 import { disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized, type SocialProfile } from '../../utils/social'
 
@@ -249,6 +251,51 @@ Page<MomentEditorState, MomentEditorMethods>({
     if (!sessionId) {
       this.showToast('未找到当前聚会')
       return
+    }
+
+    try {
+      const liveSession = await getManagedLiveSession(sessionId, runtime.inviteCode)
+      const isHost = liveSession.hostProfileId ? liveSession.hostProfileId === profile.id : runtime.isJudge
+      if (!detailMode && nodeType === 'opening' && !isHost && !hasFirstPhotoEvidence(liveSession)) {
+        setSessionRuntime({
+          endedAt: '',
+          firstPhotoUploadedAt: '',
+          inviteCode: liveSession.inviteCode || runtime.inviteCode || '',
+          isJudge: false,
+          playerCount: liveSession.playerCount,
+          selectedPlayers: liveSession.joinStatusPlayers.map<SessionParticipant>((item) => ({
+            avatarUrl: item.avatarUrl,
+            name: item.name,
+            profileId: item.profileId,
+            status: item.status,
+          })),
+          sessionId: liveSession.id,
+          sessionName: liveSession.sessionName,
+          startedAt: 0,
+          state: '待首拍',
+          status: '待首拍',
+          templateImageUrl: liveSession.templateImageUrl || runtime.templateImageUrl || '',
+          templateName: liveSession.templateName,
+        })
+        disableSessionLeaveAlert()
+        wx.showToast({
+          title: '只有房主可以拍第一张',
+          icon: 'none',
+        })
+        const url = `/pages/waiting-room/index?role=viewer&sessionId=${encodeURIComponent(liveSession.id)}&inviteCode=${encodeURIComponent(liveSession.inviteCode || runtime.inviteCode || '')}&sessionName=${encodeURIComponent(liveSession.sessionName || '聚会记录')}`
+        wx.redirectTo({
+          url,
+          fail: () => {
+            wx.reLaunch({ url })
+          },
+        })
+        return
+      }
+    } catch (error) {
+      if (isSessionRemovedError(error)) {
+        await handleSessionRemoved()
+        return
+      }
     }
 
     const storedDetail = wx.getStorageSync('live-record-selected-moment-detail') as {
