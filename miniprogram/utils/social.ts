@@ -99,6 +99,7 @@ const USER_TOKEN_KEY = 'jzp-user-token'
 const AUTHORIZED_WECHAT_PROFILE_KEY = 'social-authorized-wechat-profile'
 const LEGACY_DEMO_PROFILE_IDS = new Set(['user-1001', 'user-1002', 'user-1003', 'user-1004', 'user-test-a', 'user-test-b', 'user-search-a', 'user-search-b'])
 let backendDownUntil = 0
+let silentWechatLoginPromise: Promise<SocialProfile | null> | null = null
 let userAuthSessionPromise: Promise<UserAuthSession> | null = null
 
 const isAuthRequestPath = (path: string) => /^\/user\/auth(?:\/|$)/.test(path) || path === '/user/avatar/upload'
@@ -520,17 +521,29 @@ const finalizeWechatLogin = async (payload: UserLoginPayload): Promise<SocialPro
   return upsertLocalProfile(mergedProfile)
 }
 
-const trySilentWechatLogin = async (profile?: Partial<SocialProfile>): Promise<SocialProfile | null> => {
+const trySilentWechatLogin = (profile?: Partial<SocialProfile>): Promise<SocialProfile | null> => {
+  if (silentWechatLoginPromise) {
+    recordDiagnostic('auth.silent.reuse')
+    return silentWechatLoginPromise
+  }
+
   const loginProfile = buildCachedWechatLoginProfile(profile)
   if (!loginProfile) {
-    return null
+    return Promise.resolve(null)
   }
-  try {
-    const loginCode = await requestLoginCode()
-    return await finalizeWechatLogin({ loginCode, profile: loginProfile })
-  } catch {
-    return null
-  }
+
+  silentWechatLoginPromise = (async () => {
+    try {
+      const loginCode = await requestLoginCode()
+      return await finalizeWechatLogin({ loginCode, profile: loginProfile })
+    } catch {
+      return null
+    }
+  })().finally(() => {
+    silentWechatLoginPromise = null
+  })
+
+  return silentWechatLoginPromise
 }
 
 const isUnauthorizedError = (error: unknown) =>

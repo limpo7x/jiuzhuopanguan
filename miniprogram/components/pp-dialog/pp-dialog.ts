@@ -1,16 +1,16 @@
 Component({
   properties: {
     loading: {
-      type: Object,
-      value: {},
+      type: null,
+      value: null,
     },
     state: {
-      type: Object,
-      value: {},
+      type: null,
+      value: null,
     },
     toast: {
-      type: Object,
-      value: {},
+      type: null,
+      value: null,
     },
   },
 
