@@ -25,6 +25,7 @@ interface WaitingRoomState {
   primaryActionLabel: string
   sessionId: string
   sessionName: string
+  sessionSubtitle: string
   statusTitle: string
   statusSubtitle: string
 }
@@ -92,6 +93,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
     primaryActionLabel: '去拍第一张照片',
     sessionId: '',
     sessionName: '',
+    sessionSubtitle: '',
     statusSubtitle: '首张照片保存后，这场聚会才会进入进行中。',
     statusTitle: '先拍第一张照片',
   },
@@ -216,6 +218,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
       primaryActionLabel: copy.primaryActionLabel,
       sessionId: liveSession.id,
       sessionName: liveSession.sessionName,
+      sessionSubtitle: liveSession.subtitle,
       statusSubtitle: copy.statusSubtitle,
       statusTitle: copy.statusTitle,
     })
@@ -233,6 +236,7 @@ Page<WaitingRoomState, WaitingRoomMethods>({
       })),
       sessionId: liveSession.id,
       sessionName: liveSession.sessionName,
+      sessionSubtitle: liveSession.subtitle,
       state: hasFirstPhoto ? '进行中' : '待首拍',
       status: hasFirstPhoto ? '进行中' : '待首拍',
       templateImageUrl: liveSession.templateImageUrl || runtime.templateImageUrl || '',

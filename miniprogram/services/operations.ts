@@ -127,6 +127,7 @@ interface RemoteManagedReport {
   scene?: string
   sessionId?: string
   sessionName?: string
+  subtitle?: string
   shareRate?: string
   status?: string
   role?: 'host' | 'member'
@@ -237,6 +238,7 @@ interface RemoteSessionBrief {
   photoHighlights?: Array<Record<string, unknown>>
   rankingEligible?: boolean
   sessionId?: string
+  sessionName?: string
   settlementSummary?: Record<string, unknown>
   shareContentFilter?: Record<string, unknown>
   shareImageStatus?: string
@@ -244,6 +246,7 @@ interface RemoteSessionBrief {
   timeline?: RemoteSessionTimeline
   timelineNodeIds?: string[]
   title?: string
+  subtitle?: string
   updatedAt?: string
 }
 
@@ -269,6 +272,7 @@ interface RemoteShareImageTask {
   qrCodeUrl?: string
   selectedNodeIds?: string[]
   sessionName?: string
+  subtitle?: string
   shareImageId?: string
   taskId?: string
   sessionId?: string
@@ -295,6 +299,7 @@ interface RemoteSessionMomentSummary {
   reportId?: string
   sessionId?: string
   sessionName?: string
+  subtitle?: string
   shareImageStatus?: string
   shareImageTaskId?: string
   shareImageUrl?: string
@@ -463,6 +468,7 @@ export interface ManagedSessionMutationPayload {
   playerCount?: number
   selectedPlayers?: ManagedSessionPlayer[]
   sessionName?: string
+  subtitle?: string
   source?: string
   state?: string
   status?: string
@@ -495,6 +501,7 @@ export interface ManagedReportDetail {
   sessionName: string
   shareRate: string
   status: string
+  subtitle: string
   templateName: string
   title: string
 }
@@ -511,6 +518,7 @@ export interface ManagedReportSummary {
   role: 'host' | 'member'
   sessionId: string
   sessionName: string
+  subtitle: string
   shareRate: string
   status: string
   templateName: string
@@ -703,6 +711,7 @@ export interface ManagedSessionBrief {
   pendingMediaCount: number
   rankingEligible: boolean
   sessionId: string
+  sessionName: string
   settlementSummary: ManagedContractRecord
   shareContentFilter: ManagedContractRecord
   shareImageStatus: string
@@ -710,6 +719,7 @@ export interface ManagedSessionBrief {
   timeline: ManagedSessionTimeline
   timelineNodeIds: string[]
   title: string
+  subtitle: string
   updatedAt: string
 }
 
@@ -743,6 +753,7 @@ export interface ManagedShareImageSummary {
   readyShareImageUrl: string
   sessionId: string
   sessionName: string
+  subtitle: string
   status: ManagedShareImageTaskStatus
   updatedAt: string
 }
@@ -764,6 +775,7 @@ export interface ManagedSessionMomentSummary {
   reportId: string
   sessionId: string
   sessionName: string
+  subtitle: string
   shareImageStatus: string
   shareImageTaskId: string
   shareImageUrl: string
@@ -1139,6 +1151,7 @@ const normalizeManagedReport = (report?: RemoteManagedReport): ManagedReportDeta
   sessionName: report?.sessionName || '',
   shareRate: report?.shareRate || '',
   status: report?.status || '',
+  subtitle: report?.subtitle || '',
   templateName: report?.templateName || '',
   title: report?.title || '',
 })
@@ -1277,6 +1290,7 @@ const normalizeSessionBrief = (brief?: RemoteSessionBrief): ManagedSessionBrief 
   openingMomentIds: Array.isArray(brief?.openingMomentIds) ? brief.openingMomentIds.filter(Boolean) : [],
   rankingEligible: Boolean(brief?.rankingEligible),
   sessionId: brief?.sessionId || brief?.partyId || '',
+  sessionName: brief?.sessionName || brief?.title || '',
   settlementSummary: normalizeContractRecord(brief?.settlementSummary),
   shareContentFilter: normalizeContractRecord(brief?.shareContentFilter),
   shareImageStatus: brief?.shareImageStatus || '',
@@ -1291,6 +1305,7 @@ const normalizeSessionBrief = (brief?: RemoteSessionBrief): ManagedSessionBrief 
       },
   timelineNodeIds: Array.isArray(brief?.timelineNodeIds) ? brief.timelineNodeIds.filter(Boolean) : [],
   title: brief?.title || '',
+  subtitle: brief?.subtitle || '',
   updatedAt: brief?.updatedAt || brief?.generatedAt || brief?.createdAt || '',
 })
 
@@ -1326,6 +1341,7 @@ const normalizeShareImageSummary = (task?: RemoteShareImageTask): ManagedShareIm
     readyShareImageUrl: normalizeManagedAssetPath(task?.readyShareImageUrl) || imageUrl,
     sessionId: task?.sessionId || task?.partyId || '',
     sessionName: task?.sessionName || '',
+    subtitle: task?.subtitle || '',
     status: task?.status || 'ready',
     updatedAt: task?.updatedAt || task?.finishedAt || task?.createdAt || '',
   }
@@ -1415,6 +1431,7 @@ export const getManagedReportHistory = async (mode = 'all'): Promise<ManagedRepo
       role: item.role === 'host' ? 'host' : 'member',
       sessionId: item.sessionId || '',
       sessionName: item.sessionName || '',
+      subtitle: item.subtitle || '',
       shareRate: item.shareRate || '',
       status: item.status || '',
       templateName: item.templateName || '',
@@ -1744,6 +1761,7 @@ export const getManagedSessionMomentSummaries = async (): Promise<ManagedSession
         reportId: item?.reportId || '',
         sessionId: item?.sessionId || '',
         sessionName: item?.sessionName || '',
+        subtitle: item?.subtitle || '',
         shareImageStatus: item?.shareImageStatus || '',
         shareImageTaskId: item?.shareImageTaskId || '',
         shareImageUrl: normalizeManagedAssetPath(item?.shareImageUrl),

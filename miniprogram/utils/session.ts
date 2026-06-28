@@ -53,6 +53,7 @@ export interface SessionRuntime {
   selectedPlayers: SessionParticipant[]
   sessionId?: string
   sessionName: string
+  sessionSubtitle: string
   startedAt: number
   state?: string
   status?: string
@@ -84,6 +85,7 @@ const DEFAULT_SESSION_RUNTIME: SessionRuntime = {
   selectedPlayers: [],
   sessionId: '',
   sessionName: '',
+  sessionSubtitle: '',
   startedAt: 0,
   templateImageUrl: '',
   templateName: '',

@@ -142,6 +142,7 @@ interface LiveRecordState {
   records: LiveRecordItem[]
   sessionId: string
   sessionName: string
+  sessionSubtitle: string
   sessionEnded: boolean
   sessionEndedAt: string
   startTimeText: string
@@ -710,6 +711,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     baselineRecords: [],
     sessionId: '',
     sessionName: '',
+    sessionSubtitle: '',
     sessionEnded: false,
     sessionEndedAt: '',
     startTimeText: '开始时间未记录',
@@ -780,6 +782,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       records,
       sessionId,
       sessionName,
+      sessionSubtitle: runtime.sessionSubtitle || '',
       memberCountText: buildMemberCountText(players.length, runtime.playerCount),
       startTimeText: formatStartTimeText(runtime.startedAt),
       titleImageSrc: resolveTitleImageSrc(sessionName, sessionId),
@@ -815,6 +818,7 @@ Page<LiveRecordState, LiveRecordMethods>({
         })),
         sessionId: liveSession.id,
         sessionName,
+        sessionSubtitle: liveSession.subtitle,
         startedAt: 0,
         state: '待首拍',
         status: '待首拍',
@@ -864,6 +868,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       })),
       sessionId: liveSession.id,
       sessionName,
+      sessionSubtitle: liveSession.subtitle,
       startedAt: sessionStartTime,
       templateImageUrl: liveSession.templateImageUrl || runtime.templateImageUrl || '',
       templateName: liveSession.templateName,
@@ -884,6 +889,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       sharePosterSaved: false,
       sessionId: liveSession.id,
       sessionName,
+      sessionSubtitle: liveSession.subtitle,
       sessionEnded,
       sessionEndedAt: liveSession.endedAt || '',
       memberCountText: buildMemberCountText(players.length, liveSession.playerCount),
@@ -1064,6 +1070,7 @@ Page<LiveRecordState, LiveRecordMethods>({
           })),
           sessionId: liveSession.id,
           sessionName: cleanSessionName(liveSession.sessionName),
+          sessionSubtitle: liveSession.subtitle,
           startedAt: 0,
           state: '待首拍',
           status: '待首拍',
@@ -1735,6 +1742,7 @@ Page<LiveRecordState, LiveRecordMethods>({
         endedAt: result.endedAt || result.updatedAt,
         sessionId,
         sessionName: this.data.sessionName || getSessionRuntime().sessionName || '',
+        sessionSubtitle: this.data.sessionSubtitle || getSessionRuntime().sessionSubtitle || '',
         state: result.state || 'ended',
         status: result.status || '已结束',
       })

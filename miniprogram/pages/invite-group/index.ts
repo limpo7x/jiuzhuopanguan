@@ -31,6 +31,7 @@ interface InviteGroupState {
   shareCardImagePath: string
   sessionId: string
   sessionName: string
+  sessionSubtitle: string
   joinStatusText: string
 }
 
@@ -152,6 +153,7 @@ Page<InviteGroupState, InviteGroupMethods>({
     shareCardImagePath: '',
     sessionId: '',
     sessionName: '',
+    sessionSubtitle: '',
     joinStatusText: '等待好友加入',
   },
 
@@ -205,6 +207,7 @@ Page<InviteGroupState, InviteGroupMethods>({
         playerCount,
         sessionId,
         sessionName: runtime.sessionName || '',
+        sessionSubtitle: runtime.sessionSubtitle || '',
         joinStatusText: buildJoinStatusText(selectedPlayers.length, playerCount),
       })
       void this.generateShareCardImage()
@@ -268,6 +271,7 @@ Page<InviteGroupState, InviteGroupMethods>({
       selectedPlayers,
       sessionId: liveSession.id,
       sessionName: liveSession.sessionName,
+      sessionSubtitle: liveSession.subtitle,
       templateName: liveSession.templateName,
     })
     this.setData({
@@ -283,6 +287,7 @@ Page<InviteGroupState, InviteGroupMethods>({
       playerCount: liveSession.playerCount,
       sessionId: liveSession.id,
       sessionName: liveSession.sessionName,
+      sessionSubtitle: liveSession.subtitle,
       joinStatusText: buildJoinStatusText(liveSession.joinedCount, liveSession.playerCount),
     })
     void this.generateShareCardImage()
@@ -322,6 +327,14 @@ Page<InviteGroupState, InviteGroupMethods>({
       const slots = this.data.avatarSlots.slice(0, Math.min(maxSlots, Math.max(1, this.data.playerCount || this.data.avatarSlots.length || 4)))
       const title = cleanDisplayName(this.data.sessionName, '聚会邀请')
       const statusText = this.data.joinStatusText || buildJoinStatusText(this.data.joinedCount, this.data.playerCount)
+      const fitText = (value: string, maxWidth: number) => {
+        const source = String(value || '').trim()
+        let content = source
+        while (content.length > 1 && ctx.measureText(`${content}…`).width > maxWidth) {
+          content = content.slice(0, -1)
+        }
+        return content.length < source.length ? `${content}…` : content
+      }
 
       try {
         ctx.setFillStyle('#00cbff')
@@ -336,7 +349,7 @@ Page<InviteGroupState, InviteGroupMethods>({
 
         ctx.setFillStyle('#6d5748')
         ctx.setFontSize(18)
-        ctx.fillText('邀请你加入这场聚会', width / 2, 136)
+        ctx.fillText(fitText(this.data.sessionSubtitle || '邀请你加入这场聚会', width - 80), width / 2, 136)
 
         ctx.setFillStyle('#1f2933')
         ctx.setFontSize(54)

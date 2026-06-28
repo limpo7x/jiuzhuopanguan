@@ -304,6 +304,7 @@ Page<HomePageState, HomePageMethods>({
         role: 'member',
         sessionId: item.sessionId,
         status: item.status || item.state || item.stateText,
+        subtitle: item.subtitle,
       })))
       : EMPTY_SESSION_RETURN
     this.setData({
@@ -555,6 +556,7 @@ Page<HomePageState, HomePageMethods>({
         })),
         sessionId: liveSession.id,
         sessionName: liveSession.sessionName,
+        sessionSubtitle: liveSession.subtitle,
         startedAt: 0,
         state: canEnterLive ? '进行中' : '待首拍',
         status: canEnterLive ? '进行中' : '待首拍',

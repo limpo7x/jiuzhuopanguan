@@ -324,7 +324,7 @@ Page<SessionBriefState, SessionBriefMethods>({
     sessionId: '',
     shareContentFilter: {},
     stats: [],
-    subtitle: '按聚会时间整理开场、过程和收尾。',
+    subtitle: '',
     timelineEmptyText: '这场聚会还没有可展示的照片记录',
     timelineDisplayItems: [],
     timelineNodes: [],
@@ -431,13 +431,15 @@ Page<SessionBriefState, SessionBriefMethods>({
   applyBrief(brief) {
     setSessionRuntime({
       sessionId: brief.sessionId || this.data.sessionId,
+      sessionName: brief.sessionName || brief.title,
+      sessionSubtitle: brief.subtitle,
     })
 
     const nominationItems = buildNominationItems(brief.timeline.nodes)
     const timelineDisplayItems = buildBriefTimelineItems(brief.timeline.nodes)
     this.setData({
       briefId: brief.id,
-      briefTitle: normalizeBriefTitle(brief.title),
+      briefTitle: normalizeBriefTitle(brief.sessionName || brief.title),
       accountingHighlights: brief.accountingHighlights,
       closingCountText: brief.closingMomentIds.length ? `${brief.closingMomentIds.length} 张收尾照` : '未上传收尾照',
       errorText: '',
@@ -455,7 +457,7 @@ Page<SessionBriefState, SessionBriefMethods>({
       sessionId: brief.sessionId || this.data.sessionId,
       shareContentFilter: brief.shareContentFilter,
       stats: buildStats(brief),
-      subtitle: '已按当前聚会记录生成简报',
+      subtitle: brief.subtitle,
       timelineEmptyText: '这场聚会还没有可展示的照片记录',
       timelineDisplayItems,
       timelineNodes: brief.timeline.nodes,

@@ -119,6 +119,7 @@ interface SharePosterState {
   secondaryRanks: PosterRank[]
   sessionId: string
   sessionName: string
+  sessionSubtitle: string
   settlementSummary: Record<string, unknown>
   shareContentFilter: Record<string, unknown>
   shareSummary: string
@@ -927,6 +928,7 @@ Page<SharePosterState, SharePosterMethods>({
     secondaryRanks: [],
     sessionId: '',
     sessionName: '',
+    sessionSubtitle: '',
     settlementSummary: {},
     shareContentFilter: {},
     shareSummary: buildShareSummary(0, 0, 0),
@@ -994,6 +996,7 @@ Page<SharePosterState, SharePosterMethods>({
           reportId: report.id,
           sessionId: fallbackSessionId,
           sessionName: report.sessionName || runtime.sessionName,
+          sessionSubtitle: report.subtitle || runtime.sessionSubtitle || '',
           templateName: report.templateName || runtime.templateName || '',
         })
 
@@ -1010,6 +1013,7 @@ Page<SharePosterState, SharePosterMethods>({
               secondaryRanks,
               sessionId: fallbackSessionId,
               sessionName: report.sessionName || runtime.sessionName || '',
+              sessionSubtitle: report.subtitle || runtime.sessionSubtitle || '',
               shareItems: REPORT_SHARE_ITEMS,
             },
             () => resolve(),
@@ -1024,6 +1028,7 @@ Page<SharePosterState, SharePosterMethods>({
           posterTitle: shareConfig.poster.title,
           sessionId: fallbackSessionId,
           sessionName: runtime.sessionName || '',
+          sessionSubtitle: runtime.sessionSubtitle || '',
           shareItems: REPORT_SHARE_ITEMS,
         })
       }
@@ -1081,7 +1086,8 @@ Page<SharePosterState, SharePosterMethods>({
       posterTitle: cleanShareText(brief.title || '', this.data.posterTitle),
       settlementSummary: brief.settlementSummary,
       sessionId: brief.sessionId || this.data.sessionId,
-      sessionName: this.data.sessionName || brief.title || '',
+      sessionName: brief.sessionName || this.data.sessionName || brief.title || '',
+      sessionSubtitle: brief.subtitle || this.data.sessionSubtitle || '',
       shareContentFilter: brief.shareContentFilter,
       shareSummary: buildShareSummary(photoHighlights.length, this.data.ledgerCount || fallbackAccounting.ledgerCount, timelineKeyEvents.length),
     })
@@ -1239,12 +1245,14 @@ Page<SharePosterState, SharePosterMethods>({
       const { ledgerCount, metrics } = buildAccountingHighlights(players, timelineEventCount)
       const nextMetrics = this.data.briefId && this.data.accountingHighlights.length ? this.data.accountingHighlights : metrics
       const sessionName = liveSession.sessionName || this.data.sessionName || runtime.sessionName || ''
+      const sessionSubtitle = liveSession.subtitle || this.data.sessionSubtitle || runtime.sessionSubtitle || ''
 
       setSessionRuntime({
         inviteCode: liveSession.inviteCode || runtime.inviteCode || '',
         playerCount: liveSession.playerCount || runtime.playerCount,
         sessionId: liveSession.id || sessionId,
         sessionName,
+        sessionSubtitle,
       })
 
       this.setData({
@@ -1258,6 +1266,7 @@ Page<SharePosterState, SharePosterMethods>({
           : buildPosterTimelineNodesFromHighlights(this.data.photoHighlights, keyEvents, nextMetrics),
         sessionId: liveSession.id || sessionId,
         sessionName,
+        sessionSubtitle,
         shareSummary: buildShareSummary(this.data.photoCount, ledgerCount, keyEvents.length),
       })
     } catch (error) {
@@ -1868,8 +1877,8 @@ Page<SharePosterState, SharePosterMethods>({
         ctx.strokeRect(54, 58, width - 108, dynamicHeight - 116)
         drawFitText('聚会记录师', 82, 132, width - 164, 30, '#fff4e8')
         drawPill(`${this.data.displayTaskStatus || '可保存'} · ${this.data.displayTaskLayoutMode || '照片和账本'}`, width - 312, 92, 230, 54, 'rgba(99,223,174,0.16)', '#9df1c8', 22)
-        drawFitText('聚会分享预览', 82, 230, width - 164, 64, '#ffffff')
-        drawFitText('按时间节点保存这场聚会', 82, 286, width - 164, 28, '#f5dac8')
+        drawFitText(this.data.sessionName || '聚会分享预览', 82, 230, width - 164, 64, '#ffffff')
+        drawFitText(this.data.sessionSubtitle, 82, 286, width - 164, 28, '#f5dac8')
 
         const timelineX = 122
         ctx.setFillStyle('rgba(0,0,0,0.44)')

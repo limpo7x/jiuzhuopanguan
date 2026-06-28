@@ -8,6 +8,7 @@ interface SummaryItem {
   reportId?: string
   sessionId?: string
   sessionName?: string
+  subtitle?: string
   shareImageStatus?: ShareStatus | string
   shareImageTaskId?: string
   shareImageUrl?: string
@@ -63,6 +64,7 @@ const normalizeItems = (items?: SummaryItem[]): DisplaySummaryItem[] =>
     const sessionName = String(item.sessionName || '').trim()
     const title = String(item.title || '').trim()
     const sessionId = String(item.sessionId || '').trim()
+    const subtitle = String(item.subtitle || '').trim()
     const briefId = String(item.briefId || '').trim()
     const reportId = String(item.reportId || '').trim()
     const pendingMediaCount = Number(item.pendingMediaCount) || 0
@@ -81,9 +83,10 @@ const normalizeItems = (items?: SummaryItem[]): DisplaySummaryItem[] =>
       primaryTitle: normalizeDisplayTitle(title, sessionName, index),
       rankingEntryEnabled: Boolean(item.rankingEntryEnabled),
       reportId,
-      secondaryMeta: sessionName && !internalProfilePattern.test(sessionName) && sessionName !== title ? sessionName : '继续整理聚会照片和账本',
+      secondaryMeta: subtitle || '继续整理聚会照片和账本',
       sessionId,
       sessionName,
+      subtitle,
       shareImageStatus,
       shareImageTaskId,
       shareImageUrl,

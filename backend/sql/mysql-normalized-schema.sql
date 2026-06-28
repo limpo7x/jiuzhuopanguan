@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS `wine_sessions` (
   `invite_code` VARCHAR(32) NULL,
   `host_profile_id` VARCHAR(64) NULL,
   `name` VARCHAR(128) NULL,
+  `subtitle` VARCHAR(255) NULL,
   `template_id` VARCHAR(64) NULL,
   `template_name` VARCHAR(128) NULL,
   `player_count` INT NOT NULL DEFAULT 0,

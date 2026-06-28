@@ -18,6 +18,7 @@ export interface SessionReturnSource {
   role?: 'host' | 'member'
   sessionId?: string
   status?: string
+  subtitle?: string
 }
 
 export const EMPTY_SESSION_RETURN: SessionReturnBarData = {
@@ -69,9 +70,10 @@ export const buildSessionReturnFromRuntime = (runtime: SessionRuntime = getSessi
   const joinedCount = Math.min(runtime.selectedPlayers.filter((item) => !!item?.name).length || 0, runtime.playerCount || 0)
   const status = normalizeRuntimeStatus(runtime)
   const title = normalizeText(runtime.sessionName) || '当前聚会'
+  const progressMeta = `${joinedCount || runtime.playerCount || 0}/${runtime.playerCount || 0} 人 · 回到记录页继续拍照`
 
   return {
-    meta: `${joinedCount || runtime.playerCount || 0}/${runtime.playerCount || 0} 人 · 回到记录页继续拍照`,
+    meta: [normalizeText(runtime.sessionSubtitle), progressMeta].filter(Boolean).join(' · '),
     role,
     route: buildLiveRecordRoute(sessionId, role),
     sessionId,
@@ -89,9 +91,10 @@ export const buildSessionReturnFromHistory = (rows: SessionReturnSource[]): Sess
 
   const sessionId = normalizeText(current.sessionId)
   const role: SessionReturnRole = current.role === 'host' ? 'judge' : 'viewer'
+  const meta = normalizeText(current.meta) || '回到记录页继续拍照'
 
   return {
-    meta: normalizeText(current.meta) || '回到记录页继续拍照',
+    meta: [normalizeText(current.subtitle), meta].filter(Boolean).join(' · '),
     role,
     route: buildLiveRecordRoute(sessionId, role),
     sessionId,

@@ -7,8 +7,8 @@
         <view class="pp-logo">记</view>
         <view class="pp-list-copy">
           <text class="pp-kicker">SHARE POSTER</text>
-          <text class="pp-title-sm">{{canViewPosterContent ? '聚会分享图' : permissionTitle}}</text>
-          <text class="pp-body">{{canViewPosterContent ? '照片、账本和时间线会合成一张分享图。' : permissionDescription}}</text>
+          <text class="pp-title-sm">{{canViewPosterContent ? (sessionName || '聚会分享图') : permissionTitle}}</text>
+          <text wx:if="{{!canViewPosterContent || sessionSubtitle}}" class="pp-body">{{canViewPosterContent ? sessionSubtitle : permissionDescription}}</text>
         </view>
       </view>
 

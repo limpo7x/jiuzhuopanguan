@@ -417,9 +417,9 @@ const buildReportPosterSvg = async (report) => {
       <rect x="40" y="140" width="820" height="140" fill="url(#header)"/>
       <circle cx="168" cy="98" r="72" fill="#ffffff" fill-opacity="0.12"/>
       <circle cx="742" cy="118" r="84" fill="#ffffff" fill-opacity="0.12"/>
-      <text x="90" y="122" font-size="48" font-weight="900" fill="#fff">查看谁是今晚欠酒王？</text>
-      <text x="90" y="170" font-size="24" font-weight="700" fill="#fff">${escapeXml(trimText(report.sessionName || '', 20))}</text>
-      <text x="90" y="208" font-size="24" font-weight="700" fill="#fff">${escapeXml(trimText(report.title || '这局快乐就完事了', 20))}</text>
+      <text x="90" y="122" font-size="48" font-weight="900" fill="#fff">${escapeXml(trimText(report.sessionName || '聚会记录', 16))}</text>
+      <text x="90" y="170" font-size="24" font-weight="700" fill="#fff">${escapeXml(trimText(report.subtitle || '', 22))}</text>
+      <text x="90" y="208" font-size="24" font-weight="700" fill="#fff">查看本场聚会榜单</text>
       <rect x="620" y="116" width="190" height="72" rx="20" fill="#ffffff" fill-opacity="0.16"/>
       <text x="715" y="160" text-anchor="middle" font-size="28" font-weight="900" fill="#fff">${escapeXml(inviteCode)}</text>
       ${featured}

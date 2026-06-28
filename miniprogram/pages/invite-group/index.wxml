@@ -10,9 +10,9 @@
         <view class="pp-flow-line"></view>
         <view class="pp-flow-step"><text class="pp-flow-index">3</text><text class="pp-flow-label">拍照</text></view>
       </view>
-      <text class="pp-kicker">{{sessionName || '聚会邀请'}}</text>
-      <text class="pp-title">邀请好友</text>
-      <text class="pp-body">复制口令或直接分享到微信，成员加入后就能进入首拍。</text>
+      <text class="pp-kicker">邀请好友</text>
+      <text class="pp-title">{{sessionName || '聚会邀请'}}</text>
+      <text class="pp-body">{{sessionSubtitle || '复制口令或直接分享到微信，成员加入后就能进入首拍。'}}</text>
       <text class="pp-code" style="margin-top: 16px;">{{inviteCode || '------'}}</text>
       <text class="pp-caption" style="margin-top: 10px;">{{joinStatusText}}</text>
     </view>

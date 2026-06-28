@@ -192,9 +192,9 @@ const buildStatusText = (item: ManagedSessionMomentSummary) => {
 
 const buildMeta = (item: ManagedSessionMomentSummary, timeText = '') => {
   const parts = []
+  const subtitle = normalizeAlbumMetaText(item.subtitle)
+  if (subtitle) parts.push(subtitle)
   if (timeText) parts.push(timeText)
-  const sessionName = normalizeAlbumMetaText(item.sessionName)
-  if (sessionName) parts.push(sessionName)
   if (hasEndedGeneratedShareImage(item)) parts.push('可查看分享图')
   return parts.join(' · ') || '聚会记录'
 }
@@ -358,7 +358,7 @@ const buildShareImageSummaryStatusText = (status?: string, imageUrl = '') => {
 const mapShareImageSummaryItem = (item: ManagedShareImageSummary, index: number): AlbumItem => ({
   briefId: item.briefId || '',
   coverUrl: item.status === 'ready' ? item.readyShareImageUrl || item.imageUrl || '' : '',
-  meta: formatAlbumTime(item.finishedAt || item.updatedAt || item.createdAt) || buildShareImageSummaryStatusText(item.status, item.readyShareImageUrl || item.imageUrl),
+  meta: [normalizeAlbumMetaText(item.subtitle), formatAlbumTime(item.finishedAt || item.updatedAt || item.createdAt) || buildShareImageSummaryStatusText(item.status, item.readyShareImageUrl || item.imageUrl)].filter(Boolean).join(' · '),
   nominationDisabled: true,
   nominationLabel: buildShareImageSummaryStatusText(item.status, item.readyShareImageUrl || item.imageUrl),
   nominationState: item.status === 'ready' ? 'done' : 'unavailable',

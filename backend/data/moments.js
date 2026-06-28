@@ -170,6 +170,8 @@ const normalizeSessionBrief = (item = {}) => {
   return {
     id: cleanText(item.id) || createId('brief'),
     sessionId: cleanText(item.sessionId),
+    sessionName: cleanText(item.sessionName),
+    subtitle: cleanText(item.subtitle),
     title: cleanText(item.title),
     coverMode: cleanText(item.coverMode) || 'opening_collage',
     openingMomentIds: normalizeStringArray(item.openingMomentIds),
@@ -1478,6 +1480,7 @@ const buildFullTimelineShareImageSvg = async ({ brief, task, nodes, ledgerSnapsh
   const endTime = cleanText(session.endedAt || session.updatedAt || task.finishedAt || task.updatedAt || nowIso())
   const durationText = formatFullTimelineDuration(startTime, endTime)
   const sessionTitle = toPosterSafeText(session.name || brief.title, '聚会记录', 16)
+  const sessionSubtitle = toPosterSafeText(session.subtitle || brief.subtitle, '', 30)
   const inviteCode = toPosterSafeText(session.inviteCode || '', '回到小程序', 10)
   const ledgerSummary = ledgerSnapshot?.ledgerSummary || {}
   const settlementSummary = ledgerSnapshot?.settlementSummary || {}
@@ -1564,7 +1567,7 @@ const buildFullTimelineShareImageSvg = async ({ brief, task, nodes, ledgerSnapsh
       <rect x="${panelX}" y="${heroY}" width="${panelW}" height="${heroHeight}" rx="38" fill="#ffffff" stroke="#111317" stroke-width="6"/>
       <text x="92" y="${heroY + 70}" font-size="28" font-weight="950" fill="#ff504d">已结束</text>
       <text x="92" y="${heroY + 132}" font-size="64" font-weight="950" fill="#111317">${escapeXml(sessionTitle)}</text>
-      ${renderPosterTextLines({ text: '记录、相册、分享和聚会账本在同一场聚会里同步。', x: 92, y: heroY + 184, maxChars: 22, maxLines: 2, fontSize: 31, fontWeight: 900, lineHeight: 42, fill: '#5d626b' })}
+      ${renderPosterTextLines({ text: sessionSubtitle, x: 92, y: heroY + 184, maxChars: 22, maxLines: 2, fontSize: 31, fontWeight: 900, lineHeight: 42, fill: '#5d626b' })}
       <rect x="92" y="${heroY + 250}" width="284" height="126" rx="28" fill="#ffffff" stroke="#111317" stroke-width="5"/>
       <text x="132" y="${heroY + 316}" font-size="50" font-weight="950" fill="#111317">${escapeXml(joinedText)}</text>
       <text x="132" y="${heroY + 354}" font-size="22" font-weight="900" fill="#5d626b">成员</text>
@@ -1615,7 +1618,8 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
   const eventHighlights = Array.isArray(ledgerSnapshot?.eventHighlights) ? ledgerSnapshot.eventHighlights : []
   const ledgerCount = Number(ledgerSummary.ledgerCount) || 0
   const inviteCode = toPosterSafeText(session.inviteCode || '', '回流查看', 10)
-  const sessionTitle = toPosterSafeText(session.name || brief.title, '今晚聚会高光', 16)
+  const sessionTitle = toPosterSafeText(session.name || brief.title, '聚会记录', 16)
+  const sessionSubtitle = toPosterSafeText(session.subtitle || brief.subtitle, '', 22)
   const qrDataUri = await resolveMiniProgramQrDataUri(getMiniProgramQrUrl(task))
   const backgroundDataUri = await resolveSharePosterBackgroundDataUri()
   const participants = buildPosterParticipants(session)
@@ -1686,9 +1690,9 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
       <rect width="100%" height="100%" fill="${midColor}"/>
       ${backgroundDataUri ? `<image href="${backgroundDataUri}" x="0" y="0" width="${SHARE_IMAGE_WIDTH}" height="${SHARE_IMAGE_MIN_HEIGHT}" preserveAspectRatio="xMidYMid slice" clip-path="url(#sharePosterHeaderClip)"/><image href="${backgroundDataUri}" x="0" y="${height - SHARE_IMAGE_MIN_HEIGHT}" width="${SHARE_IMAGE_WIDTH}" height="${SHARE_IMAGE_MIN_HEIGHT}" preserveAspectRatio="xMidYMid slice" clip-path="url(#sharePosterFooterClip)"/>` : '<rect width="100%" height="360" fill="url(#bgGlow)"/>'}
       <rect x="38" y="38" width="824" height="${height - 76}" rx="46" fill="#090705" fill-opacity="0.48" stroke="#fff4de" stroke-opacity="0.16"/>
-      <text x="74" y="128" font-size="54" font-weight="900" fill="#fff8ec">今晚聚会高光</text>
+      <text x="74" y="128" font-size="54" font-weight="900" fill="#fff8ec">${escapeXml(sessionTitle)}</text>
       <rect x="74" y="154" width="290" height="12" rx="6" fill="url(#coralLine)"/>
-      <text x="74" y="204" font-size="27" font-weight="800" fill="#ffb1a0">${escapeXml(sessionTitle)}</text>
+      <text x="74" y="204" font-size="27" font-weight="800" fill="#ffb1a0">${escapeXml(sessionSubtitle)}</text>
       <text x="74" y="254" font-size="30" font-weight="900" fill="#fff8ec">记录时间线</text>
       <text x="812" y="326" text-anchor="end" font-size="23" font-weight="800" fill="#63dfae">${visiblePhotoCount} 张公开照片 · ${ledgerCount} 条高光</text>
       ${topDebtorCard}
@@ -2007,6 +2011,7 @@ const getSessionTimeline = ({ sessionId, profile }) => {
 
 const createOrRefreshSessionBrief = ({ sessionId, profile }) => {
   assertSessionMember(sessionId, profile)
+  const session = getManagedSessionById(cleanText(sessionId)) || {}
   const store = readMomentsStore()
   const timeline = getSessionTimeline({ sessionId, profile })
   const momentNodes = timeline.nodes.filter((item) => item.nodeKind === 'moment' && !item.isTimelinePlaceholder)
@@ -2016,7 +2021,9 @@ const createOrRefreshSessionBrief = ({ sessionId, profile }) => {
     ...(existing || {}),
     id: existing?.id || createId('brief'),
     sessionId,
-    title: existing?.title || '聚会时间线简报',
+    sessionName: cleanText(session.name || session.sessionName),
+    subtitle: cleanText(session.subtitle || session.sessionSubtitle),
+    title: cleanText(session.name || session.sessionName) || existing?.title || '聚会简报',
     coverMode: 'opening_collage',
     openingMomentIds: momentNodes.filter((item) => item.nodeType === 'opening').map((item) => item.id),
     closingMomentIds: momentNodes.filter((item) => item.nodeType === 'closing').map((item) => item.id),
@@ -2129,6 +2136,7 @@ const serializeShareImageSummary = ({ task, session }) => {
     taskId: cleanText(task.id),
     sessionId: cleanText(task.sessionId),
     sessionName: cleanText(session?.name || session?.sessionName),
+    subtitle: cleanText(session?.subtitle || session?.sessionSubtitle),
     briefId: cleanText(task.briefId),
     status: cleanText(task.status),
     imageUrl,
@@ -2373,8 +2381,9 @@ const getUserSessionMomentSummaries = ({ profile }) => {
     return {
       sessionId,
       reportId: report.reportId || report.id,
-      sessionName: report.sessionName,
-      title: report.title,
+      sessionName: cleanText(session?.name || report.sessionName),
+      subtitle: cleanText(session?.subtitle || report.subtitle),
+      title: cleanText(session?.name || report.title || report.sessionName),
       state: stateFields.state,
       stateText: stateFields.stateText,
       status: stateFields.status,

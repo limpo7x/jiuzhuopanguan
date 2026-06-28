@@ -145,14 +145,14 @@ const formatLiveSession = (session = {}) => {
     joinedPlayers: joinedPlayers.slice(0, playerCount || joinedPlayers.length),
     joinStatusPlayers: memberPlayers.slice(0, playerCount || memberPlayers.length),
     playerCount,
-    sessionName: toText(session?.name || session?.sessionName),
+    sessionName: toText(session?.name || session?.sessionName || session?.title),
     source: toText(session?.source),
     stateText: toText(session?.state),
     status: toText(session?.status),
-    subtitle: '',
+    subtitle: toText(session?.subtitle || session?.sessionSubtitle),
     templateImageUrl: normalizeTemplateImageUrl(session?.templateImageUrl),
     templateName: toText(session?.template || session?.templateName),
-    title: '',
+    title: toText(session?.name || session?.sessionName || session?.title),
     updatedAt: toText(session?.updatedAt),
   }
 }

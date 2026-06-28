@@ -193,7 +193,7 @@ Page<WineHistoryState, WineHistoryMethods>({
         hostProfileId: item.hostProfileId,
         id: item.id,
         imageUrl: item.imageUrl,
-        meta: item.meta,
+        meta: [item.subtitle, item.meta].filter(Boolean).join(' · '),
         name: item.sessionName || item.title || '我的聚会',
         recordType: item.recordType,
         reportId: item.reportId,

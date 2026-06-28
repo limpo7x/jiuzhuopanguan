@@ -6,6 +6,7 @@ import { ensureUserAuthorized } from '../../utils/social'
 interface NamePreset {
   active?: boolean
   name: string
+  subtitle: string
 }
 
 interface CreateSessionState {
@@ -13,11 +14,13 @@ interface CreateSessionState {
   playerCount: number
   sessionName: string
   sessionNamePresets: NamePreset[]
+  sessionSubtitle: string
 }
 
 interface CreateSessionMethods {
   handleBackTap: () => void
   handleSessionNameInput: (event: WechatMiniprogram.Input) => void
+  handleSessionSubtitleInput: (event: WechatMiniprogram.Input) => void
   handleNextTap: () => Promise<void>
   handlePlayerCountTap: (event: WechatMiniprogram.BaseEvent) => void
   handlePresetTap: (event: WechatMiniprogram.BaseEvent) => void
@@ -30,21 +33,25 @@ const formatCreateTimeText = () => {
   return `今天 ${hour}:${minute}`
 }
 
+const normalizeSessionCopy = (value: unknown, maxLength: number) =>
+  (typeof value === 'string' ? value : '').replace(/\s+/g, ' ').trim().slice(0, maxLength)
+
 Page<CreateSessionState, CreateSessionMethods>({
   data: {
     currentTimeText: formatCreateTimeText(),
     playerCount: 2,
-    sessionName: '',
+    sessionName: '今晚的聚会',
     sessionNamePresets: [
-      { name: '今晚的聚会' },
-      { name: '朋友小聚' },
-      { name: '生日聚会' },
-      { name: '老友见面' },
-      { name: '团建聚会' },
-      { name: '周末小聚' },
-      { name: '家庭聚会' },
-      { name: '聚会记录' },
+      { active: true, name: '今晚的聚会', subtitle: '把今晚的开心和精彩瞬间都记录下来' },
+      { name: '朋友小聚', subtitle: '朋友见面，把快乐留在同一场回忆里' },
+      { name: '生日聚会', subtitle: '一起庆祝这个值得记住的特别时刻' },
+      { name: '老友见面', subtitle: '好久不见，今天继续留下新的故事' },
+      { name: '团建聚会', subtitle: '一起放松，也一起记住团队高光' },
+      { name: '周末小聚', subtitle: '周末见面，把轻松时刻装进相册' },
+      { name: '家庭聚会', subtitle: '一家人相聚，记录温暖的团圆时光' },
+      { name: '聚会记录', subtitle: '照片、时间线和回忆都在这里同步' },
     ],
+    sessionSubtitle: '把今晚的开心和精彩瞬间都记录下来',
   },
 
   async onLoad() {
@@ -82,8 +89,14 @@ Page<CreateSessionState, CreateSessionMethods>({
 
   handleSessionNameInput(event) {
     this.setData({
-      sessionName: String(event.detail.value || '').trim(),
+      sessionName: normalizeSessionCopy(event.detail.value, 16),
       sessionNamePresets: this.data.sessionNamePresets.map((item) => ({ ...item, active: false })),
+    })
+  },
+
+  handleSessionSubtitleInput(event) {
+    this.setData({
+      sessionSubtitle: normalizeSessionCopy(event.detail.value, 32),
     })
   },
 
@@ -97,6 +110,7 @@ Page<CreateSessionState, CreateSessionMethods>({
     this.setData({
       sessionName: name,
       sessionNamePresets,
+      sessionSubtitle: sessionNamePresets.find((item) => item.name === name)?.subtitle || '',
     })
   },
 
@@ -116,6 +130,16 @@ Page<CreateSessionState, CreateSessionMethods>({
       return
     }
 
+    const sessionName = normalizeSessionCopy(this.data.sessionName, 16)
+    const sessionSubtitle = normalizeSessionCopy(this.data.sessionSubtitle, 32)
+    if (!sessionName || !sessionSubtitle) {
+      wx.showToast({
+        title: !sessionName ? '请填写聚会标题' : '请填写聚会副标题',
+        icon: 'none',
+      })
+      return
+    }
+
     try {
       wx.showLoading({
         title: '正在创建',
@@ -123,7 +147,6 @@ Page<CreateSessionState, CreateSessionMethods>({
       })
 
       clearSessionRuntime()
-      const sessionName = this.data.sessionName || '今晚的聚会'
       setSessionRuntime({
         currentUser: {
           avatarUrl: profile.avatarUrl,
@@ -139,6 +162,7 @@ Page<CreateSessionState, CreateSessionMethods>({
         selectedPlayers: [],
         sessionId: '',
         sessionName,
+        sessionSubtitle,
         startedAt: 0,
         state: '待首拍',
         status: '待首拍',
@@ -151,6 +175,7 @@ Page<CreateSessionState, CreateSessionMethods>({
         playerCount: Math.max(2, this.data.playerCount || 2),
         selectedPlayers: [],
         sessionName,
+        subtitle: sessionSubtitle,
         source: '快速创建',
         state: '邀请中',
       })
@@ -166,6 +191,7 @@ Page<CreateSessionState, CreateSessionMethods>({
         })),
         sessionId: created.id,
         sessionName: created.sessionName,
+        sessionSubtitle: created.subtitle || sessionSubtitle,
       })
 
       wx.redirectTo({

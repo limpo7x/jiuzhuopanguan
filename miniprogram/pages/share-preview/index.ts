@@ -61,6 +61,7 @@ interface SharePreviewState {
   shareId: string
   shareArchiveMode: boolean
   sessionName: string
+  sessionSubtitle: string
   shareContentFilter: Record<string, unknown>
   shareSummary: string
   shareReturnMode: boolean
@@ -169,7 +170,8 @@ const buildBriefPreviewState = (brief: ManagedSessionBrief): Partial<SharePrevie
     settlementSummary: brief.settlementSummary,
     shareContentFilter: brief.shareContentFilter,
     sessionId: brief.sessionId,
-    sessionName: brief.title || '',
+    sessionName: brief.sessionName || brief.title || '',
+    sessionSubtitle: brief.subtitle || '',
     visibleNodeIds,
   }
 }
@@ -286,6 +288,7 @@ Page<SharePreviewState, SharePreviewMethods>({
     shareId: '',
     shareArchiveMode: false,
     sessionName: '',
+    sessionSubtitle: '',
     shareContentFilter: {},
     shareSummary: '邀请好友加入后，可以一起查看这场聚会的回忆。',
     shareReturnMode: false,
@@ -432,6 +435,7 @@ Page<SharePreviewState, SharePreviewMethods>({
         })),
         sessionId: liveSession.id,
         sessionName: liveSession.sessionName,
+        sessionSubtitle: liveSession.subtitle,
         templateName: liveSession.templateName,
       })
 
@@ -462,6 +466,7 @@ Page<SharePreviewState, SharePreviewMethods>({
         shareArchiveMode: archiveMode,
         sessionId: liveSession.id || effectiveSessionId,
         sessionName: liveSession.sessionName || '',
+        sessionSubtitle: liveSession.subtitle || String(briefPreview?.sessionSubtitle || ''),
         shareSummary: nextPhotoHighlights.length || nextAccountingHighlights.length || nextKeyEvents.length
           ? `${liveSession.sessionName || '这场聚会'} 已准备好邀请，照片和账本会合并到酷炫分享页。`
           : '这场聚会的可分享照片和账本高光会在这里汇总。',
@@ -495,6 +500,7 @@ Page<SharePreviewState, SharePreviewMethods>({
       previewLoadFailed: true,
       ...buildPreviewHeader(archiveMode),
       sessionName: '',
+      sessionSubtitle: '',
       shareArchiveMode: archiveMode,
       shareSummary: '这场聚会的可分享照片和账本高光会在这里汇总。',
       visibleNodeIds: [],
@@ -623,6 +629,7 @@ Page<SharePreviewState, SharePreviewMethods>({
         })),
         sessionId: liveSession.id,
         sessionName: liveSession.sessionName,
+        sessionSubtitle: liveSession.subtitle,
         startedAt: 0,
         state: canEnterLive ? '进行中' : '待首拍',
         status: canEnterLive ? '进行中' : '待首拍',
@@ -728,8 +735,6 @@ Page<SharePreviewState, SharePreviewMethods>({
     const width = 720
     const height = 960
     const textInvite = '\u805a\u4f1a\u8bb0\u5f55\u5e08\u9080\u8bf7\u51fd'
-    const textHappyA = '\u4e00\u8d77\u8bb0\u5f55'
-    const textHappyB = '\u8fd9\u573a\u805a\u4f1a'
     const textFallbackName = '\u597d\u53cb\u805a\u4f1a'
     const textJoinCode = '\u52a0\u5165\u53e3\u4ee4'
     const textPending = '\u672a\u751f\u6210'
@@ -791,11 +796,8 @@ Page<SharePreviewState, SharePreviewMethods>({
       ctx.setFillStyle('#ffffff')
       ctx.fillText(textInvite, 98, 110)
 
-      ctx.setFontSize(54)
-      ctx.setFillStyle('#ffffff')
-      ctx.fillText(textHappyA, 78, 206)
-      ctx.fillText(textHappyB, 78, 270)
-      drawFitText(this.data.sessionName || textFallbackName, 78, 326, 560, 30, 'rgba(255,255,255,0.92)')
+      drawFitText(this.data.sessionName || textFallbackName, 78, 206, 560, 54, '#ffffff')
+      drawFitText(this.data.sessionSubtitle, 78, 270, 560, 30, 'rgba(255,255,255,0.92)')
 
       ctx.setFillStyle('rgba(255,253,248,0.96)')
       ctx.fillRect(78, 380, 564, 310)

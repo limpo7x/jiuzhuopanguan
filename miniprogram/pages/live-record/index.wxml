@@ -8,7 +8,7 @@
       </view>
       <text class="pp-kicker">{{desktopModeLabel || '进行中'}}</text>
       <text class="pp-title">{{sessionName}}</text>
-      <text class="pp-body">记录、相册、分享和聚会账本在同一场聚会里同步。</text>
+      <text wx:if="{{sessionSubtitle}}" class="pp-body">{{sessionSubtitle}}</text>
       <view class="pp-stat-row" style="margin-top: 16px;">
         <view class="pp-stat"><text class="pp-stat-value">{{memberCountText}}</text><text class="pp-stat-label">成员</text></view>
         <view class="pp-stat"><text class="pp-stat-value">{{elapsedText}}</text><text class="pp-stat-label">时长</text></view>

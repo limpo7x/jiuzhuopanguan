@@ -97,6 +97,11 @@ const normalizeTemplateImageUrl = (value = '') => {
   }
   return text.replace(/^\/static\/templates\/(.+)\.svg$/i, '/static/templates/$1.png')
 }
+const normalizeSessionCopy = (value, maxLength) =>
+  (typeof value === 'string' ? value : '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength)
 const seedCountFromRate = (rateText, denominator, fallbackBase = 1000) => {
   const rateValue = Math.max(0, numberFromText(rateText))
   const base = Math.max(1, Number(denominator) || fallbackBase)
@@ -433,6 +438,7 @@ const normalizeReportItem = (item = {}) => {
     id: String(item.id || '').trim(),
     name: String(item.name || '').trim(),
     template: String(item.template || '').trim(),
+    subtitle: normalizeSessionCopy(item.subtitle, 32),
     title: String(item.title || '').trim(),
     scene: String(item.scene || '').trim(),
     highlight1: String(item.highlight1 || '').trim(),
@@ -1811,8 +1817,10 @@ const normalizeLiveSession = (session = {}, index = 0) => {
       ? [...new Set(session.kickedProfileIds.map((item) => String(item || '').trim()).filter(Boolean))]
       : [],
     members,
+    name: normalizeSessionCopy(session.name || session.sessionName || session.title, 16),
     state,
     status,
+    subtitle: normalizeSessionCopy(session.subtitle || session.sessionSubtitle, 32),
     updatedAt,
   }
 }
@@ -1977,7 +1985,8 @@ const createManagedSession = (payload = {}) => {
     endedAt: isEndedSessionState(state) ? createdAt : '',
     firstPhotoUploadedAt: '',
     hasFirstPhoto: false,
-    name: String(payload.sessionName || '').trim(),
+    name: normalizeSessionCopy(payload.sessionName || payload.title, 16),
+    subtitle: normalizeSessionCopy(payload.subtitle || payload.sessionSubtitle, 32),
     players: Number(payload.playerCount) || 0,
     template: String(payload.templateName || '').trim(),
     templateImageUrl: normalizeTemplateImageUrl(payload.templateImageUrl),
@@ -2029,7 +2038,11 @@ const updateManagedSession = (sessionId, payload = {}) => {
     const firstPhotoState = getSessionFirstPhotoState({ ...item, endedAt, firstPhotoUploadedAt, hasFirstPhoto, state, status })
     return {
       ...item,
-      name: payload.sessionName || item.name,
+      name: normalizeSessionCopy(payload.sessionName || payload.title, 16) || item.name,
+      subtitle:
+        Object.prototype.hasOwnProperty.call(payload, 'subtitle') || Object.prototype.hasOwnProperty.call(payload, 'sessionSubtitle')
+          ? normalizeSessionCopy(payload.subtitle || payload.sessionSubtitle, 32)
+          : item.subtitle || '',
       players: Number(payload.playerCount) || item.players,
       template: payload.templateName || item.template,
       templateImageUrl: normalizeTemplateImageUrl(payload.templateImageUrl || item.templateImageUrl),
@@ -2277,7 +2290,8 @@ const finishManagedSession = (payload = {}) => {
   const sessionId = String(payload.sessionId || '').trim()
   const finishedAt = String(payload.endedAt || payload.finishedAt || '').trim() || iso()
   const relatedSession = store.liveSessions.find((item) => item.id === sessionId)
-  const sessionName = String(payload.sessionName || relatedSession?.name || '').trim()
+  const sessionName = normalizeSessionCopy(payload.sessionName || relatedSession?.name, 16)
+  const sessionSubtitle = normalizeSessionCopy(payload.subtitle || payload.sessionSubtitle || relatedSession?.subtitle, 32)
   const templateName = String(payload.templateName || relatedSession?.template || '').trim()
   const templateImageUrl = normalizeTemplateImageUrl(payload.templateImageUrl || relatedSession?.templateImageUrl || '')
   const playerCount = Math.max(2, Number(payload.playerCount) || Number(relatedSession?.players) || 6)
@@ -2305,6 +2319,7 @@ const finishManagedSession = (payload = {}) => {
     name: `${sessionName}战报`,
     template: templateName,
     imageUrl: templateImageUrl,
+    subtitle: sessionSubtitle,
     title: String(payload.title || '').trim(),
     scene: String(payload.scene || (templateName.includes('生日') ? '生日局' : templateName.includes('夜') ? '夜场' : '常规局')).trim(),
     highlight1: events[0]?.text || `${sessionName} 本局已结束，自动生成战报`,
@@ -2358,7 +2373,8 @@ const buildManagedReportDetail = (report) => {
 
   const store = readStore()
   const relatedSession = report.sessionId ? store.liveSessions.find((item) => item.id === report.sessionId) : null
-  const sessionName = String(report.name || report.title || '').replace(/战报$/, '')
+  const sessionName = normalizeSessionCopy(relatedSession?.name || String(report.name || report.title || '').replace(/战报$/, ''), 16)
+  const subtitle = normalizeSessionCopy(relatedSession?.subtitle || report.subtitle, 32)
   const sessionMembers = Array.isArray(relatedSession?.members) ? relatedSession.members : []
   const ranks = Array.isArray(report.ranks)
     ? report.ranks.map((rank) => {
@@ -2382,7 +2398,8 @@ const buildManagedReportDetail = (report) => {
     imageUrl: normalizeTemplateImageUrl(report.imageUrl || relatedSession?.templateImageUrl || ''),
     sessionId: report.sessionId || '',
     sessionName,
-    title: report.title || '',
+    subtitle,
+    title: sessionName,
     templateName: report.template || '',
     scene: report.scene || '',
     status: report.status || '',
@@ -2520,8 +2537,9 @@ const listManagedReports = (profileId = '', mode = 'all') => {
       reportId: report?.id || '',
       role: isSessionHost(session, normalizedProfileId) ? 'host' : 'member',
       sessionId: String(session.id || ''),
-      sessionName: report ? String(report.name || report.title || '').replace(/战报$/, '') : String(session.name || ''),
-      title: report?.title || String(session.name || ''),
+      sessionName: String(session.name || report?.name || report?.title || '').replace(/战报$/, ''),
+      subtitle: String(session.subtitle || ''),
+      title: String(session.name || report?.name || report?.title || '').replace(/战报$/, ''),
       templateName,
       hostName: String(host?.name || session.hostName || '').trim(),
       hostProfileId: String(host?.profileId || session.hostProfileId || '').trim(),

@@ -216,6 +216,9 @@ const buildSummaryStateLabel = (item: ManagedSessionMomentSummary, isEnded: bool
   return String(item.stateText || item.status || item.state || '').trim()
 }
 
+const buildSessionMeta = (subtitle: string, fallback: string) =>
+  [String(subtitle || '').trim(), String(fallback || '').trim()].filter(Boolean).join(' · ')
+
 const buildPendingAlbumItems = (items: ManagedSessionMomentSummary[]): PendingAlbumItem[] =>
   items.filter(isPendingShareMemory).slice(0, 5).map((item, index) => {
     const pendingMediaCount = Number(item.pendingMediaCount) || 0
@@ -242,7 +245,7 @@ const buildPendingAlbumItems = (items: ManagedSessionMomentSummary[]): PendingAl
       coverUrl: item.coverPhotoUrl || '',
       endedAt: item.endedAt || '',
       isEnded,
-      meta: statusText,
+      meta: buildSessionMeta(item.subtitle, statusText),
       pendingMediaCount,
       sessionId: item.sessionId || '',
       shareImageStatus,
@@ -270,7 +273,7 @@ const buildShareGalleryItems = (
   shareImages.forEach((item, index) => {
     pushItem({
       imageUrl: item.readyShareImageUrl || item.imageUrl || '',
-      meta: formatSummaryDate(item.finishedAt || item.updatedAt || item.createdAt) || '分享图已生成',
+      meta: buildSessionMeta(item.subtitle, formatSummaryDate(item.finishedAt || item.updatedAt || item.createdAt) || '分享图已生成'),
       sessionId: item.sessionId || '',
       taskId: item.id || '',
       title: normalizePendingAlbumTitle(item.sessionName, item.sessionName, index),
@@ -280,7 +283,7 @@ const buildShareGalleryItems = (
   items.filter(hasGeneratedShareImage).forEach((item, index) => {
     pushItem({
       imageUrl: item.readyShareImageUrl || item.shareImageUrl || '',
-      meta: formatSummaryDate(item.updatedAt || item.endedAt || item.createdAt) || '分享图已生成',
+      meta: buildSessionMeta(item.subtitle, formatSummaryDate(item.updatedAt || item.endedAt || item.createdAt) || '分享图已生成'),
       sessionId: item.sessionId || '',
       taskId: item.shareImageTaskId || '',
       title: normalizePendingAlbumTitle(item.title, item.sessionName, index),

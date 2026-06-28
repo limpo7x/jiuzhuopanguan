@@ -234,6 +234,8 @@ const serializePartyLivePayload = (liveSession = {}) => {
   const payload = {
     partyId: cleanText(liveSession.id),
     inviteCode: cleanText(liveSession.inviteCode),
+    sessionName: sanitizeLegacyLabel(liveSession.sessionName || liveSession.title, '聚会记录'),
+    subtitle: cleanText(liveSession.subtitle),
     title: sanitizeLegacyLabel(liveSession.sessionName || liveSession.title, '聚会记录'),
     createdAt: cleanText(liveSession.createdAt),
     coverImageUrl: cleanText(liveSession.templateImageUrl),
@@ -271,6 +273,8 @@ const serializeBriefPayload = (brief = {}) => {
   const payload = {
     briefId: cleanText(brief.id),
     partyId: cleanText(brief.sessionId),
+    sessionName: sanitizeLegacyLabel(brief.sessionName || brief.title, '聚会简报'),
+    subtitle: cleanText(brief.subtitle),
     title: sanitizeLegacyLabel(brief.title, '聚会简报'),
     coverMode: mapCoverMode(brief.coverMode),
     generatedAt: cleanText(brief.updatedAt || brief.createdAt),

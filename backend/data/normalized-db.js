@@ -133,6 +133,7 @@ const ensureNormalizedSchema = async () => {
     await pool.query(statement)
   }
   let migrations = 0
+  migrations += await ensureColumn(pool, 'wine_sessions', 'subtitle', 'VARCHAR(255) NULL', 'name')
   migrations += await ensureColumn(pool, 'wine_sessions', 'image_url', 'TEXT NULL', 'source')
   migrations += await ensureColumn(pool, 'wine_reports', 'name', 'VARCHAR(255) NULL', 'profile_id')
   migrations += await ensureColumn(pool, 'wine_reports', 'image_url', 'TEXT NULL', 'title')
@@ -210,6 +211,7 @@ const mapWineSessions = (adminStore) =>
     invite_code: text(item.inviteCode),
     host_profile_id: text(item.hostProfileId || (item.members || []).find((member) => member.isHost)?.profileId),
     name: text(item.name),
+    subtitle: text(item.subtitle),
     template_id: text(item.templateId),
     template_name: text(item.template),
     player_count: number(item.players || (item.members || []).length),
@@ -659,7 +661,7 @@ const syncNormalizedTables = async ({ logger = console } = {}) => {
     ['user_login_logs', mapUserLoginLogs(socialStore), ['id', 'user_id', 'wechat_open_id', 'phone', 'source', 'login_at']],
     ['friendships', mapFriendships(socialStore), ['id', 'owner_id', 'friend_id', 'alias', 'meta_json', 'updated_at']],
     ['poke_threads', mapPokeThreads(socialStore), ['id', 'sender_id', 'receiver_id', 'status', 'created_at', 'updated_at']],
-    ['wine_sessions', mapWineSessions(adminStore), ['id', 'invite_code', 'host_profile_id', 'name', 'template_id', 'template_name', 'player_count', 'state', 'status', 'source', 'image_url', 'started_at', 'ended_at', 'created_at', 'updated_at']],
+    ['wine_sessions', mapWineSessions(adminStore), ['id', 'invite_code', 'host_profile_id', 'name', 'subtitle', 'template_id', 'template_name', 'player_count', 'state', 'status', 'source', 'image_url', 'started_at', 'ended_at', 'created_at', 'updated_at']],
     ['wine_session_members', mapWineSessionMembers(adminStore), ['id', 'session_id', 'profile_id', 'name', 'avatar_url', 'phone', 'is_host', 'status', 'debt_count', 'drink_count', 'cleared_count', 'meta_json', 'created_at', 'updated_at']],
     ['wine_reports', mapWineReports(adminStore), ['id', 'session_id', 'profile_id', 'name', 'template_name', 'title', 'image_url', 'scene', 'highlight1', 'highlight2', 'highlight3', 'player_count', 'view_count', 'share_count', 'share_rate', 'replay_count', 'status', 'created_at']],
     ['moment_records', mapMomentRecords(momentsStore), ['id', 'client_draft_id', 'session_id', 'uploader_profile_id', 'uploader_name', 'uploader_avatar_url', 'node_type', 'media_type', 'image_url', 'video_url', 'cover_image_url', 'duration', 'caption', 'tags_json', 'visibility', 'visible_profile_ids_json', 'timeline_title', 'is_timeline_placeholder', 'usage_consent_json', 'completion_status', 'review_status', 'secondary_review_status', 'ranking_eligible', 'reward_eligible', 'removed_at', 'created_at', 'updated_at']],
