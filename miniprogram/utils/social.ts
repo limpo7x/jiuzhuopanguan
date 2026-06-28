@@ -90,6 +90,7 @@ export interface AuthorizedWechatProfile {
 }
 
 const BACKEND_RETRY_INTERVAL = 30000
+const WECHAT_LOGIN_TIMEOUT_MS = 8000
 const CURRENT_PROFILE_KEY = 'social-current-profile'
 const LOCAL_DIRECTORY_KEY = 'social-local-directory'
 const LOCAL_POKE_THREADS_KEY = 'social-local-poke-threads'
@@ -99,7 +100,6 @@ const USER_TOKEN_KEY = 'jzp-user-token'
 const AUTHORIZED_WECHAT_PROFILE_KEY = 'social-authorized-wechat-profile'
 const LEGACY_DEMO_PROFILE_IDS = new Set(['user-1001', 'user-1002', 'user-1003', 'user-1004', 'user-test-a', 'user-test-b', 'user-search-a', 'user-search-b'])
 let backendDownUntil = 0
-let silentWechatLoginPromise: Promise<SocialProfile | null> | null = null
 let userAuthSessionPromise: Promise<UserAuthSession> | null = null
 
 const isAuthRequestPath = (path: string) => /^\/user\/auth(?:\/|$)/.test(path) || path === '/user/avatar/upload'
@@ -262,22 +262,42 @@ const request = <T>(
 
 const requestLoginCode = () =>
   new Promise<string>((resolve, reject) => {
+    let settled = false
+    const finish = (callback: () => void) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      callback()
+    }
+    const timer = setTimeout(() => {
+      finish(() => {
+        recordDiagnostic('wechat.login.timeout', {
+          timeoutMs: WECHAT_LOGIN_TIMEOUT_MS,
+        })
+        reject(new Error('微信登录超时，请检查网络后重试'))
+      })
+    }, WECHAT_LOGIN_TIMEOUT_MS)
+
     recordDiagnostic('wechat.login.start')
     wx.login({
       success: (result) => {
-        if (result.code) {
-          recordDiagnostic('wechat.login.success')
-          resolve(result.code)
-          return
-        }
-        recordDiagnostic('wechat.login.empty-code')
-        reject(new Error('wx.login failed'))
+        finish(() => {
+          if (result.code) {
+            recordDiagnostic('wechat.login.success')
+            resolve(result.code)
+            return
+          }
+          recordDiagnostic('wechat.login.empty-code')
+          reject(new Error('wx.login failed'))
+        })
       },
       fail: (error) => {
-        recordDiagnostic('wechat.login.fail', {
-          errMsg: String(error?.errMsg || ''),
+        finish(() => {
+          recordDiagnostic('wechat.login.fail', {
+            errMsg: String(error?.errMsg || ''),
+          })
+          reject(normalizeWxRequestError(error, 'wx.login'))
         })
-        reject(normalizeWxRequestError(error, 'wx.login'))
       },
     })
   })
@@ -477,21 +497,6 @@ export const resolveDisplayProfile = (profile: SocialProfile | null | undefined)
   }
 }
 
-const buildCachedWechatLoginProfile = (profile?: Partial<SocialProfile>): UserLoginPayload['profile'] | null => {
-  const authorizedWechatProfile = getAuthorizedWechatProfile()
-  const name = sanitizeSocialName(authorizedWechatProfile?.name || profile?.name)
-  const avatarUrl = normalizeSocialAvatarUrl(authorizedWechatProfile?.avatarUrl || profile?.avatarUrl)
-  if (!name && !avatarUrl) {
-    return null
-  }
-  return {
-    avatarUrl,
-    identityTag: String(profile?.identityTag || '').trim(),
-    name,
-    signature: String(profile?.signature || '').trim(),
-  }
-}
-
 const finalizeWechatLogin = async (payload: UserLoginPayload): Promise<SocialProfile> => {
   recordDiagnostic('auth.finalize.start', {
     hasAvatar: Boolean(payload.profile?.avatarUrl),
@@ -519,31 +524,6 @@ const finalizeWechatLogin = async (payload: UserLoginPayload): Promise<SocialPro
   })
   cacheAuthorizedWechatProfile({ name: mergedProfile.name, avatarUrl: mergedProfile.avatarUrl })
   return upsertLocalProfile(mergedProfile)
-}
-
-const trySilentWechatLogin = (profile?: Partial<SocialProfile>): Promise<SocialProfile | null> => {
-  if (silentWechatLoginPromise) {
-    recordDiagnostic('auth.silent.reuse')
-    return silentWechatLoginPromise
-  }
-
-  const loginProfile = buildCachedWechatLoginProfile(profile)
-  if (!loginProfile) {
-    return Promise.resolve(null)
-  }
-
-  silentWechatLoginPromise = (async () => {
-    try {
-      const loginCode = await requestLoginCode()
-      return await finalizeWechatLogin({ loginCode, profile: loginProfile })
-    } catch {
-      return null
-    }
-  })().finally(() => {
-    silentWechatLoginPromise = null
-  })
-
-  return silentWechatLoginPromise
 }
 
 const isUnauthorizedError = (error: unknown) =>
@@ -575,11 +555,6 @@ export const ensureCurrentProfile = async (): Promise<SocialProfile> => {
     }
   }
 
-  const restoredProfile = await trySilentWechatLogin(local)
-  if (restoredProfile) {
-    return restoredProfile
-  }
-
   return upsertLocalProfile(local)
 }
 
@@ -590,8 +565,7 @@ const resolveUserAuthSession = async (): Promise<UserAuthSession> => {
   const local = getLocalProfile()
   const token = getUserSessionToken()
   if (!token) {
-    const restoredProfile = await trySilentWechatLogin(local)
-    return restoredProfile ? { loggedIn: true, profile: restoredProfile } : { loggedIn: false, profile: null }
+    return { loggedIn: false, profile: null }
   }
   try {
     const session = await request<UserAuthSession>('/user/auth/session')
@@ -605,8 +579,7 @@ const resolveUserAuthSession = async (): Promise<UserAuthSession> => {
       return { loggedIn: true, profile: upsertLocalProfile(local) }
     }
     cacheUserToken('')
-    const restoredProfile = await trySilentWechatLogin(local)
-    return restoredProfile ? { loggedIn: true, profile: restoredProfile } : { loggedIn: false, profile: null }
+    return { loggedIn: false, profile: null }
   }
 }
 
