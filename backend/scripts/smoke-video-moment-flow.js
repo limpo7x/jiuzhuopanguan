@@ -59,8 +59,16 @@ const stopServer = async (child) => {
   if (!child || child.killed) {
     return
   }
-  child.kill()
-  await new Promise((resolve) => child.once('exit', resolve))
+  const exited = new Promise((resolve) => child.once('exit', resolve))
+  child.kill('SIGTERM')
+  const timedOut = await Promise.race([
+    exited.then(() => false),
+    delay(3000).then(() => true),
+  ])
+  if (timedOut) {
+    child.kill('SIGKILL')
+    await Promise.race([exited, delay(1000)])
+  }
 }
 
 const api = async (pathname, { method = 'GET', token = '', body } = {}) => {
