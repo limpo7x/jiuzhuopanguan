@@ -19,7 +19,7 @@ const assert = (condition, message) => {
   }
 }
 
-const main = () => {
+const main = async () => {
   const originalAdminStore = clone(getAdminStore())
   const originalMomentsStore = clone(readMomentsStore())
   const suffix = `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
@@ -54,7 +54,7 @@ const main = () => {
         visibility: 'share',
       },
     })
-    const noConsentEligibility = getMomentNominationEligibility({
+    const noConsentEligibility = await getMomentNominationEligibility({
       category: 'today_highlight',
       momentId: noConsentMoment.id,
       profile: host,
@@ -75,14 +75,14 @@ const main = () => {
         visibility: 'share',
       },
     })
-    const pendingEligibility = getMomentNominationEligibility({
+    const pendingEligibility = await getMomentNominationEligibility({
       category: 'best_opening',
       momentId: pendingMoment.id,
       profile: host,
     })
     assert(pendingEligibility.eligible === false, 'pending moment should not be eligible before approval')
     assert(pendingEligibility.reasonCode === 'content_review_required', 'pending reasonCode mismatch')
-    assert(pendingEligibility.reasonText === '内容安全确认后可参与回忆榜', 'pending reasonText mismatch')
+    assert(pendingEligibility.reasonText === '图片无法读取，不能进行内容安全审核，请重新上传', 'pending reasonText mismatch')
 
     reviewManagedMoment({
       action: 'approve',
@@ -90,7 +90,7 @@ const main = () => {
       operator: 'smoke-nomination-eligibility-reasons',
       reason: 'smoke approve nomination eligibility',
     })
-    const approvedEligibility = getMomentNominationEligibility({
+    const approvedEligibility = await getMomentNominationEligibility({
       category: 'best_opening',
       momentId: pendingMoment.id,
       profile: host,
@@ -115,3 +115,7 @@ const main = () => {
 }
 
 main()
+  .catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })

@@ -30,9 +30,9 @@ const assert = (condition, message) => {
   }
 }
 
-const expectHttpError = (action, statusCode, message) => {
+const expectHttpError = async (action, statusCode, message) => {
   try {
-    action()
+    await action()
   } catch (error) {
     assert(error.statusCode === statusCode, `${message}: expected ${statusCode}, got ${error.statusCode || error.message}`)
     return error
@@ -210,7 +210,7 @@ const main = async () => {
       reason: 'ugc risk hide unsafe moment',
     })
 
-    expectHttpError(
+    await expectHttpError(
       () =>
         createMoment({
           sessionId,
@@ -226,7 +226,7 @@ const main = async () => {
       400,
       'private moment accepted empty visibleProfileIds',
     )
-    expectHttpError(
+    await expectHttpError(
       () =>
         createMoment({
           sessionId,
@@ -242,7 +242,7 @@ const main = async () => {
       400,
       'private moment accepted outsider visibleProfileIds',
     )
-    expectHttpError(
+    await expectHttpError(
       () => getSessionTimeline({ sessionId, profile: outsider }),
       403,
       'outsider could read session timeline',
@@ -267,8 +267,8 @@ const main = async () => {
     assert(privateForNonReceiver.rewardEligible === false, 'non receiver private node rewardEligible leaked true')
 
     const brief = createOrRefreshSessionBrief({ sessionId, profile: host })
-    ;[privateMoment, needsMedia, unreviewed, hidden].forEach((moment) => {
-      expectHttpError(
+    for (const moment of [privateMoment, needsMedia, unreviewed, hidden]) {
+      await expectHttpError(
         () =>
           createShareImageTask({
             briefId: brief.id,
@@ -281,7 +281,7 @@ const main = async () => {
         400,
         `share task accepted unsafe node ${moment.id}`,
       )
-    })
+    }
 
     const shareTask = createShareImageTask({
       briefId: brief.id,
@@ -305,10 +305,10 @@ const main = async () => {
     }
     writeContentStore(contentStore)
 
-    ;[privateMoment, needsMedia, unreviewed, hidden].forEach((moment) => {
-      const eligibility = getMomentNominationEligibility({ category: 'today_highlight', momentId: moment.id, profile: memberB })
+    for (const moment of [privateMoment, needsMedia, unreviewed, hidden]) {
+      const eligibility = await getMomentNominationEligibility({ category: 'today_highlight', momentId: moment.id, profile: memberB })
       assert(eligibility.eligible === false, `unsafe moment ${moment.id} is nomination eligible`)
-      expectHttpError(
+      await expectHttpError(
         () =>
           createMomentNomination({
             momentId: moment.id,
@@ -321,9 +321,9 @@ const main = async () => {
         400,
         `nomination accepted unsafe moment ${moment.id}`,
       )
-    })
+    }
 
-    const nomination = createMomentNomination({
+    const nomination = await createMomentNomination({
       momentId: approvedPublic.id,
       profile: memberB,
       payload: {

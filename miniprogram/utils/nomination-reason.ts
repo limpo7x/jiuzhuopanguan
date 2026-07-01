@@ -3,6 +3,7 @@ export interface NominationReasonLike {
   reason?: string
   reasonCode?: string
   reasonText?: string
+  moderationReason?: string
   reviewStatus?: string
   secondaryReviewStatus?: string
   usageConsent?: { ranking?: boolean }
@@ -13,6 +14,7 @@ export interface NominationReasonLike {
 
 const reasonTextMap: Record<string, string> = {
   already_nominated_today: '今天已推举过这张照片',
+  content_review_rejected: '图片内容安全审核未通过，请更换后再推举',
   content_review_required: '内容安全确认后可参与回忆榜',
   media_incomplete: '照片还没有保存完成',
   moment_removed: '这张照片已被移出榜单候选',
@@ -33,6 +35,8 @@ const legacyReasonMap: Array<[RegExp, string]> = [
 export const resolveNominationReasonText = (source: NominationReasonLike = {}) => {
   const reasonText = String(source.reasonText || '').trim()
   if (reasonText) return reasonText
+  const moderationReason = String(source.moderationReason || '').trim()
+  if (moderationReason) return moderationReason
   const reasonCode = String(source.reasonCode || '').trim()
   if (reasonCode && reasonTextMap[reasonCode]) return reasonTextMap[reasonCode]
 
@@ -59,6 +63,7 @@ export const resolveNominationDisabledLabel = (source: NominationReasonLike = {}
   if (reasonCode === 'already_nominated_today') return '已推举'
   if (reasonCode === 'ranking_consent_required') return '需授权'
   if (reasonCode === 'visibility_not_public') return '私密'
+  if (reasonCode === 'content_review_rejected') return '已打回'
   if (reasonCode === 'content_review_required') return '待确认'
   return '不可推举'
 }

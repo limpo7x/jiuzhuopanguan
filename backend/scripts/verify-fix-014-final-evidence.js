@@ -454,13 +454,13 @@ const createEvidence = async ({ args }) => {
   const imageProbe = await inspectUrl(baseUrl, readyShareImageUrl)
   assert(imageProbe.exists, `ready image url not fetchable: ${imageProbe.status}`)
 
-  const eligibility = getMomentNominationEligibility({
+  const eligibility = await getMomentNominationEligibility({
     momentId: opening.id,
     profile: memberA.profile,
     category: 'best_opening',
   })
   assert(eligibility.eligible === true, `nomination not eligible: ${eligibility.reasonCode || eligibility.reason || ''}`)
-  const nomination = createMomentNomination({
+  const nomination = await createMomentNomination({
     momentId: opening.id,
     profile: memberA.profile,
     payload: {

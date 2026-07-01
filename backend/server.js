@@ -1494,12 +1494,12 @@ const server = http.createServer((request, response) => {
       const momentId = momentSegments[3]
       const momentAction = momentSegments[4]
       if (request.method === 'GET' && momentId && momentAction === 'nomination-eligibility') {
-        sendOk(response, getMomentNominationEligibility({ momentId, profile: userSession.profile, category: query.category }))
+        sendOk(response, await getMomentNominationEligibility({ momentId, profile: userSession.profile, category: query.category }))
         return
       }
       if (request.method === 'POST' && momentId && momentAction === 'nominations') {
         const payload = await readJsonBody(request)
-        sendOk(response, createMomentNomination({ momentId, profile: userSession.profile, payload }), 201)
+        sendOk(response, await createMomentNomination({ momentId, profile: userSession.profile, payload }), 201)
         return
       }
       if (request.method === 'PUT' && momentId) {

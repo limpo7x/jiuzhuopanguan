@@ -7,6 +7,7 @@ const { createDefaultUserCommerceState, readContentStore, writeContentStore } = 
 const { listProfiles } = require('./social')
 const { createStoreAccessor } = require('./store-accessor')
 const { deleteObject, putObject, readObjectForRender } = require('./object-storage')
+const { moderateImage } = require('./wechat-image-moderation')
 
 const storePath = path.join(__dirname, 'moments-store.json')
 const momentsUploadRoot = path.join(__dirname, '..', 'public', 'uploads', 'moments')
@@ -147,6 +148,13 @@ const normalizeMomentRecord = (item = {}) => {
     completionStatus,
     reviewStatus,
     secondaryReviewStatus,
+    moderationSuggestion: cleanText(item.moderationSuggestion),
+    moderationLabel: cleanText(item.moderationLabel),
+    moderationSubLabel: cleanText(item.moderationSubLabel),
+    moderationScore: Math.max(0, Number(item.moderationScore) || 0),
+    moderationReason: cleanText(item.moderationReason),
+    moderationRequestId: cleanText(item.moderationRequestId),
+    moderationCheckedAt: cleanText(item.moderationCheckedAt),
     rankingEligible,
     rewardEligible,
     isTimelinePlaceholder: item.isTimelinePlaceholder === true,
@@ -298,6 +306,15 @@ const normalizeUploadedAsset = (item = {}) => {
     coverLocalCompatUrl: cleanText(item.coverLocalCompatUrl),
     duration: Math.max(0, Number(item.duration) || 0),
     storageProvider: cleanText(item.storageProvider),
+    reviewStatus: cleanText(item.reviewStatus),
+    secondaryReviewStatus: cleanText(item.secondaryReviewStatus),
+    moderationSuggestion: cleanText(item.moderationSuggestion),
+    moderationLabel: cleanText(item.moderationLabel),
+    moderationSubLabel: cleanText(item.moderationSubLabel),
+    moderationScore: Math.max(0, Number(item.moderationScore) || 0),
+    moderationReason: cleanText(item.moderationReason),
+    moderationRequestId: cleanText(item.moderationRequestId),
+    moderationCheckedAt: cleanText(item.moderationCheckedAt),
     boundMomentId: cleanText(item.boundMomentId),
     boundAt: cleanText(item.boundAt),
     removedAt: cleanText(item.removedAt),
@@ -499,6 +516,9 @@ const serializeMomentForViewer = (moment = {}, profileId = '') => {
     completionStatus: moment.completionStatus,
     reviewStatus: allowed ? moment.reviewStatus : undefined,
     secondaryReviewStatus: allowed ? moment.secondaryReviewStatus : undefined,
+    moderationSuggestion: allowed ? moment.moderationSuggestion : undefined,
+    moderationLabel: allowed ? moment.moderationLabel : undefined,
+    moderationReason: allowed ? moment.moderationReason : undefined,
     rankingEligible: allowed ? moment.rankingEligible : false,
     rewardEligible: allowed ? moment.rewardEligible : false,
     isTimelinePlaceholder: !allowed,
@@ -601,6 +621,134 @@ const isMomentPublicForRanking = (moment = {}) => {
   )
 }
 
+const getModerationPublicBaseUrl = () =>
+  cleanText(
+    process.env.WECHAT_IMAGE_MODERATION_PUBLIC_BASE_URL ||
+      process.env.API_PUBLIC_BASE_URL ||
+      process.env.BACKEND_PUBLIC_BASE_URL ||
+      process.env.PUBLIC_BASE_URL,
+  ).replace(/\/+$/, '')
+
+const toModerationFileUrl = (imageUrl = '') => {
+  const text = cleanText(imageUrl)
+  if (!text) return ''
+  if (/^https?:\/\//i.test(text)) return text
+  if (!text.startsWith('/')) return ''
+  const baseUrl = getModerationPublicBaseUrl()
+  return baseUrl ? `${baseUrl}${text}` : ''
+}
+
+const resolveMomentModerationSource = async (moment = {}) => {
+  const imageUrl = cleanText(moment.imageUrl || moment.coverImageUrl)
+  if (!imageUrl) {
+    return {}
+  }
+  const imageBuffer = await readObjectForRender({ url: imageUrl })
+  if (Buffer.isBuffer(imageBuffer) && imageBuffer.length && imageBuffer.length <= MAX_MOMENT_IMAGE_BYTES) {
+    return { fileContent: imageBuffer.toString('base64') }
+  }
+  const fileUrl = toModerationFileUrl(imageUrl)
+  return fileUrl ? { fileUrl } : {}
+}
+
+const isReviewApproved = (moment = {}) => moment.reviewStatus === 'approved' && moment.secondaryReviewStatus === 'approved'
+
+const isReviewFinalRejected = (moment = {}) =>
+  ['hidden', 'rejected'].includes(cleanText(moment.reviewStatus)) ||
+  ['rejected', 'require_resubmit'].includes(cleanText(moment.secondaryReviewStatus))
+
+const shouldModerateMomentForRanking = (moment = {}) => {
+  if (!moment || moment.removedAt || isReviewApproved(moment) || isReviewFinalRejected(moment)) {
+    return false
+  }
+  if (moment.mediaType !== 'image' || moment.completionStatus !== 'complete' || !cleanText(moment.imageUrl)) {
+    return false
+  }
+  const usageConsent = normalizeUsageConsent(moment.usageConsent)
+  const visibility = cleanText(moment.visibility)
+  const isPrivate = moment.nodeType === 'private' || visibility === 'private' || visibility === 'selected'
+  return usageConsent.ranking !== false && !isPrivate
+}
+
+const applyMomentModerationResult = ({ store, index, result }) => {
+  const moment = normalizeMomentRecord(store.momentRecords[index])
+  const now = nowIso()
+  const reviewed = normalizeMomentRecord({
+    ...moment,
+    moderationCheckedAt: now,
+    moderationLabel: result.label,
+    moderationReason: result.reason,
+    moderationRequestId: result.requestId,
+    moderationScore: result.score,
+    moderationSubLabel: result.subLabel,
+    moderationSuggestion: result.suggestion,
+    reviewStatus: result.passed ? 'approved' : 'rejected',
+    secondaryReviewStatus: result.passed ? 'approved' : 'require_resubmit',
+    updatedAt: now,
+  })
+  const status = computeMomentStatus(reviewed)
+  const next = normalizeMomentRecord({
+    ...reviewed,
+    ...status,
+  })
+  store.momentRecords[index] = next
+  writeMomentsStore(store)
+  return next
+}
+
+const buildModerationAssetFields = (result = {}) => ({
+  moderationCheckedAt: nowIso(),
+  moderationLabel: result.label,
+  moderationReason: result.reason,
+  moderationRequestId: result.requestId,
+  moderationScore: result.score,
+  moderationSubLabel: result.subLabel,
+  moderationSuggestion: result.suggestion,
+  reviewStatus: result.passed ? 'approved' : 'rejected',
+  secondaryReviewStatus: result.passed ? 'approved' : 'require_resubmit',
+})
+
+const ensureMomentModerationForRanking = async (momentId = '') => {
+  const store = readMomentsStore()
+  const index = store.momentRecords.findIndex((item) => item.id === cleanText(momentId) && !item.removedAt)
+  if (index === -1) {
+    return { moment: null, error: createHttpError('moment not found', 404) }
+  }
+  const moment = normalizeMomentRecord(store.momentRecords[index])
+  if (!shouldModerateMomentForRanking(moment)) {
+    return { moment, error: null }
+  }
+
+  try {
+    const source = await resolveMomentModerationSource(moment)
+    if (!source.fileContent && !source.fileUrl) {
+      return {
+        moment: {
+          ...moment,
+          moderationReason: '图片无法读取，不能进行内容安全审核，请重新上传',
+        },
+        error: null,
+      }
+    }
+    const result = await moderateImage({
+      ...source,
+      clientMsgId: `moment-${moment.id}-${Date.now()}`,
+    })
+    return {
+      moment: applyMomentModerationResult({ store, index, result }),
+      error: null,
+    }
+  } catch (error) {
+    return {
+      moment: {
+        ...moment,
+        moderationReason: error instanceof Error ? error.message : '图片审核失败，请稍后再试',
+      },
+      error,
+    }
+  }
+}
+
 const getMomentNominationIneligibility = (moment = {}) => {
   if (moment.removedAt) {
     return { reason: 'moment removed from ranking', reasonCode: 'moment_removed', reasonText: '这张照片已被移出榜单候选' }
@@ -617,7 +765,13 @@ const getMomentNominationIneligibility = (moment = {}) => {
     return { reason: 'moment visibility is private', reasonCode: 'visibility_not_public', reasonText: '私密照片不能参与回忆榜' }
   }
   if (moment.reviewStatus !== 'approved' || moment.secondaryReviewStatus !== 'approved') {
-    return { reason: 'content safety review required', reasonCode: 'content_review_required', reasonText: '内容安全确认后可参与回忆榜' }
+    const moderationReason = cleanText(moment.moderationReason)
+    const rejected = isReviewFinalRejected(moment)
+    return {
+      reason: moderationReason || 'content safety review required',
+      reasonCode: rejected ? 'content_review_rejected' : 'content_review_required',
+      reasonText: moderationReason || (rejected ? '图片内容安全审核未通过，请更换后再推举' : '内容安全确认后可参与回忆榜'),
+    }
   }
   if (!moment.rankingEligible) {
     return { reason: 'ranking eligibility disabled', reasonCode: 'ranking_not_enabled', reasonText: '暂未满足回忆榜资格' }
@@ -1752,6 +1906,58 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
   `
 }
 
+const isPublicImageForModeration = ({ imageUrl = '', mediaType = 'image', nodeType = '', visibility = '' } = {}) => {
+  const normalizedVisibility = cleanText(visibility)
+  return Boolean(
+    mediaType === 'image' &&
+      cleanText(imageUrl) &&
+      nodeType !== 'private' &&
+      normalizedVisibility !== 'private' &&
+      normalizedVisibility !== 'selected',
+  )
+}
+
+const resolveInitialMomentReviewState = ({ reusableOpening, uploadAsset, imageUrl, mediaType, nodeType, visibility } = {}) => {
+  if (reusableOpening) {
+    return {
+      moderationCheckedAt: reusableOpening.moderationCheckedAt,
+      moderationLabel: reusableOpening.moderationLabel,
+      moderationReason: reusableOpening.moderationReason,
+      moderationRequestId: reusableOpening.moderationRequestId,
+      moderationScore: reusableOpening.moderationScore,
+      moderationSubLabel: reusableOpening.moderationSubLabel,
+      moderationSuggestion: reusableOpening.moderationSuggestion,
+      reviewStatus: reusableOpening.reviewStatus || 'approved',
+      secondaryReviewStatus: reusableOpening.secondaryReviewStatus || 'approved',
+    }
+  }
+  if (uploadAsset && cleanText(uploadAsset.reviewStatus)) {
+    return {
+      moderationCheckedAt: uploadAsset.moderationCheckedAt,
+      moderationLabel: uploadAsset.moderationLabel,
+      moderationReason: uploadAsset.moderationReason,
+      moderationRequestId: uploadAsset.moderationRequestId,
+      moderationScore: uploadAsset.moderationScore,
+      moderationSubLabel: uploadAsset.moderationSubLabel,
+      moderationSuggestion: uploadAsset.moderationSuggestion,
+      reviewStatus: uploadAsset.reviewStatus,
+      secondaryReviewStatus: uploadAsset.secondaryReviewStatus || uploadAsset.reviewStatus,
+    }
+  }
+  const needsModeration = isPublicImageForModeration({ imageUrl, mediaType, nodeType, visibility })
+  return {
+    moderationCheckedAt: '',
+    moderationLabel: '',
+    moderationReason: '',
+    moderationRequestId: '',
+    moderationScore: 0,
+    moderationSubLabel: '',
+    moderationSuggestion: '',
+    reviewStatus: needsModeration ? 'pending' : 'approved',
+    secondaryReviewStatus: needsModeration ? 'pending' : 'approved',
+  }
+}
+
 const createMoment = ({ sessionId, profile, payload = {} }) => {
   const { member, profileId, session } = assertSessionMember(sessionId, profile)
   const nodeType = NODE_TYPES.has(cleanText(payload.nodeType)) ? cleanText(payload.nodeType) : 'highlight'
@@ -1784,6 +1990,40 @@ const createMoment = ({ sessionId, profile, payload = {} }) => {
           (item) => item.sessionId === cleanText(sessionId) && item.uploaderProfileId === profileId && item.nodeType === 'opening' && !item.removedAt,
         )
       : null
+  const uploadAssetId = cleanText(payload.uploadAssetId || payload.uploadVideoAssetId)
+  const uploadAssetIndex = uploadAssetId ? store.uploadedAssets.findIndex((item) => cleanText(item.id) === uploadAssetId) : -1
+  const uploadAsset = uploadAssetIndex >= 0 ? normalizeUploadedAsset(store.uploadedAssets[uploadAssetIndex]) : null
+  if (uploadAssetId && !uploadAsset) {
+    throw createHttpError('upload asset not found', 404)
+  }
+  if (uploadAsset) {
+    if (uploadAsset.uploaderProfileId !== profileId || uploadAsset.sessionId !== cleanText(sessionId)) {
+      throw createHttpError('upload asset forbidden', 403)
+    }
+    if (mediaType === 'video' && uploadAsset.assetType !== 'video') {
+      throw createHttpError('video upload asset required', 400)
+    }
+    if (mediaType === 'image' && uploadAsset.assetType === 'video') {
+      throw createHttpError('image upload asset required', 400)
+    }
+    if (uploadAsset.removedAt) {
+      throw createHttpError('upload asset removed', 410)
+    }
+    if (uploadAsset.boundMomentId && uploadAsset.boundMomentId !== reusableOpening?.id) {
+      throw createHttpError('upload asset already bound', 409)
+    }
+  }
+  const imageUrl = mediaType === 'image' ? cleanText(payload.imageUrl) : ''
+  const videoUrl = mediaType === 'video' ? cleanText(payload.videoUrl) : ''
+  const coverImageUrl = cleanText(payload.coverImageUrl)
+  const initialReviewState = resolveInitialMomentReviewState({
+    imageUrl,
+    mediaType,
+    nodeType,
+    reusableOpening,
+    uploadAsset,
+    visibility,
+  })
   const base = {
     ...(reusableOpening || {}),
     id: reusableOpening?.id || createId('moment'),
@@ -1793,17 +2033,16 @@ const createMoment = ({ sessionId, profile, payload = {} }) => {
     uploaderName: cleanText(profile.name || member.name),
     nodeType,
     mediaType,
-    imageUrl: mediaType === 'image' ? cleanText(payload.imageUrl) : '',
-    videoUrl: mediaType === 'video' ? cleanText(payload.videoUrl) : '',
-    coverImageUrl: cleanText(payload.coverImageUrl),
+    imageUrl,
+    videoUrl,
+    coverImageUrl,
     duration: mediaType === 'video' ? Math.min(5, Math.max(0, Number(payload.duration) || 0)) : 0,
     caption: cleanText(payload.caption) || buildDefaultCaption(nodeType),
     tags: normalizeStringArray(payload.tags),
     visibility,
     visibleProfileIds,
     usageConsent: normalizeUsageConsent(payload.usageConsent),
-    reviewStatus: reusableOpening?.reviewStatus || 'approved',
-    secondaryReviewStatus: reusableOpening?.secondaryReviewStatus || 'approved',
+    ...initialReviewState,
     removedAt: '',
     createdAt: reusableOpening?.createdAt || nowIso(),
     updatedAt: nowIso(),
@@ -1814,34 +2053,13 @@ const createMoment = ({ sessionId, profile, payload = {} }) => {
     ...status,
     timelineTitle: cleanText(payload.timelineTitle) || buildTimelineTitle(base),
   })
-  const uploadAssetId = cleanText(payload.uploadAssetId || payload.uploadVideoAssetId)
 
   store.momentRecords = reusableOpening
     ? store.momentRecords.map((item) => (item.id === reusableOpening.id ? next : item))
     : [next, ...store.momentRecords]
   if (uploadAssetId && (cleanText(next.imageUrl) || cleanText(next.videoUrl))) {
-    const assetIndex = store.uploadedAssets.findIndex((item) => cleanText(item.id) === uploadAssetId)
-    if (assetIndex === -1) {
-      throw createHttpError('upload asset not found', 404)
-    }
-    const asset = normalizeUploadedAsset(store.uploadedAssets[assetIndex])
-    if (asset.uploaderProfileId !== profileId || asset.sessionId !== cleanText(sessionId)) {
-      throw createHttpError('upload asset forbidden', 403)
-    }
-    if (next.mediaType === 'video' && asset.assetType !== 'video') {
-      throw createHttpError('video upload asset required', 400)
-    }
-    if (next.mediaType === 'image' && asset.assetType === 'video') {
-      throw createHttpError('image upload asset required', 400)
-    }
-    if (asset.removedAt) {
-      throw createHttpError('upload asset removed', 410)
-    }
-    if (asset.boundMomentId && asset.boundMomentId !== next.id) {
-      throw createHttpError('upload asset already bound', 409)
-    }
-    store.uploadedAssets[assetIndex] = {
-      ...asset,
+    store.uploadedAssets[uploadAssetIndex] = {
+      ...uploadAsset,
       boundAt: nowIso(),
       boundMomentId: next.id,
       updatedAt: nowIso(),
@@ -2521,17 +2739,21 @@ const listTodayRankings = ({ category = 'today_highlight', limit = 20 } = {}) =>
   }
 }
 
-const getMomentNominationEligibility = ({ momentId, profile, category }) => {
+const getMomentNominationEligibility = async ({ momentId, profile, category }) => {
   const profileId = getProfileId(profile)
   if (!profileId) {
     throw createHttpError('unauthorized', 401)
   }
   const store = readMomentsStore()
-  const moment = findMomentById(store, momentId)
+  let moment = findMomentById(store, momentId)
   if (!moment) {
     throw createHttpError('moment not found', 404)
   }
   assertSessionMember(moment.sessionId, profile)
+  const moderationCheck = await ensureMomentModerationForRanking(moment.id)
+  if (moderationCheck.moment) {
+    moment = moderationCheck.moment
+  }
   const normalizedCategory = getRankingCategory(category, moment)
   const ineligibility = getMomentNominationIneligibility(moment)
   const eligible = isMomentPublicForRanking(moment)
@@ -2556,13 +2778,13 @@ const getMomentNominationEligibility = ({ momentId, profile, category }) => {
   }
 }
 
-const createMomentNomination = ({ momentId, profile, payload = {} }) => {
+const createMomentNomination = async ({ momentId, profile, payload = {} }) => {
   const profileId = getProfileId(profile)
   if (!profileId) {
     throw createHttpError('unauthorized', 401)
   }
-  const store = readMomentsStore()
-  const moment = findMomentById(store, momentId)
+  let store = readMomentsStore()
+  let moment = findMomentById(store, momentId)
   if (!moment) {
     throw createHttpError('moment not found', 404)
   }
@@ -2577,9 +2799,15 @@ const createMomentNomination = ({ momentId, profile, payload = {} }) => {
   if (existingByClientId) {
     return existingByClientId
   }
-  const eligibility = getMomentNominationEligibility({ momentId: moment.id, profile, category })
+  const eligibility = await getMomentNominationEligibility({ momentId: moment.id, profile, category })
   if (!eligibility.eligible) {
     throw createHttpError(eligibility.reasonText || eligibility.reason || 'moment is not eligible for ranking', eligibility.alreadyNominatedToday ? 409 : 400)
+  }
+  store = readMomentsStore()
+  moment = findMomentById(store, moment.id)
+  if (!moment || !isMomentPublicForRanking(moment)) {
+    const ineligibility = getMomentNominationIneligibility(moment || {})
+    throw createHttpError(ineligibility.reasonText || '内容安全审核未通过，暂不能推举', 400)
   }
 
   const contentStore = readContentStore()
@@ -2671,6 +2899,13 @@ const uploadMomentImage = async ({ profile, payload = {} }) => {
   const sessionId = cleanText(payload.sessionId)
   assertSessionMember(sessionId, profile)
   const { buffer } = parseImageDataUrl(payload.dataUrl)
+  const moderationResult = await moderateImage({
+    clientMsgId: `upload-${sessionId || 'general'}-${Date.now()}`,
+    fileContent: buffer.toString('base64'),
+  })
+  if (!moderationResult.passed) {
+    throw createHttpError(moderationResult.reason || '图片内容安全审核未通过，请更换后再试', 400)
+  }
   const safeBaseName =
     cleanText(path.parse(cleanText(payload.fileName) || 'moment').name)
       .toLowerCase()
@@ -2705,6 +2940,7 @@ const uploadMomentImage = async ({ profile, payload = {} }) => {
     publicUrl: storedObject.publicUrl,
     localCompatUrl: storedObject.localCompatUrl,
     storageProvider: storedObject.provider,
+    ...buildModerationAssetFields(moderationResult),
     createdAt: nowIso(),
   }
   const store = readMomentsStore()

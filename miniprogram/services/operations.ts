@@ -175,6 +175,11 @@ interface RemoteMomentRecord {
   isTimelinePlaceholder?: boolean
   kind?: 'moment'
   mediaType?: 'image' | 'video'
+  moderationCheckedAt?: string
+  moderationLabel?: string
+  moderationReason?: string
+  moderationScore?: number
+  moderationSuggestion?: string
   nodeKind?: 'moment'
   nodeType?: 'opening' | 'highlight' | 'drinking' | 'private' | 'closing'
   rankingEligible?: boolean
@@ -639,6 +644,11 @@ export interface ManagedMomentRecord {
   imageUrl?: string
   isTimelinePlaceholder: boolean
   mediaType: 'image' | 'video'
+  moderationCheckedAt?: string
+  moderationLabel?: string
+  moderationReason?: string
+  moderationScore?: number
+  moderationSuggestion?: string
   nodeKind: 'moment'
   nodeType: ManagedMomentNodeType
   rankingEligible: boolean
@@ -702,9 +712,16 @@ export interface ManagedMomentUploadResult {
   duration?: number
   fileName: string
   id: string
+  moderationCheckedAt?: string
+  moderationLabel?: string
+  moderationReason?: string
+  moderationScore?: number
+  moderationSuggestion?: string
   mimeType: string
   objectKey?: string
   publicUrl?: string
+  reviewStatus?: ManagedMomentReviewStatus
+  secondaryReviewStatus?: ManagedMomentSecondaryReviewStatus
   sessionId: string
   size: number
   storageProvider?: string
@@ -1258,6 +1275,11 @@ const normalizeMomentRecord = (item?: RemoteMomentRecord): ManagedMomentRecord =
     imageUrl: mediaType === 'video' ? coverImageUrl : resolveRemoteMomentImageUrl(item),
     isTimelinePlaceholder: Boolean(item?.isTimelinePlaceholder),
     mediaType,
+    moderationCheckedAt: item?.moderationCheckedAt || '',
+    moderationLabel: item?.moderationLabel || '',
+    moderationReason: item?.moderationReason || '',
+    moderationScore: Number(item?.moderationScore) || 0,
+    moderationSuggestion: item?.moderationSuggestion || '',
     nodeKind: 'moment',
     nodeType: item?.nodeType || 'highlight',
     rankingEligible: Boolean(item?.rankingEligible),

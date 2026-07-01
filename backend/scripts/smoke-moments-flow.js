@@ -32,9 +32,9 @@ const assert = (condition, message) => {
   }
 }
 
-const expectHttpError = (action, statusCode, message) => {
+const expectHttpError = async (action, statusCode, message) => {
   try {
-    action()
+    await action()
   } catch (error) {
     assert(error.statusCode === statusCode, message)
     return
@@ -180,7 +180,7 @@ const main = async () => {
     })
     targetIds.push(opening.id, highlight.id, privateMoment.id, event.id)
 
-    expectHttpError(
+    await expectHttpError(
       () =>
         createMoment({
           sessionId: session.id,
@@ -196,7 +196,7 @@ const main = async () => {
       400,
       'private visibleProfileIds accepted outsider profile',
     )
-    expectHttpError(
+    await expectHttpError(
       () =>
         createSessionEvent({
           sessionId: session.id,
@@ -242,7 +242,7 @@ const main = async () => {
     })
     writeMomentsStore(activeStore)
     targetIds.push(activeAdminTaskId)
-    expectHttpError(
+    await expectHttpError(
       () =>
         retryManagedShareImageTaskAsAdmin({
           taskId: activeAdminTaskId,
@@ -268,7 +268,7 @@ const main = async () => {
     writeAdminStore(adminStoreForEndedSession)
 
     const brief = createOrRefreshSessionBrief({ sessionId: session.id, profile: host })
-    expectHttpError(
+    await expectHttpError(
       () =>
         createShareImageTask({
           briefId: brief.id,
@@ -279,7 +279,7 @@ const main = async () => {
       'share task accepted selectedNodeIds outside visible brief timeline',
     )
     const task = createShareImageTask({ briefId: brief.id, profile: host, payload: { layoutMode: 'timeline' } })
-    expectHttpError(
+    await expectHttpError(
       () => retryShareImageTask({ taskId: task.id, profile: host }),
       409,
       'share task retry accepted non failed task',
@@ -341,7 +341,7 @@ const main = async () => {
     })
     writeMomentsStore(nextStore)
     const adminFailedTask = readMomentsStore().shareImageTasks.find((item) => item.id === adminFailedTaskId)
-    expectHttpError(
+    await expectHttpError(
       () =>
         retryManagedShareImageTaskAsAdmin({
           taskId: adminNoVisibleTaskId,
@@ -370,7 +370,7 @@ const main = async () => {
       points: 50,
     }
     writeContentStore(contentStore)
-    const nomination = createMomentNomination({
+    const nomination = await createMomentNomination({
       momentId: highlight.id,
       profile: memberB,
       payload: {
@@ -378,7 +378,7 @@ const main = async () => {
         clientNominationId: `nomination-${suffix}`,
       },
     })
-    expectHttpError(
+    await expectHttpError(
       () =>
         createMomentNomination({
           momentId: highlight.id,
