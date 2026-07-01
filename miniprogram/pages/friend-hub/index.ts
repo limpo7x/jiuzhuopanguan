@@ -22,6 +22,7 @@ interface FriendPokeCard {
 }
 
 type FriendCategory = 'played' | 'unplayed'
+type FriendHubTab = FriendCategory | 'pokes'
 
 interface FriendHubCard extends WineFriend {
   coPlayCount: number
@@ -31,8 +32,9 @@ interface FriendHubCard extends WineFriend {
 }
 
 interface FriendHubState {
-  activeFriendCategory: FriendCategory
+  activeFriendCategory: FriendHubTab
   currentProfile: SocialProfile
+  hasPokeNotice: boolean
   newFriendMatches: SearchUserResult[]
   newFriendName: string
   playedFriends: FriendHubCard[]
@@ -51,11 +53,19 @@ interface FriendHubMethods {
   handlePokeTap: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   loadSocialData: () => Promise<void>
   showToast: (message: string) => void
+  switchFriendCategory: (category: FriendHubTab) => void
 }
 
 const readDatasetId = (event: WechatMiniprogram.BaseEvent) => String((event.currentTarget.dataset as { id?: string }).id || '').trim()
-const readDatasetCategory = (event: WechatMiniprogram.BaseEvent): FriendCategory =>
-  (event.currentTarget.dataset as { category?: FriendCategory }).category === 'unplayed' ? 'unplayed' : 'played'
+const readDatasetCategory = (event: WechatMiniprogram.BaseEvent): FriendHubTab => {
+  const currentDataset = event.currentTarget?.dataset as { category?: FriendHubTab } | undefined
+  const targetDataset = (event as unknown as { target?: { dataset?: { category?: FriendHubTab } } }).target?.dataset
+  const category = currentDataset?.category || targetDataset?.category
+  if (category === 'unplayed' || category === 'pokes') {
+    return category
+  }
+  return 'played'
+}
 
 const normalizeHubFriend = (friend: WineFriend): FriendHubCard => {
   const coPlayCount = Math.max(0, Number(friend.coPlayCount) || 0)
@@ -77,11 +87,11 @@ const filterFriends = (friends: FriendHubCard[], keyword: string) => {
   return friends.filter((item) => [item.name, item.meta].join(' ').toLowerCase().includes(trimmed))
 }
 
-const buildFriendState = (friends: WineFriend[], activeFriendCategory: FriendCategory, keyword: string) => {
+const buildFriendState = (friends: WineFriend[], activeFriendCategory: FriendHubTab, keyword: string) => {
   const wineFriends = friends.map(normalizeHubFriend)
   const playedFriends = wineFriends.filter((item) => item.coPlayCount > 0)
   const unplayedFriends = wineFriends.filter((item) => item.coPlayCount <= 0)
-  const baseFriends = activeFriendCategory === 'played' ? playedFriends : unplayedFriends
+  const baseFriends = activeFriendCategory === 'played' ? playedFriends : activeFriendCategory === 'unplayed' ? unplayedFriends : []
   return {
     playedFriends,
     unplayedFriends,
@@ -128,6 +138,8 @@ const buildPokeCards = (currentProfile: SocialProfile, pokeThreads: PokeThread[]
     }
   })
 
+const hasPokeNotice = (pokeCards: FriendPokeCard[]) => pokeCards.some((item) => item.actionState === 'incoming')
+
 Page<FriendHubState, FriendHubMethods>({
   data: {
     activeFriendCategory: 'played',
@@ -138,6 +150,7 @@ Page<FriendHubState, FriendHubMethods>({
       name: '',
       signature: '',
     },
+    hasPokeNotice: false,
     newFriendMatches: [],
     newFriendName: '',
     playedFriends: [],
@@ -159,10 +172,12 @@ Page<FriendHubState, FriendHubMethods>({
     const social = await bootstrapSocial()
     const currentProfile = resolveDisplayProfile(social.currentProfile)
     const friendState = buildFriendState(social.wineFriends, this.data.activeFriendCategory, this.data.newFriendName)
+    const pokeCards = buildPokeCards(currentProfile, social.pokeThreads)
     this.setData({
       currentProfile,
       ...friendState,
-      pokeCards: buildPokeCards(currentProfile, social.pokeThreads),
+      hasPokeNotice: hasPokeNotice(pokeCards),
+      pokeCards,
     })
   },
 
@@ -178,7 +193,11 @@ Page<FriendHubState, FriendHubMethods>({
   },
 
   handleFriendCategoryTap(event) {
-    const activeFriendCategory = readDatasetCategory(event)
+    this.switchFriendCategory(readDatasetCategory(event))
+  },
+
+  switchFriendCategory(activeFriendCategory) {
+    wx.hideKeyboard?.()
     const friendState = buildFriendState(this.data.wineFriends, activeFriendCategory, this.data.newFriendName)
     this.setData({
       activeFriendCategory,

@@ -5,14 +5,14 @@
     <view class="pp-hero pp-panel-cyan"><text class="pp-title">我的聚友</text><text class="pp-body">仅显示你参与过的聚会好友，支持拍一拍和删除。</text></view>
     <input class="pp-input" placeholder="输入好友昵称" placeholder-class="pp-placeholder" value="{{newFriendName}}" bindinput="handleNewFriendInput" />
     <view class="pp-tabs friend-hub-tabs">
-      <view class="pp-tab {{activeFriendCategory === 'played' ? 'pp-tab-active' : ''}}" data-category="played" bindtap="handleFriendCategoryTap">已合拍 {{playedFriends.length}}</view>
-      <view class="pp-tab {{activeFriendCategory === 'unplayed' ? 'pp-tab-active' : ''}}" data-category="unplayed" bindtap="handleFriendCategoryTap">未合拍 {{unplayedFriends.length}}</view>
-    </view>
-    <view wx:if="{{pokeCards.length}}" class="pp-panel friend-hub-pokes">
-      <view class="pp-row-between friend-hub-section-head">
-        <text class="pp-section-title">互动提醒</text>
-        <text class="pp-caption">拍一拍会同步给对方</text>
+      <view class="pp-tab friend-hub-tab {{activeFriendCategory === 'played' ? 'pp-tab-active' : ''}}" data-category="played" catchtap="handleFriendCategoryTap">已合拍 {{playedFriends.length}}</view>
+      <view class="pp-tab friend-hub-tab {{activeFriendCategory === 'unplayed' ? 'pp-tab-active' : ''}}" data-category="unplayed" catchtap="handleFriendCategoryTap">未合拍 {{unplayedFriends.length}}</view>
+      <view class="pp-tab friend-hub-tab {{activeFriendCategory === 'pokes' ? 'pp-tab-active' : ''}}" data-category="pokes" catchtap="handleFriendCategoryTap">
+        <text>互动</text>
+        <view wx:if="{{hasPokeNotice}}" class="friend-hub-tab-dot"></view>
       </view>
+    </view>
+    <view wx:if="{{activeFriendCategory === 'pokes' && pokeCards.length}}" class="friend-hub-pokes">
       <view class="pp-list friend-hub-poke-list">
         <view wx:for="{{pokeCards}}" wx:key="id" class="pp-list-item friend-hub-poke-card">
           <view class="pp-avatar">
@@ -31,7 +31,8 @@
         </view>
       </view>
     </view>
-    <view wx:if="{{visibleFriends.length}}" class="pp-list friend-hub-list">
+    <view wx:if="{{activeFriendCategory === 'pokes' && !pokeCards.length}}" class="pp-empty"><text class="pp-section-title">暂无互动提醒</text><text class="pp-body">有人拍一拍你，或你们完成回拍后会出现在这里。</text></view>
+    <view wx:if="{{activeFriendCategory !== 'pokes' && visibleFriends.length}}" class="pp-list friend-hub-list">
       <view wx:for="{{visibleFriends}}" wx:key="profileId" class="pp-list-item friend-hub-card">
         <view class="pp-avatar"><image wx:if="{{item.avatarUrl}}" class="pp-avatar" src="{{item.avatarUrl}}" mode="aspectFill"></image><text wx:else>友</text></view>
         <view class="pp-list-copy"><text class="pp-list-title">{{item.name}}</text><text class="pp-caption">{{item.meta || '一起记录过聚会'}}</text></view>
@@ -45,7 +46,7 @@
         <text wx:if="{{item.coPlayCountText}}" class="friend-hub-count">{{item.coPlayCountText}}</text>
       </view>
     </view>
-    <view wx:if="{{!visibleFriends.length}}" class="pp-empty"><text class="pp-section-title">{{wineFriends.length ? '这个分类暂无聚友' : '还没有聚友'}}</text><text class="pp-body">{{wineFriends.length ? '切换分类或调整昵称搜索。' : '一起参加聚会后会展示在这里。'}}</text></view>
+    <view wx:if="{{activeFriendCategory !== 'pokes' && !visibleFriends.length}}" class="pp-empty"><text class="pp-section-title">{{wineFriends.length ? '这个分类暂无聚友' : '还没有聚友'}}</text><text class="pp-body">{{wineFriends.length ? '切换分类或调整昵称搜索。' : '一起参加聚会后会展示在这里。'}}</text></view>
   </scroll-view>
   <pp-dialog state="{{__ppDialog}}" toast="{{__ppToast}}" loading="{{__ppLoading}}" bind:confirm="__handlePpDialogConfirm" bind:cancel="__handlePpDialogCancel"></pp-dialog>
 </view>

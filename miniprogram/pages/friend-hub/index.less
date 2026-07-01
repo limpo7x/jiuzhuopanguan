@@ -1,9 +1,5 @@
 @import "../../styles/party-pop-clean.less";
 
-.friend-hub-section-head {
-  margin-bottom: 14px;
-}
-
 .friend-hub-poke-list {
   gap: 12px;
 }
@@ -13,7 +9,38 @@
 }
 
 .friend-hub-tabs {
-  margin-top: -2px;
+  position: relative;
+  z-index: 5;
+  margin-top: 12px;
+}
+
+.friend-hub-tab {
+  position: relative;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  pointer-events: auto;
+}
+
+.friend-hub-tab:active {
+  transform: translateY(2px);
+}
+
+.friend-hub-tab-dot {
+  position: absolute;
+  top: 10px;
+  right: 22px;
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--pp-ink);
+  border-radius: 999px;
+  background: var(--pp-red);
+}
+
+.friend-hub-pokes {
+  margin-top: 12px;
 }
 
 .friend-hub-list {

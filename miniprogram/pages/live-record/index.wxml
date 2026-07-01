@@ -37,7 +37,10 @@
         <view wx:for="{{recordTimelineDisplayItems}}" wx:key="id" class="pp-timeline-item" data-id="{{item.id}}" data-node-kind="{{item.nodeKind}}" bindtap="handleTimelineSelect">
           <view class="live-timeline-head"><text class="pp-caption">{{item.timeText}}</text><text class="live-action-tag live-action-tag-{{item.type}}">{{item.actionLabel}}</text></view>
           <text class="pp-list-title">{{item.title}}</text>
-          <image wx:if="{{item.imageUrl && !item.imageBroken}}" class="pp-cover" style="width: 100%; height: 148px; margin-top: 10px;" src="{{item.imageUrl}}" mode="aspectFill" data-id="{{item.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
+          <view wx:if="{{item.imageUrl && !item.imageBroken}}" class="live-media-cover">
+            <image class="pp-cover" style="width: 100%; height: 148px;" src="{{item.imageUrl}}" mode="aspectFill" data-id="{{item.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
+            <view wx:if="{{item.mediaType === 'video'}}" class="live-video-badge"><text>▶ {{item.duration || 5}}s</text></view>
+          </view>
           <text class="pp-body">{{item.detail}}</text>
         </view>
       </view>
@@ -52,7 +55,10 @@
       <text class="pp-section-title">本局相册</text>
       <view wx:if="{{photoNodes.length}}" class="pp-photo-grid" style="margin-top: 14px;">
         <view wx:for="{{photoNodes}}" wx:key="id" class="pp-photo-tile" data-id="{{item.id}}" data-node-kind="{{item.nodeKind}}" bindtap="handleTimelineSelect">
-          <image wx:if="{{item.imageUrl && !item.imageBroken}}" src="{{item.imageUrl}}" mode="aspectFill" data-id="{{item.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
+          <block wx:if="{{item.imageUrl && !item.imageBroken}}">
+            <image src="{{item.imageUrl}}" mode="aspectFill" data-id="{{item.id}}" bindload="handlePhotoImageLoad" binderror="handlePhotoImageError"></image>
+            <view wx:if="{{item.mediaType === 'video'}}" class="live-video-tile-badge">▶ {{item.duration || 5}}s</view>
+          </block>
           <view wx:else class="pp-photo-fallback">照片</view>
         </view>
       </view>
@@ -86,6 +92,7 @@
   <view wx:if="{{activeSegment === 'record' || activeSegment === 'album' || activeSegment === 'share'}}" class="pp-fixed-actions">
     <block wx:if="{{!sessionEnded}}">
       <view class="pp-button pp-button-secondary {{quickPhotoSaving || finishSaving ? 'pp-button-disabled' : ''}}" bindtap="handleHighlightMomentTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-camera.png" mode="aspectFit"></image><text>{{quickPhotoSaving ? '保存中' : '继续拍照'}}</text></view>
+      <view class="pp-button pp-button-secondary {{quickVideoSaving || finishSaving ? 'pp-button-disabled' : ''}}" bindtap="handleRecordVideoTap"><text>{{quickVideoSaving ? '保存中' : '录 5 秒'}}</text></view>
       <view class="pp-button pp-button-primary {{finishSaving ? 'pp-button-disabled' : ''}}" bindtap="handleFinishTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-end.png" mode="aspectFit"></image><text>{{finishSaving ? '保存中' : finishMatchLabel}}</text></view>
     </block>
     <block wx:else>
@@ -93,12 +100,33 @@
       <view class="pp-button pp-button-primary {{finishSaving ? 'pp-button-disabled' : ''}}" bindtap="handleSaveEndedPosterTap"><image class="pp-icon" src="https://cdn.pomer.cn/static/party-pop-clean/icons/action-end.png" mode="aspectFit"></image><text>{{finishSaving ? '保存中' : finishMatchLabel}}</text></view>
     </block>
   </view>
+  <view wx:if="{{recordVideoVisible}}" class="live-record-video-layer">
+    <camera class="live-record-camera" mode="normal" device-position="back" flash="off" bindinitdone="handleRecordVideoCameraInitDone" binderror="handleRecordVideoCameraError"></camera>
+    <view class="live-record-camera-mask">
+      <view class="live-record-countdown">
+        <text class="live-record-countdown-number">{{recordVideoCountdown}}</text>
+        <text class="live-record-countdown-label">{{recordVideoMessage || '正在记录现场'}}</text>
+      </view>
+      <view class="live-record-camera-actions">
+        <view class="pp-button pp-button-secondary live-record-cancel" bindtap="handleRecordVideoCancelTap">取消</view>
+      </view>
+    </view>
+  </view>
   <view wx:if="{{photoPreviewVisible}}" class="{{photoPreviewClass}}" catchtap="handlePhotoPreviewCloseTap">
     <view class="{{photoPreviewStageClass}}" catchtap="handlePhotoPreviewStopTap">
       <image class="live-photo-preview-image" src="{{photoPreviewImageUrl}}" mode="aspectFit"></image>
       <view wx:if="{{photoPreviewInfoVisible}}" class="live-photo-preview-info">
         <text wx:if="{{photoPreviewTitle}}" class="live-photo-preview-title">{{photoPreviewTitle}}</text>
         <text wx:if="{{photoPreviewCaption}}" class="live-photo-preview-caption">{{photoPreviewCaption}}</text>
+      </view>
+    </view>
+  </view>
+  <view wx:if="{{videoPreviewVisible}}" class="live-video-preview" catchtap="handleVideoPreviewCloseTap">
+    <view class="live-video-preview-stage" catchtap="handleVideoPreviewStopTap">
+      <video class="live-video-preview-player" src="{{videoPreviewUrl}}" object-fit="contain" autoplay controls show-center-play-btn></video>
+      <view class="live-photo-preview-info">
+        <text class="live-photo-preview-title">{{videoPreviewTitle || '5 秒视频留念'}}</text>
+        <text class="live-photo-preview-caption">点击灰色区域关闭</text>
       </view>
     </view>
   </view>

@@ -17,6 +17,7 @@
     "mysql:test": "node scripts/test-mysql.js",
     "fixture:moments-integration": "node scripts/prepare-moments-integration-fixture.js",
     "smoke:moments-http": "node scripts/smoke-moments-http-flow.js",
+    "smoke:video-moments": "node scripts/smoke-video-moment-flow.js",
     "smoke:admin-moments": "node scripts/smoke-admin-moments-flow.js",
     "smoke:ugc-risk": "node scripts/smoke-ugc-risk-flow.js",
     "check:admin-ui": "node scripts/check-admin-ui-contract.js",

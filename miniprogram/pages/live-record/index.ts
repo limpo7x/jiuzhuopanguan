@@ -21,6 +21,7 @@ import {
   updateManagedSession,
   type ManagedLiveSession,
   uploadManagedMomentImage,
+  uploadManagedMomentVideo,
   type ManagedTimelineNode,
 } from '../../services/operations'
 import { normalizeManagedAssetPath } from '../../config/assets'
@@ -29,6 +30,7 @@ import { handleSessionRemoved, isSessionRemovedError } from '../../utils/session
 import { confirmLeaveSessionPage, disableSessionLeaveAlert, enableSessionLeaveAlert } from '../../utils/session-exit'
 import { ensureUserAuthorized, getCurrentDisplayProfile } from '../../utils/social'
 import { resolveCachedManagedImagePath } from '../../utils/imageCache'
+import { recordDiagnostic } from '../../utils/diagnostics'
 
 interface LivePlayer {
   avatarUrl: string
@@ -54,11 +56,15 @@ interface LiveEvent {
 
 interface LivePhotoNode {
   caption: string
+  coverImageUrl?: string
+  duration?: number
   imageBroken?: boolean
   id: string
   imageUrl: string
+  mediaType?: 'image' | 'video'
   nodeKind: string
   timelineTitle: string
+  videoUrl?: string
 }
 
 interface LiveLedgerTimelineItem {
@@ -80,16 +86,19 @@ interface LiveRecordTimelineItem {
   chipTextVisible: boolean
   createdAt: string
   detail: string
+  duration?: number
   iconAsset: string
   id: string
   imageBroken?: boolean
   imageUrl: string
+  mediaType?: 'image' | 'video'
   nodeKind: 'event' | 'moment'
   scoreText: string
   timeText: string
   title: string
   actionLabel: string
-  type: 'debt' | 'drink' | 'photo'
+  type: 'debt' | 'drink' | 'photo' | 'video'
+  videoUrl?: string
 }
 
 interface LiveTimelinePhotoDiagnostic {
@@ -128,6 +137,10 @@ interface LiveRecordState {
   memberCountText: string
   playerCount: number
   players: LivePlayer[]
+  recordVideoMessage: string
+  recordVideoVisible: boolean
+  recordVideoCountdown: number
+  recordVideoRecording: boolean
   photoPreviewActive: boolean
   photoPreviewCaption: string
   photoPreviewClass: string
@@ -136,7 +149,11 @@ interface LiveRecordState {
   photoPreviewStageClass: string
   photoPreviewTitle: string
   photoPreviewVisible: boolean
+  quickVideoSaving: boolean
   sharePosterSaved: boolean
+  videoPreviewTitle: string
+  videoPreviewUrl: string
+  videoPreviewVisible: boolean
   quickPhotoSaving: boolean
   baselineRecords: LiveRecordItem[]
   records: LiveRecordItem[]
@@ -169,6 +186,16 @@ interface LiveRecordMethods {
   handleConfirmLedgerTap: () => Promise<void>
   handleFinishTap: () => Promise<void>
   handleHighlightMomentTap: () => Promise<void>
+  handleRecordVideoTap: () => Promise<void>
+  handleRecordVideoCameraInitDone: () => void
+  handleRecordVideoCameraError: (event: WechatMiniprogram.BaseEvent) => void
+  handleRecordVideoCancelTap: () => void
+  startCameraVideoRecord: () => void
+  stopCameraVideoRecord: () => void
+  openNativeVideoRecorder: () => void
+  createQuickVideoMoment: (filePath: string, coverFilePath: string, duration: number) => Promise<void>
+  handleVideoPreviewCloseTap: () => void
+  handleVideoPreviewStopTap: () => void
   handlePhotoPreviewCloseTap: () => void
   handlePhotoPreviewStopTap: () => void
   handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => Promise<void>
@@ -202,6 +229,10 @@ const SAMPLE_008AS_SESSION_NAME = '周末聚会记录'
 const SAMPLE_008AS_TITLE_ASSET = ''
 let liveTimer = 0
 let liveAccessCheckTimer = 0
+let liveVideoCountdownTimer = 0
+let liveVideoPrepareTimer = 0
+let liveVideoStopTimer = 0
+let liveVideoCancelRequested = false
 
 const internalDisplayPattern = /(PR\s+Seed|PR-BE-DB-LOGIN|IT-MOMENTS|DEBUG|openid|openId|unionId|signature)/i
 
@@ -221,6 +252,11 @@ const getInitial = (name: string) => cleanDisplayName(name, '友').slice(0, 1) |
 const buildMomentFileName = (filePath: string) => {
   const ext = /\.jpe?g$/i.test(filePath) ? 'jpg' : /\.webp$/i.test(filePath) ? 'webp' : 'png'
   return `live-photo-${Date.now()}.${ext}`
+}
+
+const buildMomentVideoFileName = (filePath: string) => {
+  const ext = /\.mov$/i.test(filePath) ? 'mov' : 'mp4'
+  return `live-video-${Date.now()}.${ext}`
 }
 
 const buildImageDataUrl = (filePath: string, data: string) => {
@@ -244,6 +280,75 @@ const readLocalImageAsDataUrl = (filePath: string): Promise<string> =>
       fail: reject,
     })
   })
+
+const compressVideoFile = (filePath: string): Promise<string> =>
+  new Promise((resolve) => {
+    if (!filePath || !wx.compressVideo) {
+      resolve(filePath)
+      return
+    }
+    wx.compressVideo({
+      bitrate: 900,
+      fps: 24,
+      quality: 'medium',
+      resolution: 0.75,
+      src: filePath,
+      success: (result) => resolve(result.tempFilePath || filePath),
+      fail: () => resolve(filePath),
+    })
+  })
+
+const normalizeVideoDuration = (value?: number) => {
+  const duration = Math.ceil(Number(value) || 5)
+  return Math.max(1, Math.min(5, duration))
+}
+
+const getErrorStatusCode = (error: unknown) => Number((error as Error & { statusCode?: number })?.statusCode || 0)
+
+const getErrorMessage = (error: unknown) => String((error as Error)?.message || '')
+
+const getVideoSaveErrorMessage = (stage: string, error: unknown) => {
+  const statusCode = getErrorStatusCode(error)
+  const message = getErrorMessage(error)
+  const lower = message.toLowerCase()
+  if (lower.includes('opening photo required')) {
+    return '先拍第一张照片后再录视频'
+  }
+  if (lower.includes('session already ended')) {
+    return '聚会已结束，不能继续录视频'
+  }
+  if (lower.includes('video size')) {
+    return '视频太大，请重录 5 秒以内的视频'
+  }
+  if (lower.includes('only mp4') || lower.includes('only mov')) {
+    return '视频格式不支持，请使用系统录制器重录'
+  }
+  if (statusCode === 404 || lower === 'not found') {
+    if (stage === 'upload') {
+      return '视频上传接口未找到，请同步部署后端后重试'
+    }
+    if (stage === 'create') {
+      return lower.includes('session') ? '当前聚会已失效，请返回首页重新进入' : '视频上传已完成，但服务器未找到上传资源，请重录一次'
+    }
+    return '当前聚会信息未找到，请刷新后重试'
+  }
+  return message || '视频保存失败'
+}
+
+const clearLiveVideoRecordTimers = () => {
+  if (liveVideoPrepareTimer) {
+    clearTimeout(liveVideoPrepareTimer)
+    liveVideoPrepareTimer = 0
+  }
+  if (liveVideoCountdownTimer) {
+    clearInterval(liveVideoCountdownTimer)
+    liveVideoCountdownTimer = 0
+  }
+  if (liveVideoStopTimer) {
+    clearTimeout(liveVideoStopTimer)
+    liveVideoStopTimer = 0
+  }
+}
 
 const formatTimelineTime = (value?: string) => {
   const time = value ? new Date(value) : null
@@ -472,11 +577,51 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
       return
     }
 
+    if (node.mediaType === 'video' && node.videoUrl) {
+      const coverImageUrl = node.coverImageUrl || node.imageUrl || ''
+      photoNodes.push({
+        caption: node.caption || '',
+        coverImageUrl,
+        duration: node.duration || 5,
+        id: node.id,
+        imageUrl: coverImageUrl,
+        mediaType: 'video',
+        nodeKind: node.nodeKind,
+        timelineTitle: node.timelineTitle || node.caption || '聚会视频',
+        videoUrl: node.videoUrl,
+      })
+      recordTimelineItems.push({
+        actionLabel: '视频',
+        actorAvatarUrl: mergeRuntimeAvatar(node.uploaderProfileId, node.uploaderAvatarUrl || ''),
+        actorInitial: getInitial(cleanDisplayName(node.uploaderName, '成员')),
+        actorName: cleanDisplayName(node.uploaderName, '成员'),
+        caption: node.caption || '',
+        chipAsset: '',
+        chipText: '',
+        chipTextVisible: false,
+        createdAt: node.createdAt || node.updatedAt || '',
+        detail: node.caption || '5 秒视频已进入时间线',
+        duration: node.duration || 5,
+        iconAsset: '',
+        id: node.id,
+        imageUrl: coverImageUrl,
+        mediaType: 'video',
+        nodeKind: 'moment',
+        scoreText: '',
+        timeText: formatTimelineTime(node.createdAt || node.updatedAt),
+        title: node.timelineTitle || node.caption || '录下 5 秒现场视频',
+        type: 'video',
+        videoUrl: node.videoUrl,
+      })
+      return
+    }
+
     if (node.imageUrl) {
       photoNodes.push({
         caption: node.caption || '',
         id: node.id,
         imageUrl: node.imageUrl,
+        mediaType: 'image',
         nodeKind: node.nodeKind,
         timelineTitle: node.timelineTitle || node.caption || '聚会照片',
       })
@@ -494,6 +639,7 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         iconAsset: '',
         id: node.id,
         imageUrl: node.imageUrl,
+        mediaType: 'image',
         nodeKind: 'moment',
         scoreText: '',
         timeText: formatTimelineTime(node.createdAt || node.updatedAt),
@@ -699,6 +845,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     photoPreviewStageClass: 'live-photo-preview-stage',
     photoPreviewTitle: '',
     photoPreviewVisible: false,
+    quickVideoSaving: false,
     finishMatchLabel: '结束聚会',
     finishSaving: false,
     isJudge: false,
@@ -706,7 +853,14 @@ Page<LiveRecordState, LiveRecordMethods>({
     ledgerSubmitting: false,
     memberCountText: '成员待加入',
     records: [],
+    recordVideoCountdown: 5,
+    recordVideoMessage: '',
+    recordVideoRecording: false,
+    recordVideoVisible: false,
     sharePosterSaved: false,
+    videoPreviewTitle: '',
+    videoPreviewUrl: '',
+    videoPreviewVisible: false,
     quickPhotoSaving: false,
     baselineRecords: [],
     sessionId: '',
@@ -1010,6 +1164,10 @@ Page<LiveRecordState, LiveRecordMethods>({
   },
 
   onHide() {
+    if (this.data.recordVideoVisible) {
+      liveVideoCancelRequested = true
+      this.stopCameraVideoRecord()
+    }
     if (liveTimer) {
       clearInterval(liveTimer)
       liveTimer = 0
@@ -1018,6 +1176,10 @@ Page<LiveRecordState, LiveRecordMethods>({
   },
 
   onUnload() {
+    if (this.data.recordVideoVisible) {
+      liveVideoCancelRequested = true
+      this.stopCameraVideoRecord()
+    }
     if (liveTimer) {
       clearInterval(liveTimer)
       liveTimer = 0
@@ -1436,6 +1598,308 @@ Page<LiveRecordState, LiveRecordMethods>({
     }
   },
 
+  async handleRecordVideoTap() {
+    const sessionId = this.data.sessionId || getSessionRuntime().sessionId || ''
+    if (!sessionId) {
+      this.showPreviewToast('未找到当前聚会信息')
+      return
+    }
+    if (this.data.sessionEnded) {
+      this.showPreviewToast('聚会已结束，不能继续录视频')
+      return
+    }
+    if (!hasSessionFirstPhoto(getSessionRuntime())) {
+      this.showPreviewToast('先拍第一张照片后再录视频')
+      return
+    }
+    if (this.data.quickVideoSaving || this.data.finishSaving) {
+      return
+    }
+
+    if (!wx.createCameraContext || !wx.canIUse?.('camera')) {
+      this.openNativeVideoRecorder()
+      return
+    }
+
+    this.setData({
+      recordVideoCountdown: 5,
+      recordVideoMessage: '相机准备中',
+      recordVideoRecording: false,
+      recordVideoVisible: true,
+    })
+    liveVideoPrepareTimer = setTimeout(() => {
+      liveVideoPrepareTimer = 0
+      if (!this.data.recordVideoVisible || this.data.recordVideoRecording) {
+        return
+      }
+      this.setData({
+        recordVideoCountdown: 5,
+        recordVideoMessage: '',
+        recordVideoVisible: false,
+      })
+      this.showPreviewToast('相机准备超时，改用系统录制')
+      this.openNativeVideoRecorder()
+    }, 2500) as unknown as number
+  },
+
+  handleRecordVideoCameraInitDone() {
+    if (!this.data.recordVideoVisible || this.data.recordVideoRecording) {
+      return
+    }
+    if (liveVideoPrepareTimer) {
+      clearTimeout(liveVideoPrepareTimer)
+      liveVideoPrepareTimer = 0
+    }
+    this.startCameraVideoRecord()
+  },
+
+  handleRecordVideoCameraError(event) {
+    const detail = (event as unknown as { detail?: { errMsg?: string } }).detail || {}
+    clearLiveVideoRecordTimers()
+    this.setData({
+      recordVideoVisible: false,
+      recordVideoRecording: false,
+      recordVideoMessage: '',
+    })
+    this.showPreviewToast(detail.errMsg || '相机不可用，改用系统录制')
+    this.openNativeVideoRecorder()
+  },
+
+  handleRecordVideoCancelTap() {
+    if (!this.data.recordVideoVisible) {
+      return
+    }
+    if (this.data.recordVideoRecording) {
+      liveVideoCancelRequested = true
+      this.stopCameraVideoRecord()
+      return
+    }
+    clearLiveVideoRecordTimers()
+    this.setData({
+      recordVideoCountdown: 5,
+      recordVideoMessage: '',
+      recordVideoRecording: false,
+      recordVideoVisible: false,
+    })
+  },
+
+  startCameraVideoRecord() {
+    clearLiveVideoRecordTimers()
+    liveVideoCancelRequested = false
+    const cameraContext = wx.createCameraContext()
+    this.setData({
+      recordVideoCountdown: 5,
+      recordVideoMessage: '正在记录现场',
+      recordVideoRecording: true,
+    })
+    cameraContext.startRecord({
+      success: () => {
+        let nextCountdown = 5
+        liveVideoCountdownTimer = setInterval(() => {
+          nextCountdown -= 1
+          this.setData({ recordVideoCountdown: Math.max(0, nextCountdown) })
+        }, 1000) as unknown as number
+        liveVideoStopTimer = setTimeout(() => {
+          this.stopCameraVideoRecord()
+        }, 5000) as unknown as number
+      },
+      fail: (error) => {
+        clearLiveVideoRecordTimers()
+        this.setData({
+          recordVideoCountdown: 5,
+          recordVideoMessage: '',
+          recordVideoRecording: false,
+          recordVideoVisible: false,
+        })
+        this.showPreviewToast(error?.errMsg || '相机录制失败，改用系统录制')
+        this.openNativeVideoRecorder()
+      },
+      timeoutCallback: () => {
+        this.stopCameraVideoRecord()
+      },
+    })
+  },
+
+  stopCameraVideoRecord() {
+    clearLiveVideoRecordTimers()
+    if (!this.data.recordVideoVisible) {
+      return
+    }
+    const cameraContext = wx.createCameraContext()
+    this.setData({
+      recordVideoCountdown: 0,
+      recordVideoMessage: '正在整理视频',
+      recordVideoRecording: false,
+    })
+    cameraContext.stopRecord({
+      compressed: true,
+      success: (result) => {
+        const filePath = result.tempVideoPath || ''
+        const coverFilePath = result.tempThumbPath || ''
+        const shouldDiscard = liveVideoCancelRequested
+        liveVideoCancelRequested = false
+        this.setData({
+          recordVideoCountdown: 5,
+          recordVideoMessage: '',
+          recordVideoVisible: false,
+        })
+        if (shouldDiscard) {
+          this.showPreviewToast('已取消录制')
+          return
+        }
+        if (!filePath || !coverFilePath) {
+          this.showPreviewToast('视频文件不完整，请重录')
+          return
+        }
+        void this.createQuickVideoMoment(filePath, coverFilePath, 5)
+      },
+      fail: (error) => {
+        this.setData({
+          recordVideoCountdown: 5,
+          recordVideoMessage: '',
+          recordVideoVisible: false,
+        })
+        this.showPreviewToast(error?.errMsg || '视频保存失败，请重录')
+      },
+    })
+  },
+
+  openNativeVideoRecorder() {
+    wx.chooseMedia({
+      camera: 'back',
+      count: 1,
+      maxDuration: 5,
+      mediaType: ['video'],
+      sourceType: ['camera'],
+      success: (result) => {
+        const file = (result.tempFiles[0] || {}) as {
+          duration?: number
+          tempFilePath?: string
+          thumbTempFilePath?: string
+        }
+        const filePath = file.tempFilePath || ''
+        const coverFilePath = file.thumbTempFilePath || ''
+        if (!filePath) {
+          this.showPreviewToast('没有获取到视频文件')
+          return
+        }
+        if (!coverFilePath) {
+          this.showPreviewToast('没有获取到视频封面，请重录')
+          return
+        }
+        void this.createQuickVideoMoment(filePath, coverFilePath, normalizeVideoDuration(file.duration))
+      },
+      fail: () => undefined,
+    })
+  },
+
+  async createQuickVideoMoment(filePath, coverFilePath, duration) {
+    const sessionId = this.data.sessionId || getSessionRuntime().sessionId || ''
+    if (!sessionId) {
+      this.showPreviewToast('未找到当前聚会信息')
+      return
+    }
+    if (this.data.quickVideoSaving) {
+      return
+    }
+
+    let stage = 'prepare'
+    let uploadedAssetId = ''
+    this.setData({ quickVideoSaving: true })
+    wx.showLoading({
+      title: '保存视频',
+      mask: true,
+    })
+
+    try {
+      recordDiagnostic('live.video.save.start', {
+        duration: normalizeVideoDuration(duration),
+        sessionId,
+      })
+      const [coverDataUrl, compressedVideoPath] = await Promise.all([
+        readLocalImageAsDataUrl(coverFilePath),
+        compressVideoFile(filePath),
+      ])
+      stage = 'upload'
+      recordDiagnostic('live.video.upload.start', {
+        duration: normalizeVideoDuration(duration),
+        sessionId,
+      })
+      const upload = await uploadManagedMomentVideo({
+        coverDataUrl,
+        duration: normalizeVideoDuration(duration),
+        fileName: buildMomentVideoFileName(compressedVideoPath || filePath),
+        filePath: compressedVideoPath || filePath,
+        sessionId,
+      })
+      uploadedAssetId = upload.id || ''
+      const videoUrl = normalizeManagedAssetPath(upload.url) || upload.url
+      const coverImageUrl = normalizeManagedAssetPath(upload.coverImageUrl || upload.publicUrl || '') || upload.coverImageUrl || ''
+      recordDiagnostic('live.video.upload.success', {
+        assetId: uploadedAssetId,
+        hasCover: Boolean(coverImageUrl),
+        hasVideo: Boolean(videoUrl),
+        sessionId,
+        storageProvider: upload.storageProvider || '',
+      })
+      stage = 'create'
+      const created = await createManagedMoment(sessionId, {
+        caption: '',
+        clientDraftId: `live-video-${sessionId}-${Date.now()}`,
+        coverImageUrl,
+        duration: normalizeVideoDuration(upload.duration || duration),
+        mediaType: 'video',
+        nodeType: 'highlight',
+        uploadAssetId: uploadedAssetId,
+        uploadVideoAssetId: uploadedAssetId,
+        usageConsent: {
+          brief: true,
+          ranking: false,
+          session: true,
+          share: true,
+        },
+        videoUrl,
+        visibility: 'session',
+        visibleProfileIds: [],
+      })
+      uploadedAssetId = ''
+      if (!created.videoUrl) {
+        throw new Error('视频记录创建失败')
+      }
+      recordDiagnostic('live.video.create.success', {
+        momentId: created.id,
+        sessionId,
+      })
+      this.setData({ activeSegment: 'record' })
+      stage = 'timeline'
+      try {
+        await this.loadTimeline()
+        this.showPreviewToast('视频已插入当前记录')
+      } catch (timelineError) {
+        recordDiagnostic('live.video.timeline.refresh.fail', {
+          message: getErrorMessage(timelineError),
+          sessionId,
+          statusCode: getErrorStatusCode(timelineError),
+        })
+        this.showPreviewToast('视频已保存，刷新失败请手动刷新')
+      }
+    } catch (error) {
+      recordDiagnostic('live.video.save.fail', {
+        message: getErrorMessage(error),
+        sessionId,
+        stage,
+        statusCode: getErrorStatusCode(error),
+      })
+      if (uploadedAssetId) {
+        await cleanupManagedMomentUpload(uploadedAssetId).catch(() => undefined)
+      }
+      this.showPreviewToast(getVideoSaveErrorMessage(stage, error))
+    } finally {
+      wx.hideLoading()
+      this.setData({ quickVideoSaving: false })
+    }
+  },
+
   handlePhotoImageLoad(event) {
     const { id } = event.currentTarget.dataset as { id?: string }
     const detail = (event as unknown as { detail?: { height?: number; width?: number } }).detail || {}
@@ -1519,6 +1983,18 @@ Page<LiveRecordState, LiveRecordMethods>({
       compactPhoto ||
       this.data.recordTimelineItems.find((current) => current.id === id) ||
       this.data.photoNodes.find((current) => current.id === id)
+    if (item?.mediaType === 'video') {
+      if (!item.videoUrl) {
+        this.showPreviewToast('这条视频还没有可播放地址')
+        return
+      }
+      this.setData({
+        videoPreviewTitle: ('timelineTitle' in item ? item.timelineTitle : item.title) || '5 秒视频留念',
+        videoPreviewUrl: item.videoUrl,
+        videoPreviewVisible: true,
+      })
+      return
+    }
     if (!item?.imageUrl) {
       this.showPreviewToast('这条记录还没有可查看照片')
       return
@@ -1552,6 +2028,18 @@ Page<LiveRecordState, LiveRecordMethods>({
         }, 20)
       },
     )
+  },
+
+  handleVideoPreviewCloseTap() {
+    this.setData({
+      videoPreviewTitle: '',
+      videoPreviewUrl: '',
+      videoPreviewVisible: false,
+    })
+  },
+
+  handleVideoPreviewStopTap() {
+    return
   },
 
   handlePhotoPreviewCloseTap() {

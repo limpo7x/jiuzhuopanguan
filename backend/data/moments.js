@@ -17,6 +17,8 @@ const staticShareMiniappQrCandidates = [
   path.join(publicStaticRoot, 'share-poster-miniapp-code.png'),
 ]
 const MAX_MOMENT_IMAGE_BYTES = 5 * 1024 * 1024
+const MAX_MOMENT_VIDEO_BYTES = 12 * 1024 * 1024
+const MAX_MOMENT_VIDEO_DURATION = 6
 const MOMENT_IMAGE_WIDTH = 1800
 const MOMENT_IMAGE_HEIGHT = 1800
 const MOMENT_IMAGE_QUALITY = 84
@@ -33,8 +35,13 @@ const IMAGE_MIME_EXTENSION_MAP = {
   'image/webp': 'webp',
 }
 
+const VIDEO_MIME_EXTENSION_MAP = {
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+}
+
 const NODE_TYPES = new Set(['opening', 'highlight', 'drinking', 'private', 'closing'])
-const MEDIA_TYPES = new Set(['image'])
+const MEDIA_TYPES = new Set(['image', 'video'])
 const VISIBILITIES = new Set(['private', 'selected', 'session', 'share', 'featured'])
 const EVENT_TYPES = new Set(['drink_debt', 'drink_add', 'wheel_result'])
 const SHARE_TASK_STATUSES = new Set(['pending', 'processing', 'ready', 'failed', 'expired'])
@@ -99,19 +106,23 @@ const normalizeMomentRecord = (item = {}) => {
   const mediaType = MEDIA_TYPES.has(cleanText(item.mediaType)) ? cleanText(item.mediaType) : 'image'
   const visibility = VISIBILITIES.has(cleanText(item.visibility)) ? cleanText(item.visibility) : 'session'
   const imageUrl = cleanText(item.imageUrl)
-  const completionStatus = cleanText(item.completionStatus) || (imageUrl ? 'complete' : 'needs_media')
+  const videoUrl = cleanText(item.videoUrl)
+  const coverImageUrl = cleanText(item.coverImageUrl)
+  const hasMedia = mediaType === 'video' ? Boolean(videoUrl && coverImageUrl) : Boolean(imageUrl)
+  const completionStatus = cleanText(item.completionStatus) || (hasMedia ? 'complete' : 'needs_media')
   const reviewStatus = cleanText(item.reviewStatus) || 'approved'
   const secondaryReviewStatus = cleanText(item.secondaryReviewStatus) || 'approved'
   const usageConsent = normalizeUsageConsent(item.usageConsent)
   const isPrivate = nodeType === 'private' || visibility === 'private' || visibility === 'selected'
   const reviewPass = reviewStatus === 'approved' && secondaryReviewStatus === 'approved'
-  const rankingEligible = Boolean(
+  const rankingMediaEligible = mediaType === 'image'
+  const rankingEligible = rankingMediaEligible && Boolean(
     item.rankingEligible === true ||
-      (completionStatus === 'complete' && usageConsent.ranking && !isPrivate && reviewPass),
+      (rankingMediaEligible && completionStatus === 'complete' && usageConsent.ranking && !isPrivate && reviewPass),
   )
-  const rewardEligible = Boolean(
+  const rewardEligible = rankingMediaEligible && Boolean(
     item.rewardEligible === true ||
-      (completionStatus === 'complete' && usageConsent.ranking && !isPrivate && reviewPass),
+      (rankingMediaEligible && completionStatus === 'complete' && usageConsent.ranking && !isPrivate && reviewPass),
   )
   const createdAt = cleanText(item.createdAt) || nowIso()
 
@@ -124,8 +135,8 @@ const normalizeMomentRecord = (item = {}) => {
     nodeType,
     mediaType,
     imageUrl,
-    videoUrl: cleanText(item.videoUrl),
-    coverImageUrl: cleanText(item.coverImageUrl),
+    videoUrl,
+    coverImageUrl,
     duration: Math.max(0, Number(item.duration) || 0),
     caption: cleanText(item.caption),
     tags: normalizeStringArray(item.tags),
@@ -271,6 +282,7 @@ const normalizeUploadedAsset = (item = {}) => {
   const createdAt = cleanText(item.createdAt) || nowIso()
   return {
     id: cleanText(item.id) || createId('moment-asset'),
+    assetType: cleanText(item.assetType) || 'image',
     sessionId: cleanText(item.sessionId),
     uploaderProfileId: cleanText(item.uploaderProfileId),
     fileName: cleanText(item.fileName),
@@ -280,6 +292,11 @@ const normalizeUploadedAsset = (item = {}) => {
     objectKey: cleanText(item.objectKey),
     publicUrl: cleanText(item.publicUrl),
     localCompatUrl: cleanText(item.localCompatUrl),
+    coverImageUrl: cleanText(item.coverImageUrl),
+    coverObjectKey: cleanText(item.coverObjectKey),
+    coverPublicUrl: cleanText(item.coverPublicUrl),
+    coverLocalCompatUrl: cleanText(item.coverLocalCompatUrl),
+    duration: Math.max(0, Number(item.duration) || 0),
     storageProvider: cleanText(item.storageProvider),
     boundMomentId: cleanText(item.boundMomentId),
     boundAt: cleanText(item.boundAt),
@@ -422,6 +439,9 @@ const buildDefaultCaption = (nodeType) => {
 
 const buildTimelineTitle = (moment = {}) => {
   const name = moment.uploaderName || '有人'
+  if (moment.mediaType === 'video') {
+    return `${name} 录下了 5 秒现场视频`
+  }
   if (moment.nodeType === 'opening') {
     return `${name} 上传了开场打卡`
   }
@@ -435,20 +455,24 @@ const buildTimelineTitle = (moment = {}) => {
 }
 
 const computeMomentStatus = (moment = {}) => {
+  const mediaType = MEDIA_TYPES.has(cleanText(moment.mediaType)) ? cleanText(moment.mediaType) : 'image'
   const imageUrl = cleanText(moment.imageUrl)
+  const videoUrl = cleanText(moment.videoUrl)
+  const coverImageUrl = cleanText(moment.coverImageUrl)
   const nodeType = cleanText(moment.nodeType)
   const visibility = cleanText(moment.visibility)
   const usageConsent = normalizeUsageConsent(moment.usageConsent)
-  const completionStatus = imageUrl ? 'complete' : 'needs_media'
+  const completionStatus = mediaType === 'video' ? (videoUrl && coverImageUrl ? 'complete' : 'needs_media') : (imageUrl ? 'complete' : 'needs_media')
   const isPrivate = nodeType === 'private' || visibility === 'private' || visibility === 'selected'
   const reviewStatus = cleanText(moment.reviewStatus) || 'approved'
   const secondaryReviewStatus = cleanText(moment.secondaryReviewStatus) || 'approved'
   const approved = reviewStatus === 'approved' && secondaryReviewStatus === 'approved'
+  const rankingMediaEligible = mediaType === 'image'
 
   return {
     completionStatus,
-    rankingEligible: completionStatus === 'complete' && usageConsent.ranking && !isPrivate && approved,
-    rewardEligible: completionStatus === 'complete' && usageConsent.ranking && !isPrivate && approved,
+    rankingEligible: rankingMediaEligible && completionStatus === 'complete' && usageConsent.ranking && !isPrivate && approved,
+    rewardEligible: rankingMediaEligible && completionStatus === 'complete' && usageConsent.ranking && !isPrivate && approved,
   }
 }
 
@@ -487,6 +511,9 @@ const serializeMomentForViewer = (moment = {}, profileId = '') => {
   return {
     ...base,
     imageUrl: moment.imageUrl,
+    videoUrl: moment.videoUrl,
+    coverImageUrl: moment.coverImageUrl,
+    duration: moment.duration,
     caption: moment.caption,
     visibleProfileIds: moment.visibleProfileIds,
   }
@@ -510,6 +537,8 @@ const serializeMomentForPublicRanking = (moment = {}) => {
     createdAt: viewerMoment.createdAt,
     updatedAt: viewerMoment.updatedAt,
     imageUrl: viewerMoment.imageUrl,
+    coverImageUrl: viewerMoment.coverImageUrl,
+    duration: viewerMoment.duration,
     caption: viewerMoment.caption,
   }
 }
@@ -553,6 +582,9 @@ const getRankingCategory = (value, moment = {}) => {
   const category = cleanText(value)
   return RANKING_CATEGORIES.has(category) ? category : getDefaultRankingCategory(moment)
 }
+
+const getMomentPosterImageUrl = (moment = {}) =>
+  moment.mediaType === 'video' ? cleanText(moment.coverImageUrl || moment.imageUrl) : cleanText(moment.imageUrl)
 
 const isMomentPublicForRanking = (moment = {}) => {
   const usageConsent = normalizeUsageConsent(moment.usageConsent)
@@ -826,7 +858,10 @@ const serializePublicVisibleNode = (node = {}) => {
     id: cleanText(node.id),
     nodeKind: 'moment',
     nodeType: cleanText(node.nodeType),
-    imageUrl: cleanText(node.imageUrl),
+    mediaType: cleanText(node.mediaType) || 'image',
+    imageUrl: getMomentPosterImageUrl(node),
+    coverImageUrl: cleanText(node.coverImageUrl),
+    duration: Math.max(0, Number(node.duration) || 0),
     title: cleanText(node.caption) || buildPublicPhotoTitle(node),
     caption: cleanText(node.caption),
     uploaderName: cleanText(node.uploaderName),
@@ -863,6 +898,9 @@ const getPublicSessionShareSummary = ({ sessionId, inviteCode } = {}) => {
     .map((node) => ({
       id: node.id,
       imageUrl: node.imageUrl,
+      mediaType: node.mediaType,
+      coverImageUrl: node.coverImageUrl,
+      duration: node.duration,
       nodeType: node.nodeType,
       title: node.title,
       uploaderAvatarUrl: cleanText(node.uploaderAvatarUrl),
@@ -1437,6 +1475,9 @@ const formatFullTimelineDuration = (startValue = '', endValue = '') => {
 
 const getFullTimelineAction = (node = {}) => {
   if (node.nodeKind === 'moment') {
+    if (node.mediaType === 'video') {
+      return { color: '#ff504d', label: '视频' }
+    }
     return { color: '#00cbff', label: '拍照' }
   }
   if (node.eventType === 'drink_add') {
@@ -1468,8 +1509,8 @@ const buildFullTimelineShareImageSvg = async ({ brief, task, nodes, ledgerSnapsh
       const rightTime = new Date(right.createdAt || right.updatedAt || 0).getTime() || 0
       return leftTime - rightTime
     })
-  const imageNodes = timelineItems.filter((item) => item.nodeKind === 'moment' && item.imageUrl)
-  const imageDataUris = await Promise.all(imageNodes.map((item) => resolveImageDataUri(item.imageUrl)))
+  const imageNodes = timelineItems.filter((item) => item.nodeKind === 'moment' && getMomentPosterImageUrl(item))
+  const imageDataUris = await Promise.all(imageNodes.map((item) => resolveImageDataUri(getMomentPosterImageUrl(item))))
   const imageDataUriById = new Map(imageNodes.map((item, index) => [item.id, imageDataUris[index]]))
   const participants = buildPosterParticipants(session)
   const participantAvatarDataUris = await Promise.all(participants.map((item) => resolvePosterAvatarDataUri(item.avatarUrl)))
@@ -1592,7 +1633,7 @@ const buildFullTimelineShareImageSvg = async ({ brief, task, nodes, ledgerSnapsh
       <rect x="${panelX}" y="${summaryY}" width="${panelW}" height="168" rx="34" fill="#d3ff2d" stroke="#111317" stroke-width="6"/>
       <text x="92" y="${summaryY + 58}" font-size="30" font-weight="950" fill="#111317">聚会总结</text>
       ${renderPosterTextLines({ text: summaryText, x: 92, y: summaryY + 106, maxChars: 28, maxLines: 2, fontSize: 26, fontWeight: 900, lineHeight: 34, fill: '#111317' })}
-      <text x="808" y="${summaryY + 140}" text-anchor="end" font-size="22" font-weight="950" fill="#111317">${photoCount} 张照片 · ${ledgerCount} 条账本</text>
+      <text x="808" y="${summaryY + 140}" text-anchor="end" font-size="22" font-weight="950" fill="#111317">${photoCount} 条媒体 · ${ledgerCount} 条账本</text>
       <rect x="326" y="${qrY}" width="248" height="248" rx="36" fill="#ffffff" stroke="#111317" stroke-width="6"/>
       ${qrDataUri ? `<image href="${qrDataUri}" x="366" y="${qrY + 30}" width="168" height="168" preserveAspectRatio="xMidYMid meet"/>` : ''}
       <text x="450" y="${qrY + 224}" text-anchor="middle" font-size="22" font-weight="950" fill="#111317">扫码回到小程序</text>
@@ -1606,8 +1647,8 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
     return buildFullTimelineShareImageSvg({ brief, task, nodes, ledgerSnapshot })
   }
   const session = getManagedSessionById(task.sessionId) || {}
-  const imageNodes = nodes.filter((item) => item.nodeKind === 'moment' && item.imageUrl)
-  const imageDataUris = await Promise.all(imageNodes.map((item) => resolveImageDataUri(item.imageUrl)))
+  const imageNodes = nodes.filter((item) => item.nodeKind === 'moment' && getMomentPosterImageUrl(item))
+  const imageDataUris = await Promise.all(imageNodes.map((item) => resolveImageDataUri(getMomentPosterImageUrl(item))))
   const imageDataUriById = new Map(imageNodes.map((item, index) => [item.id, imageDataUris[index]]))
   const visibleImageDataUris = imageDataUris.filter(Boolean)
   const visiblePhotoCount = visibleImageDataUris.length
@@ -1694,7 +1735,7 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
       <rect x="74" y="154" width="290" height="12" rx="6" fill="url(#coralLine)"/>
       <text x="74" y="204" font-size="27" font-weight="800" fill="#ffb1a0">${escapeXml(sessionSubtitle)}</text>
       <text x="74" y="254" font-size="30" font-weight="900" fill="#fff8ec">记录时间线</text>
-      <text x="812" y="326" text-anchor="end" font-size="23" font-weight="800" fill="#63dfae">${visiblePhotoCount} 张公开照片 · ${ledgerCount} 条高光</text>
+      <text x="812" y="326" text-anchor="end" font-size="23" font-weight="800" fill="#63dfae">${visiblePhotoCount} 条公开媒体 · ${ledgerCount} 条高光</text>
       ${topDebtorCard}
       ${participantRows}
       <line x1="122" y1="${timelineTop + 28}" x2="122" y2="${timelineBottom - 38}" stroke="#ffdca8" stroke-width="4" stroke-opacity="0.42"/>
@@ -1714,6 +1755,7 @@ const buildShareImageSvg = async ({ brief, task, nodes, ledgerSnapshot = null })
 const createMoment = ({ sessionId, profile, payload = {} }) => {
   const { member, profileId, session } = assertSessionMember(sessionId, profile)
   const nodeType = NODE_TYPES.has(cleanText(payload.nodeType)) ? cleanText(payload.nodeType) : 'highlight'
+  const mediaType = MEDIA_TYPES.has(cleanText(payload.mediaType)) ? cleanText(payload.mediaType) : 'image'
   const visibility = VISIBILITIES.has(cleanText(payload.visibility))
     ? cleanText(payload.visibility)
     : nodeType === 'private'
@@ -1750,8 +1792,11 @@ const createMoment = ({ sessionId, profile, payload = {} }) => {
     uploaderProfileId: profileId,
     uploaderName: cleanText(profile.name || member.name),
     nodeType,
-    mediaType: 'image',
-    imageUrl: cleanText(payload.imageUrl),
+    mediaType,
+    imageUrl: mediaType === 'image' ? cleanText(payload.imageUrl) : '',
+    videoUrl: mediaType === 'video' ? cleanText(payload.videoUrl) : '',
+    coverImageUrl: cleanText(payload.coverImageUrl),
+    duration: mediaType === 'video' ? Math.min(5, Math.max(0, Number(payload.duration) || 0)) : 0,
     caption: cleanText(payload.caption) || buildDefaultCaption(nodeType),
     tags: normalizeStringArray(payload.tags),
     visibility,
@@ -1769,12 +1814,12 @@ const createMoment = ({ sessionId, profile, payload = {} }) => {
     ...status,
     timelineTitle: cleanText(payload.timelineTitle) || buildTimelineTitle(base),
   })
-  const uploadAssetId = cleanText(payload.uploadAssetId)
+  const uploadAssetId = cleanText(payload.uploadAssetId || payload.uploadVideoAssetId)
 
   store.momentRecords = reusableOpening
     ? store.momentRecords.map((item) => (item.id === reusableOpening.id ? next : item))
     : [next, ...store.momentRecords]
-  if (uploadAssetId && cleanText(next.imageUrl)) {
+  if (uploadAssetId && (cleanText(next.imageUrl) || cleanText(next.videoUrl))) {
     const assetIndex = store.uploadedAssets.findIndex((item) => cleanText(item.id) === uploadAssetId)
     if (assetIndex === -1) {
       throw createHttpError('upload asset not found', 404)
@@ -1782,6 +1827,12 @@ const createMoment = ({ sessionId, profile, payload = {} }) => {
     const asset = normalizeUploadedAsset(store.uploadedAssets[assetIndex])
     if (asset.uploaderProfileId !== profileId || asset.sessionId !== cleanText(sessionId)) {
       throw createHttpError('upload asset forbidden', 403)
+    }
+    if (next.mediaType === 'video' && asset.assetType !== 'video') {
+      throw createHttpError('video upload asset required', 400)
+    }
+    if (next.mediaType === 'image' && asset.assetType === 'video') {
+      throw createHttpError('image upload asset required', 400)
     }
     if (asset.removedAt) {
       throw createHttpError('upload asset removed', 410)
@@ -1830,6 +1881,9 @@ const cleanupMomentUpload = async ({ assetId, profile, reason = 'client-create-f
   if (!asset.removedAt && asset.objectKey) {
     await deleteObject({ key: asset.objectKey })
   }
+  if (!asset.removedAt && asset.coverObjectKey) {
+    await deleteObject({ key: asset.coverObjectKey })
+  }
   const removedAt = nowIso()
   store.uploadedAssets[index] = {
     ...asset,
@@ -1852,6 +1906,9 @@ const cleanupExpiredMomentUploads = async ({ ttlMs = 24 * 60 * 60 * 1000, limit 
   for (const asset of candidates) {
     if (asset.objectKey) {
       await deleteObject({ key: asset.objectKey })
+    }
+    if (asset.coverObjectKey) {
+      await deleteObject({ key: asset.coverObjectKey })
     }
     cleaned.push(asset.id)
   }
@@ -1907,6 +1964,9 @@ const updateMoment = ({ momentId, profile, payload = {} }) => {
   const nextBase = {
     ...existed,
     imageUrl: Object.prototype.hasOwnProperty.call(payload, 'imageUrl') ? cleanText(payload.imageUrl) : existed.imageUrl,
+    videoUrl: Object.prototype.hasOwnProperty.call(payload, 'videoUrl') ? cleanText(payload.videoUrl) : existed.videoUrl,
+    coverImageUrl: Object.prototype.hasOwnProperty.call(payload, 'coverImageUrl') ? cleanText(payload.coverImageUrl) : existed.coverImageUrl,
+    duration: Object.prototype.hasOwnProperty.call(payload, 'duration') ? Math.min(5, Math.max(0, Number(payload.duration) || 0)) : existed.duration,
     caption: Object.prototype.hasOwnProperty.call(payload, 'caption') ? cleanText(payload.caption) || buildDefaultCaption(existed.nodeType) : existed.caption,
     tags: Object.prototype.hasOwnProperty.call(payload, 'tags') ? normalizeStringArray(payload.tags) : existed.tags,
     visibility: nextVisibility,
@@ -2573,6 +2633,40 @@ const parseImageDataUrl = (value) => {
   return { buffer, mimeType }
 }
 
+const inferVideoMimeType = (file = {}) => {
+  const explicit = cleanText(file.mimeType || file.contentType).toLowerCase()
+  if (VIDEO_MIME_EXTENSION_MAP[explicit]) {
+    return explicit
+  }
+  const fileName = cleanText(file.fileName || file.filename || file.name).toLowerCase()
+  if (fileName.endsWith('.mov') || fileName.endsWith('.qt')) {
+    return 'video/quicktime'
+  }
+  return 'video/mp4'
+}
+
+const parseVideoUploadFile = (file = {}) => {
+  const buffer = Buffer.isBuffer(file.buffer) ? file.buffer : Buffer.from([])
+  const mimeType = inferVideoMimeType(file)
+  if (!VIDEO_MIME_EXTENSION_MAP[mimeType]) {
+    throw createHttpError('only mp4 and mov video are supported', 400)
+  }
+  if (!buffer.length || buffer.length > MAX_MOMENT_VIDEO_BYTES) {
+    throw createHttpError('video size must be within 12MB', 400)
+  }
+  return { buffer, extension: VIDEO_MIME_EXTENSION_MAP[mimeType], mimeType }
+}
+
+const assertActiveSessionWithFirstPhoto = (session = {}) => {
+  if (isSessionEndedForShareImage(session)) {
+    throw createHttpError('session already ended', 409)
+  }
+  const hasFirstPhoto = Boolean(session.hasFirstPhoto === true || cleanText(session.firstPhotoUploadedAt))
+  if (!hasFirstPhoto) {
+    throw createHttpError('opening photo required before video recording', 409)
+  }
+}
+
 const uploadMomentImage = async ({ profile, payload = {} }) => {
   const sessionId = cleanText(payload.sessionId)
   assertSessionMember(sessionId, profile)
@@ -2619,6 +2713,75 @@ const uploadMomentImage = async ({ profile, payload = {} }) => {
   return asset
 }
 
+const uploadMomentVideo = async ({ profile, payload = {} }) => {
+  const sessionId = cleanText(payload.sessionId)
+  const { session } = assertSessionMember(sessionId, profile)
+  assertActiveSessionWithFirstPhoto(session)
+  const { buffer, extension, mimeType } = parseVideoUploadFile(payload.file)
+  const { buffer: coverBuffer } = parseImageDataUrl(payload.coverDataUrl)
+  const duration = Math.max(0, Number(payload.duration) || 0)
+  if (!duration || duration > MAX_MOMENT_VIDEO_DURATION) {
+    throw createHttpError('video duration must be within 5 seconds', 400)
+  }
+
+  const safeBaseName =
+    cleanText(path.parse(cleanText(payload.fileName) || 'moment-video').name)
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'moment-video'
+  const randomSuffix = crypto.randomBytes(3).toString('hex')
+  const storedVideoName = `${Date.now()}-${safeBaseName}-${randomSuffix}.${extension}`
+  const storedCoverName = `${Date.now()}-${safeBaseName}-${randomSuffix}.webp`
+  const storedVideo = await putObject({
+    key: `moments/videos/${sessionId || 'general'}/${storedVideoName}`,
+    buffer,
+    contentType: mimeType,
+  })
+  const coverOutput = await sharp(coverBuffer)
+    .rotate()
+    .resize({
+      width: 1280,
+      height: 1280,
+      fit: 'inside',
+      withoutEnlargement: true,
+    })
+    .webp({ quality: MOMENT_IMAGE_QUALITY, effort: 5 })
+    .toBuffer()
+  const storedCover = await putObject({
+    key: `moments/video-covers/${sessionId || 'general'}/${storedCoverName}`,
+    buffer: coverOutput,
+    contentType: 'image/webp',
+  })
+
+  const asset = {
+    id: createId('moment-video-asset'),
+    assetType: 'video',
+    sessionId,
+    uploaderProfileId: getProfileId(profile),
+    fileName: cleanText(payload.fileName) || storedVideoName,
+    mimeType,
+    size: buffer.length,
+    url: storedVideo.url,
+    objectKey: storedVideo.objectKey,
+    publicUrl: storedVideo.publicUrl,
+    localCompatUrl: storedVideo.localCompatUrl,
+    coverImageUrl: storedCover.url,
+    coverObjectKey: storedCover.objectKey,
+    coverPublicUrl: storedCover.publicUrl,
+    coverLocalCompatUrl: storedCover.localCompatUrl,
+    duration: Math.min(5, Math.ceil(duration)),
+    storageProvider: storedVideo.provider,
+    createdAt: nowIso(),
+  }
+  const store = readMomentsStore()
+  store.uploadedAssets.unshift(asset)
+  writeMomentsStore(store)
+  return {
+    ...asset,
+    coverAssetId: asset.id,
+  }
+}
+
 module.exports = {
   cleanupExpiredMomentUploads,
   cleanupMomentUpload,
@@ -2645,6 +2808,7 @@ module.exports = {
   retryShareImageTask,
   updateMoment,
   uploadMomentImage,
+  uploadMomentVideo,
   writeMomentsStore,
   _buildShareImageSvgForTest: buildShareImageSvg,
 }

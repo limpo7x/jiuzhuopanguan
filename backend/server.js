@@ -118,6 +118,7 @@ const {
   retryShareImageTask,
   updateMoment,
   uploadMomentImage,
+  uploadMomentVideo,
 } = require('./data/moments')
 const {
   getLiveSessionConfigFromNormalized,
@@ -155,6 +156,9 @@ const MIME_MAP = {
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
   '.png': 'image/png',
+  '.m4v': 'video/x-m4v',
+  '.mov': 'video/quicktime',
+  '.mp4': 'video/mp4',
   '.svg': 'image/svg+xml',
   '.webp': 'image/webp',
 }
@@ -535,6 +539,94 @@ const readJsonBody = (request) =>
     })
     request.on('error', reject)
   })
+
+const createHttpError = (message, statusCode = 400) => {
+  const error = new Error(message)
+  error.statusCode = statusCode
+  return error
+}
+
+const readRawBody = (request, { maxBytes = 16 * 1024 * 1024 } = {}) =>
+  new Promise((resolve, reject) => {
+    const chunks = []
+    let total = 0
+    request.on('data', (chunk) => {
+      total += chunk.length
+      if (total > maxBytes) {
+        reject(createHttpError('request body too large', 413))
+        request.destroy()
+        return
+      }
+      chunks.push(chunk)
+    })
+    request.on('end', () => resolve(Buffer.concat(chunks)))
+    request.on('error', reject)
+  })
+
+const splitBuffer = (buffer, separator) => {
+  const parts = []
+  let start = 0
+  let index = buffer.indexOf(separator, start)
+  while (index !== -1) {
+    parts.push(buffer.slice(start, index))
+    start = index + separator.length
+    index = buffer.indexOf(separator, start)
+  }
+  parts.push(buffer.slice(start))
+  return parts
+}
+
+const stripMultipartCrlf = (buffer) => {
+  let start = 0
+  let end = buffer.length
+  if (buffer[start] === 13 && buffer[start + 1] === 10) {
+    start += 2
+  }
+  if (buffer[end - 2] === 13 && buffer[end - 1] === 10) {
+    end -= 2
+  }
+  return buffer.slice(start, end)
+}
+
+const parseMultipartForm = async (request, { maxBytes = 16 * 1024 * 1024 } = {}) => {
+  const contentType = String(request.headers['content-type'] || '')
+  const boundary = contentType.match(/boundary=([^;]+)/i)?.[1]?.replace(/^"|"$/g, '')
+  if (!boundary) {
+    throw createHttpError('multipart boundary required', 400)
+  }
+  const raw = await readRawBody(request, { maxBytes })
+  const boundaryBuffer = Buffer.from(`--${boundary}`)
+  const fields = {}
+  const files = []
+  splitBuffer(raw, boundaryBuffer).forEach((part) => {
+    let current = stripMultipartCrlf(part)
+    if (!current.length || current.equals(Buffer.from('--'))) {
+      return
+    }
+    if (current.slice(0, 2).toString() === '--') {
+      return
+    }
+    const headerEnd = current.indexOf(Buffer.from('\r\n\r\n'))
+    if (headerEnd === -1) {
+      return
+    }
+    const headerText = current.slice(0, headerEnd).toString('latin1')
+    const body = stripMultipartCrlf(current.slice(headerEnd + 4))
+    const disposition = headerText.match(/content-disposition:\s*([^\r\n]+)/i)?.[1] || ''
+    const name = disposition.match(/name="([^"]+)"/i)?.[1] || ''
+    const fileName = disposition.match(/filename="([^"]*)"/i)?.[1] || ''
+    const mimeType = headerText.match(/content-type:\s*([^\r\n]+)/i)?.[1]?.trim() || ''
+    if (!name) {
+      return
+    }
+    if (fileName) {
+      files.push({ buffer: body, fieldName: name, fileName, mimeType })
+      return
+    }
+    fields[name] = body.toString('utf8')
+  })
+  return { fields, files }
+}
 
 const parseCookies = (cookieHeader = '') =>
   cookieHeader
@@ -1360,6 +1452,25 @@ const server = http.createServer((request, response) => {
       }
       const payload = await readJsonBody(request)
       const asset = await uploadMomentImage({ profile: userSession.profile, payload })
+      sendOk(response, asset, 201)
+      return
+    }
+
+    if (request.method === 'POST' && pathname === '/api/v1/moments/uploads/video') {
+      const userSession = requireUserSession(request, response)
+      if (!userSession) {
+        return
+      }
+      const form = await parseMultipartForm(request, { maxBytes: 16 * 1024 * 1024 })
+      const file = form.files.find((item) => item.fieldName === 'file')
+      const asset = await uploadMomentVideo({
+        profile: userSession.profile,
+        payload: {
+          ...form.fields,
+          file,
+          fileName: file?.fileName || form.fields.fileName,
+        },
+      })
       sendOk(response, asset, 201)
       return
     }

@@ -166,6 +166,7 @@ interface RemoteMomentRecord {
   id?: string
   assetUrl?: string
   coverImageUrl?: string
+  duration?: number
   imageUrl?: string
   mediaUrl?: string
   photoUrl?: string
@@ -173,7 +174,7 @@ interface RemoteMomentRecord {
   url?: string
   isTimelinePlaceholder?: boolean
   kind?: 'moment'
-  mediaType?: 'image'
+  mediaType?: 'image' | 'video'
   nodeKind?: 'moment'
   nodeType?: 'opening' | 'highlight' | 'drinking' | 'private' | 'closing'
   rankingEligible?: boolean
@@ -188,6 +189,7 @@ interface RemoteMomentRecord {
   uploaderName?: string
   uploaderProfileId?: string
   usageConsent?: Partial<ManagedMomentUsageConsent>
+  videoUrl?: string
   visibility?: string
   visibleProfileIds?: string[]
 }
@@ -613,11 +615,16 @@ export interface ManagedMomentUsageConsent {
 export interface ManagedMomentPayload {
   caption?: string
   clientDraftId?: string
+  coverImageUrl?: string
+  duration?: number
   imageUrl?: string
+  mediaType?: 'image' | 'video'
   nodeType?: ManagedMomentNodeType
   tags?: string[]
   uploadAssetId?: string
+  uploadVideoAssetId?: string
   usageConsent?: Partial<ManagedMomentUsageConsent>
+  videoUrl?: string
   visibility?: ManagedMomentVisibility
   visibleProfileIds?: string[]
 }
@@ -627,9 +634,11 @@ export interface ManagedMomentRecord {
   completionStatus: ManagedMomentCompletionStatus
   createdAt: string
   id: string
+  coverImageUrl?: string
+  duration?: number
   imageUrl?: string
   isTimelinePlaceholder: boolean
-  mediaType: 'image'
+  mediaType: 'image' | 'video'
   nodeKind: 'moment'
   nodeType: ManagedMomentNodeType
   rankingEligible: boolean
@@ -644,6 +653,7 @@ export interface ManagedMomentRecord {
   uploaderName: string
   uploaderProfileId: string
   usageConsent?: ManagedMomentUsageConsent
+  videoUrl?: string
   visibility: ManagedMomentVisibility
   visibleProfileIds?: string[]
 }
@@ -685,7 +695,11 @@ export interface ManagedSessionTimeline {
 }
 
 export interface ManagedMomentUploadResult {
+  assetType?: 'image' | 'video'
+  coverAssetId?: string
+  coverImageUrl?: string
   createdAt: string
+  duration?: number
   fileName: string
   id: string
   mimeType: string
@@ -891,6 +905,60 @@ const requestJson = <T>(
           return
         }
         reject(error)
+      },
+      fail: (error) => reject(normalizeWxRequestError(error, path)),
+    })
+  })
+
+const parseUploadFileResponse = <T>(response: WechatMiniprogram.UploadFileSuccessCallbackResult, path: string): T => {
+  let payload: ApiResponse<T> | null = null
+  try {
+    payload = JSON.parse(response.data || '{}') as ApiResponse<T>
+  } catch (error) {
+    throw normalizeWxRequestError(error, path)
+  }
+  if (response.statusCode >= 200 && response.statusCode < 300 && payload.code === 0) {
+    return payload.data
+  }
+  const fallbackMessage = response.statusCode === 404 ? 'not found' : 'request failed'
+  const error = new Error(payload?.message || fallbackMessage)
+  ;(error as Error & { statusCode?: number }).statusCode = response.statusCode
+  throw error
+}
+
+const uploadFileRequest = <T>(
+  path: string,
+  filePath: string,
+  formData: WechatMiniprogram.IAnyObject,
+  allowAuthRetry = true,
+): Promise<T> =>
+  new Promise((resolve, reject) => {
+    wx.uploadFile({
+      filePath,
+      formData,
+      header: getUserAuthHeaders(),
+      name: 'file',
+      timeout: Math.max(DEFAULT_REQUEST_TIMEOUT_MS, 20000),
+      url: `${getApiBase()}${path}`,
+      success: (response) => {
+        try {
+          resolve(parseUploadFileResponse<T>(response, path))
+        } catch (error) {
+          const statusCode = getRequestStatusCode(error)
+          if (statusCode === 401 && allowAuthRetry) {
+            void getUserAuthSession()
+              .then((session) => {
+                if (!session.loggedIn || !session.profile?.id) {
+                  reject(error)
+                  return
+                }
+                uploadFileRequest<T>(path, filePath, formData, false).then(resolve, reject)
+              })
+              .catch(() => reject(error))
+            return
+          }
+          reject(error)
+        }
       },
       fail: (error) => reject(normalizeWxRequestError(error, path)),
     })
@@ -1174,31 +1242,41 @@ const resolveRemoteMomentImageUrl = (item?: RemoteMomentRecord) =>
     item?.url,
   )
 
-const normalizeMomentRecord = (item?: RemoteMomentRecord): ManagedMomentRecord => ({
-  caption: item?.caption || '',
-  completionStatus: item?.completionStatus || 'draft',
-  createdAt: item?.createdAt || '',
-  id: item?.id || '',
-  imageUrl: resolveRemoteMomentImageUrl(item),
-  isTimelinePlaceholder: Boolean(item?.isTimelinePlaceholder),
-  mediaType: 'image',
-  nodeKind: 'moment',
-  nodeType: item?.nodeType || 'highlight',
-  rankingEligible: Boolean(item?.rankingEligible),
-  reviewStatus: (item?.reviewStatus as ManagedMomentReviewStatus) || 'pending',
-  rewardEligible: Boolean(item?.rewardEligible),
-  secondaryReviewStatus: (item?.secondaryReviewStatus as ManagedMomentSecondaryReviewStatus) || 'pending',
-  sessionId: item?.sessionId || '',
-  tags: Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [],
-  timelineTitle: item?.timelineTitle || '',
-  updatedAt: item?.updatedAt || item?.createdAt || '',
-  uploaderAvatarUrl: normalizeManagedAvatarPath(item?.uploaderAvatarUrl),
-  uploaderName: item?.uploaderName || '',
-  uploaderProfileId: item?.uploaderProfileId || '',
-  usageConsent: normalizeUsageConsent(item?.usageConsent),
-  visibility: (item?.visibility as ManagedMomentVisibility) || 'session',
-  visibleProfileIds: Array.isArray(item?.visibleProfileIds) ? item.visibleProfileIds.filter(Boolean) : [],
-})
+const resolveRemoteMomentCoverImageUrl = (item?: RemoteMomentRecord) =>
+  normalizeManagedAssetPath(item?.coverImageUrl || item?.thumbnailUrl || item?.imageUrl || item?.photoUrl || item?.url)
+
+const normalizeMomentRecord = (item?: RemoteMomentRecord): ManagedMomentRecord => {
+  const mediaType = item?.mediaType === 'video' ? 'video' : 'image'
+  const coverImageUrl = resolveRemoteMomentCoverImageUrl(item)
+  return {
+    caption: item?.caption || '',
+    completionStatus: item?.completionStatus || 'draft',
+    coverImageUrl,
+    createdAt: item?.createdAt || '',
+    duration: Number(item?.duration) || 0,
+    id: item?.id || '',
+    imageUrl: mediaType === 'video' ? coverImageUrl : resolveRemoteMomentImageUrl(item),
+    isTimelinePlaceholder: Boolean(item?.isTimelinePlaceholder),
+    mediaType,
+    nodeKind: 'moment',
+    nodeType: item?.nodeType || 'highlight',
+    rankingEligible: Boolean(item?.rankingEligible),
+    reviewStatus: (item?.reviewStatus as ManagedMomentReviewStatus) || 'pending',
+    rewardEligible: Boolean(item?.rewardEligible),
+    secondaryReviewStatus: (item?.secondaryReviewStatus as ManagedMomentSecondaryReviewStatus) || 'pending',
+    sessionId: item?.sessionId || '',
+    tags: Array.isArray(item?.tags) ? item.tags.filter(Boolean) : [],
+    timelineTitle: item?.timelineTitle || '',
+    updatedAt: item?.updatedAt || item?.createdAt || '',
+    uploaderAvatarUrl: normalizeManagedAvatarPath(item?.uploaderAvatarUrl),
+    uploaderName: item?.uploaderName || '',
+    uploaderProfileId: item?.uploaderProfileId || '',
+    usageConsent: normalizeUsageConsent(item?.usageConsent),
+    videoUrl: normalizeManagedAssetPath(item?.videoUrl),
+    visibility: (item?.visibility as ManagedMomentVisibility) || 'session',
+    visibleProfileIds: Array.isArray(item?.visibleProfileIds) ? item.visibleProfileIds.filter(Boolean) : [],
+  }
+}
 
 const normalizeSessionEventRecord = (item?: RemoteSessionEventRecord): ManagedSessionEventRecord => ({
   caption: item?.caption || '',
@@ -1586,6 +1664,20 @@ export const uploadManagedMomentImage = async (payload: {
   sessionId: string
 }): Promise<ManagedMomentUploadResult> =>
   requestJson<ManagedMomentUploadResult>('/moments/uploads/image', 'POST', payload)
+
+export const uploadManagedMomentVideo = async (payload: {
+  coverDataUrl: string
+  duration: number
+  fileName: string
+  filePath: string
+  sessionId: string
+}): Promise<ManagedMomentUploadResult> =>
+  uploadFileRequest<ManagedMomentUploadResult>('/moments/uploads/video', payload.filePath, {
+    coverDataUrl: payload.coverDataUrl,
+    duration: String(payload.duration || 5),
+    fileName: payload.fileName,
+    sessionId: payload.sessionId,
+  })
 
 export const cleanupManagedMomentUpload = async (assetId: string): Promise<{ assetId: string; removed: boolean }> =>
   requestJson<{ assetId: string; removed: boolean }>(`/moments/uploads/${encodeURIComponent(assetId)}`, 'DELETE')
