@@ -377,7 +377,16 @@ const resolveAvatarUrl = ({ sessionId = '', profileId = '', preferredAvatarUrl =
   }
   const normalizedProfileId = cleanText(profileId)
   if (!normalizedProfileId) {
-  return ''
+    return ''
+  }
+  const session = sessionId ? getManagedSessionById(sessionId) : null
+  const memberAvatarUrl = cleanText(
+    (Array.isArray(session?.members) ? session.members : []).find((item) => cleanText(item?.profileId) === normalizedProfileId)?.avatarUrl,
+  )
+  if (memberAvatarUrl) {
+    return memberAvatarUrl
+  }
+  return cleanText(buildProfileAvatarMap().get(normalizedProfileId))
 }
 
 const getActiveMomentLikes = (store = {}, momentId = '') =>
@@ -406,15 +415,6 @@ const getMomentLikeSummary = (store = {}, momentId = '', viewerProfileId = '') =
     latestLikeAt: likers[0]?.createdAt || '',
     likers,
   }
-}
-  const session = sessionId ? getManagedSessionById(sessionId) : null
-  const memberAvatarUrl = cleanText(
-    (Array.isArray(session?.members) ? session.members : []).find((item) => cleanText(item?.profileId) === normalizedProfileId)?.avatarUrl,
-  )
-  if (memberAvatarUrl) {
-    return memberAvatarUrl
-  }
-  return cleanText(buildProfileAvatarMap().get(normalizedProfileId))
 }
 
 const getSessionMember = (session = {}, profileId = '') =>
