@@ -42,6 +42,12 @@
             <view wx:if="{{item.mediaType === 'video'}}" class="live-video-badge"><text>▶ {{item.duration || 5}}s</text></view>
           </view>
           <text class="pp-body">{{item.detail}}</text>
+          <view wx:if="{{item.nodeKind === 'moment'}}" class="live-moment-actions">
+            <view class="live-like-btn {{item.likedByMe ? 'live-like-btn-active' : ''}}" data-id="{{item.id}}" catchtap="handleTimelineLikeTap">
+              <text>{{item.likedByMe ? '已赞' : '点赞'}}</text>
+              <text>{{item.likeCount}}</text>
+            </view>
+          </view>
         </view>
       </view>
       <view wx:else class="pp-empty">

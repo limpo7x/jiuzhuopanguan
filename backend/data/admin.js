@@ -770,6 +770,82 @@ const countBy = (list = [], predicate) => list.filter(predicate).length
 const formatCurrency = (value) => `¥${Math.round(Number(value || 0)).toLocaleString('en-US')}`
 const formatNumber = (value) => Math.round(Number(value || 0)).toLocaleString('en-US')
 const byNumericDesc = (selector) => (left, right) => Number(selector(right) || 0) - Number(selector(left) || 0)
+const firstText = (...values) => values.map((value) => String(value || '').trim()).find(Boolean) || ''
+const labelFromMap = (map, value, fallback = '') => map[String(value || '').trim()] || fallback || String(value || '').trim()
+const shortId = (value = '') => {
+  const text = String(value || '').trim()
+  return text && text.length > 16 ? `${text.slice(0, 10)}...${text.slice(-4)}` : text
+}
+
+const MOMENT_NODE_TYPE_LABELS = {
+  opening: '开场照片',
+  highlight: '精彩瞬间',
+  drinking: '账本相关',
+  private: '私密记录',
+  closing: '收尾照片',
+}
+const MOMENT_VISIBILITY_LABELS = {
+  private: '仅自己',
+  selected: '指定成员',
+  session: '本局可见',
+  share: '可分享',
+  featured: '可上榜',
+}
+const MOMENT_COMPLETION_LABELS = {
+  draft: '草稿',
+  needs_media: '待补图',
+  complete: '已补全',
+}
+const MOMENT_REVIEW_LABELS = {
+  pending: '待审核',
+  approved: '已通过',
+  rejected: '已拒绝',
+  hidden: '已隐藏',
+}
+const MOMENT_SECONDARY_REVIEW_LABELS = {
+  pending: '待二审',
+  approved: '二审通过',
+  rejected: '二审拒绝',
+  require_resubmit: '要求重传',
+}
+const SHARE_TASK_STATUS_LABELS = {
+  pending: '待生成',
+  processing: '生成中',
+  ready: '已生成',
+  failed: '生成失败',
+  expired: '已过期',
+}
+
+const getActiveMomentLikes = (momentsStore = {}) =>
+  (Array.isArray(momentsStore?.momentLikes) ? momentsStore.momentLikes : []).filter(
+    (item) => String(item?.momentId || '').trim() && String(item?.profileId || '').trim() && !String(item?.removedAt || '').trim(),
+  )
+
+const buildMomentLikeCountMap = (momentsStore = {}) => {
+  const result = new Map()
+  getActiveMomentLikes(momentsStore).forEach((like) => {
+    const momentId = String(like.momentId || '').trim()
+    result.set(momentId, (result.get(momentId) || 0) + 1)
+  })
+  return result
+}
+
+const buildMomentLikeRows = (momentsStore = {}, momentId = '') => {
+  const profileMap = new Map(listProfiles().map((profile) => [String(profile.id || '').trim(), profile]))
+  return getActiveMomentLikes(momentsStore)
+    .filter((like) => String(like.momentId || '').trim() === String(momentId || '').trim())
+    .map((like) => {
+      const profile = profileMap.get(String(like.profileId || '').trim()) || {}
+      return {
+        id: like.id || `${like.momentId}-${like.profileId}`,
+        avatarUrl: like.profileAvatarUrl || profile.avatarUrl || '',
+        profileName: like.profileName || profile.name || like.profileId || '',
+        profileId: like.profileId || '',
+        createdAt: like.createdAt || '',
+      }
+    })
+    .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+}
 
 const getUserCommerceMap = (contentStore = readContentStore()) =>
   contentStore.userCommerce && typeof contentStore.userCommerce === 'object' ? contentStore.userCommerce : {}
@@ -988,6 +1064,7 @@ const buildMomentReviewRows = (adminStore = readStore()) => {
   const momentsStore = readMomentsAdminStore()
   const sourceItems = momentsStore?.momentRecords || adminStore.momentReviewItems || []
   const sessionNameById = getSessionNameById(adminStore)
+  const likeCountByMomentId = buildMomentLikeCountMap(momentsStore)
   const reportCountByMomentId = new Map()
   ;(momentsStore?.momentReports || adminStore.momentReportItems || []).forEach((report) => {
     const momentId = String(report.momentId || '').trim()
@@ -1002,18 +1079,254 @@ const buildMomentReviewRows = (adminStore = readStore()) => {
       tagsText: Array.isArray(entry.tags) ? entry.tags.join('、') : entry.tagsText || '',
       sessionName: entry.sessionName || sessionNameById.get(String(entry.sessionId || '').trim()) || entry.sessionId || '',
       uploaderName: entry.uploaderName || entry.uploaderProfileId || '',
-      nodeType: entry.nodeType || '',
-      visibility: entry.visibility || '',
+      nodeType: labelFromMap(MOMENT_NODE_TYPE_LABELS, entry.nodeType),
+      visibility: labelFromMap(MOMENT_VISIBILITY_LABELS, entry.visibility),
       consentText: entry.consentText || Object.entries(entry.usageConsent || {}).filter(([, value]) => value).map(([key]) => key).join(', '),
-      completionStatus: entry.completionStatus || '',
-      reviewStatus: entry.reviewStatus || '',
-      secondaryReviewStatus: entry.secondaryReviewStatus || '',
+      completionStatus: labelFromMap(MOMENT_COMPLETION_LABELS, entry.completionStatus),
+      reviewStatus: labelFromMap(MOMENT_REVIEW_LABELS, entry.reviewStatus),
+      secondaryReviewStatus: labelFromMap(MOMENT_SECONDARY_REVIEW_LABELS, entry.secondaryReviewStatus),
       rankingEligible: entry.rankingEligible ? '是' : '否',
       rewardEligible: entry.rewardEligible ? '是' : '否',
+      likeCount: likeCountByMomentId.get(entry.id) || 0,
       reportCount: Number(entry.reportCount) || reportCountByMomentId.get(entry.id) || 0,
       createdAt: entry.createdAt || '',
     }))
     .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+}
+
+const getManagedMomentDetail = (momentId = '') => {
+  const normalizedMomentId = String(momentId || '').trim()
+  const momentsStore = readMomentsAdminStore()
+  const adminStore = readStore()
+  const moment = (momentsStore?.momentRecords || []).find((item) => String(item.id || '').trim() === normalizedMomentId)
+  if (!moment) {
+    throw createAdminHttpError('moment not found', 404)
+  }
+  const session = getManagedSessionById(moment.sessionId) || {}
+  const likeRows = buildMomentLikeRows(momentsStore, normalizedMomentId)
+  const reportRows = (momentsStore?.momentReports || [])
+    .filter((report) => String(report.momentId || '').trim() === normalizedMomentId)
+    .map((report) => ({
+      id: report.id || report.reportId || '',
+      reporterName: report.reporterName || report.reporterProfileId || '',
+      reason: report.reason || '',
+      status: report.statusText || report.status || '',
+      createdAt: report.createdAt || '',
+    }))
+  const nominationRows = (momentsStore?.momentNominations || [])
+    .filter((nomination) => String(nomination.momentId || '').trim() === normalizedMomentId)
+    .map((nomination) => ({
+      id: nomination.id || '',
+      profileName: nomination.profileName || nomination.profileId || '',
+      category: getRankingCategoryLabel(nomination.category),
+      pointsSpent: nomination.pointsSpent || 0,
+      status: nomination.status || '',
+      createdAt: nomination.createdAt || '',
+    }))
+  return {
+    title: '精彩瞬间详情',
+    copy: `${firstText(session.name, moment.sessionName, moment.sessionId, '聚会')} · ${firstText(moment.uploaderName, moment.uploaderProfileId, '上传者')}`,
+    imageUrl: moment.imageUrl || moment.coverImageUrl || moment.thumbnailUrl || '',
+    fields: [
+      { label: '文案', value: firstText(moment.caption, moment.timelineTitle, '无文案') },
+      { label: '聚会', value: firstText(session.name, moment.sessionName, moment.sessionId) },
+      { label: '上传者', value: firstText(moment.uploaderName, moment.uploaderProfileId) },
+      { label: '媒体类型', value: moment.mediaType === 'video' ? '视频' : '图片' },
+      { label: '节点类型', value: labelFromMap(MOMENT_NODE_TYPE_LABELS, moment.nodeType) },
+      { label: '可见范围', value: labelFromMap(MOMENT_VISIBILITY_LABELS, moment.visibility) },
+      { label: '补全状态', value: labelFromMap(MOMENT_COMPLETION_LABELS, moment.completionStatus) },
+      { label: '审核状态', value: labelFromMap(MOMENT_REVIEW_LABELS, moment.reviewStatus) },
+      { label: '二审状态', value: labelFromMap(MOMENT_SECONDARY_REVIEW_LABELS, moment.secondaryReviewStatus) },
+      { label: '可上榜', value: moment.rankingEligible ? '是' : '否' },
+      { label: '点赞数', value: String(likeRows.length) },
+      { label: '举报数', value: String(reportRows.length) },
+      { label: '瞬间 ID', value: moment.id },
+      { label: '聚会 ID', value: moment.sessionId },
+      { label: '创建时间', value: moment.createdAt || '' },
+    ],
+    tables: [
+      {
+        key: `moment-likes-${normalizedMomentId}`,
+        title: '点赞者',
+        pageSize: 8,
+        columns: [
+          { key: 'avatarUrl', label: '头像', type: 'image' },
+          { key: 'profileName', label: '用户' },
+          { key: 'profileId', label: '用户 ID' },
+          { key: 'createdAt', label: '点赞时间' },
+        ],
+        rows: likeRows,
+      },
+      {
+        key: `moment-nominations-${normalizedMomentId}`,
+        title: '推举记录',
+        pageSize: 8,
+        columns: [
+          { key: 'profileName', label: '推举人' },
+          { key: 'category', label: '榜单' },
+          { key: 'pointsSpent', label: '积分' },
+          { key: 'status', label: '状态' },
+          { key: 'createdAt', label: '时间' },
+        ],
+        rows: nominationRows,
+      },
+      {
+        key: `moment-reports-${normalizedMomentId}`,
+        title: '举报记录',
+        pageSize: 8,
+        columns: [
+          { key: 'reporterName', label: '举报人' },
+          { key: 'reason', label: '原因' },
+          { key: 'status', label: '状态' },
+          { key: 'createdAt', label: '时间' },
+        ],
+        rows: reportRows,
+      },
+    ],
+    meta: {
+      adminLogCount: (adminStore.operationLogs || []).filter((log) => String(log.targetId || '').trim() === normalizedMomentId).length,
+    },
+  }
+}
+
+const buildSessionMomentStatsById = (momentsStore = {}) => {
+  const likeCountByMomentId = buildMomentLikeCountMap(momentsStore)
+  const result = new Map()
+  ;(momentsStore?.momentRecords || []).forEach((moment) => {
+    const sessionId = String(moment.sessionId || '').trim()
+    if (!sessionId || moment.removedAt) return
+    const current = result.get(sessionId) || { ledgerEventCount: 0, likeCount: 0, momentCount: 0, photoCount: 0, videoCount: 0 }
+    current.momentCount += 1
+    current.likeCount += likeCountByMomentId.get(moment.id) || 0
+    if (moment.mediaType === 'video') {
+      current.videoCount += 1
+    } else {
+      current.photoCount += 1
+    }
+    result.set(sessionId, current)
+  })
+  ;(momentsStore?.sessionEvents || []).forEach((event) => {
+    const sessionId = String(event.sessionId || '').trim()
+    if (!sessionId) return
+    const current = result.get(sessionId) || { ledgerEventCount: 0, likeCount: 0, momentCount: 0, photoCount: 0, videoCount: 0 }
+    current.ledgerEventCount += 1
+    result.set(sessionId, current)
+  })
+  return result
+}
+
+const getManagedSessionDetail = (sessionId = '') => {
+  const normalizedSessionId = String(sessionId || '').trim()
+  const momentsStore = readMomentsAdminStore()
+  const session = getManagedSessionById(normalizedSessionId)
+  if (!session) {
+    throw createAdminHttpError('session not found', 404)
+  }
+  const likeCountByMomentId = buildMomentLikeCountMap(momentsStore)
+  const members = Array.isArray(session.members) ? session.members : []
+  const momentRows = (momentsStore?.momentRecords || [])
+    .filter((moment) => String(moment.sessionId || '').trim() === normalizedSessionId && !moment.removedAt)
+    .map((moment) => ({
+      id: moment.id || '',
+      thumbnailUrl: moment.imageUrl || moment.coverImageUrl || '',
+      title: firstText(moment.timelineTitle, moment.caption, '聚会记录'),
+      mediaType: moment.mediaType === 'video' ? '视频' : '图片',
+      uploaderName: firstText(moment.uploaderName, moment.uploaderProfileId),
+      likeCount: likeCountByMomentId.get(moment.id) || 0,
+      reviewStatus: labelFromMap(MOMENT_REVIEW_LABELS, moment.reviewStatus),
+      createdAt: moment.createdAt || '',
+    }))
+    .sort((left, right) => String(left.createdAt).localeCompare(String(right.createdAt)))
+  const eventRows = (momentsStore?.sessionEvents || [])
+    .filter((event) => String(event.sessionId || '').trim() === normalizedSessionId)
+    .map((event) => ({
+      id: event.id || '',
+      eventType: event.eventType === 'drink_add' ? '加酒' : event.eventType === 'drink_debt' ? '欠酒' : '现场事件',
+      operatorName: firstText(event.operatorName, event.operatorProfileId),
+      targetName: firstText(event.targetName, event.targetProfileId),
+      scoreText: event.scoreDelta ? `${event.scoreDelta > 0 ? '+' : ''}${event.scoreDelta} 杯` : '',
+      caption: event.caption || '',
+      createdAt: event.createdAt || '',
+    }))
+    .sort((left, right) => String(left.createdAt).localeCompare(String(right.createdAt)))
+  const stats = buildSessionMomentStatsById(momentsStore).get(normalizedSessionId) || {
+    ledgerEventCount: 0,
+    likeCount: 0,
+    momentCount: 0,
+    photoCount: 0,
+    videoCount: 0,
+  }
+  return {
+    title: '聚会详情',
+    copy: `${firstText(session.name, session.sessionName, '聚会')} · ${members.length} 人`,
+    fields: [
+      { label: '聚会名称', value: firstText(session.name, session.sessionName) },
+      { label: '副标题', value: firstText(session.subtitle, session.sessionSubtitle) },
+      { label: '房主', value: firstText(session.hostName, getSessionHost(session)?.name, session.hostProfileId) },
+      { label: '流程状态', value: normalizeSessionState(session.state || session.status) },
+      { label: '首拍状态', value: hasSessionFirstPhoto(session) ? '已首拍' : '待首拍' },
+      { label: '口令', value: session.inviteCode || '' },
+      { label: '照片数', value: String(stats.photoCount) },
+      { label: '视频数', value: String(stats.videoCount) },
+      { label: '账本事件', value: String(stats.ledgerEventCount) },
+      { label: '总点赞数', value: String(stats.likeCount) },
+      { label: '创建时间', value: session.createdAt || '' },
+      { label: '首拍时间', value: session.firstPhotoUploadedAt || '' },
+      { label: '结束时间', value: session.endedAt || '' },
+      { label: '聚会 ID', value: normalizedSessionId },
+    ],
+    tables: [
+      {
+        key: `session-members-${normalizedSessionId}`,
+        title: '成员',
+        pageSize: 12,
+        columns: [
+          { key: 'avatarUrl', label: '头像', type: 'image' },
+          { key: 'name', label: '昵称' },
+          { key: 'roleText', label: '身份' },
+          { key: 'profileId', label: '用户 ID' },
+          { key: 'status', label: '状态' },
+        ],
+        rows: members.map((member) => ({
+          id: member.profileId || member.id || member.name,
+          avatarUrl: member.avatarUrl || '',
+          name: firstText(member.name, member.profileId),
+          profileId: member.profileId || '',
+          roleText: member.isHost ? '房主' : '成员',
+          status: member.kickedAt ? '已移出' : firstText(member.status, '在局内'),
+        })),
+      },
+      {
+        key: `session-moments-${normalizedSessionId}`,
+        title: '照片与视频',
+        pageSize: 8,
+        columns: [
+          { key: 'thumbnailUrl', label: '缩略图', type: 'image' },
+          { key: 'title', label: '标题' },
+          { key: 'mediaType', label: '类型' },
+          { key: 'uploaderName', label: '上传者' },
+          { key: 'likeCount', label: '点赞数' },
+          { key: 'reviewStatus', label: '审核' },
+          { key: 'createdAt', label: '时间' },
+        ],
+        rows: momentRows,
+      },
+      {
+        key: `session-events-${normalizedSessionId}`,
+        title: '账本与现场事件',
+        pageSize: 8,
+        columns: [
+          { key: 'eventType', label: '动作' },
+          { key: 'operatorName', label: '操作人' },
+          { key: 'targetName', label: '对象' },
+          { key: 'scoreText', label: '数量' },
+          { key: 'caption', label: '说明' },
+          { key: 'createdAt', label: '时间' },
+        ],
+        rows: eventRows,
+      },
+    ],
+  }
 }
 
 const buildMomentReportRows = (adminStore = readStore()) => {
@@ -1101,10 +1414,15 @@ const buildSessionRelationSummary = (adminStore = readStore()) => {
     return {
       reportId: report?.id || '',
       reportStatus: report?.status || '',
+      reportLabel: report?.id ? `${report.status || '已生成'} · ${shortId(report.id)}` : '未生成',
       briefId: brief?.id || '',
       briefStatus: brief?.shareImageStatus || (brief ? '已生成简报' : ''),
+      briefLabel: brief?.id ? `${brief.shareImageStatus ? labelFromMap(SHARE_TASK_STATUS_LABELS, brief.shareImageStatus, brief.shareImageStatus) : '已生成'} · ${shortId(brief.id)}` : '未生成',
       shareTaskId: latestShareTask?.id || '',
       shareTaskStatus: latestShareTask?.status || '',
+      shareTaskLabel: latestShareTask?.id
+        ? `${labelFromMap(SHARE_TASK_STATUS_LABELS, latestShareTask.status, latestShareTask.status)} · ${shortId(latestShareTask.id)}`
+        : '未生成',
       shareTaskCount: shareTasks.length,
       manageLinks: [
         report?.id ? `战报:${report.id}` : '',
@@ -2952,14 +3270,17 @@ const pageMap = {
   },
   'sessions': () => {
     const store = readStore()
+    const momentsStore = readMomentsAdminStore()
     const getRelationSummary = buildSessionRelationSummary(store)
     const getFirstPhotoState = buildFirstPhotoStateBySessionId(store)
+    const sessionStatsById = buildSessionMomentStatsById(momentsStore)
     const sessions = (store.liveSessions || []).map((item) => {
       const members = Array.isArray(item.members) ? item.members : []
       const host = getSessionHost(item)
       const participants = members.filter((member) => !member.isHost)
       const relationSummary = getRelationSummary(item.id)
       const firstPhotoState = getFirstPhotoState(item)
+      const stats = sessionStatsById.get(String(item.id || '').trim()) || { ledgerEventCount: 0, likeCount: 0, momentCount: 0, photoCount: 0, videoCount: 0 }
       return {
         ...item,
         ...firstPhotoState,
@@ -2969,6 +3290,10 @@ const pageMap = {
         participantProfileIds: participants.map((member) => member.profileId).filter(Boolean).join('、'),
         memberCount: members.length,
         memberSummary: members.map((member) => `${member.isHost ? '房主' : '成员'}:${member.name || member.profileId || '-'}`).join('、'),
+        contentSummary: `${stats.photoCount} 张照片 / ${stats.videoCount} 条视频 / ${stats.ledgerEventCount} 条账本`,
+        likeCount: stats.likeCount,
+        stateDisplay: normalizeSessionState(item.state || item.status),
+        statusDisplay: normalizeSessionStatusForState(item.status, item.state),
         resumeStateText: firstPhotoState.isActiveForResume ? '可继续记录' : firstPhotoState.hasFirstPhoto ? '已首拍' : '待首拍',
         ...relationSummary,
       }
@@ -2984,29 +3309,30 @@ const pageMap = {
         columns: [
           { key: 'name', label: '聚会名称' },
           { key: 'players', label: '人数' },
-          { key: 'template', label: '模板' },
-          { key: 'hostName', label: '记录人' },
-          { key: 'hostProfileId', label: '记录人唯一ID' },
+          { key: 'hostName', label: '房主' },
           { key: 'participantsText', label: '参与人' },
-          { key: 'participantProfileIds', label: '参与人唯一ID' },
           { key: 'inviteCode', label: '口令' },
-          { key: 'state', label: '流程状态' },
-          { key: 'status', label: '状态' },
+          { key: 'stateDisplay', label: '流程状态' },
+          { key: 'statusDisplay', label: '聚会状态' },
           { key: 'resumeStateText', label: '首拍状态' },
           { key: 'firstPhotoUploadedAt', label: '首拍时间' },
           { key: 'endedAt', label: '结束时间' },
           { key: 'memberCount', label: '成员数' },
-          { key: 'memberSummary', label: '成员摘要' },
-          { key: 'reportId', label: '战报' },
-          { key: 'reportStatus', label: '战报状态' },
-          { key: 'briefId', label: '简报' },
-          { key: 'briefStatus', label: '简报状态' },
-          { key: 'shareTaskId', label: '分享图任务' },
-          { key: 'shareTaskStatus', label: '分享图状态' },
-          { key: 'shareTaskCount', label: '分享图任务数' },
-          { key: 'manageLinks', label: '管理入口' },
+          { key: 'contentSummary', label: '内容' },
+          { key: 'likeCount', label: '点赞数' },
+          { key: 'reportLabel', label: '战报' },
+          { key: 'briefLabel', label: '简报' },
+          { key: 'shareTaskLabel', label: '分享图' },
         ],
           rowActions: [
+            {
+              key: 'detail',
+              label: '查看详情',
+              endpoint: '/api/v1/admin/sessions/:id/detail',
+              method: 'GET',
+              view: 'detail',
+              reasonRequired: false,
+            },
             {
               key: 'repair-end',
               label: '标记已结束',
@@ -3584,10 +3910,18 @@ pageMap['content-moments-review'] = () => {
           { key: 'reviewStatus', label: '审核状态' },
           { key: 'secondaryReviewStatus', label: '二审状态' },
           { key: 'reportCount', label: '举报数' },
+          { key: 'likeCount', label: '点赞数' },
           { key: 'rankingEligible', label: '可上榜' },
           { key: 'createdAt', label: '创建时间' },
         ],
         rowActions: [
+          {
+            key: 'detail',
+            label: '查看详情',
+            endpoint: '/api/v1/admin/moments/:id/detail',
+            method: 'GET',
+            view: 'detail',
+          },
           {
             key: 'approve',
             label: '通过',
@@ -4479,6 +4813,8 @@ module.exports = {
   finishManagedSession,
   getAdminStore: readStore,
   getManagedReportById,
+  getManagedMomentDetail,
+  getManagedSessionDetail,
   listManagedReports,
   getUserJudgeStats,
   getManagedSessionById,

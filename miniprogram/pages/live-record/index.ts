@@ -18,6 +18,7 @@ import {
   finishManagedSession,
   getManagedLiveSession,
   getManagedSessionTimeline,
+  toggleManagedMomentLike,
   updateManagedSession,
   type ManagedLiveSession,
   uploadManagedMomentImage,
@@ -61,6 +62,8 @@ interface LivePhotoNode {
   imageBroken?: boolean
   id: string
   imageUrl: string
+  likeCount: number
+  likedByMe: boolean
   mediaType?: 'image' | 'video'
   nodeKind: string
   timelineTitle: string
@@ -91,6 +94,8 @@ interface LiveRecordTimelineItem {
   id: string
   imageBroken?: boolean
   imageUrl: string
+  likeCount: number
+  likedByMe: boolean
   mediaType?: 'image' | 'video'
   nodeKind: 'event' | 'moment'
   scoreText: string
@@ -165,6 +170,7 @@ interface LiveRecordState {
   startTimeText: string
   hiddenTimelineNotice: string
   ledgerTimelineItems: LiveLedgerTimelineItem[]
+  likingMomentId: string
   photoNodes: LivePhotoNode[]
   recordTimelineDisplayItems: LiveRecordTimelineDisplayItem[]
   recordTimelineItems: LiveRecordTimelineItem[]
@@ -201,6 +207,7 @@ interface LiveRecordMethods {
   handlePhotoImageError: (event: WechatMiniprogram.BaseEvent) => Promise<void>
   handlePhotoImageLoad: (event: WechatMiniprogram.BaseEvent) => void
   handleLedgerTap: () => Promise<void>
+  handleTimelineLikeTap: (event: WechatMiniprogram.CustomEvent<{ id?: string }>) => Promise<void>
   handleNextRoundTap: () => void
   handleOpenShareAlbumTap: () => void
   handleTimerTick: () => void
@@ -567,6 +574,8 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
           iconAsset: '',
           id: node.id,
           imageUrl: '',
+          likeCount: 0,
+          likedByMe: false,
           nodeKind: 'event',
           scoreText: `${score} 杯`,
           timeText: formatTimelineTime(node.createdAt || node.updatedAt),
@@ -585,6 +594,8 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         duration: node.duration || 5,
         id: node.id,
         imageUrl: coverImageUrl,
+        likeCount: node.likeCount || 0,
+        likedByMe: Boolean(node.likedByMe),
         mediaType: 'video',
         nodeKind: node.nodeKind,
         timelineTitle: node.timelineTitle || node.caption || '聚会视频',
@@ -605,6 +616,8 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         iconAsset: '',
         id: node.id,
         imageUrl: coverImageUrl,
+        likeCount: node.likeCount || 0,
+        likedByMe: Boolean(node.likedByMe),
         mediaType: 'video',
         nodeKind: 'moment',
         scoreText: '',
@@ -621,6 +634,8 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         caption: node.caption || '',
         id: node.id,
         imageUrl: node.imageUrl,
+        likeCount: node.likeCount || 0,
+        likedByMe: Boolean(node.likedByMe),
         mediaType: 'image',
         nodeKind: node.nodeKind,
         timelineTitle: node.timelineTitle || node.caption || '聚会照片',
@@ -639,6 +654,8 @@ const buildTimelineViewState = (nodes: ManagedTimelineNode[], records: LiveRecor
         iconAsset: '',
         id: node.id,
         imageUrl: node.imageUrl,
+        likeCount: node.likeCount || 0,
+        likedByMe: Boolean(node.likedByMe),
         mediaType: 'image',
         nodeKind: 'moment',
         scoreText: '',
@@ -872,6 +889,7 @@ Page<LiveRecordState, LiveRecordMethods>({
     events: [],
     hiddenTimelineNotice: '',
     ledgerTimelineItems: [],
+    likingMomentId: '',
     photoNodes: [],
     recordTimelineDisplayItems: [],
     recordTimelineItems: [],
@@ -1966,6 +1984,35 @@ Page<LiveRecordState, LiveRecordMethods>({
 
   async handleLedgerTap() {
     this.setData({ activeSegment: 'ledger' })
+  },
+
+  async handleTimelineLikeTap(event) {
+    const id = event.currentTarget.dataset.id || ''
+    if (!id || this.data.likingMomentId) {
+      return
+    }
+    this.setData({ likingMomentId: id })
+    try {
+      const result = await toggleManagedMomentLike(id)
+      const likePatch = {
+        likeCount: result.likeCount,
+        likedByMe: result.likedByMe,
+      }
+      const nextPhotoNodes = this.data.photoNodes.map((item) => (item.id === id ? { ...item, ...likePatch } : item))
+      const nextRecordTimelineItems = this.data.recordTimelineItems.map((item) => (item.id === id ? { ...item, ...likePatch } : item))
+      const nextTimelineNodes = this.data.timelineNodes.map((item) => (item.nodeKind === 'moment' && item.id === id ? { ...item, ...likePatch } : item))
+      this.setData({
+        photoNodes: nextPhotoNodes,
+        recordTimelineItems: nextRecordTimelineItems,
+        recordTimelineDisplayItems: buildRecordTimelineDisplayItems(nextRecordTimelineItems),
+        timelineNodes: nextTimelineNodes,
+      })
+      this.showPreviewToast(result.likedByMe ? '已点赞' : '已取消点赞')
+    } catch (error) {
+      this.showPreviewToast(error instanceof Error ? error.message : '点赞失败')
+    } finally {
+      this.setData({ likingMomentId: '' })
+    }
   },
 
   handleTimelineSelect(event) {

@@ -75,8 +75,10 @@ const {
   deleteManagedSession,
   endManagedSession,
   finishManagedSession,
+  getManagedMomentDetail,
   getManagedReportById,
   getManagedSessionById,
+  getManagedSessionDetail,
   getUserJudgeStats,
   listManagedReports,
   getPageData,
@@ -116,6 +118,7 @@ const {
   listTodayRankings,
   processShareImageTask,
   retryShareImageTask,
+  toggleMomentLike,
   updateMoment,
   uploadMomentImage,
   uploadMomentVideo,
@@ -1016,6 +1019,20 @@ const server = http.createServer((request, response) => {
       }
     }
 
+    if (request.method === 'GET' && pathname && pathname.startsWith('/api/v1/admin/moments/')) {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
+      const parts = pathname.replace('/api/v1/admin/moments/', '').split('/').filter(Boolean)
+      const momentId = parts[0] || ''
+      const actionName = parts[1] || ''
+      if (actionName === 'detail') {
+        sendOk(response, getManagedMomentDetail(momentId))
+        return
+      }
+    }
+
     if (request.method === 'POST' && pathname && pathname.startsWith('/api/v1/admin/moments/')) {
       const session = requireAdminSession(request, response)
       if (!session) {
@@ -1041,6 +1058,20 @@ const server = http.createServer((request, response) => {
           reason: payload.reason,
           operator: session.user?.username || session.user?.name || 'admin-console',
         }))
+        return
+      }
+    }
+
+    if (request.method === 'GET' && pathname && pathname.startsWith('/api/v1/admin/sessions/')) {
+      const session = requireAdminSession(request, response)
+      if (!session) {
+        return
+      }
+      const parts = pathname.replace('/api/v1/admin/sessions/', '').split('/').filter(Boolean)
+      const sessionId = parts[0] || ''
+      const actionName = parts[1] || ''
+      if (actionName === 'detail') {
+        sendOk(response, getManagedSessionDetail(sessionId))
         return
       }
     }
@@ -1441,7 +1472,12 @@ const server = http.createServer((request, response) => {
     }
 
     if (request.method === 'GET' && pathname === '/api/v1/rankings/today') {
-      sendOk(response, listTodayRankings({ category: query.category, limit: query.limit }))
+      sendOk(response, listTodayRankings({
+        category: query.category,
+        limit: query.limit,
+        period: query.period,
+        profile: resolveUserSession(request)?.profile,
+      }))
       return
     }
 
@@ -1500,6 +1536,10 @@ const server = http.createServer((request, response) => {
       if (request.method === 'POST' && momentId && momentAction === 'nominations') {
         const payload = await readJsonBody(request)
         sendOk(response, await createMomentNomination({ momentId, profile: userSession.profile, payload }), 201)
+        return
+      }
+      if (request.method === 'POST' && momentId && momentAction === 'like') {
+        sendOk(response, toggleMomentLike({ momentId, profile: userSession.profile }))
         return
       }
       if (request.method === 'PUT' && momentId) {

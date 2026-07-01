@@ -1,53 +1,61 @@
 import {
-  createManagedMomentNomination,
-  getManagedMomentNominationEligibility,
   getManagedTodayRanking,
-  type ManagedRankingCategory,
+  toggleManagedMomentLike,
   type ManagedRankingItem,
+  type ManagedRankingPeriod,
 } from '../../services/operations'
-import { resolveNominationReasonText } from '../../utils/nomination-reason'
 import { ensureUserAuthorized } from '../../utils/social'
 
-interface RankingCategoryOption {
+interface RankingPeriodOption {
   label: string
-  value: ManagedRankingCategory
+  subtitle: string
+  value: ManagedRankingPeriod
 }
 
 interface RankingsState {
-  activeCategory: ManagedRankingCategory
-  categories: RankingCategoryOption[]
+  activePeriod: ManagedRankingPeriod
   dateText: string
   emptyText: string
   errorText: string
   items: ManagedRankingItem[]
+  likingMomentId: string
   loading: boolean
-  nominatingMomentId: string
+  periods: RankingPeriodOption[]
   skeletonRows: number[]
   subtitle: string
 }
 
 interface RankingsMethods {
   handleBackTap: () => void
-  handleCategoryTap: (event: WechatMiniprogram.CustomEvent<{ category?: ManagedRankingCategory }>) => Promise<void>
   handleFeatureZoneTap: (event: WechatMiniprogram.BaseEvent) => void
   handleImageTap: (event: WechatMiniprogram.CustomEvent<{ imageUrl?: string }>) => void
-  handleNominateTap: (event: WechatMiniprogram.CustomEvent<{ momentId?: string }>) => Promise<void>
+  handleLikeTap: (event: WechatMiniprogram.CustomEvent<{ momentId?: string }>) => Promise<void>
+  handlePeriodTap: (event: WechatMiniprogram.CustomEvent<{ period?: ManagedRankingPeriod }>) => Promise<void>
   handleRefreshTap: () => Promise<void>
   handleTabTap: (event: WechatMiniprogram.BaseEvent) => void
   loadRanking: () => Promise<void>
   showToast: (message: string) => void
 }
 
-const rankingCategories: RankingCategoryOption[] = [
-  { label: '人气榜', value: 'today_highlight' },
-  { label: '欢乐榜', value: 'today_funny' },
-  { label: '回忆榜', value: 'today_visual' },
-  { label: '开场照', value: 'best_opening' },
-  { label: '收尾照', value: 'best_closing' },
-  { label: '好友推荐', value: 'today_debt' },
+const rankingPeriods: RankingPeriodOption[] = [
+  { label: '当日回忆榜', subtitle: '今日点赞 Top10', value: 'day' },
+  { label: '本周最佳回忆', subtitle: '本周点赞 Top10', value: 'week' },
+  { label: '本月回忆王', subtitle: '本月点赞 Top10', value: 'month' },
 ]
 
-const formatRankingDate = (date = '') => date || '今日'
+const formatRankingDate = (startDate = '', endDate = '', period: ManagedRankingPeriod = 'day') => {
+  if (period === 'day') {
+    return endDate || startDate || '今日'
+  }
+  if (startDate && endDate && startDate !== endDate) {
+    return `${startDate} 至 ${endDate}`
+  }
+  return endDate || startDate || '当前周期'
+}
+
+const getPeriodSubtitle = (period: ManagedRankingPeriod) =>
+  rankingPeriods.find((item) => item.value === period)?.subtitle || '点赞 Top10'
+
 const TAB_ROUTES: Record<string, string> = {
   home: '/pages/index/index',
   tools: '/pages/tools/index',
@@ -68,24 +76,24 @@ const normalizeRankingErrorMessage = (error: unknown) => {
 
 Page<RankingsState, RankingsMethods>({
   data: {
-    activeCategory: 'today_highlight',
-    categories: rankingCategories,
+    activePeriod: 'day',
     dateText: '今日',
-    emptyText: '当前榜单还没有推举',
+    emptyText: '当前榜单还没有点赞',
     errorText: '',
     items: [],
+    likingMomentId: '',
     loading: true,
-    nominatingMomentId: '',
+    periods: rankingPeriods,
     skeletonRows: [1, 2, 3],
-    subtitle: '看看今天哪些回忆被大家记住',
+    subtitle: '按点赞数排序，只展示前 10 名',
   },
 
   async onLoad(query) {
-    const category = typeof query?.category === 'string' ? query.category : ''
-    const activeCategory = rankingCategories.some((item) => item.value === category)
-      ? (category as ManagedRankingCategory)
-      : 'today_highlight'
-    const profile = await ensureUserAuthorized(`/pages/rankings/index?category=${encodeURIComponent(activeCategory)}`)
+    const period = typeof query?.period === 'string' ? query.period : ''
+    const activePeriod = rankingPeriods.some((item) => item.value === period)
+      ? (period as ManagedRankingPeriod)
+      : 'day'
+    const profile = await ensureUserAuthorized(`/pages/rankings/index?period=${encodeURIComponent(activePeriod)}`)
 
     if (!profile) {
       this.setData({
@@ -97,7 +105,10 @@ Page<RankingsState, RankingsMethods>({
       return
     }
 
-    this.setData({ activeCategory })
+    this.setData({
+      activePeriod,
+      subtitle: getPeriodSubtitle(activePeriod),
+    })
     await this.loadRanking()
   },
 
@@ -108,10 +119,10 @@ Page<RankingsState, RankingsMethods>({
     })
 
     try {
-      const ranking = await getManagedTodayRanking(this.data.activeCategory, 50)
+      const ranking = await getManagedTodayRanking(this.data.activePeriod, 10)
       this.setData({
-        dateText: formatRankingDate(ranking.date),
-        emptyText: '今天还没有上榜回忆',
+        dateText: formatRankingDate(ranking.startDate, ranking.endDate || ranking.date, ranking.period),
+        emptyText: '当前周期还没有点赞回忆',
         errorText: '',
         items: ranking.items,
         loading: false,
@@ -128,14 +139,15 @@ Page<RankingsState, RankingsMethods>({
     }
   },
 
-  async handleCategoryTap(event) {
-    const category = event.currentTarget.dataset.category
-    if (!category || category === this.data.activeCategory) {
+  async handlePeriodTap(event) {
+    const period = event.currentTarget.dataset.period as ManagedRankingPeriod | undefined
+    if (!period || period === this.data.activePeriod) {
       return
     }
     this.setData({
-      activeCategory: category,
+      activePeriod: period,
       items: [],
+      subtitle: getPeriodSubtitle(period),
     })
     await this.loadRanking()
   },
@@ -144,44 +156,21 @@ Page<RankingsState, RankingsMethods>({
     await this.loadRanking()
   },
 
-  async handleNominateTap(event) {
+  async handleLikeTap(event) {
     const momentId = event.currentTarget.dataset.momentId || ''
-    if (!momentId || this.data.nominatingMomentId) {
+    if (!momentId || this.data.likingMomentId) {
       return
     }
 
-    this.setData({ nominatingMomentId: momentId })
+    this.setData({ likingMomentId: momentId })
     try {
-      const eligibility = await getManagedMomentNominationEligibility(momentId, this.data.activeCategory)
-      if (!eligibility.eligible) {
-        this.showToast(resolveNominationReasonText(eligibility) || '当前不能推举')
-        return
-      }
-
-      const confirmResult = await new Promise<WechatMiniprogram.ShowModalSuccessCallbackResult>((resolve) => {
-        wx.showModal({
-          title: '确认推举',
-          content: `本次将消耗 ${eligibility.pointsCost} 积分`,
-          confirmText: '推举',
-          cancelText: '取消',
-          success: resolve,
-          fail: () => resolve({ cancel: true, confirm: false, content: '', errMsg: 'showModal:fail' }),
-        })
-      })
-      if (!confirmResult.confirm) {
-        return
-      }
-
-      await createManagedMomentNomination(momentId, {
-        category: this.data.activeCategory,
-        clientNominationId: `ranking-${momentId}-${Date.now()}`,
-      })
-      this.showToast('推举成功')
+      const result = await toggleManagedMomentLike(momentId)
+      this.showToast(result.likedByMe ? '已点赞' : '已取消点赞')
       await this.loadRanking()
     } catch (error) {
-      this.showToast(error instanceof Error ? error.message : '推举失败')
+      this.showToast(error instanceof Error ? error.message : '点赞失败')
     } finally {
-      this.setData({ nominatingMomentId: '' })
+      this.setData({ likingMomentId: '' })
     }
   },
 

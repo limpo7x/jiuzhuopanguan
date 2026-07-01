@@ -47,6 +47,7 @@ const VISIBILITIES = new Set(['private', 'selected', 'session', 'share', 'featur
 const EVENT_TYPES = new Set(['drink_debt', 'drink_add', 'wheel_result'])
 const SHARE_TASK_STATUSES = new Set(['pending', 'processing', 'ready', 'failed', 'expired'])
 const RANKING_CATEGORIES = new Set(['today_funny', 'today_debt', 'today_highlight', 'today_visual', 'best_opening', 'best_closing'])
+const RANKING_PERIODS = new Set(['day', 'week', 'month'])
 const DEFAULT_NOMINATION_POINTS = 10
 
 const nowIso = () => new Date().toISOString()
@@ -97,6 +98,7 @@ const createDefaultStore = () => ({
   shareImageTasks: [],
   momentReports: [],
   momentNominations: [],
+  momentLikes: [],
   rankingRewardPayouts: [],
   rankingRewardRules: [],
   uploadedAssets: [],
@@ -265,6 +267,21 @@ const normalizeMomentNomination = (item = {}) => {
   }
 }
 
+const normalizeMomentLike = (item = {}) => {
+  const createdAt = cleanText(item.createdAt) || nowIso()
+  return {
+    id: cleanText(item.id) || createId('moment-like'),
+    momentId: cleanText(item.momentId),
+    sessionId: cleanText(item.sessionId),
+    profileId: cleanText(item.profileId),
+    profileName: cleanText(item.profileName),
+    profileAvatarUrl: cleanText(item.profileAvatarUrl),
+    removedAt: cleanText(item.removedAt),
+    createdAt,
+    updatedAt: cleanText(item.updatedAt) || createdAt,
+  }
+}
+
 const normalizeRankingRewardPayout = (item = {}) => {
   const createdAt = cleanText(item.createdAt) || nowIso()
   return {
@@ -331,6 +348,7 @@ const normalizeStore = (store = {}) => ({
   shareImageTasks: Array.isArray(store.shareImageTasks) ? store.shareImageTasks.map(normalizeShareImageTask) : [],
   momentReports: Array.isArray(store.momentReports) ? store.momentReports : [],
   momentNominations: Array.isArray(store.momentNominations) ? store.momentNominations.map(normalizeMomentNomination) : [],
+  momentLikes: Array.isArray(store.momentLikes) ? store.momentLikes.map(normalizeMomentLike) : [],
   rankingRewardPayouts: Array.isArray(store.rankingRewardPayouts) ? store.rankingRewardPayouts.map(normalizeRankingRewardPayout) : [],
   rankingRewardRules: Array.isArray(store.rankingRewardRules) ? store.rankingRewardRules : [],
   uploadedAssets: Array.isArray(store.uploadedAssets) ? store.uploadedAssets.map(normalizeUploadedAsset) : [],
@@ -350,6 +368,8 @@ const writeMomentsStore = (store) => storeAccessor.write(store)
 const getProfileId = (profile = {}) => cleanText(profile.id || profile.profileId)
 const buildProfileAvatarMap = () =>
   new Map((listProfiles() || []).map((item) => [cleanText(item.id), cleanText(item.avatarUrl)]).filter((item) => item[0]))
+const buildProfileMap = () =>
+  new Map((listProfiles() || []).map((item) => [cleanText(item.id), item]).filter((item) => item[0]))
 const resolveAvatarUrl = ({ sessionId = '', profileId = '', preferredAvatarUrl = '' } = {}) => {
   const direct = cleanText(preferredAvatarUrl)
   if (direct) {
@@ -357,8 +377,36 @@ const resolveAvatarUrl = ({ sessionId = '', profileId = '', preferredAvatarUrl =
   }
   const normalizedProfileId = cleanText(profileId)
   if (!normalizedProfileId) {
-    return ''
+  return ''
+}
+
+const getActiveMomentLikes = (store = {}, momentId = '') =>
+  (Array.isArray(store.momentLikes) ? store.momentLikes : []).filter(
+    (item) => cleanText(item.momentId) === cleanText(momentId) && !cleanText(item.removedAt) && cleanText(item.profileId),
+  )
+
+const getMomentLikeSummary = (store = {}, momentId = '', viewerProfileId = '') => {
+  const profileMap = buildProfileMap()
+  const likes = getActiveMomentLikes(store, momentId)
+  const normalizedViewerProfileId = cleanText(viewerProfileId)
+  const likers = likes
+    .map((like) => {
+      const profile = profileMap.get(cleanText(like.profileId)) || {}
+      return {
+        profileId: cleanText(like.profileId),
+        profileName: cleanText(like.profileName || profile.name) || '聚友',
+        avatarUrl: cleanText(like.profileAvatarUrl || profile.avatarUrl),
+        createdAt: cleanText(like.createdAt),
+      }
+    })
+    .sort((left, right) => String(right.createdAt).localeCompare(String(left.createdAt)))
+  return {
+    likeCount: likers.length,
+    likedByMe: Boolean(normalizedViewerProfileId && likers.some((item) => item.profileId === normalizedViewerProfileId)),
+    latestLikeAt: likers[0]?.createdAt || '',
+    likers,
   }
+}
   const session = sessionId ? getManagedSessionById(sessionId) : null
   const memberAvatarUrl = cleanText(
     (Array.isArray(session?.members) ? session.members : []).find((item) => cleanText(item?.profileId) === normalizedProfileId)?.avatarUrl,
@@ -493,8 +541,9 @@ const computeMomentStatus = (moment = {}) => {
   }
 }
 
-const serializeMomentForViewer = (moment = {}, profileId = '') => {
+const serializeMomentForViewer = (moment = {}, profileId = '', store = null) => {
   const allowed = isViewerAllowedForMoment(moment, profileId)
+  const likeSummary = store ? getMomentLikeSummary(store, moment.id, profileId) : { likeCount: Number(moment.likeCount) || 0, likedByMe: false }
   const uploaderAvatarUrl = resolveAvatarUrl({
     sessionId: moment.sessionId,
     profileId: moment.uploaderProfileId,
@@ -521,6 +570,8 @@ const serializeMomentForViewer = (moment = {}, profileId = '') => {
     moderationReason: allowed ? moment.moderationReason : undefined,
     rankingEligible: allowed ? moment.rankingEligible : false,
     rewardEligible: allowed ? moment.rewardEligible : false,
+    likeCount: likeSummary.likeCount,
+    likedByMe: likeSummary.likedByMe,
     isTimelinePlaceholder: !allowed,
     createdAt: moment.createdAt,
     updatedAt: moment.updatedAt,
@@ -539,8 +590,8 @@ const serializeMomentForViewer = (moment = {}, profileId = '') => {
   }
 }
 
-const serializeMomentForPublicRanking = (moment = {}) => {
-  const viewerMoment = serializeMomentForViewer(moment, moment.uploaderProfileId)
+const serializeMomentForPublicRanking = (moment = {}, profileId = '', store = null) => {
+  const viewerMoment = serializeMomentForViewer(moment, profileId || moment.uploaderProfileId, store)
   return {
     id: viewerMoment.id,
     nodeKind: viewerMoment.nodeKind,
@@ -554,6 +605,8 @@ const serializeMomentForPublicRanking = (moment = {}) => {
     timelineTitle: viewerMoment.timelineTitle,
     completionStatus: viewerMoment.completionStatus,
     rankingEligible: viewerMoment.rankingEligible,
+    likeCount: viewerMoment.likeCount,
+    likedByMe: viewerMoment.likedByMe,
     createdAt: viewerMoment.createdAt,
     updatedAt: viewerMoment.updatedAt,
     imageUrl: viewerMoment.imageUrl,
@@ -585,6 +638,35 @@ const getTodayYmd = (value = Date.now()) =>
     month: '2-digit',
     day: '2-digit',
   }).format(new Date(value))
+
+const formatYmdFromDate = (date) =>
+  `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`
+
+const parseYmdAsUtcDate = (ymd = '') => {
+  const [year, month, day] = String(ymd || '').split('-').map((item) => Number(item))
+  return new Date(Date.UTC(year || 1970, Math.max(0, (month || 1) - 1), day || 1))
+}
+
+const getRankingPeriodRange = (period = 'day', reference = Date.now()) => {
+  const normalizedPeriod = RANKING_PERIODS.has(cleanText(period)) ? cleanText(period) : 'day'
+  const today = getTodayYmd(reference)
+  const todayDate = parseYmdAsUtcDate(today)
+  let startDate = new Date(todayDate.getTime())
+  if (normalizedPeriod === 'week') {
+    const day = startDate.getUTCDay() || 7
+    startDate = new Date(startDate.getTime() - (day - 1) * 24 * 60 * 60 * 1000)
+  }
+  if (normalizedPeriod === 'month') {
+    startDate = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), 1))
+  }
+  return {
+    period: normalizedPeriod,
+    startYmd: formatYmdFromDate(startDate),
+    endYmd: today,
+  }
+}
+
+const isYmdInRange = (ymd = '', range = {}) => Boolean(ymd && ymd >= range.startYmd && ymd <= range.endYmd)
 
 const findMomentById = (store, nodeId) =>
   store.momentRecords.find((item) => item.id === cleanText(nodeId) && !item.removedAt) || null
@@ -2275,7 +2357,7 @@ const getSessionTimeline = ({ sessionId, profile }) => {
   const store = readMomentsStore()
   const moments = store.momentRecords
     .filter((item) => item.sessionId === cleanText(sessionId) && !item.removedAt)
-    .map((item) => serializeMomentForViewer(item, profileId))
+    .map((item) => serializeMomentForViewer(item, profileId, store))
   const events = store.sessionEvents
     .filter((item) => item.sessionId === cleanText(sessionId))
     .map(serializeEvent)
@@ -2685,37 +2767,67 @@ const getUserSessionMomentSummaries = ({ profile }) => {
   })
 }
 
-const buildRankingEntry = ({ moment, nominations, rank, category }) => {
+const isMomentEligibleForRankingCategory = (moment = {}, category = '') => {
+  const normalizedCategory = RANKING_CATEGORIES.has(cleanText(category)) ? cleanText(category) : 'today_highlight'
+  if (normalizedCategory === 'best_opening') {
+    return moment.nodeType === 'opening'
+  }
+  if (normalizedCategory === 'best_closing') {
+    return moment.nodeType === 'closing'
+  }
+  return true
+}
+
+const buildRankingEntry = ({ moment, nominations, rank, category, store, profileId = '' }) => {
   const pointsTotal = nominations.reduce((sum, item) => sum + (Number(item.pointsSpent) || 0), 0)
   const nominationCount = nominations.length
+  const likeSummary = getMomentLikeSummary(store, moment.id, profileId)
   const latestNominationAt = nominations
     .map((item) => item.createdAt)
     .filter(Boolean)
     .sort()
     .at(-1) || ''
+  const latestActivityAt = [latestNominationAt, likeSummary.latestLikeAt, moment.updatedAt, moment.createdAt]
+    .filter(Boolean)
+    .sort()
+    .at(-1) || ''
   return {
     category,
-    moment: serializeMomentForPublicRanking(moment),
+    moment: serializeMomentForPublicRanking(moment, profileId, store),
+    likeCount: likeSummary.likeCount,
+    likedByMe: likeSummary.likedByMe,
     nominationCount,
     pointsTotal,
     rank,
-    score: pointsTotal + nominationCount,
+    score: likeSummary.likeCount,
     latestNominationAt,
+    latestActivityAt,
   }
 }
 
-const listTodayRankings = ({ category = 'today_highlight', limit = 20 } = {}) => {
+const listTodayRankings = ({ category = 'today_highlight', limit = 10, period = 'day', profile } = {}) => {
   const normalizedCategory = RANKING_CATEGORIES.has(cleanText(category)) ? cleanText(category) : 'today_highlight'
-  const today = getTodayYmd()
+  const profileId = getProfileId(profile)
+  const range = getRankingPeriodRange(period)
   const store = readMomentsStore()
   const momentMap = new Map(
     store.momentRecords
-      .filter((item) => isMomentPublicForRanking(item))
+      .filter(
+        (item) =>
+          isMomentPublicForRanking(item) &&
+          isMomentEligibleForRankingCategory(item, normalizedCategory) &&
+          isYmdInRange(getTodayYmd(item.createdAt || item.updatedAt), range),
+      )
       .map((item) => [item.id, item]),
   )
   const nominationGroups = new Map()
   store.momentNominations
-    .filter((item) => item.status === 'active' && item.category === normalizedCategory && getTodayYmd(item.createdAt) === today)
+    .filter(
+      (item) =>
+        item.status === 'active' &&
+        item.category === normalizedCategory &&
+        isYmdInRange(getTodayYmd(item.createdAt), range),
+    )
     .forEach((item) => {
       if (!momentMap.has(item.momentId)) {
         return
@@ -2724,18 +2836,81 @@ const listTodayRankings = ({ category = 'today_highlight', limit = 20 } = {}) =>
       group.push(item)
       nominationGroups.set(item.momentId, group)
     })
+  const candidateMomentIds = new Set(nominationGroups.keys())
+  momentMap.forEach((moment, momentId) => candidateMomentIds.add(momentId))
   return {
     category: normalizedCategory,
-    date: today,
-    items: Array.from(nominationGroups.entries())
-      .map(([momentId, nominations]) => buildRankingEntry({ moment: momentMap.get(momentId), nominations, category: normalizedCategory }))
+    date: range.endYmd,
+    period: range.period,
+    startDate: range.startYmd,
+    endDate: range.endYmd,
+    items: Array.from(candidateMomentIds)
+      .map((momentId) =>
+        buildRankingEntry({
+          moment: momentMap.get(momentId),
+          nominations: nominationGroups.get(momentId) || [],
+          category: normalizedCategory,
+          store,
+          profileId,
+        }),
+      )
       .sort((left, right) => {
-        if (right.score !== left.score) return right.score - left.score
-        if (right.pointsTotal !== left.pointsTotal) return right.pointsTotal - left.pointsTotal
-        return new Date(right.latestNominationAt).getTime() - new Date(left.latestNominationAt).getTime()
+        if (right.likeCount !== left.likeCount) return right.likeCount - left.likeCount
+        return new Date(right.latestActivityAt).getTime() - new Date(left.latestActivityAt).getTime()
       })
-      .slice(0, Math.max(1, Math.min(100, Number(limit) || 20)))
+      .slice(0, Math.max(1, Math.min(10, Number(limit) || 10)))
       .map((item, index) => ({ ...item, rank: index + 1 })),
+  }
+}
+
+const toggleMomentLike = ({ momentId, profile } = {}) => {
+  const profileId = getProfileId(profile)
+  if (!profileId) {
+    throw createHttpError('unauthorized', 401)
+  }
+  const normalizedMomentId = cleanText(momentId)
+  const store = readMomentsStore()
+  const moment = findMomentById(store, normalizedMomentId)
+  if (!moment || moment.removedAt) {
+    throw createHttpError('moment not found', 404)
+  }
+  const session = assertSession(moment.sessionId)
+  const isMember = Boolean(getSessionMember(session, profileId))
+  const isPublicRankingMoment = isMomentPublicForRanking(moment)
+  if (!isPublicRankingMoment && (!isMember || !isViewerAllowedForMoment(moment, profileId))) {
+    throw createHttpError('forbidden', 403)
+  }
+  const now = nowIso()
+  const existingIndex = (store.momentLikes || []).findIndex(
+    (item) => cleanText(item.momentId) === normalizedMomentId && cleanText(item.profileId) === profileId && !cleanText(item.removedAt),
+  )
+  let liked = false
+  if (existingIndex >= 0) {
+    store.momentLikes[existingIndex] = normalizeMomentLike({
+      ...store.momentLikes[existingIndex],
+      removedAt: now,
+      updatedAt: now,
+    })
+  } else {
+    liked = true
+    store.momentLikes.unshift(normalizeMomentLike({
+      id: createId('moment-like'),
+      momentId: normalizedMomentId,
+      sessionId: cleanText(session.id || moment.sessionId),
+      profileId,
+      profileName: cleanText(profile.name),
+      profileAvatarUrl: cleanText(profile.avatarUrl),
+      createdAt: now,
+      updatedAt: now,
+    }))
+  }
+  writeMomentsStore(store)
+  const summary = getMomentLikeSummary(store, normalizedMomentId, profileId)
+  return {
+    momentId: normalizedMomentId,
+    liked,
+    likeCount: summary.likeCount,
+    likedByMe: summary.likedByMe,
   }
 }
 
@@ -3042,6 +3217,7 @@ module.exports = {
   readMomentsStore,
   refundMomentNominationsForMoment,
   retryShareImageTask,
+  toggleMomentLike,
   updateMoment,
   uploadMomentImage,
   uploadMomentVideo,

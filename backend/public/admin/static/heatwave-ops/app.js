@@ -869,6 +869,29 @@ const renderTableCell = (column, item) => {
   return escapeHtml(value)
 }
 
+const renderDetailView = (context = {}) => `
+  <div class="detail-view">
+    ${
+      context.imageUrl
+        ? `<div class="detail-media"><img src="${escapeHtml(context.imageUrl)}" alt="${escapeHtml(context.title || '详情图片')}" loading="lazy" /></div>`
+        : ''
+    }
+    <div class="detail-grid">
+      ${(context.fields || [])
+        .map(
+          (field) => `
+        <div class="detail-field">
+          <span class="detail-label">${escapeHtml(field.label || '')}</span>
+          <span class="detail-value">${escapeHtml(field.value ?? '')}</span>
+        </div>`,
+        )
+        .join('')}
+    </div>
+    <div class="detail-tables">
+      ${(context.tables || []).map((table) => renderTable(table, table.rows || [])).join('')}
+    </div>
+  </div>`
+
 const renderSelectField = (field, value, common) => {
   const options = Array.isArray(field?.options) ? field.options : []
   const currentValue = value == null ? '' : String(value)
@@ -1101,6 +1124,27 @@ const runAdminRowAction = async (tableKey, rowId, actionKey) => {
   const action = (table?.rowActions || []).find((item) => item.key === actionKey)
   if (!table || !row || !action) {
     setStatus('未找到要执行的后台操作', 'error')
+    return
+  }
+  if (action.view === 'detail') {
+    const endpoint = interpolateActionEndpoint(action.endpoint, row)
+    try {
+      setStatus(`${action.label}加载中…`, 'normal')
+      const detail = await request(endpoint, { method: action.method || 'GET' })
+      state.editor = {
+        mode: 'custom-view',
+        context: {
+          ...detail,
+          view: 'detail',
+          canDelete: false,
+        },
+      }
+      captureEditorReturnFocus()
+      render()
+      setStatus(`${action.label}已打开`, 'success')
+    } catch (error) {
+      setStatus(error.message || `${action.label}失败`, 'error')
+    }
     return
   }
   let reason = ''
@@ -1377,7 +1421,9 @@ const renderEditorOverlay = () => {
         </div>
         <div class="editor-dialog-body">
           ${
-            context.view === 'table'
+            context.view === 'detail'
+              ? renderDetailView(context)
+              : context.view === 'table'
               ? renderTable(
                   {
                     title: '',

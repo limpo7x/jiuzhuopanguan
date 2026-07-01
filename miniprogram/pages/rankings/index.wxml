@@ -1,26 +1,26 @@
-<navigation-bar title="今日回忆榜" back="{{false}}" customBack="{{false}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
+<navigation-bar title="回忆榜" back="{{false}}" customBack="{{false}}" bind:back="handleBackTap" color="#111317" background="transparent" ext-class="pp-nav-page"></navigation-bar>
 <view class="pp-page">
   <image class="pp-stage-bg" src="https://cdn.pomer.cn/static/party-pop-clean/app-bg-party-pop-390x844.png" mode="aspectFill"></image>
   <scroll-view class="pp-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="pp-hero pp-panel-lime">
       <text class="pp-kicker">{{dateText}}</text>
-      <text class="pp-title">今日回忆榜</text>
+      <text class="pp-title">回忆榜</text>
       <text class="pp-body">{{subtitle}}</text>
       <view class="pp-button pp-button-secondary" style="margin-top: 14px;" bindtap="handleFeatureZoneTap">查看积分与奖励</view>
     </view>
     <scroll-view class="pp-rank-category-scroll" scroll-x enhanced show-scrollbar="{{false}}">
-      <view class="pp-chip-row"><view wx:for="{{categories}}" wx:key="value" class="pp-chip {{activeCategory === item.value ? 'pp-chip-active' : ''}}" data-category="{{item.value}}" bindtap="handleCategoryTap">{{item.label}}</view></view>
+      <view class="pp-chip-row"><view wx:for="{{periods}}" wx:key="value" class="pp-chip {{activePeriod === item.value ? 'pp-chip-active' : ''}}" data-period="{{item.value}}" bindtap="handlePeriodTap">{{item.label}}</view></view>
     </scroll-view>
     <view wx:if="{{loading}}" class="pp-loading"><view class="pp-loading-dot"></view><text>榜单刷新中</text></view>
     <view wx:elif="{{items.length}}" class="pp-list">
       <view wx:for="{{items}}" wx:key="id" class="pp-list-item" data-image-url="{{item.imageUrl}}" bindtap="handleImageTap">
         <text class="pp-logo pp-logo-small">#{{item.rank}}</text>
         <image wx:if="{{item.imageUrl}}" class="pp-thumb" style="width: 78px; height: 78px;" src="{{item.imageUrl}}" mode="aspectFill"></image>
-        <view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">热度 {{item.heatText}} · {{item.nominationText}}</text></view>
-        <text class="pp-chip" data-id="{{item.id}}" data-moment-id="{{item.momentId}}" bindtap="handleNominateTap">推举</text>
+        <view class="pp-list-copy"><text class="pp-list-title">{{item.title}}</text><text class="pp-caption">{{item.heatText}}</text></view>
+        <text class="pp-chip {{item.likedByMe ? 'pp-chip-active' : ''}}" data-id="{{item.id}}" data-moment-id="{{item.momentId}}" catchtap="handleLikeTap">{{item.likedByMe ? '已赞' : '点赞'}}</text>
       </view>
     </view>
-    <view wx:else class="pp-empty"><image class="pp-empty-sticker" src="https://cdn.pomer.cn/static/party-pop-clean/empty-memory-sticker.png" mode="aspectFit"></image><text class="pp-section-title">{{emptyText || '今天还没有上榜回忆'}}</text><text class="pp-body">拍下第一张照片后，回忆会慢慢排起来。</text><view class="pp-button pp-button-secondary" bindtap="handleRefreshTap">重试</view></view>
+    <view wx:else class="pp-empty"><image class="pp-empty-sticker" src="https://cdn.pomer.cn/static/party-pop-clean/empty-memory-sticker.png" mode="aspectFit"></image><text class="pp-section-title">{{emptyText || '当前榜单还没有点赞'}}</text><text class="pp-body">拍下照片并点赞后，回忆会进入榜单。</text><view class="pp-button pp-button-secondary" bindtap="handleRefreshTap">重试</view></view>
   </scroll-view>
 
 <view class="pp-bottom-nav">

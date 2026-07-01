@@ -168,6 +168,8 @@ interface RemoteMomentRecord {
   coverImageUrl?: string
   duration?: number
   imageUrl?: string
+  likeCount?: number
+  likedByMe?: boolean
   mediaUrl?: string
   photoUrl?: string
   thumbnailUrl?: string
@@ -318,10 +320,14 @@ interface RemoteSessionMomentSummary {
 }
 
 type RemoteRankingCategory = 'today_funny' | 'today_debt' | 'today_highlight' | 'today_visual' | 'best_opening' | 'best_closing'
+type RemoteRankingPeriod = 'day' | 'week' | 'month'
 
 interface RemoteRankingItem {
   category?: RemoteRankingCategory
+  latestActivityAt?: string
   latestNominationAt?: string
+  likeCount?: number
+  likedByMe?: boolean
   moment?: RemoteMomentRecord
   nominationCount?: number
   pointsTotal?: number
@@ -332,7 +338,10 @@ interface RemoteRankingItem {
 interface RemoteTodayRanking {
   category?: RemoteRankingCategory
   date?: string
+  endDate?: string
   items?: RemoteRankingItem[]
+  period?: RemoteRankingPeriod
+  startDate?: string
 }
 
 interface RemoteMomentNominationEligibility {
@@ -608,6 +617,7 @@ export type ManagedMomentSecondaryReviewStatus = 'pending' | 'approved' | 'rejec
 export type ManagedSessionEventType = 'drink_debt' | 'drink_add' | 'wheel_result'
 export type ManagedShareImageTaskStatus = 'pending' | 'processing' | 'ready' | 'failed' | 'expired'
 export type ManagedRankingCategory = RemoteRankingCategory
+export type ManagedRankingPeriod = RemoteRankingPeriod
 export type ManagedContractRecord = Record<string, unknown>
 
 export interface ManagedMomentUsageConsent {
@@ -643,6 +653,8 @@ export interface ManagedMomentRecord {
   duration?: number
   imageUrl?: string
   isTimelinePlaceholder: boolean
+  likeCount: number
+  likedByMe: boolean
   mediaType: 'image' | 'video'
   moderationCheckedAt?: string
   moderationLabel?: string
@@ -819,18 +831,30 @@ export interface ManagedSessionMomentSummary {
 
 export interface ManagedRankingItem {
   category: ManagedRankingCategory
+  heatText: string
+  id: string
+  imageUrl: string
+  latestActivityAt: string
   latestNominationAt: string
+  likeCount: number
+  likedByMe: boolean
   moment: ManagedMomentRecord
+  momentId: string
   nominationCount: number
+  nominationText: string
   pointsTotal: number
   rank: number
   score: number
+  title: string
 }
 
 export interface ManagedTodayRanking {
   category: ManagedRankingCategory
   date: string
+  endDate: string
   items: ManagedRankingItem[]
+  period: ManagedRankingPeriod
+  startDate: string
 }
 
 export interface ManagedMomentNominationEligibility {
@@ -1274,6 +1298,8 @@ const normalizeMomentRecord = (item?: RemoteMomentRecord): ManagedMomentRecord =
     id: item?.id || '',
     imageUrl: mediaType === 'video' ? coverImageUrl : resolveRemoteMomentImageUrl(item),
     isTimelinePlaceholder: Boolean(item?.isTimelinePlaceholder),
+    likeCount: Number(item?.likeCount) || 0,
+    likedByMe: Boolean(item?.likedByMe),
     mediaType,
     moderationCheckedAt: item?.moderationCheckedAt || '',
     moderationLabel: item?.moderationLabel || '',
@@ -1459,20 +1485,40 @@ const RANKING_CATEGORIES: ManagedRankingCategory[] = [
 const normalizeRankingCategory = (category?: string): ManagedRankingCategory =>
   RANKING_CATEGORIES.includes(category as ManagedRankingCategory) ? (category as ManagedRankingCategory) : 'today_highlight'
 
-const normalizeRankingItem = (item?: RemoteRankingItem): ManagedRankingItem => ({
-  category: normalizeRankingCategory(item?.category),
-  latestNominationAt: item?.latestNominationAt || '',
-  moment: normalizeMomentRecord(item?.moment),
-  nominationCount: Number(item?.nominationCount) || 0,
-  pointsTotal: Number(item?.pointsTotal) || 0,
-  rank: Number(item?.rank) || 0,
-  score: Number(item?.score) || 0,
-})
+const normalizeRankingPeriod = (period?: string): ManagedRankingPeriod =>
+  period === 'week' || period === 'month' ? period : 'day'
+
+const normalizeRankingItem = (item?: RemoteRankingItem): ManagedRankingItem => {
+  const moment = normalizeMomentRecord(item?.moment)
+  const likeCount = Number(item?.likeCount ?? moment.likeCount) || 0
+  const nominationCount = Number(item?.nominationCount) || 0
+  return {
+    category: normalizeRankingCategory(item?.category),
+    heatText: `${likeCount} 赞`,
+    id: moment.id || `ranking-${Number(item?.rank) || 0}`,
+    imageUrl: moment.imageUrl || moment.coverImageUrl || '',
+    latestActivityAt: item?.latestActivityAt || item?.latestNominationAt || moment.updatedAt || moment.createdAt || '',
+    latestNominationAt: item?.latestNominationAt || '',
+    likeCount,
+    likedByMe: Boolean(item?.likedByMe ?? moment.likedByMe),
+    moment,
+    momentId: moment.id,
+    nominationCount,
+    nominationText: nominationCount ? `${nominationCount} 次推举` : '等待推举',
+    pointsTotal: Number(item?.pointsTotal) || 0,
+    rank: Number(item?.rank) || 0,
+    score: Number(item?.score ?? likeCount) || 0,
+    title: moment.timelineTitle || moment.caption || '聚会回忆',
+  }
+}
 
 const normalizeTodayRanking = (ranking?: RemoteTodayRanking): ManagedTodayRanking => ({
   category: normalizeRankingCategory(ranking?.category),
   date: ranking?.date || '',
+  endDate: ranking?.endDate || ranking?.date || '',
   items: Array.isArray(ranking?.items) ? ranking.items.map(normalizeRankingItem) : [],
+  period: normalizeRankingPeriod(ranking?.period),
+  startDate: ranking?.startDate || ranking?.date || '',
 })
 
 const normalizeMomentNominationEligibility = (eligibility?: RemoteMomentNominationEligibility): ManagedMomentNominationEligibility => ({
@@ -1817,13 +1863,21 @@ export const retryManagedShareImageTask = async (taskId: string): Promise<Manage
   }
 
 export const getManagedTodayRanking = async (
-  category: ManagedRankingCategory = 'today_highlight',
-  limit = 20,
+  period: ManagedRankingPeriod = 'day',
+  limit = 10,
 ): Promise<ManagedTodayRanking> =>
   normalizeTodayRanking(
     await requestJson<RemoteTodayRanking>(
-      `/rankings/today?category=${encodeURIComponent(category)}&limit=${encodeURIComponent(String(limit))}`,
+      `/rankings/today?category=today_highlight&period=${encodeURIComponent(period)}&limit=${encodeURIComponent(String(limit))}`,
     ),
+  )
+
+export const toggleManagedMomentLike = async (
+  momentId: string,
+): Promise<{ liked: boolean; likedByMe: boolean; likeCount: number; momentId: string }> =>
+  requestJson<{ liked: boolean; likedByMe: boolean; likeCount: number; momentId: string }>(
+    `/moments/${encodeURIComponent(momentId)}/like`,
+    'POST',
   )
 
 export const getManagedMomentNominationEligibility = async (
