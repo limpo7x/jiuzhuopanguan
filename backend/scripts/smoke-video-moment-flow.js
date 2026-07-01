@@ -15,6 +15,17 @@ const tinyPngDataUrl =
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+const assertNotProductionDataPath = () => {
+  const normalizedBackendDir = backendDir.replace(/\\/g, '/')
+  const isServerDeployPath = normalizedBackendDir.includes('/www/wwwroot/')
+  if (isServerDeployPath && process.env.SMOKE_ALLOW_PRODUCTION_DATA !== '1') {
+    throw new Error(
+      'smoke:video-moments writes store data and is blocked on production deploy paths. ' +
+        'Run it in a local/staging workspace, or set SMOKE_ALLOW_PRODUCTION_DATA=1 only with a verified disposable data snapshot.',
+    )
+  }
+}
+
 const withTimeout = (promise, ms, label) =>
   Promise.race([
     promise,
@@ -180,6 +191,8 @@ const cleanupSmokeData = async ({ profileIds = [], sessionId = '' } = {}) => {
 }
 
 const main = async () => {
+  assertNotProductionDataPath()
+
   const stamp = Date.now()
   const hostSession = createMiniSession({ openId: `video-moment-host-${stamp}`, name: `Video Host ${stamp}` })
   const profileIds = [hostSession.profile.id]
