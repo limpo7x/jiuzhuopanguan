@@ -15,6 +15,14 @@ const tinyPngDataUrl =
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+const withTimeout = (promise, ms, label) =>
+  Promise.race([
+    promise,
+    delay(ms).then(() => {
+      throw new Error(`${label} timed out after ${ms}ms`)
+    }),
+  ])
+
 const assert = (condition, message) => {
   if (!condition) {
     throw new Error(message)
@@ -136,10 +144,10 @@ const cleanupSmokeData = async ({ profileIds = [], sessionId = '' } = {}) => {
   const assets = (momentsStore.uploadedAssets || []).filter((item) => String(item?.sessionId || '') === String(sessionId))
   for (const asset of assets) {
     if (asset.objectKey) {
-      await deleteObject({ key: asset.objectKey }).catch(() => undefined)
+      await withTimeout(deleteObject({ key: asset.objectKey }), 5000, `delete ${asset.objectKey}`).catch(() => undefined)
     }
     if (asset.coverObjectKey) {
-      await deleteObject({ key: asset.coverObjectKey }).catch(() => undefined)
+      await withTimeout(deleteObject({ key: asset.coverObjectKey }), 5000, `delete ${asset.coverObjectKey}`).catch(() => undefined)
     }
   }
   Object.keys(momentsStore).forEach((key) => {
