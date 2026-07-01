@@ -39,12 +39,17 @@ interface BriefNominationItem {
 
 interface BriefTimelineItem {
   actionLabel: string
+  coverImageUrl: string
   detail: string
+  durationText: string
   id: string
   imageUrl: string
+  isVideo: boolean
+  mediaType: 'image' | 'video' | ''
   nodeKind: string
   timeText: string
   title: string
+  videoUrl: string
 }
 
 interface SessionBriefState {
@@ -91,7 +96,13 @@ interface SessionBriefMethods {
 }
 
 const countPhotoNodes = (nodes: ManagedTimelineNode[]) =>
-  nodes.filter((item) => item.nodeKind === 'moment' && !!item.imageUrl && !item.isTimelinePlaceholder).length
+  nodes.filter((item) => item.nodeKind === 'moment' && item.mediaType !== 'video' && !!item.imageUrl && !item.isTimelinePlaceholder).length
+
+const countVideoNodes = (nodes: ManagedTimelineNode[]) =>
+  nodes.filter((item) => item.nodeKind === 'moment' && item.mediaType === 'video' && (!!item.videoUrl || !!item.coverImageUrl || !!item.imageUrl) && !item.isTimelinePlaceholder).length
+
+const countLedgerEventNodes = (nodes: ManagedTimelineNode[]) =>
+  nodes.filter(isBriefLedgerEventNode).length
 
 const mergeBriefTimeline = (brief: ManagedSessionBrief, nodes: ManagedTimelineNode[], pendingMediaCount = brief.pendingMediaCount): ManagedSessionBrief => ({
   ...brief,
@@ -107,7 +118,8 @@ const mergeBriefTimeline = (brief: ManagedSessionBrief, nodes: ManagedTimelineNo
 const buildStats = (brief: ManagedSessionBrief): BriefStat[] => [
   { label: '开场', value: `${brief.openingMomentIds.length}` },
   { label: '照片', value: `${countPhotoNodes(brief.timeline.nodes)}` },
-  { label: '账本', value: `${brief.accountingHighlights.length}` },
+  { label: '视频', value: `${countVideoNodes(brief.timeline.nodes)}` },
+  { label: '账本', value: `${countLedgerEventNodes(brief.timeline.nodes)}` },
 ]
 
 const countRankingEligibleNodes = (nodes: ManagedTimelineNode[]) =>
@@ -122,7 +134,13 @@ const buildRankingStatusText = (brief: ManagedSessionBrief) => {
 }
 
 const isMomentNodeWithImage = (node: ManagedTimelineNode): node is Extract<ManagedTimelineNode, { nodeKind: 'moment' }> =>
-  node.nodeKind === 'moment' && !node.isTimelinePlaceholder && !!node.imageUrl
+  node.nodeKind === 'moment' && node.mediaType !== 'video' && !node.isTimelinePlaceholder && !!node.imageUrl
+
+const getMomentDisplayCoverUrl = (node: Extract<ManagedTimelineNode, { nodeKind: 'moment' }>) =>
+  String(node.coverImageUrl || node.imageUrl || '').trim()
+
+const hasFullBriefTimelineNodes = (nodes: ManagedTimelineNode[]) =>
+  nodes.some((item) => item.nodeKind === 'event') || nodes.some((item) => item.nodeKind === 'moment' && item.mediaType === 'video')
 
 const getDefaultRankingCategoryFromNode = (node: Extract<ManagedTimelineNode, { nodeKind: 'moment' }>): ManagedRankingCategory => {
   if (node.nodeType === 'opening') return 'best_opening'
@@ -187,7 +205,7 @@ const isBriefLedgerEventNode = (node: ManagedTimelineNode): node is Extract<Mana
 
 const isBriefTimelineDisplayNode = (node: ManagedTimelineNode) => {
   if (node.nodeKind === 'moment') {
-    return !node.isTimelinePlaceholder && !!node.imageUrl
+    return !node.isTimelinePlaceholder && (!!node.imageUrl || !!node.coverImageUrl || !!node.videoUrl)
   }
   return isBriefLedgerEventNode(node)
 }
@@ -198,6 +216,7 @@ const getBriefTimelineActionLabel = (node: ManagedTimelineNode) => {
     if (node.eventType === 'drink_add') return '加酒'
     return '互动'
   }
+  if (node.mediaType === 'video') return '视频'
   return '拍照'
 }
 
@@ -214,18 +233,32 @@ const buildBriefTimelineDetail = (node: ManagedTimelineNode) => {
   if (node.nodeKind === 'event') {
     return buildBriefEventDetail(node)
   }
+  if (node.mediaType === 'video') {
+    const duration = Math.max(0, Number(node.duration) || 0)
+    return `${String(node.uploaderName || '').trim() || '成员'} 录制了${duration ? ` ${duration} 秒` : ''}视频`
+  }
   return String(node.caption || '').trim() || `${String(node.uploaderName || '').trim() || '成员'} 上传了照片`
+}
+
+const formatDurationText = (seconds?: number) => {
+  const duration = Math.max(0, Math.round(Number(seconds) || 0))
+  return duration ? `${duration}s` : ''
 }
 
 const buildBriefTimelineItems = (nodes: ManagedTimelineNode[]): BriefTimelineItem[] =>
   nodes.filter(isBriefTimelineDisplayNode).map((node) => ({
     actionLabel: getBriefTimelineActionLabel(node),
+    coverImageUrl: node.nodeKind === 'moment' ? getMomentDisplayCoverUrl(node) : '',
     detail: buildBriefTimelineDetail(node),
+    durationText: node.nodeKind === 'moment' ? formatDurationText(node.duration) : '',
     id: node.id,
-    imageUrl: node.nodeKind === 'moment' ? node.imageUrl || '' : '',
+    imageUrl: node.nodeKind === 'moment' ? getMomentDisplayCoverUrl(node) : '',
+    isVideo: node.nodeKind === 'moment' && node.mediaType === 'video',
+    mediaType: node.nodeKind === 'moment' ? node.mediaType : '',
     nodeKind: node.nodeKind,
     timeText: formatBriefTime(node.createdAt || node.updatedAt) || '时间未记录',
     title: buildBriefTimelineTitle(node),
+    videoUrl: node.nodeKind === 'moment' ? String(node.videoUrl || '').trim() : '',
   }))
 
 const applyEligibilityToNominationItem = (
@@ -398,27 +431,40 @@ Page<SessionBriefState, SessionBriefMethods>({
   },
 
   async hydrateBriefTimeline(brief) {
-    if (countPhotoNodes(brief.timeline.nodes)) {
-      return brief
-    }
-
     const sessionId = brief.sessionId || this.data.sessionId
     if (!sessionId) {
       return brief
     }
 
+    const shouldHydrateTimeline =
+      !brief.timeline.nodes.length ||
+      !hasFullBriefTimelineNodes(brief.timeline.nodes) ||
+      countVideoNodes(brief.timeline.nodes) === 0
+
     try {
       const refreshedBrief = await createOrRefreshManagedSessionBrief(sessionId)
-      if (countPhotoNodes(refreshedBrief.timeline.nodes) || refreshedBrief.timeline.nodes.length > brief.timeline.nodes.length) {
+      if (
+        refreshedBrief.timeline.nodes.length > brief.timeline.nodes.length ||
+        countVideoNodes(refreshedBrief.timeline.nodes) > countVideoNodes(brief.timeline.nodes) ||
+        countLedgerEventNodes(refreshedBrief.timeline.nodes) > countLedgerEventNodes(brief.timeline.nodes)
+      ) {
         return refreshedBrief
       }
     } catch {
       // Continue to direct timeline fallback below.
     }
 
+    if (!shouldHydrateTimeline) {
+      return brief
+    }
+
     try {
       const timeline = await getManagedSessionTimeline(sessionId)
-      if (countPhotoNodes(timeline.nodes) || timeline.nodes.length > brief.timeline.nodes.length) {
+      if (
+        timeline.nodes.length > brief.timeline.nodes.length ||
+        countVideoNodes(timeline.nodes) > countVideoNodes(brief.timeline.nodes) ||
+        countLedgerEventNodes(timeline.nodes) > countLedgerEventNodes(brief.timeline.nodes)
+      ) {
         return mergeBriefTimeline(brief, timeline.nodes, timeline.pendingMediaCount)
       }
     } catch {
@@ -609,6 +655,36 @@ Page<SessionBriefState, SessionBriefMethods>({
     const detail = (event as WechatMiniprogram.CustomEvent<{ id?: string }>).detail || {}
     const dataset = (event as WechatMiniprogram.BaseEvent).currentTarget?.dataset as { id?: string } | undefined
     const nodeId = detail.id || dataset?.id || ''
+    const selectedNode = this.data.timelineNodes.find((item) => item.id === nodeId)
+    if (selectedNode?.nodeKind === 'moment' && selectedNode.mediaType === 'video') {
+      const videoUrl = String(selectedNode.videoUrl || '').trim()
+      if (!videoUrl) {
+        this.showToast('视频暂时无法播放')
+        return
+      }
+      const previewMedia = (wx as unknown as {
+        previewMedia?: (options: {
+          current?: number
+          sources: Array<{ poster?: string; type: 'video'; url: string }>
+          fail?: () => void
+        }) => void
+      }).previewMedia
+      if (previewMedia) {
+        previewMedia({
+          current: 0,
+          sources: [{
+            poster: getMomentDisplayCoverUrl(selectedNode),
+            type: 'video',
+            url: videoUrl,
+          }],
+          fail: () => this.showToast('视频暂时无法播放'),
+        })
+        return
+      }
+      this.showToast('当前微信版本暂不支持视频预览')
+      return
+    }
+
     const imageNodes = this.data.timelineNodes.filter(isMomentNodeWithImage)
     const current = imageNodes.find((item) => item.id === nodeId)
     if (!current?.imageUrl || !imageNodes.length) {

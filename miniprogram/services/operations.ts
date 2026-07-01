@@ -1717,16 +1717,12 @@ export const createOrRefreshManagedSessionBrief = async (sessionId: string): Pro
 
 export const getManagedSessionBrief = async (briefId: string): Promise<ManagedSessionBrief> => {
   try {
+    return normalizeSessionBrief(await requestJson<RemoteSessionBrief>(`/session-briefs/${encodeURIComponent(briefId)}`))
+  } catch (rawError) {
+    if (!isRouteFallbackError(rawError)) {
+      throw rawError
+    }
     return normalizeSessionBrief(await requestJson<RemoteSessionBrief>(`/briefs/${encodeURIComponent(briefId)}`))
-  } catch (cleanError) {
-    if (!isRouteFallbackError(cleanError)) {
-      throw cleanError
-    }
-    try {
-      return normalizeSessionBrief(await requestJson<RemoteSessionBrief>(`/session-briefs/${encodeURIComponent(briefId)}`))
-    } catch {
-      throw cleanError
-    }
   }
 }
 
