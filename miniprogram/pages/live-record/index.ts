@@ -221,6 +221,7 @@ interface LiveRecordMethods {
   createQuickPhotoMoment: (filePath: string) => Promise<void>
   persistRecordsToManagedSession: (records: LiveRecordItem[]) => Promise<boolean>
   queueEndedShareImageTask: () => Promise<string>
+  showVideoSaveError: (stage: string, error: unknown) => void
   showPreviewToast: (message: string) => void
   syncRecordsToRuntime: (records: LiveRecordItem[]) => void
   startAccessCheck: () => void
@@ -312,7 +313,43 @@ const normalizeVideoDuration = (value?: number) => {
 
 const getErrorStatusCode = (error: unknown) => Number((error as Error & { statusCode?: number })?.statusCode || 0)
 
-const getErrorMessage = (error: unknown) => String((error as Error)?.message || '')
+const getErrorMessage = (error: unknown) => {
+  const source = error as Error & { data?: unknown; errMsg?: string; message?: string }
+  const message = String(source?.message || source?.errMsg || '')
+  if (message) {
+    return message
+  }
+  if (source?.data && typeof source.data === 'object') {
+    const dataMessage = String((source.data as { message?: unknown })?.message || '')
+    if (dataMessage) {
+      return dataMessage
+    }
+  }
+  return ''
+}
+
+const videoSaveStageLabelMap: Record<string, string> = {
+  create: '创建时间线记录',
+  prepare: '读取封面/压缩视频',
+  timeline: '刷新时间线',
+  upload: '上传视频文件',
+}
+
+const getVideoSaveStageLabel = (stage: string) => videoSaveStageLabelMap[stage] || '保存视频'
+
+const buildVideoSaveErrorContent = (stage: string, error: unknown) => {
+  const statusCode = getErrorStatusCode(error)
+  const readableMessage = getVideoSaveErrorMessage(stage, error)
+  const rawMessage = getErrorMessage(error)
+  return [
+    `失败阶段：${getVideoSaveStageLabel(stage)}`,
+    statusCode ? `状态码：${statusCode}` : '',
+    `原因：${readableMessage}`,
+    rawMessage && rawMessage !== readableMessage ? `原始错误：${rawMessage}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
 
 const getVideoSaveErrorMessage = (stage: string, error: unknown) => {
   const statusCode = getErrorStatusCode(error)
@@ -1911,7 +1948,7 @@ Page<LiveRecordState, LiveRecordMethods>({
       if (uploadedAssetId) {
         await cleanupManagedMomentUpload(uploadedAssetId).catch(() => undefined)
       }
-      this.showPreviewToast(getVideoSaveErrorMessage(stage, error))
+      this.showVideoSaveError(stage, error)
     } finally {
       wx.hideLoading()
       this.setData({ quickVideoSaving: false })
@@ -2372,8 +2409,23 @@ Page<LiveRecordState, LiveRecordMethods>({
 
   showPreviewToast(message) {
     wx.showToast({
+      duration: 4000,
       title: message,
       icon: 'none',
+    })
+  },
+
+  showVideoSaveError(stage, error) {
+    wx.showModal({
+      cancelText: '关闭',
+      confirmText: '重试',
+      content: buildVideoSaveErrorContent(stage, error),
+      title: '视频保存失败',
+      success: (result) => {
+        if (result.confirm) {
+          this.handleRecordVideoTap()
+        }
+      },
     })
   },
 
