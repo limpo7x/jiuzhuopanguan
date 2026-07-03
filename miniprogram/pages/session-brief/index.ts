@@ -143,9 +143,7 @@ const hasFullBriefTimelineNodes = (nodes: ManagedTimelineNode[]) =>
   nodes.some((item) => item.nodeKind === 'event') || nodes.some((item) => item.nodeKind === 'moment' && item.mediaType === 'video')
 
 const getDefaultRankingCategoryFromNode = (node: Extract<ManagedTimelineNode, { nodeKind: 'moment' }>): ManagedRankingCategory => {
-  if (node.nodeType === 'opening') return 'best_opening'
-  if (node.nodeType === 'closing') return 'best_closing'
-  if (node.nodeType === 'drinking') return 'today_debt'
+  void node
   return 'today_highlight'
 }
 

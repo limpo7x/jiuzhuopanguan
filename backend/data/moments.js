@@ -674,15 +674,13 @@ const findMomentById = (store, nodeId) =>
 const findEventById = (store, nodeId) => store.sessionEvents.find((item) => item.id === cleanText(nodeId)) || null
 
 const getDefaultRankingCategory = (moment = {}) => {
-  if (moment.nodeType === 'opening') return 'best_opening'
-  if (moment.nodeType === 'closing') return 'best_closing'
-  if (moment.nodeType === 'drinking') return 'today_debt'
+  void moment
   return 'today_highlight'
 }
 
 const getRankingCategory = (value, moment = {}) => {
-  const category = cleanText(value)
-  return RANKING_CATEGORIES.has(category) ? category : getDefaultRankingCategory(moment)
+  void value
+  return getDefaultRankingCategory(moment)
 }
 
 const getMomentPosterImageUrl = (moment = {}) =>
@@ -2837,7 +2835,7 @@ const listTodayRankings = ({ category = 'today_highlight', limit = 10, period = 
     .filter(
       (item) =>
         item.status === 'active' &&
-        item.category === normalizedCategory &&
+        (normalizedCategory === 'today_highlight' ? RANKING_CATEGORIES.has(cleanText(item.category)) : item.category === normalizedCategory) &&
         isYmdInRange(getTodayYmd(item.createdAt), range),
     )
     .forEach((item) => {
@@ -2949,7 +2947,6 @@ const getMomentNominationEligibility = async ({ momentId, profile, category }) =
       item.status === 'active' &&
       item.momentId === moment.id &&
       item.profileId === profileId &&
-      item.category === normalizedCategory &&
       getTodayYmd(item.createdAt) === today,
   )
   return {
