@@ -88,16 +88,26 @@ const getWechatAccessToken = async () => {
   return accessTokenCache.token
 }
 
+const unwrapProviderResponse = (value = {}) => {
+  if (!value || typeof value !== 'object') {
+    return {}
+  }
+  if (value.Response && typeof value.Response === 'object') {
+    return value.Response
+  }
+  return value
+}
+
 const parseProviderData = (payload = {}) => {
   const rawData = payload.data
   if (typeof rawData === 'string') {
     try {
-      return JSON.parse(rawData || '{}')
+      return unwrapProviderResponse(JSON.parse(rawData || '{}'))
     } catch {
       return {}
     }
   }
-  return rawData && typeof rawData === 'object' ? rawData : {}
+  return unwrapProviderResponse(rawData)
 }
 
 const normalizeSuggestion = (value = '') => {

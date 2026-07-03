@@ -790,6 +790,18 @@ const buildModerationAssetFields = (result = {}) => ({
   secondaryReviewStatus: result.passed ? 'approved' : 'require_resubmit',
 })
 
+const buildPendingModerationAssetFields = (reason = '') => ({
+  moderationCheckedAt: '',
+  moderationLabel: '',
+  moderationReason: cleanText(reason),
+  moderationRequestId: '',
+  moderationScore: 0,
+  moderationSubLabel: '',
+  moderationSuggestion: '',
+  reviewStatus: 'pending',
+  secondaryReviewStatus: 'pending',
+})
+
 const ensureMomentModerationForRanking = async (momentId = '') => {
   const store = readMomentsStore()
   const index = store.momentRecords.findIndex((item) => item.id === cleanText(momentId) && !item.removedAt)
@@ -3074,12 +3086,17 @@ const uploadMomentImage = async ({ profile, payload = {} }) => {
   const sessionId = cleanText(payload.sessionId)
   assertSessionMember(sessionId, profile)
   const { buffer } = parseImageDataUrl(payload.dataUrl)
-  const moderationResult = await moderateImage({
-    clientMsgId: `upload-${sessionId || 'general'}-${Date.now()}`,
-    fileContent: buffer.toString('base64'),
-  })
-  if (!moderationResult.passed) {
-    throw createHttpError(moderationResult.reason || '图片内容安全审核未通过，请更换后再试', 400)
+  let moderationFields = buildPendingModerationAssetFields()
+  try {
+    const moderationResult = await moderateImage({
+      clientMsgId: `upload-${sessionId || 'general'}-${Date.now()}`,
+      fileContent: buffer.toString('base64'),
+    })
+    moderationFields = buildModerationAssetFields(moderationResult)
+  } catch (error) {
+    moderationFields = buildPendingModerationAssetFields(
+      error instanceof Error ? error.message : '图片审核暂不可用，推举前会重新确认',
+    )
   }
   const safeBaseName =
     cleanText(path.parse(cleanText(payload.fileName) || 'moment').name)
@@ -3115,7 +3132,7 @@ const uploadMomentImage = async ({ profile, payload = {} }) => {
     publicUrl: storedObject.publicUrl,
     localCompatUrl: storedObject.localCompatUrl,
     storageProvider: storedObject.provider,
-    ...buildModerationAssetFields(moderationResult),
+    ...moderationFields,
     createdAt: nowIso(),
   }
   const store = readMomentsStore()
