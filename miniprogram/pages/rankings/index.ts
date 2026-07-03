@@ -38,9 +38,9 @@ interface RankingsMethods {
 }
 
 const rankingPeriods: RankingPeriodOption[] = [
-  { label: '当日回忆榜', subtitle: '今日点赞 Top10', value: 'day' },
-  { label: '本周最佳回忆', subtitle: '本周点赞 Top10', value: 'week' },
-  { label: '本月回忆王', subtitle: '本月点赞 Top10', value: 'month' },
+  { label: '当日回忆榜', subtitle: '今日推举回忆按点赞 Top10', value: 'day' },
+  { label: '本周最佳回忆', subtitle: '本周推举回忆按点赞 Top10', value: 'week' },
+  { label: '本月回忆王', subtitle: '本月推举回忆按点赞 Top10', value: 'month' },
 ]
 
 const formatRankingDate = (startDate = '', endDate = '', period: ManagedRankingPeriod = 'day') => {
@@ -54,7 +54,7 @@ const formatRankingDate = (startDate = '', endDate = '', period: ManagedRankingP
 }
 
 const getPeriodSubtitle = (period: ManagedRankingPeriod) =>
-  rankingPeriods.find((item) => item.value === period)?.subtitle || '点赞 Top10'
+  rankingPeriods.find((item) => item.value === period)?.subtitle || '推举回忆按点赞 Top10'
 
 const TAB_ROUTES: Record<string, string> = {
   home: '/pages/index/index',
@@ -78,14 +78,14 @@ Page<RankingsState, RankingsMethods>({
   data: {
     activePeriod: 'day',
     dateText: '今日',
-    emptyText: '当前榜单还没有点赞',
+    emptyText: '当前榜单还没有推举回忆',
     errorText: '',
     items: [],
     likingMomentId: '',
     loading: true,
     periods: rankingPeriods,
     skeletonRows: [1, 2, 3],
-    subtitle: '按点赞数排序，只展示前 10 名',
+    subtitle: '推举后按点赞数排序，只展示前 10 名',
   },
 
   async onLoad(query) {
@@ -122,7 +122,7 @@ Page<RankingsState, RankingsMethods>({
       const ranking = await getManagedTodayRanking(this.data.activePeriod, 10)
       this.setData({
         dateText: formatRankingDate(ranking.startDate, ranking.endDate || ranking.date, ranking.period),
-        emptyText: '当前周期还没有点赞回忆',
+        emptyText: '当前周期还没有推举回忆',
         errorText: '',
         items: ranking.items,
         loading: false,

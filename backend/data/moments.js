@@ -2849,7 +2849,6 @@ const listTodayRankings = ({ category = 'today_highlight', limit = 10, period = 
       nominationGroups.set(item.momentId, group)
     })
   const candidateMomentIds = new Set(nominationGroups.keys())
-  momentMap.forEach((moment, momentId) => candidateMomentIds.add(momentId))
   return {
     category: normalizedCategory,
     date: range.endYmd,
